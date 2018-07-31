@@ -65,9 +65,9 @@ module file_io
 		complex(dp),	allocatable, 	intent(inout)	::	H_mat(:,:,:), r_mat(:,:,:,:)
 		real(dp),		allocatable						::	R_tilde_vect(:,:)
 		logical											::	tb_exist, hr_exist, r_exist
-
+		!
 		r_exist = .false.
-
+		!
 		!inquire(file=)
 		inquire(file=w90_dir//seed_name//'_tb.dat',	exist=tb_exist)
 		if(tb_exist) then
@@ -81,20 +81,10 @@ module file_io
 			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
 			if(  r_exist )	then
 				call read_r_file(w90_dir//seed_name, R_tilde_vect, r_mat)
-				
-
-
-
-
-
-				!todo: make sure R_tilde_vect and R_vect are identical
-				!if not: remap r_mat tp R_vect
-
 			end if
-
 		end if
-
-
+		!
+		!
 		return
 	end subroutine
 
@@ -144,6 +134,20 @@ module file_io
 		!
 		return
 	end subroutine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
