@@ -45,7 +45,7 @@ module parameters
 	!
 	integer						::	mpi_id, mpi_root_id, mpi_nProcs, ierr,												&
 									valence_bands, mp_grid(3)
-	character(len=10)			:: 	seed_name
+	character(len=3)			:: 	seed_name
 	character(len=9)			::	w90_dir	="w90files/"
 	character(len=7)			::	out_dir ="MEPout/"
 	logical						::	r_exists, do_gauge_trafo, plot_bands, use_interp_kpt
@@ -73,18 +73,42 @@ module parameters
 			call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"	)
 			!READ SCALARS
 			![unitCell]
-			call CFG_add_get(my_cfg,	"unitCell%a1"      				,	a_latt(1,1:3)  	  	,	"a_x lattice vector"				)
-			call CFG_add_get(my_cfg,	"unitCell%a2"      				,	a_latt(2,1:3)  	  	,	"a_y lattice vector"				)
-			call CFG_add_get(my_cfg,	"unitCell%a3"      				,	a_latt(3,1:3)  	  	,	"a_z lattice vector"				)
+			call CFG_add_get(my_cfg,	"unitCell%a1"      				,	a1(1:3)  	  	,	"a_x lattice vector"				)
+			call CFG_add_get(my_cfg,	"unitCell%a2"      				,	a2(1:3)  	  	,	"a_y lattice vector"				)
+			call CFG_add_get(my_cfg,	"unitCell%a3"      				,	a3(1:3)  	  	,	"a_z lattice vector"				)
 			call CFG_add_get(my_cfg,	"unitCell%a0"					,	a0					,	"lattice scaling factor "			)
-			!		
+			!
+			a_latt(1,1:3)	= a1(1:3)
+			a_latt(2,1:3)	= a2(1:3)
+			a_latt(3,1:3)	= a3(1:3)
 			a_latt		=	a0 * a_latt
 			![wannInterp]
-			call CFG_add_get(my_cfg,	"wannInterp%do_gauge_trafo"		,	do_gauge_trafo		,	"if true calc velos in Ham gauge"	)
+			call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
+			call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files			")
 			call CFG_add_get(my_cfg,	"wannInterp%use_interp_kpt"		,	use_interp_kpt		,	"use w90 _geninterp.kpt file"		)
-			call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the Tight Binding files")
+			call CFG_add_get(my_cfg,	"wannInterp%do_gauge_trafo"		,	do_gauge_trafo		,	"if true calc velos in Ham gauge"	)
 			![mep]
 			call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
+
+			write(*,*)					"**********************init_parameters********************************************"
+			write(*,*)					"parallelization with ",mpi_nProcs," MPI threads"
+			write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
+			write(*,*)					"[methods]"
+			write(*,*)					"	plot_bands=",plot_bands
+			write(*,*)					"[unitCell]"
+			write(*,*)					"	a1=",a1(1:3)
+			write(*,*)					"	a2=",a2(1:3)
+			write(*,*)					"	a3=",a3(1:3)
+			write(*,*)					"	a0=",a0
+			write(*,*)					"[wannInterp]"
+			write(*,*)					"	seed_name=",seed_name
+			write(*,'(a,200(i3))')		"	mp_grid=",mp_grid(1:3)
+			write(*,*)					"	gauge_trafo=",do_gauge_trafo
+			write(*,*)					"	use_interp_kpt=",use_interp_kpt
+			write(*,*)					"[mep]"
+			write(*,'(a,i4)')			"	val bands=",valence_bands
+			write(*,*)					"---------------------------------------------------------------------------"
+
 		end if
 
 		!ROOT BCAST
@@ -93,7 +117,8 @@ module parameters
 		call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		seed_name		,	len(seed_name)		,		MPI_CHAR			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-	
+		call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+
 		a1(1:3)		=	a_latt(1,1:3)
 		a2(1:3)		=	a_latt(2,1:3)
 		a3(1:3)		=	a_latt(3,1:3)
