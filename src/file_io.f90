@@ -177,7 +177,7 @@ module file_io
 			!
 			do band = 1, size(ek_bands,1)
 				write(220,'(200(f16.8))',advance="no")	(kpt_latt(x,qi_idx), x=1,size(kpt_latt,1)	)
-				write(200, '(a,f18.8)')			'	',ek_bands(band)
+				write(220, '(a,f18.8)')			'	',ek_bands(band)
 			end do
 			!		
 		end do
