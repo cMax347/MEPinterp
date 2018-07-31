@@ -96,19 +96,6 @@ module wann_interp
 	end subroutine
 
 
-	subroutine wann_interp_energy()
-
-		return
-	end subroutine
-
-
-
-
-	subroutine wann_interp_velos()
-
-
-		return
-	end subroutine
 
 
 
