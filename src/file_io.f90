@@ -164,11 +164,10 @@ module file_io
 		real(dp),	intent(in)			::	kpt_latt(:,:)
 		real(dp),	allocatable			::	ek_bands(:)
 		integer							::	qi_idx, band, x
-
+		!
 		allocate(	ek_bands(num_bands)		)
-
-		open(unit=220, form='formatted', action='write', access='stream', status='replace')
-
+		!
+		open(unit=220, file=out_dir//'eBands.dat', form='formatted', action='write', access='stream', status='replace')
 		write(220,*)	'# energies interpolated by MEPinterp program'
 		write(220,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
 		write(220,*)	'# Kpt_idx  K_x (frac)       K_y (frac)        K_z (frac)       Energy (Hartree)  '
@@ -182,8 +181,7 @@ module file_io
 			!		
 		end do
 		close(220)
-
-
+		!
 		return
 	end subroutine
 
