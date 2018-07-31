@@ -430,7 +430,7 @@ module file_io
 		real(dp)										::	real2(2)
 		integer,		allocatable						::	R_degneracy(:)
 
-		open(unit=310, file=w90_dir//seed_name//'_hr.dat',	form='formatted', action='read', access='stream', status='old')
+		open(unit=310, file=seed_name//'_hr.dat',	form='formatted', action='read', access='stream', status='old')
 
 		!read header
 		read(310,*)
@@ -450,15 +450,24 @@ module file_io
 			if(to_read >= 15)	then
 				read(310,*)		int15(1:15)
 				R_degneracy(idx:idx+14)	=	int15(1:15)
-				idx = idx+15
+				idx = idx+15	
 				to_read = to_read-15
 			else
 				read(310,*)		int15(1:to_read)
 				R_degneracy(idx:(idx+to_read-1))	= int15(1:to_read)
+				idx	= idx + to_read
 				to_read	= 0
 			end if
 		end do
-		if(	idx /= f_nSC)	stop 'issue reading Wigner Seitz degeneracy in  _hr.dat file'
+		if(	idx-1 /= f_nSC)	then
+			if(mpi_id==mpi_root_id)	 then
+				write(*,*)	'idx=',idx,' f_nSC=',f_nSC
+				write(*,*)	R_degneracy(1:f_nSC) 
+			end if
+
+
+			stop 'issue reading Wigner Seitz degeneracy (idx/=f_nSC) in  _hr.dat file'
+		end if
 		!
 		!read body
 		idx = 0
@@ -503,7 +512,7 @@ module file_io
 		integer											::	f_nwfs, sc, m, n, int3(3), it
 		real(dp)										::	real6(6)
 		!
-		open(unit=320, file=w90_dir//seed_name//'_r.dat',	form='formatted', action='read', access='stream', status='old')
+		open(unit=320, file=seed_name//'_r.dat',	form='formatted', action='read', access='stream', status='old')
 		read(320,*)
 		read(320,*)	f_nwfs
 		!
