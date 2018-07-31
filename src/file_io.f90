@@ -1,6 +1,6 @@
 module file_io
 	use parameters,						only:		dp, aUtoAngstrm, aUtoEv, 			&
-													mpi_id,								&
+													mpi_id, mpi_root_id,				&
 													w90_dir, out_dir, 					&
 													a_latt, mp_grid,					&
 													plot_bands,  use_interp_kpt,		&
@@ -25,7 +25,6 @@ module file_io
 		character(len=*), 					intent(in) 			:: 	seed_name
 		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
 		logical													::	found_kpts_pl, found_kpts_wann
-		integer													::	i
 		!
 		found_kpts_pl	= .false.
 		found_kpts_wann	= .false.
@@ -40,8 +39,9 @@ module file_io
 		!
 		!IF NOT FOUND SET UP MP GRID
 		if( .not. plot_bands .and. .not. found_kpts_wann) then
-			write(*,'(a,i3,a,200(i5,a))')	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate (", (mp_grid(i),"x",i=1,3),") MP grid"
+			write(*,'(a,i3,a,i3,a,i3,a,i3,a)')	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate (",mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
 			call get_rel_kpts(mp_grid, kpt_latt)
+			if( mpi_id == mpi_root_id)	call write_geninterp_kpt_file(seed_name, kpt_latt)
 		end if
 		!
 		return
@@ -75,7 +75,7 @@ module file_io
 			r_exist	= .true.
 		else
 			inquire(file=w90_dir//seed_name//'_hr.dat', exist=hr_exist)
-			if( .not. hr_exist)		stop 'could not read the real space Hamiltonian'
+			if( .not. hr_exist)		stop 'ERROR could not read the real space Hamiltonian'
 			call read_hr_file(w90_dir//seed_name, R_vect, H_mat)
 			!
 			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
@@ -122,21 +122,41 @@ module file_io
 		!
 		!
 		!write result to file
-		open(unit=200, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
-			write(200,*)	"MEP tensor calculated via Niu's semiclassic formalism"
-			write(200,*)	'begin mep'
+		open(unit=210, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
+			write(210,*)	"#MEP tensor calculated via Niu's semiclassic formalism"
+			write(210,*)	'begin mep'
 			do row = 1, 3
-				write(200,'(200(f16.8,a))')		(		mep_tens(row,clm), ' ', clm=1,3)
+				write(210,'(200(f16.8,a))')		(		mep_tens(row,clm), ' ', clm=1,3)
 			end do
-			write(200,*)	'end mep'
-		close(200)
+			write(210,*)	'end mep'
+		close(210)
 		!
 		!
 		return
 	end subroutine
 
 
+	subroutine write_geninterp_kpt_file(seed_name, kpt_latt)
+		character(len=*),	intent(in)			::	seed_name
+		real(dp),			intent(in)			::	kpt_latt(:,:)	
+		integer									::	qi_idx, x		
 
+
+		open(unit=200, file = seed_name//'_geninterp.kpt', form='formatted', action='write',	access='stream', status='replace')
+		write(200,*)	'# fractional kpts created by MEPInterp'
+		write(200,*)	'frac'
+		write(200,*)	size(kpt_latt,2)
+
+
+		do qi_idx = 1, size(kpt_latt,2)
+			write(200,'(i3,a)',advance="no")	qi_idx, ' '
+			write(200,'(*(f16.8))')		(kpt_latt(x,qi_idx), x= 1, size(kpt_latt,1))
+		end do
+		close(200)
+		write(*,'(a,i3,a,a)')		'[#',mpi_id,'; write_geninterp_kpt_file]: wrote ',seed_name//'_geninterp.kpt file'
+
+		return
+	end subroutine
 
 
 
@@ -181,7 +201,7 @@ module file_io
 				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
 			end do
 			close(100)
-			write(*,'(a,i3,a)')	"[#",mpi_id," read_kptsgen_pl_file]: success!"
+			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
 		end if 
 
 		!
@@ -196,32 +216,43 @@ module file_io
 		character(len=500)										::	info_line
 		integer													::	num_kpts, kpt, raw_idx
 		real(dp)												::	raw_kpt(3)
+		logical													::	found_file, is_frac
 		!
 		filename	= seed_name//'_geninterp.kpt'
-		inquire(file=w90_dir//filename, exist=read_geninterp_kpt_file)
+		inquire(file=w90_dir//filename, exist=found_file)
+		if(.not. found_file )		write(*,*)	w90_dir//filename,' not found '
+		if( found_file )			write(*,*)	w90_dir//filename,' file was found'
+		is_frac	= .false.
 		!
-		if(	read_geninterp_kpt_file ) then
+		if(	found_file ) then
 			open(unit=110, file=w90_dir//filename,	form='formatted', action='read', access='stream', 	status='old'	)
 			!
 			!read header
+			read(110,*)
 			read(110,*)	info_line
-			if( index(info_line,'frac') == 0) stop '[read_k_mesh]:	read_k_mesh is only implemented for fractional k-meshes currently'
-			read(110,*)	num_kpts
-			!
-			!allocate body container
-			allocate(	kpt_latt(3,	num_kpts)	)
-			!
-			!read body
-			do kpt = 1, num_kpts
-				read(110,*)		raw_idx, raw_kpt(1:3)
-				kpt_latt(1:3,raw_idx)	= raw_kpt(1:3)
-				if(raw_idx /= kpt)	write(*,*)'[read_k_mesh]: WARNING, issues with k-mesh ordering detected'	
-			end do
+			is_frac = 	index(info_line,'frac') /=0
+			
+			if( is_frac ) then
+				read(110,*)	num_kpts
+				!
+				!allocate body container
+				allocate(	kpt_latt(3,	num_kpts)	)
+				!
+				!read body
+				do kpt = 1, num_kpts
+					read(110,*)		raw_idx, raw_kpt(1:3)
+					kpt_latt(1:3,raw_idx)	= raw_kpt(1:3)
+					if(raw_idx /= kpt)	write(*,'(a,i3,a)') '[#',mpi_id,'; read_geninterp_kpt_file]: WARNING, issues with k-mesh ordering detected'	
+				end do
+				write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_geninterp_kpt_file]: success! num_kpts=",num_kpts
+			else
+				write(*,'(a,i3,a)')	"[#",mpi_id,"; read_geninterp_kpt_file]: file is not given in fractional coordinates (will not use file)"
+			end if
 			!
 			close(110)
-			write(*,'(a,i3,a)')	"[#",mpi_id," read_geninterp_kpt_file]: success!"
 		end if
 		!
+		read_geninterp_kpt_file = found_file .and. is_frac
 		return
 	end function
 
