@@ -181,6 +181,7 @@ module file_io
 			!		
 		end do
 		close(220)
+		write(*,'(a,i3,a)')		"[#",mpi_id,"; write_en_global]: success!"
 		!
 		return
 	end subroutine
@@ -208,6 +209,7 @@ module file_io
 			!
 			if(old_exists)	write(*,*)	'WARNING: the following file will be overwritten: ',filename
 			call rename('mep_tens.dat',filename)
+			write(*,'(a,i3,a,a,a)')	"[#",mpi_id,"; write_mep_tensor]: renamed 'mep_tens.dat' to '",filename,"' "
 		end if
 		!
 		!
@@ -220,6 +222,7 @@ module file_io
 			end do
 			write(250,*)	'end mep'
 		close(250)
+		write(*,'(a,i3,a)')	"[#",mpi_id,"; write_mep_tensor]: success!"
 		!
 		!
 		return
