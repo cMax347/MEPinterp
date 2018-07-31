@@ -151,7 +151,6 @@ module file_io
 		character(len=24)				::	filename
 		!
 		write(filename, format) raw_dir//'/enK.',qi_idx
-		write(*,*)	'will write: ',filename
 		open(unit=210,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
 		write(210)	e_bands(1:num_bands)
 		close(210) 
