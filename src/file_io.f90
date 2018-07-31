@@ -39,8 +39,14 @@ module file_io
 		!
 		!IF NOT FOUND SET UP MP GRID
 		if( .not. plot_bands .and. .not. found_kpts_wann) then
-			write(*,'(a,i3,a,i3,a,i3,a,i3,a)')	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate (",mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
+			if( use_interp_kpt)	then
+				write(*,'(a,i3,a,i3,a,i3,a,i3,a)')	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate (",mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
+			else 
+				write(*,'(a,i3,a,i3,a,i3,a,i3,a)')	"[#",mpi_id,"; read_k_mesh]: a new kpt file is generated as requested (",mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
+			end if
 			call get_rel_kpts(mp_grid, kpt_latt)
+			!
+			!write to file
 			if( mpi_id == mpi_root_id)	call write_geninterp_kpt_file(seed_name, kpt_latt)
 		end if
 		!
