@@ -11,7 +11,7 @@ module parameters
 												!routines		
 												myExp, myLeviCivita, init_parameters, get_rel_kpts,					&
 												!dirs
-												w90_dir, out_dir,													&
+												w90_dir, out_dir, raw_dir,											&
 												!jobs
 												plot_bands,	use_interp_kpt,											&
 												!constatns
@@ -22,7 +22,7 @@ module parameters
 												mpi_root_id, mpi_id, mpi_nProcs, ierr,								&
 												!vars
 												seed_name,	do_gauge_trafo,	 valence_bands,							&
-												a_latt, unit_vol, recip_latt, mp_grid
+												a_latt, unit_vol, recip_latt, mp_grid, num_bands
 
 
 	!for clean double precision convention through the code
@@ -44,10 +44,11 @@ module parameters
 
 	!
 	integer						::	mpi_id, mpi_root_id, mpi_nProcs, ierr,												&
-									valence_bands, mp_grid(3)
+									valence_bands, mp_grid(3), num_bands
 	character(len=3)			:: 	seed_name
+	character(len=7)			::	out_dir ="MEPout/"					
 	character(len=9)			::	w90_dir	="w90files/"
-	character(len=7)			::	out_dir ="MEPout/"
+	character(len=3)			::	raw_dir ="raw/"
 	logical						::	r_exists, do_gauge_trafo, plot_bands, use_interp_kpt
 	real(dp)					::	a_latt(3,3), a0, unit_vol, recip_latt(3,3)
 
@@ -62,7 +63,7 @@ module parameters
 !public
 	subroutine init_parameters()
 		real(dp)				::	tmp(3), a1(3), a2(3), a3(3)
-		type(CFG_t) :: 	my_cfg
+		type(CFG_t) 			:: 	my_cfg
 		!
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
@@ -107,8 +108,13 @@ module parameters
 			write(*,*)					"	use_interp_kpt=",use_interp_kpt
 			write(*,*)					"[mep]"
 			write(*,'(a,i4)')			"	val bands=",valence_bands
-			write(*,*)					"---------------------------------------------------------------------------"
+			
 
+			!make the output folder
+			call my_mkdir(out_dir)
+			call my_mkdir(raw_dir)				
+			
+			write(*,*)					"---------------------------------------------------------------------------"
 		end if
 
 		!ROOT BCAST
@@ -205,6 +211,21 @@ module parameters
 
 
 
+
+!private
+	subroutine my_mkdir(dir)
+		character(len=*)			::	dir
+		logical						::	dir_exists
+		character(len=8)		::	mkdir="mkdir ./"	!to use with system(mkdir//$dir_path) 	
+		!
+		inquire(directory=dir, exist=dir_exists)
+		if( .not. dir_exists )	then
+			call system(mkdir//dir)
+			write(*,'(a,i3,a,a)')	"[",mpi_id,"#; init_parameters]: created directory ",dir
+		end if
+		!
+		return
+	end subroutine
 
 
 

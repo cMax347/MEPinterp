@@ -1,6 +1,7 @@
 module wann_interp
 	use parameters,		only:		dp, i_dp, myExp,			&
-									a_latt
+									a_latt,						&
+									do_gauge_trafo
 
 
 	implicit none
@@ -74,12 +75,12 @@ module wann_interp
 		!
 		do x = 1, 3
 
-			call gauge_trafo(U_k,	H_ka(x,:,:)		)
+			if( do_gauge_trafo)		call gauge_trafo(U_k,	H_ka(x,:,:)		)
 
 			V_k(x,:,:)	=	V_k(x,:,:) +	H_ka(x,:,:)
 
 			if( allocated(A_ka)	) then
-				call gauge_trafo(U_k,	A_ka(x,:,:) )
+				if( do_gauge_trafo)		call gauge_trafo(U_k,	A_ka(x,:,:) )
 				!
 				do n = 1, size(V_k,3)
 					do m = 1, size(V_k,2)
