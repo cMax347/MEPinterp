@@ -192,26 +192,8 @@ module file_io
 
 	subroutine write_mep_tensor(mep_tens)
 		real(dp),	intent(in)		::	mep_tens(3,3)
-		integer						::	row, clm, count
-		logical						::	old_exists, org_exists
+		integer						::	row, clm
 		character(len=60)			::	filename
-		!
-		inquire(file=out_dir//'mep_tens.dat', exist= org_exists)
-		if(org_exists) then
-			filename	= out_dir//'mep_tens.dat'
-			count 		= 0
-			!try to find a new filename
-			do while( old_exists .and. count < 10)
-				filename = filename//'.old' 
-				inquire(file=filename, exist=old_exists)
-				count = count + 1
-			end do
-			!
-			if(old_exists)	write(*,*)	'WARNING: the following file will be overwritten: ',filename
-			call rename('mep_tens.dat',filename)
-			write(*,'(a,i3,a,a,a)')	"[#",mpi_id,"; write_mep_tensor]: renamed 'mep_tens.dat' to '",filename,"' "
-		end if
-		!
 		!
 		!write result to file
 		open(unit=250, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
