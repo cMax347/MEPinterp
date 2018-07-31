@@ -62,5 +62,5 @@ set(CMAKE_Fortran_FLAGS "-mkl -g -CB -check all -fpe0 -warn -traceback -debug ex
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 
 # generate executable and link library
-add_executable(mepInterp.exe ${sources})
+add_executable(main.exe ${sources})
 target_link_libraries(main.exe config_fortran ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/wannier90/libwannier.a)
