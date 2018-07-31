@@ -37,7 +37,7 @@ module mep_niu
 	subroutine	mep_interp(	mep_tens_tot)
 		real(dp),		intent(out)			::	mep_tens_tot(3,3)
 		!
-		real(dp)							::	mep_tens_k(3,3)	
+		real(dp)							::	mep_tens_k(3,3)	, F2(3,3), F3(3,3)
 		integer								::	ki
 		complex(dp),	allocatable			::	H_real(:,:,:), r_mat(:,:,:,:), 			&
 												U_k(:,:), H_ka(:,:,:), A_ka(:,:,:), 	&
@@ -72,8 +72,9 @@ module mep_niu
 			call velo_interp(U_k, en_k, H_ka, A_ka, V_k)
 			!get MEP_tensor
 			mep_tens_k	=	0.0_dp
-			call calc_mep_tensor(V_k, en_k, mep_tens_k)
-			!
+			call get_F2(V_k, en_k, F2)
+			call get_F3(V_k, en_k, F3)
+			mep_tens_k	=	F2 + F3			!
 			!sum MEP over kpts
 			mep_tens_tot = mep_tens_tot + mep_tens_k
 		end do
@@ -94,23 +95,6 @@ module mep_niu
 
 
 !private:
-	subroutine calc_mep_tensor(velo, En, mep_tens)
-		complex(dp),	intent(in)		::	velo(:,:,:)
-		real(dp),		intent(in)		::	En(:)
-		real(dp),		intent(out)		::	mep_tens(3,3)
-		real(dp)						::	F2(3,3), F3(3,3)
-		!
-		mep_tens	= 	0.0_dp		
-		!		
-		call get_F2(	velo, En, F2)
-		call get_F3(	velo, En, F3)
-		!
-		mep_tens 	=	F2 + F3
-		!
-		return 
-	end subroutine
-
-
 	subroutine get_F2(velo, En,	F2)
 		complex(dp),		intent(in)		::	velo(:,:,:)
 		real(dp),			intent(in)		::	En(:)
