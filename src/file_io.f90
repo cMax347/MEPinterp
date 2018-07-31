@@ -293,8 +293,6 @@ module file_io
 		!
 		filename	= seed_name//'_geninterp.kpt'
 		inquire(file=w90_dir//filename, exist=found_file)
-		if(.not. found_file )		write(*,*)	w90_dir//filename,' not found '
-		if( found_file )			write(*,*)	w90_dir//filename,' file was found'
 		is_frac	= .false.
 		!
 		if(	found_file ) then
