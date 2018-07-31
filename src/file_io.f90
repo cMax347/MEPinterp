@@ -107,7 +107,7 @@ module file_io
 		real(dp),		intent(out)		::	e_bands(:)
 		character(len=24)				::	filename
 		!
-		write(filename, format) raw_dir//'enK.',qi_idx
+		write(filename, format) raw_dir//'/enK.',qi_idx
 		open(unit=211, file = filename, form='unformatted', action='read', access='stream',		status='replace'		)
 		read(211)	e_bands(1:num_bands)
 		close(211)
@@ -150,7 +150,8 @@ module file_io
 		real(dp),		intent(in)		::	e_bands(:)
 		character(len=24)				::	filename
 		!
-		write(filename, format) raw_dir//'enK.',qi_idx
+		write(filename, format) raw_dir//'/enK.',qi_idx
+		write(*,*)	'will write: ',filename
 		open(unit=210,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
 		write(210)	e_bands(1:num_bands)
 		close(210) 
@@ -192,9 +193,7 @@ module file_io
 
 	subroutine write_mep_tensor(mep_tens)
 		real(dp),	intent(in)		::	mep_tens(3,3)
-		integer						::	row, clm
-		character(len=60)			::	filename
-		!
+		integer						::	row, clm		!
 		!write result to file
 		open(unit=250, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
 			write(250,*)	"#MEP tensor calculated via Niu's semiclassic formalism"
