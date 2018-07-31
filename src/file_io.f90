@@ -1,8 +1,8 @@
 module file_io
 	use parameters,						only:		dp, aUtoAngstrm, aUtoEv, 			&
 													mpi_id, mpi_root_id,				&
-													w90_dir, out_dir, 					&
-													a_latt, mp_grid,					&
+													w90_dir, out_dir, raw_dir, 			&
+													a_latt, mp_grid, num_bands,			&
 													plot_bands,  use_interp_kpt,		&
 													get_rel_kpts
 
@@ -11,11 +11,16 @@ module file_io
 
 	private
 	public									::		read_k_mesh, read_tb_basis,			& 
+													write_en_binary, read_en_binary,	&
+													write_en_global,					&
 													write_mep_tensor
 
-	character(len=8)						::		mkdir="mkdir ./"
+	character(len=64)						::		format='(a,i7.7)'
 
 	contains
+
+
+
 
 
 
@@ -90,58 +95,32 @@ module file_io
 			end if
 		end if
 		!
+		num_bands=size(H_mat,1)
+		!
 		!
 		return
 	end subroutine
+
+
+	subroutine read_en_binary(qi_idx, e_bands)
+		integer,		intent(in)		::	qi_idx
+		real(dp),		intent(out)		::	e_bands(:)
+		character(len=24)				::	filename
+		!
+		write(filename, format) raw_dir//'enK.',qi_idx
+		open(unit=211, file = filename, form='unformatted', action='read', access='stream',		status='replace'		)
+		read(211)	e_bands(1:num_bands)
+		close(211)
+		!
+		return
+	end subroutine
+	
 
 
 
 
 
 !public write:
-	subroutine write_mep_tensor(mep_tens)
-		real(dp),	intent(in)		::	mep_tens(3,3)
-		integer						::	row, clm, count
-		logical						::	old_exists, org_exists, dir_exists
-		character(len=60)			::	filename
-		!
-		inquire(directory=out_dir, exist=dir_exists)
-		if( dir_exists) then
-			!copy old existing file to some new filename
-			inquire(file=out_dir//'mep_tens.dat', exist= org_exists)
-			if(org_exists) then
-				filename	= out_dir//'mep_tens.dat'
-				count 		= 0
-				!try to find a new filename
-				do while( old_exists .and. count < 10)
-					filename = filename//'.old' 
-					inquire(file=filename, exist=old_exists)
-					count = count + 1
-				end do
-				!
-				if(old_exists)	write(*,*)	'WARNING: the following file will be overwritten: ',filename
-				call rename('mep_tens.dat',filename)
-			end if
-		else
-			call system(mkdir//out_dir)
-		end if
-		!
-		!
-		!write result to file
-		open(unit=210, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
-			write(210,*)	"#MEP tensor calculated via Niu's semiclassic formalism"
-			write(210,*)	'begin mep'
-			do row = 1, 3
-				write(210,'(200(f16.8,a))')		(		mep_tens(row,clm), ' ', clm=1,3)
-			end do
-			write(210,*)	'end mep'
-		close(210)
-		!
-		!
-		return
-	end subroutine
-
-
 	subroutine write_geninterp_kpt_file(seed_name, kpt_latt)
 		character(len=*),	intent(in)			::	seed_name
 		real(dp),			intent(in)			::	kpt_latt(:,:)	
@@ -163,6 +142,93 @@ module file_io
 
 		return
 	end subroutine
+
+
+
+	subroutine write_en_binary(qi_idx, e_bands)
+		integer,		intent(in)		::	qi_idx
+		real(dp),		intent(in)		::	e_bands(:)
+		character(len=24)				::	filename
+		!
+		write(filename, format) raw_dir//'enK.',qi_idx
+		open(unit=210,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
+		write(210)	e_bands(1:num_bands)
+		close(210) 
+		!
+		return
+	end subroutine
+
+
+
+	subroutine write_en_global(kpt_latt)
+		real(dp),	intent(in)			::	kpt_latt(:,:)
+		real(dp),	allocatable			::	ek_bands(:)
+		integer							::	qi_idx, band, x
+
+		allocate(	ek_bands(num_bands)		)
+
+		open(unit=220, form='formatted', action='write', access='stream', status='replace')
+
+		write(220,*)	'# energies interpolated by MEPinterp program'
+		write(220,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
+		write(220,*)	'# Kpt_idx  K_x (frac)       K_y (frac)        K_z (frac)       Energy (Hartree)  '
+		do qi_idx = 1, size(kpt_latt,2)
+			call read_en_binary(qi_idx, ek_bands)
+			!
+			do band = 1, size(ek_bands,1)
+				write(220,'(200(f16.8))',advance="no")	(kpt_latt(x,qi_idx), x=1,size(kpt_latt,1)	)
+				write(200, '(a,f18.8)')			'	',ek_bands(band)
+			end do
+			!		
+		end do
+		close(220)
+
+
+		return
+	end subroutine
+
+
+
+
+
+	subroutine write_mep_tensor(mep_tens)
+		real(dp),	intent(in)		::	mep_tens(3,3)
+		integer						::	row, clm, count
+		logical						::	old_exists, org_exists
+		character(len=60)			::	filename
+		!
+		inquire(file=out_dir//'mep_tens.dat', exist= org_exists)
+		if(org_exists) then
+			filename	= out_dir//'mep_tens.dat'
+			count 		= 0
+			!try to find a new filename
+			do while( old_exists .and. count < 10)
+				filename = filename//'.old' 
+				inquire(file=filename, exist=old_exists)
+				count = count + 1
+			end do
+			!
+			if(old_exists)	write(*,*)	'WARNING: the following file will be overwritten: ',filename
+			call rename('mep_tens.dat',filename)
+		end if
+		!
+		!
+		!write result to file
+		open(unit=250, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
+			write(250,*)	"#MEP tensor calculated via Niu's semiclassic formalism"
+			write(250,*)	'begin mep'
+			do row = 1, 3
+				write(250,'(200(f16.8,a))')		(		mep_tens(row,clm), ' ', clm=1,3)
+			end do
+			write(250,*)	'end mep'
+		close(250)
+		!
+		!
+		return
+	end subroutine
+
+
+
 
 
 
