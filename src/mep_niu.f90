@@ -43,23 +43,23 @@ module mep_niu
 												U_k(:,:), H_ka(:,:,:), A_ka(:,:,:), 	&
 												v_k(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
-
-		
+		!
+		!	
 		!get interp mesh
 		call read_k_mesh(seed_name, kpt_latt)
 		num_kpts	= 	size(kpt_latt,2)
-
+		!
 		!get real space matrice(s)
 		call read_tb_basis(seed_name, R_vect, H_real, r_mat)
-
+		!
 		!allocate k-space
 		allocate(	U_k(		size(H_real,1),	size(H_real,2)	)	)
 		allocate(	en_k(					size(H_real,2)		)	)
 		allocate(	H_ka(	3,	size(H_real,1),	size(H_real,2)	)	)
 		allocate(	v_k(	3,	size(H_real,1),	size(H_real,2)	)	)
 		if(	allocated(r_mat)	)		allocate(	A_ka(	3,	size(r_mat,1),	size(r_mat,2)	)		)
-
-
+		!
+		!
 		!loop kpts
 		mep_tens_tot	=	0.0_dp
 		do ki = mpi_id + 1, num_kpts,	mpi_nProcs
@@ -77,8 +77,8 @@ module mep_niu
 			!sum MEP over kpts
 			mep_tens_tot = mep_tens_tot + mep_tens_k
 		end do
-
-
+		!
+		!
 		return
 	end subroutine
 
