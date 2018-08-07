@@ -64,7 +64,7 @@ module mep_niu
 		allocate(	en_k(					size(H_real,2)		)	)
 		allocate(	H_ka(	3,	size(H_real,1),	size(H_real,2)	)	)
 		allocate(	v_k(	3,	size(H_real,1),	size(H_real,2)	)	)
-		if(	allocated(r_mat)	)		allocate(	A_ka(	3,	size(r_mat,1),	size(r_mat,2)	)		)
+		if(	allocated(r_mat)	)		allocate(	A_ka(	3,	size(r_mat,2),	size(r_mat,3)	)		)
 		!
 		!
 		!loop kpts

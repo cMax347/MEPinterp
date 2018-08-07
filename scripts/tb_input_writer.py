@@ -6,55 +6,11 @@ import os
 au_to_eV 		= 27.21139
 au_to_angtrom	= 0.529177211
 
-target_dir_name	= 'w90files'
+
 seed_name		= 'wf1'
 
-
-#----------------------SYTEM PARAS-----------------------------------------------------------------------------------------
-
-ax 				= np.zeros(3)
-ay 				= np.zeros(3)
-az 				= np.zeros(3)
-ax[0]			= 2.0
-ay[1]			= 2.0
-az[2]			= 2.0
-
-a_latt 			= np.array(
-					[
-						[ax[0], ax[1], ax[2]],
-						[ay[0],	ay[1], ay[2]],
-						[az[0], az[1], az[2]],
-					])
-
-a_latt			= a_latt * au_to_angtrom
-
-
-nAt				= 8
-
-rel_atom_pos 	= np.array(
-					[	[.0,.0,.0],
-						[.5,.0,.0],
-						[.5,.5,.0],
-						[.0,.5,.0],
-						[.0,.0,.5],
-						[.5,.0,.5],
-						[.5,.5,.5],
-						[.0,.5,.5]
-					])
-
-
-
-
-
-
-#----------------------TB PARAMETERS---------------------------------------------------------------------------------------
-onsite	= np.array(		[-6.5, 0.9, 1.4, 1.2, -6.0, 1.5, 0.8, 1.2]			)
-
-phi_para= .0
-
-phi_x	= np.array(		[phi_para, 	1.3, 0.8, 0.3, 1.4, 0.6, 0.8, 1.9]		)
-phi_y	= np.array(		[	0.5,	0.2, 1.4, 1.9, 0.8, 1.7, 0.6, 0.3]		)
-phi_z	= np.array(		[	1.7,	0.5, 0.6, 1.0, 0.3, 0.7, 1.2, 1.4]		)
+#--------------------MEPinterp input paras--------------------------------------------------------------------------------
+#write_mepInterp_input(plot_bands, a1, a2, a3, a0, mp_grid, seed_name, use_interp_kpt, do_gauge_trafo, valence_bands)
 
 
 
@@ -126,7 +82,7 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 
 	#add nearest neigbour hopping to hopping list
 	nn_dist = get_nn_dist(rel_atom_pos)
-	print('determined (relative) nn_dist:'+str(nn_dist))
+	#print('determined (relative) nn_dist:'+str(nn_dist))
 	#
 	nn_list = [[None for x in range(nAt)] for y in range(nAt)]
 	for at in range(nAt):
@@ -153,8 +109,8 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 				#print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+int_to_dim_string(b_dim)+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][nn]))
 	
 				thopp.append(	[		R_nn[0],R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][nn]), np.imag(phi[b_dim][nn])		]	)
-	for at,nn in enumerate(nn_list):
-		print('at='+str(at)+' nn='+str(nn)	)
+	#for at,nn in enumerate(nn_list):
+	#	print('at='+str(at)+' nn='+str(nn)	)
 
 
 	#get a list of all R_hopp vectors used
@@ -227,7 +183,7 @@ def write_hr_file(seed_name, nAt, nrpts, thopp):
 			for val in t[5:7]:
 				outfile.write("{:16.8f}".format(val)+whitespace)
 			outfile.write('\n')
-	return
+	print('wrote '+seed_name+'_hr.dat'+' file')
 
 
 def write_r_file(seed_name, nAt, rhopp ):
@@ -248,50 +204,145 @@ def write_r_file(seed_name, nAt, rhopp ):
 			for val in r[5:11]:
 				outfile.write("{:16.8f}".format(val)+whitespace)
 			outfile.write('\n')
+	print('wrote '+seed_name+'_r.dat'+' file')
+
 
 
 		
+def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name, use_interp_kpt='F', do_gauge_trafo='T',  plot_bands='F'):
+	with open(file_path+'input.txt','w') as outfile:
+		outfile.write('# input file for TB model from New J Physics 12, 053032 (2010)'+'\n')
+		outfile.write('# generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')	
+		outfile.write('\n')
+		#
+		#
+		outfile.write('[jobs]\n')
+		outfile.write(' '	+	'plot_bands='		+	plot_bands			+	'\n')
+		outfile.write('\n')
+		#
+		#
+		outfile.write('[unitCell]\n')
+		outfile.write(' '	+	'a1= '				+	str(ax[0]) +' '+str(ax[1])+' '+str(ax[2])		+	'\n')
+		outfile.write(' '	+	'a2= '				+	str(ay[0]) +' '+str(ay[1])+' '+str(ay[2])		+	'\n')
+		outfile.write(' '	+	'a3= '				+	str(az[0]) +' '+str(az[1])+' '+str(az[2])		+	'\n')
+		outfile.write(' '	+	'a0= '				+	str(a0)				+	'\n')
+		outfile.write('\n')
+		#
+		#
+		outfile.write('[wannInterp]\n')
+		outfile.write(' '	+	'mp_grid= '			+	str(mp_grid[0]) +' '+str(mp_grid[1])+' '+str(mp_grid[2])		+	'\n')
+		outfile.write(' '	+	'seed_name= '		+	seed_name			+	'\n')
+		outfile.write(' '	+	'use_interp_kpt= '	+	use_interp_kpt		+	'\n')
+		outfile.write(' '	+	'do_gauge_trafo= '	+	do_gauge_trafo		+	'\n')
+		outfile.write('\n')
+		#
+		#
+		outfile.write('[MEP]\n')
+		outfile.write(' '	+	'valence_bands= '	+	str(valence_bands)	+	'\n')
+
+		print('wrote '+file_path+'input.txt')
 
 #
 #----------------------BODY------------------------------------------------------------------------------------------------
 
 
-print('+++++++++++++++++++++++++INPGEN-TB-WANN+++++++++++++++++++++++++++')
-print('generates wannier90 style input files based on the TB model in New J Physics 12, 053032 (2010)')
-print('')
-#prepare hopping values
-phi_x	= convert_phase_to_complex(phi_x)
-phi_y	= convert_phase_to_complex(phi_y)
-phi_z	= convert_phase_to_complex(phi_z)
 
 
-onsite	= onsite	* au_to_eV
-phi_x	= phi_x		* au_to_eV
-phi_y	= phi_y		* au_to_eV
-phi_z	= phi_z		* au_to_eV
+def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_kpt='F', do_gauge_trafo='T', plot_bands='F'):
+	target_dir_name	= 'w90files'
+	target_path		= root_dir+'/'+target_dir_name
+
+
+	#----------------------TB LATTICE---------------------------------------------------------------------------------------
+	ax 				= np.zeros(3)
+	ay 				= np.zeros(3)
+	az 				= np.zeros(3)
+	ax[0]			= 2.0
+	ay[1]			= 2.0
+	az[2]			= 2.0
+	a0				= 1.0
+	a_latt 			= np.array(
+					[
+						[ax[0], ax[1], ax[2]],
+						[ay[0],	ay[1], ay[2]],
+						[az[0], az[1], az[2]],
+					])
+	a_latt			= a_latt * au_to_angtrom
+
+	#----------------------TB ATOMS---------------------------------------------------------------------------------------
+	nAt				= 8
+	rel_atom_pos 	= np.array(
+					[	[.0,.0,.0],
+						[.5,.0,.0],
+						[.5,.5,.0],
+						[.0,.5,.0],
+						[.0,.0,.5],
+						[.5,.0,.5],
+						[.5,.5,.5],
+						[.0,.5,.5]
+					])
+
+	if valence_bands > nAt:
+		print('WARNING: more valence_bands then total number of bands('+str(nAt)+') will set valence_bands to '+str(nAt))
+		valence_bands = nAt
+
+	#----------------------TB PARAMETERS---------------------------------------------------------------------------------------
+	onsite	= np.array(		[-6.5, 0.9, 1.4, 1.2, -6.0, 1.5, 0.8, 1.2]			)
+	phi_x	= np.array(		[phi_para, 	1.3, 0.8, 0.3, 1.4, 0.6, 0.8, 1.9]		)
+	phi_y	= np.array(		[	0.5,	0.2, 1.4, 1.9, 0.8, 1.7, 0.6, 0.3]		)
+	phi_z	= np.array(		[	1.7,	0.5, 0.6, 1.0, 0.3, 0.7, 1.2, 1.4]		)
+
+
+
+
+	#prepare hopping values
+	phi_x	= convert_phase_to_complex(phi_x)
+	phi_y	= convert_phase_to_complex(phi_y)
+	phi_z	= convert_phase_to_complex(phi_z)
+	onsite	= onsite	* au_to_eV
+	phi_x	= phi_x		* au_to_eV
+	phi_y	= phi_y		* au_to_eV
+	phi_z	= phi_z		* au_to_eV
+	#
+	phi		= []
+	phi.append(phi_x)
+	phi.append(phi_y)
+	phi.append(phi_z)	
+
+
+	#get the lists
+	nrpts, thopp, R_nn_list = get_hopp_list(nAt, rel_atom_pos, onsite, phi)
+	rhopp	= get_pos_list(nAt, rel_atom_pos, a_latt, R_nn_list)
+
+
+
+
+	#write them to file
+	os.mkdir(target_path)
+	write_hr_file(	target_path+'/'+seed_name,	nAt, nrpts, thopp )
+	write_r_file(	target_path+'/'+seed_name, 	nAt,		rhopp )
+
+	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name, use_interp_kpt, do_gauge_trafo, plot_bands)
+
+
+
+
+#print('+++++++++++++++++++++++++INPGEN-TB-WANN+++++++++++++++++++++++++++')
+#print('generates wannier90 style input files based on the TB model in New J Physics 12, 053032 (2010)')
 #
-
-phi		= []
-phi.append(phi_x)
-phi.append(phi_y)
-phi.append(phi_z)	
-
-
-#get the lists
-nrpts, thopp, R_nn_list = get_hopp_list(nAt, rel_atom_pos, onsite, phi)
-rhopp	= get_pos_list(nAt, rel_atom_pos, a_latt, R_nn_list)
+#if valence_bands > nAt:
+#	print('WARNING: #valence bands'+str(valence_bands)+' is larger then nAt='+str(nAt)+ ' which is not allowed !')
+#	valence_bands = nAt
+#	print('WARNING	#valence_bands was set to '+str(valence_bands)	)	
+#
+#print('')
 
 
-try:
-	os.mkdir(target_dir_name)
-except:
-	print('could not make new directory: '+target_dir_name)
-finally:
-	print('now try to write the files')
 
-#write them to file
-write_hr_file(	target_dir_name+'/'+seed_name,	nAt, nrpts, thopp )
-write_r_file(	target_dir_name+'/'+seed_name, 	nAt,		rhopp )
+
+
+
+#write input for MEPinterp
 
 #for t in thopp:
 #	print(t)
