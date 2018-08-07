@@ -108,7 +108,7 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 
 
 	#y-axis
-	plt.tick_params(axis='y', which='major', labelsize=y_tick_size)
+	plt.tick_params(axis='y', which='major', direction='in',labelsize=y_tick_size)
 	if plot_in_ev:
 		plt.ylabel(r'$E \,(eV)$',fontsize=label_size)
 	else:
@@ -120,10 +120,9 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 		plt.savefig(pdf_out_file,bbox_inches='tight')
 		print('saved band_structure: '+pdf_out_file)
 	except:
-		print('Error while saving the plot, try to show plot now')
+		print('Error while saving the plot, try to show plot now in order to manually save it')
 		plt.show()
-	finally:
-		print('by by')
+	
 
 
 
