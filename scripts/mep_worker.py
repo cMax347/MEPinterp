@@ -133,7 +133,7 @@ class MEP_worker:
 		os.chdir(self.band_dir)
 		print('['+str(datetime.datetime.now())+']start BAND calculation....')
 		#genearte the kpt file
-		os.system('./kptsgen.pl -l cub -k Gamma 25 X 25 M 35 Gamma 25 R')
+		os.system('./kptsgen.pl -l cub -k "Gamma 25 X 25 M 35 Gamma 25 R"')
 		print('generated kpt file')
 		#time.sleep(1)	#delay for one second
 

@@ -479,7 +479,7 @@ module file_io
 		H_mat	= H_mat / aUtoEv
 		!
 		!
-		write(*,'(a,i3,a)')	"[#",mpi_id,";read_hr_file]: success!"
+		write(*,'(a,i3,a,i3,a)')	"[#",mpi_id,";read_hr_file]: success (nrpts=",size(R_vect,2),")!"
 		return
 	end subroutine
 

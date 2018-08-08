@@ -52,7 +52,7 @@ module mep_niu
 
 		!
 		!	
-		!get interp mesh
+		!get (realtive) interp mesh
 		call read_k_mesh(seed_name, kpt_latt)
 		num_kpts	= 	size(kpt_latt,2)
 		!
@@ -143,7 +143,7 @@ module mep_niu
 			!MIXING
 			do m = 1, size(velo,2)
 				do n = 1, size(velo,2)
-				 	if( n/= n0 .and. m/n0 )	then
+				 	if( n/= n0 .and. m/=n0 )	then
 				 		!
 				 		!TRIPLE PRODUCT
 				 		do j = 1, 3

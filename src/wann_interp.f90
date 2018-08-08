@@ -1,6 +1,7 @@
 module wann_interp
-	use parameters,		only:		dp, i_dp, myExp,			&
-									a_latt,						&
+	use parameters,		only:		mpi_id,						&
+									dp, i_dp, myExp,			&
+									a_latt,	recip_latt, 		&
 									do_gauge_trafo
 
 
@@ -15,17 +16,17 @@ module wann_interp
 
 
 
-	subroutine wann_interp_ft(H_real, r_real, R_frac, kpt, H_k,	H_ka, A_ka	)										!H_real, r_mat,  R_vect,	kpt_latt,	U_k,	H_ka, A_ka)	
+	subroutine wann_interp_ft(H_real, r_real, R_frac, kpt_rel, H_k,	H_ka, A_ka	)										!H_real, r_mat,  R_vect,	kpt_rel_latt,	U_k,	H_ka, A_ka)	
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)
 		!
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
-		real(dp),						intent(in)				::	R_frac(:,:), kpt(3)	
+		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
 		complex(dp),					intent(out)				::	H_k(:,:), H_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:)
-		real(dp)												::	r_vect(3)
+		real(dp)												::	r_vect(3), kpt_abs(3)
 		complex(dp)												::	ft_phase
 		logical													::	do_pos
 		integer    												::	sc
@@ -36,10 +37,21 @@ module wann_interp
 		H_ka			=	dcmplx(0.0_dp)
 		if(do_pos)	A_ka=	dcmplx(0.0_dp)
 		!
+		!
+																kpt_abs(1:3)	= 	matmul(		, kpt_rel(1:3)	)					!todo
+
+
+		!
 		!SUM OVER REAL SPACE CELLS
 		do sc = 1, size(R_frac,2)
 			r_vect(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-			ft_phase	= 	myExp(	dot_product(kpt(1:3),	R_frac(1:3,sc)	)		)
+			ft_phase	= 	myExp(	dot_product(kpt_abs(1:3),	r_vect(1:3)	)		)
+
+!			write(*,*)	"[#",mpi_id,"; wann_interp_ft]:	now start with ft at kpt_rel=(",	(kpt_rel(x),", ", x=1,3   )		,	") and R_vect=(",(r_vect(x),", ", x=1,3   ),")."	
+			write(*,'(a,i3,a)',			advance="no")	"[#",mpi_id,"; wann_interp_ft]:	ft_phase=("
+			write(*,'(f6.2,a,f6.2)',	advance="no")	dreal(ft_phase),'+ i ',dimag(ft_phase)
+			write(*,'(a,i3,a)',			advance="no")	") sc=",sc," kpt_rel=("
+			write(*,'(f6.2,a,f6.2,a,f6.2,a)')			kpt_rel(1),", ",kpt_rel(2),", ",kpt_rel(3),")."
 
 			!hamilton operator
 			H_k(:,:)		= 	H_k(:,:)		+	ft_phase 					* H_real(:,:,sc)
