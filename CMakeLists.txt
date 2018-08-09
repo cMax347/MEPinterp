@@ -8,59 +8,64 @@ project(MEPinterp)
 set (cmakeTest_VERSION_MAJOR 1)
 set (cmakeTest_VERSION_MINOR 0)
 
-#set (MPI_Fortran_COMPILER mpiifort)
 
 #set some directions
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/archive)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 
 #use all files provided in src, i.e. my .f90 files
-file(GLOB_RECURSE sources src/*.f90 src/*.F90)
-
-#include_directories("${PROJECT-SOURCE_DIR}/src")
-#add_subdirectory(src)
-
-include_directories("${PROJECT_SOURCE_DIR}/thirdparty")
-add_subdirectory(thirdparty)
+file(GLOB_RECURSE sources src/*.f90 src/*.F90 )
 
 
-if (UNIX)
-	message(detectedUNIX)
+
+message("detected system ${CMAKE_SYSTEM_NAME}")
+
+
+
+#for LINUX use intel compiler with performance options
+if (UNIX AND NOT APPLE)
+	message("will use LINUX (intel) compiler options")
+  set(CMAKE_Fortran_FLAGS "-mkl -O3 -qopenmp")
+  set(COVERAGE_LINK_FLAGS "-mkl -O3 -qopenmp")
     #do something
-endif (UNIX)
+endif (UNIX AND NOT APPLE)
+
+#for APPLE use a debugging flag scheme
+if (APPLE)
+  message("will use MAC compiler options")
+  set(CMAKE_Fortran_FLAGS "-Og -O0 -Wall -Wextra -pedantic -fimplicit-none -fcheck=all -fbacktrace -openmp")
+  set(COVERAGE_LINK_FLAGS "-Og -O0 -Wall -Wextra -pedantic -fimplicit-none -fcheck=all -fbacktrace -openmp")
+endif (APPLE)
+
+
+find_package(LAPACK REQUIRED)
+if(LAPACK_FOUND)
+  add_executable(main.exe ${sources})
+  target_link_libraries(main.exe ${LAPACK_LIBRARIES})
+  message("Lapack link library is ${LAPACK_LIBRARIES}")
+else(LAPACK_FOUND)
+    message("no lapack library found (mandatory)")
+endif(LAPACK_FOUND)
+
+find_package(MPI )
+if(MPI_FOUND)
+  target_link_libraries(main.exe ${MPI_LIBRARIES})
+  message("mpi link library is ${MPI_LIBRARIES}")
+else(MPI_FOUND)
+  message("no mpi library found")
+endif(MPI_FOUND)
 
 
 
-# FFLAGS depend on the compiler
-get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
-if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
-	message("only intel compiler is supported")
-
-
-
-elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
-  # ifort (untested)
-  	#set(CMAKE_Fortran_FLAGS "-mkl -qopenmp -g -CB -check all -fpe0 -warn -traceback -debug extended")
-  	set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
-  	#set(CMAKE_Fortrvo,an_FLAGS "-mkl -O3 -qopenmp")
-elseif (Fortran_COMPILER_NAME MATCHES "mpiifort.*")
-	set(CMAKE_Fortran_FLAGS "-mkl -qopenmp -g -CB -check all -fpe0 -warn -traceback -debug extended")
-	#set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
-  	#set(CMAKE_Fortrvo,an_FLAGS "-mkl -O3 -qopenmp")
-endif (Fortran_COMPILER_NAME MATCHES "gfortran.*")
-
-
-#set (CMAKE_Fortran_FLAGS "-mkl -O3 -g -Wall -qopenmp")
-#linker flags
-set(COVERAGE_LINK_FLAGS "-mkl -g   -CB -check all -fpe0 -warn -traceback -debug extended")
-set(CMAKE_Fortran_FLAGS "-mkl -g -CB -check all -fpe0 -warn -traceback -debug extended")
-#set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
-#set(CMAKE_Fortran_FLAGS "-mkl -O3 -qopenmp")
+message ("commpiler prepared")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 
-# generate executable and link library
-add_executable(main.exe ${sources})
+
+
+
+#add thirdparty libraries
+include_directories("${PROJECT_SOURCE_DIR}/thirdparty")
+add_subdirectory(thirdparty)
 target_link_libraries(main.exe config_fortran ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/wannier90/libwannier.a)
