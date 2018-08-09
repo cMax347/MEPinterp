@@ -31,6 +31,8 @@ module wann_interp
 		!
 		do_pos	= allocated(	A_ka	) .and. allocated(	r_real	)
 		!
+		
+		!
 		H_k				=	dcmplx(0.0_dp)
 		H_ka			=	dcmplx(0.0_dp)
 		if(do_pos)	A_ka=	dcmplx(0.0_dp)
