@@ -22,6 +22,7 @@ bin/**
 *.exe
 *.tar.gz
 *.sh
+*.exe
 *.cmake
 *.pl
 **/zzz_todo_zzz.txt

@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 2.6)
 enable_language (Fortran)
 
 #project name
-project(3DtightMEP)
+project(MEPinterp)
 #version info
 set (cmakeTest_VERSION_MAJOR 1)
 set (cmakeTest_VERSION_MINOR 0)

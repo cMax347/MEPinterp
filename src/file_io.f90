@@ -1,8 +1,8 @@
 module file_io
 	use parameters,						only:		dp, aUtoAngstrm, aUtoEv, 			&
-													mpi_id,								&
-													w90_dir, out_dir, 					&
-													a_latt, mp_grid,					&
+													mpi_id, mpi_root_id,				&
+													w90_dir, out_dir, raw_dir, 			&
+													a_latt, mp_grid, num_bands,			&
 													plot_bands,  use_interp_kpt,		&
 													get_rel_kpts
 
@@ -11,11 +11,16 @@ module file_io
 
 	private
 	public									::		read_k_mesh, read_tb_basis,			& 
+													write_en_binary, read_en_binary,	&
+													write_en_global,					&
 													write_mep_tensor
 
-	character(len=8)						::		mkdir="mkdir ./"
+	character(len=64)						::		format='(a,i7.7)'
 
 	contains
+
+
+
 
 
 
@@ -25,7 +30,6 @@ module file_io
 		character(len=*), 					intent(in) 			:: 	seed_name
 		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
 		logical													::	found_kpts_pl, found_kpts_wann
-		integer													::	i
 		!
 		found_kpts_pl	= .false.
 		found_kpts_wann	= .false.
@@ -40,8 +44,15 @@ module file_io
 		!
 		!IF NOT FOUND SET UP MP GRID
 		if( .not. plot_bands .and. .not. found_kpts_wann) then
-			write(*,'(a,i3,a,200(i5,a))')	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate (", (mp_grid(i),"x",i=1,3),") MP grid"
+			if( use_interp_kpt)	then
+				write(*,'(a,i3,a,i3,a,i3,a,i3,a)')	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate (",mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
+			else 
+				write(*,'(a,i3,a,i3,a,i3,a,i3,a)')	"[#",mpi_id,"; read_k_mesh]: a new kpt file is generated as requested (",mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
+			end if
 			call get_rel_kpts(mp_grid, kpt_latt)
+			!
+			!write to file
+			if( mpi_id == mpi_root_id)	call write_geninterp_kpt_file(seed_name, kpt_latt)
 		end if
 		!
 		return
@@ -65,9 +76,9 @@ module file_io
 		complex(dp),	allocatable, 	intent(inout)	::	H_mat(:,:,:), r_mat(:,:,:,:)
 		real(dp),		allocatable						::	R_tilde_vect(:,:)
 		logical											::	tb_exist, hr_exist, r_exist
-
+		!
 		r_exist = .false.
-
+		!
 		!inquire(file=)
 		inquire(file=w90_dir//seed_name//'_tb.dat',	exist=tb_exist)
 		if(tb_exist) then
@@ -75,75 +86,141 @@ module file_io
 			r_exist	= .true.
 		else
 			inquire(file=w90_dir//seed_name//'_hr.dat', exist=hr_exist)
-			if( .not. hr_exist)		stop 'could not read the real space Hamiltonian'
+			if( .not. hr_exist)		stop 'ERROR could not read the real space Hamiltonian'
 			call read_hr_file(w90_dir//seed_name, R_vect, H_mat)
 			!
 			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
 			if(  r_exist )	then
 				call read_r_file(w90_dir//seed_name, R_tilde_vect, r_mat)
-				
-
-
-
-
-
-				!todo: make sure R_tilde_vect and R_vect are identical
-				!if not: remap r_mat tp R_vect
-
 			end if
-
 		end if
-
-
+		!
+		num_bands=size(H_mat,1)
+		!
+		!
 		return
 	end subroutine
+
+
+	subroutine read_en_binary(qi_idx, e_bands)
+		integer,		intent(in)		::	qi_idx
+		real(dp),		intent(out)		::	e_bands(:)
+		character(len=24)				::	filename
+		!
+		write(filename, format) raw_dir//'/enK.',qi_idx
+		open(unit=211, file = filename, form='unformatted', action='read', access='stream',		status='replace'		)
+		read(211)	e_bands(1:num_bands)
+		close(211)
+		!
+		return
+	end subroutine
+	
 
 
 
 
 
 !public write:
+	subroutine write_geninterp_kpt_file(seed_name, kpt_latt)
+		character(len=*),	intent(in)			::	seed_name
+		real(dp),			intent(in)			::	kpt_latt(:,:)	
+		integer									::	qi_idx, x		
+
+
+		open(unit=200, file = seed_name//'_geninterp.kpt', form='formatted', action='write',	access='stream', status='replace')
+		write(200,*)	'# fractional kpts created by MEPInterp'
+		write(200,*)	'frac'
+		write(200,*)	size(kpt_latt,2)
+
+
+		do qi_idx = 1, size(kpt_latt,2)
+			write(200,'(i3,a)',advance="no")	qi_idx, ' '
+			write(200,'(*(f16.8))')		(kpt_latt(x,qi_idx), x= 1, size(kpt_latt,1))
+		end do
+		close(200)
+		write(*,'(a,i3,a,a)')		'[#',mpi_id,'; write_geninterp_kpt_file]: wrote ',seed_name//'_geninterp.kpt file'
+
+		return
+	end subroutine
+
+
+
+	subroutine write_en_binary(qi_idx, e_bands)
+		integer,		intent(in)		::	qi_idx
+		real(dp),		intent(in)		::	e_bands(:)
+		character(len=24)				::	filename
+		!
+		write(filename, format) raw_dir//'/enK.',qi_idx
+		open(unit=210,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
+		write(210)	e_bands(1:num_bands)
+		close(210) 
+		!
+		return
+	end subroutine
+
+
+
+	subroutine write_en_global(kpt_latt)
+		real(dp),	intent(in)			::	kpt_latt(:,:)
+		real(dp),	allocatable			::	ek_bands(:)
+		integer							::	qi_idx, band, x
+		!
+		allocate(	ek_bands(num_bands)		)
+		!
+		open(unit=220, file=out_dir//'eBands.dat', form='formatted', action='write', access='stream', status='replace')
+		write(220,*)	'# energies interpolated by MEPinterp program'
+		write(220,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
+		write(220,*)	'# Kpt_idx  K_x (frac)       K_y (frac)        K_z (frac)       Energy (Hartree)  '
+		do qi_idx = 1, size(kpt_latt,2)
+			call read_en_binary(qi_idx, ek_bands)
+			!
+			do band = 1, size(ek_bands,1)
+				write(220,'(200(f16.8))',advance="no")	(kpt_latt(x,qi_idx), x=1,size(kpt_latt,1)	)
+				write(220, '(a,f18.8)')			'	',ek_bands(band)
+			end do
+			!		
+		end do
+		close(220)
+		write(*,'(a,i3,a)')		"[#",mpi_id,"; write_en_global]: success!"
+		!
+		return
+	end subroutine
+
+
+
+
+
 	subroutine write_mep_tensor(mep_tens)
 		real(dp),	intent(in)		::	mep_tens(3,3)
-		integer						::	row, clm, count
-		logical						::	old_exists, org_exists, dir_exists
-		character(len=60)			::	filename
-		!
-		inquire(directory=out_dir, exist=dir_exists)
-		if( dir_exists) then
-			!copy old existing file to some new filename
-			inquire(file=out_dir//'mep_tens.dat', exist= org_exists)
-			if(org_exists) then
-				filename	= out_dir//'mep_tens.dat'
-				count 		= 0
-				!try to find a new filename
-				do while( old_exists .and. count < 10)
-					filename = filename//'.old' 
-					inquire(file=filename, exist=old_exists)
-					count = count + 1
-				end do
-				!
-				if(old_exists)	write(*,*)	'WARNING: the following file will be overwritten: ',filename
-				call rename('mep_tens.dat',filename)
-			end if
-		else
-			call system(mkdir//out_dir)
-		end if
-		!
-		!
+		integer						::	row, clm		!
 		!write result to file
-		open(unit=200, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
-			write(200,*)	"MEP tensor calculated via Niu's semiclassic formalism"
-			write(200,*)	'begin mep'
+		open(unit=250, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
+			write(250,*)	"#MEP tensor calculated via Niu's semiclassic formalism"
+			write(250,*)	'begin mep'
 			do row = 1, 3
-				write(200,'(200(f16.8,a))')		(		mep_tens(row,clm), ' ', clm=1,3)
+				write(250,'(200(f16.8,a))')		(		mep_tens(row,clm), ' ', clm=1,3)
 			end do
-			write(200,*)	'end mep'
-		close(200)
+			write(250,*)	'end mep'
+		close(250)
+		write(*,'(a,i3,a)')	"[#",mpi_id,"; write_mep_tensor]: success!"
 		!
 		!
 		return
 	end subroutine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -177,7 +254,7 @@ module file_io
 				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
 			end do
 			close(100)
-			write(*,'(a,i3,a)')	"[#",mpi_id," read_kptsgen_pl_file]: success!"
+			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
 		end if 
 
 		!
@@ -192,32 +269,41 @@ module file_io
 		character(len=500)										::	info_line
 		integer													::	num_kpts, kpt, raw_idx
 		real(dp)												::	raw_kpt(3)
+		logical													::	found_file, is_frac
 		!
 		filename	= seed_name//'_geninterp.kpt'
-		inquire(file=w90_dir//filename, exist=read_geninterp_kpt_file)
+		inquire(file=w90_dir//filename, exist=found_file)
+		is_frac	= .false.
 		!
-		if(	read_geninterp_kpt_file ) then
+		if(	found_file ) then
 			open(unit=110, file=w90_dir//filename,	form='formatted', action='read', access='stream', 	status='old'	)
 			!
 			!read header
+			read(110,*)
 			read(110,*)	info_line
-			if( index(info_line,'frac') == 0) stop '[read_k_mesh]:	read_k_mesh is only implemented for fractional k-meshes currently'
-			read(110,*)	num_kpts
-			!
-			!allocate body container
-			allocate(	kpt_latt(3,	num_kpts)	)
-			!
-			!read body
-			do kpt = 1, num_kpts
-				read(110,*)		raw_idx, raw_kpt(1:3)
-				kpt_latt(1:3,raw_idx)	= raw_kpt(1:3)
-				if(raw_idx /= kpt)	write(*,*)'[read_k_mesh]: WARNING, issues with k-mesh ordering detected'	
-			end do
+			is_frac = 	index(info_line,'frac') /=0
+			
+			if( is_frac ) then
+				read(110,*)	num_kpts
+				!
+				!allocate body container
+				allocate(	kpt_latt(3,	num_kpts)	)
+				!
+				!read body
+				do kpt = 1, num_kpts
+					read(110,*)		raw_idx, raw_kpt(1:3)
+					kpt_latt(1:3,raw_idx)	= raw_kpt(1:3)
+					if(raw_idx /= kpt)	write(*,'(a,i3,a)') '[#',mpi_id,'; read_geninterp_kpt_file]: WARNING, issues with k-mesh ordering detected'	
+				end do
+				write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_geninterp_kpt_file]: success! num_kpts=",num_kpts
+			else
+				write(*,'(a,i3,a)')	"[#",mpi_id,"; read_geninterp_kpt_file]: file is not given in fractional coordinates (will not use file)"
+			end if
 			!
 			close(110)
-			write(*,'(a,i3,a)')	"[#",mpi_id," read_geninterp_kpt_file]: success!"
 		end if
 		!
+		read_geninterp_kpt_file = found_file .and. is_frac
 		return
 	end function
 
@@ -324,7 +410,7 @@ module file_io
 		real(dp)										::	real2(2)
 		integer,		allocatable						::	R_degneracy(:)
 
-		open(unit=310, file=w90_dir//seed_name//'_hr.dat',	form='formatted', action='read', access='stream', status='old')
+		open(unit=310, file=seed_name//'_hr.dat',	form='formatted', action='read', access='stream', status='old')
 
 		!read header
 		read(310,*)
@@ -344,15 +430,24 @@ module file_io
 			if(to_read >= 15)	then
 				read(310,*)		int15(1:15)
 				R_degneracy(idx:idx+14)	=	int15(1:15)
-				idx = idx+15
+				idx = idx+15	
 				to_read = to_read-15
 			else
 				read(310,*)		int15(1:to_read)
 				R_degneracy(idx:(idx+to_read-1))	= int15(1:to_read)
+				idx	= idx + to_read
 				to_read	= 0
 			end if
 		end do
-		if(	idx /= f_nSC)	stop 'issue reading Wigner Seitz degeneracy in  _hr.dat file'
+		if(	idx-1 /= f_nSC)	then
+			if(mpi_id==mpi_root_id)	 then
+				write(*,*)	'idx=',idx,' f_nSC=',f_nSC
+				write(*,*)	R_degneracy(1:f_nSC) 
+			end if
+
+
+			stop 'issue reading Wigner Seitz degeneracy (idx/=f_nSC) in  _hr.dat file'
+		end if
 		!
 		!read body
 		idx = 0
@@ -384,7 +479,7 @@ module file_io
 		H_mat	= H_mat / aUtoEv
 		!
 		!
-		write(*,'(a,i3,a)')	"[#",mpi_id,";read_hr_file]: success!"
+		write(*,'(a,i3,a,i3,a)')	"[#",mpi_id,";read_hr_file]: success (nrpts=",size(R_vect,2),")!"
 		return
 	end subroutine
 
@@ -397,7 +492,7 @@ module file_io
 		integer											::	f_nwfs, sc, m, n, int3(3), it
 		real(dp)										::	real6(6)
 		!
-		open(unit=320, file=w90_dir//seed_name//'_r.dat',	form='formatted', action='read', access='stream', status='old')
+		open(unit=320, file=seed_name//'_r.dat',	form='formatted', action='read', access='stream', status='old')
 		read(320,*)
 		read(320,*)	f_nwfs
 		!

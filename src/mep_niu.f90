@@ -3,12 +3,17 @@ module mep_niu
 	!	to the polariztion induced by a perturbive magnetic field
 	! 	see Niu PRL 112, 166601 (2014)
 	!use omp_lib
+	use mpi
 	use parameters,		only:	myLeviCivita,									&
 								dp, aUtoAngstrm, auToTesla,	machineP,			&
 								mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								seed_name,										&
+								plot_bands,										&
 								a_latt, valence_bands			
-	use file_io,		only:	read_k_mesh, read_tb_basis
+	use file_io,		only:	read_k_mesh, read_tb_basis,						&
+								write_en_binary, read_en_binary,				&
+								write_en_global,								&
+								write_mep_tensor
 	use wann_interp,	only:	wann_interp_ft, velo_interp
 	use matrix_math,	only:	zheevd_wrapper
 
@@ -34,35 +39,41 @@ module mep_niu
 
 
 !public
-	subroutine	mep_interp(	mep_tens_tot)
-		real(dp),		intent(out)			::	mep_tens_tot(3,3)
-		!
-		real(dp)							::	mep_tens_k(3,3)	
-		integer								::	ki
+	subroutine	mep_interp()
+		real(dp)							::	F2(3,3), F3(3,3),						&
+												mep_tens_k(		3,3),	 				&
+												mep_tens_loc(	3,3),					& 
+												mep_tens_glob(	3,3) 	
+		integer								::	ki, ki_loc_count
 		complex(dp),	allocatable			::	H_real(:,:,:), r_mat(:,:,:,:), 			&
 												U_k(:,:), H_ka(:,:,:), A_ka(:,:,:), 	&
 												v_k(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
 
-		
-		!get interp mesh
+		!
+		!	
+		!get (realtive) interp mesh
 		call read_k_mesh(seed_name, kpt_latt)
 		num_kpts	= 	size(kpt_latt,2)
-
+		!
 		!get real space matrice(s)
 		call read_tb_basis(seed_name, R_vect, H_real, r_mat)
-
+		!
 		!allocate k-space
 		allocate(	U_k(		size(H_real,1),	size(H_real,2)	)	)
 		allocate(	en_k(					size(H_real,2)		)	)
 		allocate(	H_ka(	3,	size(H_real,1),	size(H_real,2)	)	)
 		allocate(	v_k(	3,	size(H_real,1),	size(H_real,2)	)	)
-		if(	allocated(r_mat)	)		allocate(	A_ka(	3,	size(r_mat,1),	size(r_mat,2)	)		)
-
-
+		if(	allocated(r_mat)	)		allocate(	A_ka(	3,	size(r_mat,2),	size(r_mat,3)	)		)
+		!
+		!
 		!loop kpts
-		mep_tens_tot	=	0.0_dp
+		mep_tens_loc	=	0.0_dp
+		mep_tens_glob	=	0.0_dp
+		ki_loc_count	=	0
+		write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: I start interpolating now"
 		do ki = mpi_id + 1, num_kpts,	mpi_nProcs
+			!
 			!
 			!interpolate
 			call wann_interp_ft(H_real, r_mat,  R_vect,	 kpt_latt(1:3,ki),	U_k,	H_ka, A_ka)	
@@ -71,14 +82,37 @@ module mep_niu
 			!get velos
 			call velo_interp(U_k, en_k, H_ka, A_ka, V_k)
 			!get MEP_tensor
-			mep_tens_k	=	0.0_dp
-			call calc_mep_tensor(V_k, en_k, mep_tens_k)
-			!
+			call get_F2(V_k, en_k, F2)
+			call get_F3(V_k, en_k, F3)
+			mep_tens_k	=	F2 + F3			!
 			!sum MEP over kpts
-			mep_tens_tot = mep_tens_tot + mep_tens_k
+			mep_tens_loc = mep_tens_loc + mep_tens_k
+			!
+			!
+			!write some files
+			if(plot_bands)	call write_en_binary(ki, en_k)
+			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; mep_interp]: interpolated ki=",ki
+			ki_loc_count = ki_loc_count + 1
 		end do
+		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: finished interpolating ",ki_loc_count," kpts"
+		!
 
-
+		!sum over all kpts
+		call MPI_REDUCE(	mep_tens_loc, mep_tens_glob,	 9,	MPI_DOUBLE_PRECISION,	MPI_SUM	, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
+		!
+		!write some files
+		if(mpi_id == mpi_root_id) 	then
+			write(*,*)	"---------------------------------------------------------------------------------------------------------------------------"
+			call write_mep_tensor(mep_tens_glob)			
+			!
+			if(plot_bands)	then
+				call write_en_global(kpt_latt)
+			else
+				!only write mep tensor if a full BZ calculation is done
+				call write_mep_tensor(mep_tens_glob)
+			end if
+		end if
+		!
 		return
 	end subroutine
 
@@ -94,23 +128,6 @@ module mep_niu
 
 
 !private:
-	subroutine calc_mep_tensor(velo, En, mep_tens)
-		complex(dp),	intent(in)		::	velo(:,:,:)
-		real(dp),		intent(in)		::	En(:)
-		real(dp),		intent(out)		::	mep_tens(3,3)
-		real(dp)						::	F2(3,3), F3(3,3)
-		!
-		mep_tens	= 	0.0_dp		
-		!		
-		call get_F2(	velo, En, F2)
-		call get_F3(	velo, En, F3)
-		!
-		mep_tens 	=	F2 + F3
-		!
-		return 
-	end subroutine
-
-
 	subroutine get_F2(velo, En,	F2)
 		complex(dp),		intent(in)		::	velo(:,:,:)
 		real(dp),			intent(in)		::	En(:)
@@ -126,7 +143,7 @@ module mep_niu
 			!MIXING
 			do m = 1, size(velo,2)
 				do n = 1, size(velo,2)
-				 	if( n/= n0 .and. m/n0 )	then
+				 	if( n/= n0 .and. m/=n0 )	then
 				 		!
 				 		!TRIPLE PRODUCT
 				 		do j = 1, 3
@@ -137,7 +154,11 @@ module mep_niu
 				 						!
 				 						en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
 				 						!
-				 						F2(i,j)	= F2(i,j) - real(myLeviCivita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
+				 						if( abs(en_denom) > 1e-15_dp) then
+				 							F2(i,j)	= F2(i,j) - real(myLeviCivita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom
+				 						else
+				 							write(*,*)	"[get_F2]: degenerate band warning"
+				 						end if	
 				 					end do
 				 				end do
 				 			end do
@@ -181,7 +202,11 @@ module mep_niu
 			 						!
 			 						en_denom	=	(	en(n0) - en(n)	)**3		
 			 						!
-			 						F3(i,j)	= F3(i,j) + real(myLeviCivita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
+			 						if(abs(en_denom) > 1e-15_dp) then 
+			 							F3(i,j)	= F3(i,j) + real(myLeviCivita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
+			 						else
+			 							write(*,*)	"[get_F3]: degenerate band warning"
+			 						end if
 			 					end do
 			 				end do
 			 			end do
@@ -196,6 +221,10 @@ module mep_niu
 		return
 	end subroutine
 
+
+
+
+end module mep_Niu
 
 
 !old:
@@ -376,9 +405,7 @@ module mep_niu
 !		!
 !		return
 !	end subroutine
-
-
-
+!
 !	subroutine	calcFmat(prefactF3, nZero,ki, Velo ,En, Fmat)
 !		!calculates the linear response F matrix for magnetic field perturbation
 !		!F is derived in the semiclassical wavepacket approach (again see Niu PRL 112, 166601 (2014))
@@ -397,18 +424,8 @@ module mep_niu
 !		!
 !		return
 !	end subroutine
-
-
-
-
-
-
-
-
-
-
-
-
+!
+!
 !!privat old:
 !	subroutine	getF2(nZero,ki, Velo ,En, F2)
 !		!
@@ -577,7 +594,3 @@ module mep_niu
 !		return
 !	end subroutine
 
-
-
-
-end module mep_Niu
