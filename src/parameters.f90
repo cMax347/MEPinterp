@@ -212,13 +212,14 @@ module parameters
 
 
 
+
 !private
 	subroutine my_mkdir(dir)
 		character(len=*)			::	dir
 		logical						::	dir_exists
 		character(len=8)		::	mkdir="mkdir ./"	!to use with system(mkdir//$dir_path) 	
 		!
-		inquire(directory=dir, exist=dir_exists)
+		inquire(file=dir, exist=dir_exists)
 		if( .not. dir_exists )	then
 			call system(mkdir//dir)
 			write(*,'(a,i3,a,a)')	"[",mpi_id,"#; init_parameters]: created directory ",dir
