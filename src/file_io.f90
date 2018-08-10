@@ -45,9 +45,11 @@ module file_io
 		!IF NOT FOUND SET UP MP GRID
 		if( .not. plot_bands .and. .not. found_kpts_wann) then
 			if( use_interp_kpt)	then
-				write(*,'(a,i3,a,i3,a,i3,a,i3,a)')	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate (",mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
+				write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate ("
+				write(*,'(i3,a,i3,a,i3,a)')									mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
 			else 
-				write(*,'(a,i3,a,i3,a,i3,a,i3,a)')	"[#",mpi_id,"; read_k_mesh]: a new kpt file is generated as requested (",mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
+				write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,"; read_k_mesh]: a new kpt file is generated as requested ("
+				write(*,'(i3,a,i3,a,i3,a)')							mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
 			end if
 			call get_rel_kpts(mp_grid, kpt_latt)
 			!
@@ -377,7 +379,9 @@ module file_io
 			read(300,*)	cell_rel(1:3)
 
 			rTest(1:3)	= matmul(unit_cell,	real(cell_rel(1:3),dp)	)
-			if(		 norm2( rTest(1:3) - R_vect(1:3,cell) )	> 1e-8_dp		) write(*,*)	"[read_tb_basis]: WARNING rHopp has different sc order then tHopp"
+			if(		 norm2( rTest(1:3) - R_vect(1:3,cell) )	> 1e-8_dp		) then
+				write(*,*)	"[read_tb_basis]: WARNING rHopp has different sc order then tHopp"
+			end if
 
 			do n = 1, f_nWfs**2
 				read(300,*)	index(1:2), compl3(1:6)
@@ -501,7 +505,9 @@ module file_io
 		do sc = 1, size(R_vect,2)
 			do it= 1, f_nWfs**2
 				read(320,*)		m ,n , int3(1:3), real6(1:6)
-				if( R_vect(1,sc) /= int3(1) .or. R_vect(2,sc) /= int3(2) .or. R_vect(3,sc) /= int3(3)	) stop 'different R_vect order in _r.dat file'
+				if( R_vect(1,sc) /= int3(1) .or. R_vect(2,sc) /= int3(2) .or. R_vect(3,sc) /= int3(3)	)then 
+					stop 'different R_vect order in _r.dat file'
+				end if
 				!
 				r_mat(1,m,n,sc)	=	dcmplx(	real6(1)	, real6(2)	)
 				r_mat(2,m,n,sc)	=	dcmplx(	real6(3)	, real6(4)	)

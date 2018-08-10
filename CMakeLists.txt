@@ -55,8 +55,8 @@ endif (UNIX AND NOT APPLE)
 #for APPLE use a debugging flag scheme
 if (APPLE)
   message("will use MAC compiler options")
-  set(CMAKE_Fortran_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-  set(COVERAGE_LINK_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  set(CMAKE_Fortran_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  set(COVERAGE_LINK_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
 endif (APPLE)
 
 

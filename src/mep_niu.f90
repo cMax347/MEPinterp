@@ -27,7 +27,7 @@ module mep_niu
 	real(dp),		parameter 	::	elemCharge	 	= 1.6021766208 * 1e-19_dp  *1e+6_dp! in  mu Coulomb
 
 	integer									::		num_kpts
-	real(dp),		dimension(3,3)			::		real_lattice, recip_lattice
+!	real(dp),		dimension(3,3)			::		real_lattice, recip_lattice
 	real(dp),		allocatable				::		kpt_latt(:,:)
 
 
@@ -102,7 +102,7 @@ module mep_niu
 		!
 		!write some files
 		if(mpi_id == mpi_root_id) 	then
-			write(*,*)	"---------------------------------------------------------------------------------------------------------------------------"
+			write(*,*)	"--------------------------------------------------------------------------------------------------------"
 			call write_mep_tensor(mep_tens_glob)			
 			!
 			if(plot_bands)	then
