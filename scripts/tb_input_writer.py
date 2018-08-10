@@ -348,7 +348,7 @@ def test():
 
 
 
-test()
+#test()
 
 #print('+++++++++++++++++++++++++INPGEN-TB-WANN+++++++++++++++++++++++++++')
 #print('generates wannier90 style input files based on the TB model in New J Physics 12, 053032 (2010)')
