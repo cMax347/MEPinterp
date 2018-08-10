@@ -217,28 +217,28 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		#
 		#
 		outfile.write('[jobs]\n')
-		outfile.write(' '	+	'plot_bands='		+	plot_bands			+	'\n')
+		outfile.write('\t'	+	'plot_bands='		+	plot_bands			+	'\n')
 		outfile.write('\n')
 		#
 		#
 		outfile.write('[unitCell]\n')
-		outfile.write(' '	+	'a1= '				+	str(ax[0]) +' '+str(ax[1])+' '+str(ax[2])		+	'\n')
-		outfile.write(' '	+	'a2= '				+	str(ay[0]) +' '+str(ay[1])+' '+str(ay[2])		+	'\n')
-		outfile.write(' '	+	'a3= '				+	str(az[0]) +' '+str(az[1])+' '+str(az[2])		+	'\n')
-		outfile.write(' '	+	'a0= '				+	str(a0)				+	'\n')
+		outfile.write('\t'	+	'a1= '				+	str(ax[0]) +' '+str(ax[1])+' '+str(ax[2])		+	'\n')
+		outfile.write('\t'	+	'a2= '				+	str(ay[0]) +' '+str(ay[1])+' '+str(ay[2])		+	'\n')
+		outfile.write('\t'	+	'a3= '				+	str(az[0]) +' '+str(az[1])+' '+str(az[2])		+	'\n')
+		outfile.write('\t'	+	'a0= '				+	str(a0)				+	'\n')
 		outfile.write('\n')
 		#
 		#
 		outfile.write('[wannInterp]\n')
-		outfile.write(' '	+	'mp_grid= '			+	str(mp_grid[0]) +' '+str(mp_grid[1])+' '+str(mp_grid[2])		+	'\n')
-		outfile.write(' '	+	'seed_name= '		+	seed_name			+	'\n')
-		outfile.write(' '	+	'use_interp_kpt= '	+	use_interp_kpt		+	'\n')
-		outfile.write(' '	+	'do_gauge_trafo= '	+	do_gauge_trafo		+	'\n')
+		outfile.write('\t'	+	'mp_grid= '			+	str(mp_grid[0]) +' '+str(mp_grid[1])+' '+str(mp_grid[2])		+	'\n')
+		outfile.write('\t'	+	'seed_name= '		+	seed_name			+	'\n')
+		outfile.write('\t'	+	'use_interp_kpt= '	+	use_interp_kpt		+	'\n')
+		outfile.write('\t'	+	'do_gauge_trafo= '	+	do_gauge_trafo		+	'\n')
 		outfile.write('\n')
 		#
 		#
 		outfile.write('[MEP]\n')
-		outfile.write(' '	+	'valence_bands= '	+	str(valence_bands)	+	'\n')
+		outfile.write('\t'	+	'valence_bands= '	+	str(valence_bands)	+	'\n')
 
 		print('wrote '+file_path+'input.txt')
 
@@ -342,7 +342,8 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 
 
 
-#write input for MEPinterp
+#write input for MEP
+interp
 
 #for t in thopp:
 #	print(t)
