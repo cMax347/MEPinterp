@@ -6,6 +6,7 @@ bin/**
 
 **/vTune
 *.o
+*.a
 *.wout
 *.aux
 *.log

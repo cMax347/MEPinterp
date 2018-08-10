@@ -24,11 +24,11 @@ add_executable(main.exe ${sources})
 #link LIBS
 find_package(LAPACK REQUIRED)
 target_link_libraries(main.exe ${LAPACK_LIBRARIES})
-target_link_libraries(main.exe config_fortran wannier)
 
 
 include_directories("${PROJECT_SOURCE_DIR}/thirdparty")
 add_subdirectory(thirdparty)
+target_link_libraries(main.exe config_fortran wannier)
 
 
 find_package(MPI)
