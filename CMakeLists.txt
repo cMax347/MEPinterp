@@ -32,13 +32,6 @@ add_subdirectory(thirdparty)
 target_link_libraries(main.exe config_fortran)
 
 
-find_package(MPI)
-if(MPI_FOUND)
-  target_link_libraries(main.exe ${MPI_LIBRARIES})
-  message("mpi link library is ${MPI_LIBRARIES}")
-else(MPI_FOUND)
-  message("no mpi library found")
-endif(MPI_FOUND)
 
 
 
@@ -47,7 +40,17 @@ endif(MPI_FOUND)
 
 #for LINUX use intel compiler with performance options
 if (UNIX AND NOT APPLE)
-	message("will use LINUX (intel) compiler options")
+	find_package(MPI)
+  if(MPI_FOUND)
+    target_link_libraries(main.exe ${MPI_LIBRARIES})
+    message("mpi link library is ${MPI_LIBRARIES}")
+  else(MPI_FOUND)
+    message("no mpi library found")
+  endif(MPI_FOUND)
+
+
+
+  message("will use LINUX (intel) compiler options")
   set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
   set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
     #do something
