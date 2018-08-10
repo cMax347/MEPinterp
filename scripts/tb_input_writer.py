@@ -89,7 +89,7 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 	for at in range(nAt):
 		for nn, nn_pos in enumerate(rel_atom_pos):
 			b_nn	= nn_pos - rel_atom_pos[at]
-	
+
 			nn_list[at][nn]	= '0'
 			#found nearest neighbour
 			if abs(np.linalg.norm(b_nn)-nn_dist) < 1e-8:
@@ -98,15 +98,15 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 					if abs(b_nn[x]) > 1e-8:
 						b_dim 	= x
 						b_scal	= b_nn[x]
-				
+
 				nn_list[at][nn]	= int_to_dim_string(b_dim)
-	
-			
+
+
 				R_nn = [0,0,0]
 				#no check if nn is still in home unit cell
 				if b_scal < 0.0:
-					R_nn[b_dim]	= 1 
-	
+					R_nn[b_dim]	= 1
+
 				print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+int_to_dim_string(b_dim)+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][at]))
 				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][at]), np.imag(phi[b_dim][at])		]	)
 				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], nn+1, at+1, np.real(phi[b_dim][at]), -np.imag(phi[b_dim][at])	]	)
@@ -130,7 +130,7 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 	#list with already added elements
 	thopp_helper = []
 	for t in thopp:
-		thopp_helper.append(	[	t[0],t[1],t[2],t[3],t[4]	]	 ) 
+		thopp_helper.append(	[	t[0],t[1],t[2],t[3],t[4]	]	 )
 
 	#only if not in already added list append value
 	for R_nn in R_hopp:
@@ -154,7 +154,7 @@ def get_pos_list(nAt, rel_atom_pos, a_latt, R_nn_list):
 					at_pos = get_at_pos(a_latt, rel_atom_pos[m])
 				else:
 					at_pos = np.zeros(6)
-				rhopp.append(	[		R_nn[0],R_nn[1],R_nn[2], m+1, n+1, at_pos[0], at_pos[1], at_pos[2], at_pos[3], at_pos[4], at_pos[5]			]		)	 
+				rhopp.append(	[		R_nn[0],R_nn[1],R_nn[2], m+1, n+1, at_pos[0], at_pos[1], at_pos[2], at_pos[3], at_pos[4], at_pos[5]			]		)
 	return rhopp
 
 
@@ -212,11 +212,11 @@ def write_r_file(seed_name, nAt, rhopp ):
 
 
 
-		
+
 def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name, use_interp_kpt='F', do_gauge_trafo='T',  plot_bands='F'):
 	with open(file_path+'input.txt','w') as outfile:
 		outfile.write('# input file for TB model from New J Physics 12, 053032 (2010)'+'\n')
-		outfile.write('# generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')	
+		outfile.write('# generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
 		outfile.write('\n')
 		#
 		#
@@ -305,15 +305,15 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 	phi_x	= convert_phase_to_complex(phi_x)
 	phi_y	= convert_phase_to_complex(phi_y)
 	phi_z	= convert_phase_to_complex(phi_z)
-	onsite	= onsite	
-	phi_x	= phi_x		
-	phi_y	= phi_y		
-	phi_z	= phi_z		
+	onsite	= onsite
+	phi_x	= phi_x
+	phi_y	= phi_y
+	phi_z	= phi_z
 	#
 	phi		= []
 	phi.append(phi_x)
 	phi.append(phi_y)
-	phi.append(phi_z)	
+	phi.append(phi_z)
 
 
 	#get the lists
@@ -332,6 +332,8 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 
 
 def test():
+	print('+++++++++++++++++++++++++INPGEN-TB-WANN+++++++++++++++++++++++++++')
+	print('generates wannier90 style input files based on the TB model in New J Physics 12, 053032 (2010)')
 	root_dir = "test_tb_input_writer"
 	print('test the tb input generator, files will be written within ',root_dir)
 	if os.path.isdir(root_dir):
@@ -343,34 +345,11 @@ def test():
 	phi_para = 0.0
 	valence_bands=2
 	mp_grid=[4, 4, 4]
-	
+
 	write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid)
 
 
-
-#test()
-
-#print('+++++++++++++++++++++++++INPGEN-TB-WANN+++++++++++++++++++++++++++')
-#print('generates wannier90 style input files based on the TB model in New J Physics 12, 053032 (2010)')
-#
-#if valence_bands > nAt:
-#	print('WARNING: #valence bands'+str(valence_bands)+' is larger then nAt='+str(nAt)+ ' which is not allowed !')
-#	valence_bands = nAt
-#	print('WARNING	#valence_bands was set to '+str(valence_bands)	)	
-#
-#print('')
-
-
-
-
-
-
-#write input for MEP
-
-
-#for t in thopp:
-#	print(t)
-
-
+#uncomment next line to generate some test input
+test()
 
 
