@@ -80,6 +80,8 @@ module file_io
 		logical											::	tb_exist, hr_exist, r_exist
 		!
 		r_exist = .false.
+		tb_exist= .false.
+		hr_exist= .false.
 		!
 		!inquire(file=)
 		inquire(file=w90_dir//seed_name//'_tb.dat',	exist=tb_exist)
