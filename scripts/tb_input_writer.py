@@ -1,6 +1,7 @@
 import numpy as np
 import datetime
 import os
+from	shutil import rmtree
 
 
 au_to_eV 		= 27.21139
@@ -106,9 +107,12 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 				if b_scal < 0.0:
 					R_nn[b_dim]	= 1 
 	
-				#print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+int_to_dim_string(b_dim)+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][nn]))
-	
-				thopp.append(	[		R_nn[0],R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][nn]), np.imag(phi[b_dim][nn])		]	)
+				print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+int_to_dim_string(b_dim)+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][at]))
+				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][at]), np.imag(phi[b_dim][at])		]	)
+				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], nn+1, at+1, np.real(phi[b_dim][at]), -np.imag(phi[b_dim][at])	]	)
+
+
+
 	#for at,nn in enumerate(nn_list):
 	#	print('at='+str(at)+' nn='+str(nn)	)
 
@@ -248,6 +252,8 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 
 
 
+
+
 def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_kpt='F', do_gauge_trafo='T', plot_bands='F'):
 	target_dir_name	= 'w90files'
 	target_path		= root_dir+'/'+target_dir_name
@@ -299,10 +305,10 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 	phi_x	= convert_phase_to_complex(phi_x)
 	phi_y	= convert_phase_to_complex(phi_y)
 	phi_z	= convert_phase_to_complex(phi_z)
-	onsite	= onsite	* au_to_eV
-	phi_x	= phi_x		* au_to_eV
-	phi_y	= phi_y		* au_to_eV
-	phi_z	= phi_z		* au_to_eV
+	onsite	= onsite	
+	phi_x	= phi_x		
+	phi_y	= phi_y		
+	phi_z	= phi_z		
 	#
 	phi		= []
 	phi.append(phi_x)
@@ -325,7 +331,24 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name, use_interp_kpt, do_gauge_trafo, plot_bands)
 
 
+def test():
+	root_dir = "test_tb_input_writer"
+	print('test the tb input generator, files will be written within ',root_dir)
+	if os.path.isdir(root_dir):
+		rmtree(root_dir)
+		print('removed old dir ',root_dir)
+	os.mkdir(root_dir)
+	print('created diretory ',root_dir)
 
+	phi_para = 0.0
+	valence_bands=2
+	mp_grid=[4, 4, 4]
+	
+	write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid)
+
+
+
+test()
 
 #print('+++++++++++++++++++++++++INPGEN-TB-WANN+++++++++++++++++++++++++++')
 #print('generates wannier90 style input files based on the TB model in New J Physics 12, 053032 (2010)')
