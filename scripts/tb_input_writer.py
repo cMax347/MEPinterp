@@ -343,7 +343,7 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 
 
 #write input for MEP
-interp
+
 
 #for t in thopp:
 #	print(t)

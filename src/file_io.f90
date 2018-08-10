@@ -323,7 +323,7 @@ module file_io
 
 		
 
-		open(unit=300,iostat=stat, file=w90_dir//seed_name//'_tb.dat',form='formatted', status='old', action='read')
+		open(unit=300, file=w90_dir//seed_name//'_tb.dat',form='formatted', status='old', action='read')
 
 		!read unit cell
 		read(300,*)

@@ -28,7 +28,8 @@ target_link_libraries(main.exe ${LAPACK_LIBRARIES})
 
 include_directories("${PROJECT_SOURCE_DIR}/thirdparty")
 add_subdirectory(thirdparty)
-target_link_libraries(main.exe config_fortran wannier)
+#target_link_libraries(main.exe config_fortran wannier)
+target_link_libraries(main.exe config_fortran)
 
 
 find_package(MPI)
