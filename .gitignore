@@ -30,6 +30,8 @@ bin/**
 **/CMakeFiles
 
 
+
+**/test_tb_input_writer
 *CMakeCache.txt
 *sublimeMake.sh
 **thirdparty/Makefile
