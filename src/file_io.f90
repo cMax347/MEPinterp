@@ -76,7 +76,6 @@ module file_io
 		character(len=*),	 			intent(in) 		::	seed_name
 		real(dp),		allocatable,	intent(inout)	::	R_vect(:,:)
 		complex(dp),	allocatable, 	intent(inout)	::	H_mat(:,:,:), r_mat(:,:,:,:)
-		real(dp),		allocatable						::	R_tilde_vect(:,:)
 		logical											::	tb_exist, hr_exist, r_exist
 		!
 		r_exist = .false.
@@ -95,7 +94,7 @@ module file_io
 			!
 			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
 			if(  r_exist )	then
-				call read_r_file(w90_dir//seed_name, R_tilde_vect, r_mat)
+				call	read_r_file(w90_dir//seed_name, R_vect, r_mat)
 			end if
 		end if
 		!
@@ -318,7 +317,7 @@ module file_io
 		character(len=*)									::	seed_name
 		real(dp),		intent(out), allocatable			::	R_vect(:,:)
 		complex(dp),	intent(out), allocatable			:: 	tHopp(:,:,:), rHopp(:,:,:,:)
-		integer												::	stat, f_nwfs, f_nSC, readLines, line, &
+		integer												::	f_nwfs, f_nSC, readLines, line, &
 																cell, n
 		integer												::	cell_rel(3), index(2)
 		real(dp)											::	unit_cell(3,3), compl1(2),compl3(6), rTest(3), real3(3)
@@ -427,7 +426,7 @@ module file_io
 		allocate(	R_vect(			3,				f_nSC	)		)
 		allocate(	H_mat(			f_nWfs, f_nWfs,	f_nSC	)		)
 
-
+		write(*,'(a,i3,a,i3)')	"[read_hr_file]: input interpretation: nWfs=",f_nwfs, " nSC=",f_nSC
 
 		!read wigner seitz degeneracy
 		to_read = f_nSC
@@ -484,6 +483,7 @@ module file_io
 		H_mat	= H_mat / aUtoEv
 		!
 		!
+		
 		write(*,'(a,i3,a,i3,a)')	"[#",mpi_id,";read_hr_file]: success (nrpts=",size(R_vect,2),")!"
 		return
 	end subroutine
@@ -505,8 +505,12 @@ module file_io
 		!
 		do sc = 1, size(R_vect,2)
 			do it= 1, f_nWfs**2
-				read(320,*)		m ,n , int3(1:3), real6(1:6)
-				if( .not.	is_equal_vect(	R_vect(1:3,sc),	real(int3(1:3),dp)	)	)stop 'different R_vect order in _r.dat file'
+				read(320,*)		int3(1:3), 		m, n, 	real6(1:6)
+				if( .not.	is_equal_vect(	R_vect(1:3,sc),	real(int3(1:3),dp)	)	)	then
+					write(*,*)	"[read_r_file]: R_vect=",R_vect(1:3,sc)
+					write(*,*)	"[read_r_file]:	input_R=",real(int3(1:3),dp)
+					stop 'different R_vect order in _hr.dat and _r.dat file'
+				end if
 				!
 				r_mat(1,m,n,sc)	=	dcmplx(	real6(1)	, real6(2)	)
 				r_mat(2,m,n,sc)	=	dcmplx(	real6(3)	, real6(4)	)
