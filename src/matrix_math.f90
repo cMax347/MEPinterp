@@ -8,7 +8,7 @@ module matrix_math
 
 	private
 	public						::			zheevr_wrapper, zheevd_wrapper,       & 
-                                            crossP
+                                            crossP, is_equal_vect
 
 
     interface crossP
@@ -174,7 +174,17 @@ module matrix_math
 		return
 	end subroutine
 
-
+    logical function is_equal_vect(a,b)
+        real(dp),   dimension(3),   intent(in)     ::   a, b
+        integer                                    ::   x
+        !
+        is_equal_vect = .true.
+        do x = 1, 3
+            is_equal_vect =    is_equal_vect  .and.      abs(   a(x) - b(x)  )  < 1e-10_dp
+        end do
+        !
+        return
+    end function
 
     function crossPreal(a,b)
         !cross product of two real 3dim vectors a,b
@@ -185,7 +195,7 @@ module matrix_math
         crossPreal(2)   =   a(3) * b(1)     -   a(1) * b(3) 
         crossPreal(3)   =   a(1) * b(2)     -   a(2) * b(1) 
         !
-        !return
+        return
     end function
 
 

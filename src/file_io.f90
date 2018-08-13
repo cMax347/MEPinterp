@@ -5,7 +5,7 @@ module file_io
 													a_latt, mp_grid, num_bands,			&
 													plot_bands,  use_interp_kpt,		&
 													get_rel_kpts
-
+	use matrix_math,					only:		is_equal_vect												
 
 	implicit none
 
@@ -466,10 +466,9 @@ module file_io
 				if( wf==1 .and. sc==1 ) then
 					R_vect(1:3,1)	= int3(1:3)
 					idx = 1
-				else if(	 R_vect(1,idx)/= int3(1) .or. R_vect(2,idx) /= int3(2) .or. R_vect(3,idx) /= int3(3)	) then
+				else if( .not.	is_equal_vect(	R_vect(1:3,idx),	real(int3(1:3),dp) )		) then
 					idx = idx +1 
 					R_vect(1:3,idx)	= int3(1:3)
-
 					if(wf /= 1) write(*,*)	"[read_hr_file]: 	WARNING unexpected new R_vect"
 				end if
 				!
@@ -507,9 +506,7 @@ module file_io
 		do sc = 1, size(R_vect,2)
 			do it= 1, f_nWfs**2
 				read(320,*)		m ,n , int3(1:3), real6(1:6)
-				if( R_vect(1,sc) /= int3(1) .or. R_vect(2,sc) /= int3(2) .or. R_vect(3,sc) /= int3(3)	)then 
-					stop 'different R_vect order in _r.dat file'
-				end if
+				if( .not.	is_equal_vect(	R_vect(1:3,sc),	real(int3(1:3),dp)	)	)stop 'different R_vect order in _r.dat file'
 				!
 				r_mat(1,m,n,sc)	=	dcmplx(	real6(1)	, real6(2)	)
 				r_mat(2,m,n,sc)	=	dcmplx(	real6(3)	, real6(4)	)
