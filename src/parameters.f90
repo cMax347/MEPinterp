@@ -46,9 +46,9 @@ module parameters
 	integer						::	mpi_id, mpi_root_id, mpi_nProcs, ierr,												&
 									valence_bands, mp_grid(3)
 	character(len=3)			:: 	seed_name
-	character(len=7)			::	out_dir ="MEPout/"					
+	character(len=4)			::	out_dir ="out/"					
 	character(len=9)			::	w90_dir	="w90files/"
-	character(len=3)			::	raw_dir ="raw/"
+	character(len=4)			::	raw_dir ="raw/"
 	logical						::	r_exists, do_gauge_trafo, plot_bands, use_interp_kpt
 	real(dp)					::	a_latt(3,3), a0, unit_vol, recip_latt(3,3)
 
