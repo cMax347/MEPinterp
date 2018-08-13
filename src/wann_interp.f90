@@ -5,6 +5,12 @@ module wann_interp
 									do_gauge_trafo
 
 
+
+
+
+
+
+
 	implicit none
 
 
@@ -50,10 +56,10 @@ module wann_interp
 			ft_phase	= 	myExp(	dot_product(kpt_abs(1:3),	r_vect(1:3)	)		)
 
 !			write(*,*)	"[#",mpi_id,"; wann_interp_ft]:	now start with ft at kpt_rel=(",	(kpt_rel(x),", ", x=1,3   )		,	") and R_vect=(",(r_vect(x),", ", x=1,3   ),")."	
-			write(*,'(a,i3,a)',			advance="no")	"[#",mpi_id,"; wann_interp_ft]:	ft_phase=("
-			write(*,'(f6.2,a,f6.2)',	advance="no")	dreal(ft_phase),'+ i ',dimag(ft_phase)
-			write(*,'(a,i3,a)',			advance="no")	") sc=",sc," kpt_rel=("
-			write(*,'(f6.2,a,f6.2,a,f6.2,a)')			kpt_rel(1),", ",kpt_rel(2),", ",kpt_rel(3),")."
+!			write(*,'(a,i3,a)',			advance="no")	"[#",mpi_id,"; wann_interp_ft]:	ft_phase=("
+!			write(*,'(f6.2,a,f6.2)',	advance="no")	dreal(ft_phase),'+ i ',dimag(ft_phase)
+!			write(*,'(a,i3,a)',			advance="no")	") sc=",sc," kpt_rel=("
+!			write(*,'(f6.2,a,f6.2,a,f6.2,a)')			kpt_rel(1),", ",kpt_rel(2),", ",kpt_rel(3),")."
 
 			!hamilton operator
 			H_k(:,:)		= 	H_k(:,:)		+	ft_phase 					* H_real(:,:,sc)
