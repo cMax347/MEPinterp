@@ -2,7 +2,7 @@ module file_io
 	use parameters,						only:		dp, aUtoAngstrm, aUtoEv, 			&
 													mpi_id, mpi_root_id,				&
 													w90_dir, out_dir, raw_dir, 			&
-													a_latt, mp_grid, num_bands,			&
+													a_latt, mp_grid, 					&
 													plot_bands,  use_interp_kpt,		&
 													get_rel_kpts
 	use matrix_math,					only:		is_equal_vect												
@@ -16,7 +16,7 @@ module file_io
 													write_mep_tensor
 
 	character(len=64)						::		format='(a,i7.7)'
-
+	integer									::		num_bands
 	contains
 
 
@@ -111,8 +111,8 @@ module file_io
 		character(len=24)				::	filename
 		!
 		write(filename, format) raw_dir//'/enK.',qi_idx
-		open(unit=211, file = filename, form='unformatted', action='read', access='stream',		status='replace'		)
-		read(211)	e_bands(1:num_bands)
+		open(unit=211, file = filename, form='unformatted', action='read', access='stream',		status='old'		)
+		read(211)	e_bands(:)
 		close(211)
 		!
 		return
@@ -155,8 +155,9 @@ module file_io
 		!
 		write(filename, format) raw_dir//'/enK.',qi_idx
 		open(unit=210,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
-		write(210)	e_bands(1:num_bands)
+		write(210)	e_bands(:)
 		close(210) 
+		write(*,'(a,i3,a,a)')	"[#",mpi_id," ;write_en_binary]: prepare bands, wrote binary file ",filename
 		!
 		return
 	end subroutine
@@ -324,7 +325,7 @@ module file_io
 
 		
 
-		open(unit=300, file=w90_dir//seed_name//'_tb.dat',form='formatted', status='old', action='read')
+		open(unit=300, file=seed_name//'_tb.dat',form='formatted', status='old', action='read')
 
 		!read unit cell
 		read(300,*)
