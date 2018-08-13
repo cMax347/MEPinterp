@@ -22,7 +22,7 @@ module parameters
 												mpi_root_id, mpi_id, mpi_nProcs, ierr,								&
 												!vars
 												seed_name,	do_gauge_trafo,	 valence_bands,							&
-												a_latt, unit_vol, recip_latt, mp_grid, num_bands
+												a_latt, unit_vol, recip_latt, mp_grid
 
 
 	!for clean double precision convention through the code
@@ -44,7 +44,7 @@ module parameters
 
 	!
 	integer						::	mpi_id, mpi_root_id, mpi_nProcs, ierr,												&
-									valence_bands, mp_grid(3), num_bands
+									valence_bands, mp_grid(3)
 	character(len=3)			:: 	seed_name
 	character(len=7)			::	out_dir ="MEPout/"					
 	character(len=9)			::	w90_dir	="w90files/"
