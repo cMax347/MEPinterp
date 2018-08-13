@@ -28,7 +28,6 @@ module mep_niu
 
 	integer									::		num_kpts
 !
-	real(dp),		dimension(3,3)			::		real_lattice, recip_lattice
 	real(dp),		allocatable				::		kpt_latt(:,:)
 
 
@@ -92,7 +91,6 @@ module mep_niu
 			!
 			!write some files
 			if(plot_bands)	call write_en_binary(ki, en_k)
-			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; mep_interp]: interpolated ki=",ki
 			ki_loc_count = ki_loc_count + 1
 		end do
 		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: finished interpolating ",ki_loc_count," kpts"
