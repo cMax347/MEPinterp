@@ -350,6 +350,6 @@ def test():
 
 
 #uncomment next line to generate some test input
-test()
+#test()
 
 

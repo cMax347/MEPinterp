@@ -38,7 +38,7 @@ module matrix_math
     	real(dp),		intent(out)				:: 	w(:)				!selected eigenvalues in ascending order
     	complex(dp),	intent(out)				:: 	z(:,:)				!each column represents an eigenvector (	columns 1,2,...,m	)
     	integer,		intent(out)				:: 	m					!number of eigenvalues found
-    	character*1	 							:: 	jobz, range, uplo
+    	character(len=1)	 					:: 	jobz, range, uplo
     	integer									:: 	n, lda, il, iu, ldz, lwork, lrwork, liwork,  info 
     	integer,		allocatable				:: 	isuppz(:) , iwork(:)
     	real(dp)								:: 	vl, vu, abstol

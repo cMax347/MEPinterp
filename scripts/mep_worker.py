@@ -41,7 +41,7 @@ class MEP_worker:
 
 		#prepare files in working directory
 		write_souza_tb_input(self.work_dir, self.phi, self.val_bands, self.mp_grid, self.use_interp_kpt, self.do_gauge_trafo, 'F' )
-		copy(self.root_dir+'/../main.exe',	self.work_dir)
+		copy(self.root_dir+'/../mepInterp',	self.work_dir)
 		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)
 
 
@@ -80,7 +80,7 @@ class MEP_worker:
 
 		print('['+str(datetime.datetime.now())+']start calculation....')
 		try:
-			os.system('mpirun -np 4 ./main.exe > mep.log')
+			os.system('mpirun -np 4 ./mepInterp > mep.log')
 			self.success = True
 		except:
 			print('calculation could not be executed')
@@ -127,7 +127,7 @@ class MEP_worker:
 		write_souza_tb_input(self.band_dir, self.phi, self.val_bands, self.mp_grid, self.use_interp_kpt, self.do_gauge_trafo, 'T' )
 		#
 		#copy exectubales to target 
-		copy(self.work_dir+'/main.exe', 	self.band_dir)
+		copy(self.work_dir+'/mepInterp', 	self.band_dir)
 		copy(self.work_dir+'/kptsgen.pl',	self.band_dir)
 		#
 		os.chdir(self.band_dir)
@@ -138,7 +138,7 @@ class MEP_worker:
 		#time.sleep(1)	#delay for one second
 
 		#run the bandstructure calculation
-		os.system('mpirun -np 4 ./main.exe > mepBAND.log')
+		os.system('mpirun -np 4 ./mepInterp > mepBAND.log')
 		print('MEPinterp run completed')
 
 		#make a plot

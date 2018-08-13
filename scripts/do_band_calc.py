@@ -14,7 +14,7 @@ def do_band_calc(phi, val_bands):
 	band_dir	= root_dir+'/bands'
 	
 
-	main_exe	= root_dir+'/main.exe'
+	main_exe	= root_dir+'/mepInterp'
 	kpt_gen		= root_dir+'/kptsgen.pl'
 
 	#check if executables are present
@@ -29,8 +29,8 @@ def do_band_calc(phi, val_bands):
 			print('could not make directory "',band_dir,'"')
 		#
 		#now copy executables to target
-		copy('./main.exe',		band_dir+'/main.exe')
-		copy('./kptsgen.pl',	band_dir)
+		copy(main_exe,		band_dir+'/mepInterp')
+		copy(kpt_gen,	band_dir)
 		print('copied the executables')
 	else:
 		print('did not find all executables necessary, nothing was done...')
@@ -48,13 +48,13 @@ def do_band_calc(phi, val_bands):
 	write_souza_tb_input(band_dir, phi, val_bands, mp_grid, use_interp_kpt='F', do_gauge_trafo='T', plot_bands='T' )
 	os.system('./kptsgen.pl -l cub -k "Gamma 100 X 100 M 100 Gamma 100 R"')
 	print('generated k-space path list')
-	os.system('mpirun -np 4 ./main.exe > mepBANDS.out')
+	os.system('mpirun -np 4 ./mepInterp > mepBANDS.out')
 	print('calculation done, now try plotting')
 
 
 	#create pdf file 
 	k_file	= band_dir+'/kpts'
-	en_file	= band_dir+'/MEPout/eBands.dat'
+	en_file	= band_dir+'/out/eBands.dat'
 	pdf_file= band_dir+'/bands.pdf'
 	if os.path.isfile(k_file) and os.path.isfile(en_file):
 		plot_bandstruct(k_file,en_file, pdf_file, label_size=14, y_tick_size=12, plot_in_ev=False)

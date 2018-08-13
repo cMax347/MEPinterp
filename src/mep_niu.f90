@@ -62,8 +62,9 @@ module mep_niu
 		!allocate k-space
 		allocate(	U_k(		size(H_real,1),	size(H_real,2)	)	)
 		allocate(	en_k(					size(H_real,2)		)	)
+		
 		allocate(	H_ka(	3,	size(H_real,1),	size(H_real,2)	)	)
-		allocate(	v_k(	3,	size(H_real,1),	size(H_real,2)	)	)
+		if(.not. plot_bands		)		allocate(	V_k(	3,	size(H_real,1),	size(H_real,2)	)	)
 		if(	allocated(r_mat)	)		allocate(	A_ka(	3,	size(r_mat,2),	size(r_mat,3)	)		)
 		!
 		!
@@ -79,30 +80,32 @@ module mep_niu
 			call wann_interp_ft(H_real, r_mat,  R_vect,	 kpt_latt(1:3,ki),	U_k,	H_ka, A_ka)	
 			!get energies
 			call zheevd_wrapper(U_k, en_k)
-			!get velos
-			call velo_interp(U_k, en_k, H_ka, A_ka, V_k)
-			!get MEP_tensor
-			call get_F2(V_k, en_k, F2)
-			call get_F3(V_k, en_k, F3)
-			mep_tens_k	=	F2 + F3			!
-			!sum MEP over kpts
-			mep_tens_loc = mep_tens_loc + mep_tens_k
 			!
 			!
-			!write some files
-			if(plot_bands)	call write_en_binary(ki, en_k)
+			if(plot_bands)	then
+				call write_en_binary(ki,en_k)
+			else
+				!get velos
+				call velo_interp(U_k, en_k, H_ka, A_ka, V_k)
+				!get MEP_tensor
+				call get_F2(V_k, en_k, F2)
+				call get_F3(V_k, en_k, F3)
+				mep_tens_k	=	F2 + F3			!
+				!sum MEP over local kpts
+				mep_tens_loc = mep_tens_loc + mep_tens_k
+			end if
+			!
 			ki_loc_count = ki_loc_count + 1
 		end do
 		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: finished interpolating ",ki_loc_count," kpts"
 		!
 
-		!sum over all kpts
+		!sum mep over global kpts
 		call MPI_REDUCE(	mep_tens_loc, mep_tens_glob,	 9,	MPI_DOUBLE_PRECISION,	MPI_SUM	, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		!
 		!write some files
 		if(mpi_id == mpi_root_id) 	then
-			write(*,*)	"--------------------------------------------------------------------------------------------------------"
-			call write_mep_tensor(mep_tens_glob)			
+			write(*,*)	"--------------------------------------------------------------------------------------------------------"		
 			!
 			if(plot_bands)	then
 				call write_en_global(kpt_latt)
