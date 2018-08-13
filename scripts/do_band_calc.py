@@ -46,7 +46,7 @@ def do_band_calc(phi, val_bands):
 	#interpolate the energies
 	mp_grid = [4,4,4]	#generic does not matter here
 	write_souza_tb_input(band_dir, phi, val_bands, mp_grid, use_interp_kpt='F', do_gauge_trafo='T', plot_bands='T' )
-	os.system('./kptsgen.pl -l cub -k "Gamma 25 X 25 M 35 Gamma 35 R"')
+	os.system('./kptsgen.pl -l cub -k "Gamma 100 X 100 M 100 Gamma 100 R"')
 	print('generated k-space path list')
 	os.system('mpirun -np 4 ./main.exe > mepBANDS.out')
 	print('calculation done, now try plotting')
