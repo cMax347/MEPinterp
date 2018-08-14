@@ -89,26 +89,25 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 	for at in range(nAt):
 		for nn, nn_pos in enumerate(rel_atom_pos):
 			b_nn	= nn_pos - rel_atom_pos[at]
-
 			nn_list[at][nn]	= '0'
 			#found nearest neighbour
 			if abs(np.linalg.norm(b_nn)-nn_dist) < 1e-8:
-				#determine where b_nn is pointing
-				for x in range(3):
-					if abs(b_nn[x]) > 1e-8:
-						b_dim 	= x
-						b_scal	= b_nn[x]
-
-				nn_list[at][nn]	= int_to_dim_string(b_dim)
-
-
+				#determine R_nn
 				R_nn = [0,0,0]
-				#no check if nn is still in home unit cell
-				if b_scal < 0.0:
-					R_nn[b_dim]	= 1
+				for x in range(3):
+					# nn is in home unit cell (R_nn=0)
+					if b_nn[x] > 1e-8:
+						b_dim 	= x
+						nn_list[at][nn]	= int_to_dim_string(b_dim)
+					# nn is in unit cell to the right
+					elif b_nn[x] < - 1e-8:
+						b_dim 	= x
+						R_nn[x]	= int(	np.sign(b_nn[x])		)
+						nn_list[at][nn]	= int_to_dim_string(b_dim)
 
-				print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+int_to_dim_string(b_dim)+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][at]))
-				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][at]), np.imag(phi[b_dim][at])		]	)
+
+				print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+nn_list[at][nn]+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][at]))
+				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][at]), +np.imag(phi[b_dim][at])		]	)
 				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], nn+1, at+1, np.real(phi[b_dim][at]), -np.imag(phi[b_dim][at])	]	)
 
 
