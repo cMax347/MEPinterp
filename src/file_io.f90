@@ -13,7 +13,7 @@ module file_io
 	public									::		read_k_mesh, read_tb_basis,			& 
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
-													write_mep_tensor
+													write_mep_tensors
 
 	character(len=64)						::		format='(a,i7.7)'
 	integer									::		num_bands
@@ -48,7 +48,7 @@ module file_io
 				write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate ("
 				write(*,'(i3,a,i3,a,i3,a)')									mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
 			else 
-				write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,"; read_k_mesh]: a new kpt file is generated as requested ("
+				write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,"; read_k_mesh]: a new kpt mesh will be generated ("
 				write(*,'(i3,a,i3,a,i3,a)')							mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
 			end if
 			call get_rel_kpts(mp_grid, kpt_latt)
@@ -193,13 +193,54 @@ module file_io
 
 
 
+	subroutine write_mep_tensors(mep_ic, mep_lc, mep_cs)
+		real(dp),			intent(in)		::	mep_ic(3,3), mep_lc(3,3), mep_cs(3,3)
+		real(dp)							::	mep_tot(3,3)
+		character(len=12)					::	fname
+		character(len=50)					::	info_string
+		!
+		!-------------------------------------itinerant contribution MEP tensor-------------
+		fname		= 'mep_ic.dat'
+		info_string	= '# itinerant contribution of mep tensor'
+		!
+		call	write_mep_file(fname,	mep_ic,	info_string )
+		!
+		!
+		!-------------------------------------local contribution MEP tensor-----------------
+		fname		= 'mep_lc.dat'
+		info_string	= '# local contribution of mep tensor'
+		!
+		call	write_mep_file(fname,	mep_lc,	info_string )
+		!
+		!
+		!-------------------------------------Chern-Simons term MEP tensor------------------
+		fname		= 'mep_cs.dat'
+		info_string	= '# Chern-Simons term of mep tensor'
+		!
+		call	write_mep_file(fname,	mep_cs,	info_string )
+		!
+		!
+		!-------------------------------------total MEP tensor------------------------------
+		fname		= 'mep_tens.dat'
+		info_string	= '# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)'
+		!
+		mep_tot		= mep_ic +	mep_lc	+	mep_cs
+		call	write_mep_file(fname,	mep_tot,	info_string )
+		!-----------------------------------------------------------------------------------
+		!
+		return
+	end subroutine
 
-	subroutine write_mep_tensor(mep_tens)
-		real(dp),	intent(in)		::	mep_tens(3,3)
-		integer						::	row, clm		!
+
+
+!private write
+	subroutine write_mep_file(fname,mep_tens, info_string)
+		character(len=*), 	intent(in)		::	fname, info_string
+		real(dp),			intent(in)		::	mep_tens(3,3)
+		integer								::	row, clm		!
 		!write result to file
-		open(unit=250, file=out_dir//'mep_tens.dat', form='formatted', 	action='write', access='stream',	status='replace')
-			write(250,*)	"#MEP tensor calculated via Niu's semiclassic formalism"
+		open(unit=250, file=out_dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
+			write(250,*)	info_string
 			write(250,*)	'begin mep'
 			do row = 1, 3
 				write(250,'(200(f16.8,a))')		(		mep_tens(row,clm), ' ', clm=1,3)
@@ -426,9 +467,7 @@ module file_io
 		allocate(	R_degneracy(					f_nSC	)		)
 		allocate(	R_vect(			3,				f_nSC	)		)
 		allocate(	H_mat(			f_nWfs, f_nWfs,	f_nSC	)		)
-
-		write(*,'(a,i3,a,i3)')	"[read_hr_file]: input interpretation: nWfs=",f_nwfs, " nSC=",f_nSC
-
+		!
 		!read wigner seitz degeneracy
 		to_read = f_nSC
 		idx		= 1
@@ -485,7 +524,8 @@ module file_io
 		!
 		!
 		
-		write(*,'(a,i3,a,i3,a)')	"[#",mpi_id,";read_hr_file]: success (nrpts=",size(R_vect,2),")!"
+		write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,";read_hr_file]: success (input interpretation: nWfs="
+		write(*,'(i6,a,i6,a)')				f_nwfs, ";	nrpts=",size(R_vect,2),")!"
 		return
 	end subroutine
 
