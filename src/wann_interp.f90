@@ -22,7 +22,8 @@ module wann_interp
 
 
 
-	subroutine wann_interp_ft(H_real, r_real, R_frac, kpt_rel, H_k,	H_ka, A_ka	)										!H_real, r_mat,  R_vect,	kpt_rel_latt,	U_k,	H_ka, A_ka)	
+!public:
+	subroutine wann_interp_ft(H_real, r_real, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_ka)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)
@@ -31,52 +32,58 @@ module wann_interp
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
 		complex(dp),					intent(out)				::	H_k(:,:), H_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_ka(:,:,:)
+		complex(dp),	allocatable								::	Om_kab(:,:,:,:)
 		real(dp)												::	r_vect(3), kpt_abs(3)
 		complex(dp)												::	ft_phase
-		logical													::	do_pos
-		integer    												::	sc
+		logical													::	use_pos_op, calc_om
+		integer    												::	sc, a, b 
 		!
-		do_pos	= allocated(	A_ka	) .and. allocated(	r_real	)
-		!
-		
+		kpt_abs(1:3)	= 	matmul(		recip_latt(1:3,1:3)	, kpt_rel(1:3)	)	
 		!
 		H_k				=	dcmplx(0.0_dp)
 		H_ka			=	dcmplx(0.0_dp)
-		if(do_pos)	A_ka=	dcmplx(0.0_dp)
 		!
+		!OPTIONAL
+		use_pos_op		= allocated(A_ka) .and. allocated(r_real)
+		calc_om			= allocated(Om_ka)
+		if(use_pos_op)	A_ka =	dcmplx(0.0_dp)
+		if(calc_om)	then
+			allocate(	Om_kab(	3, 3, size(r_real,2), size(r_real,3) ))
+			Om_kab		=	dcmplx(0.0_dp)
+		end if
+		!			
 		!
-		kpt_abs(1:3)	= 	matmul(		recip_latt(1:3,1:3)	, kpt_rel(1:3)	)					!todo
-
-
-		!
-		!SUM OVER REAL SPACE CELLS
+		!sum real space cells
 		do sc = 1, size(R_frac,2)
 			r_vect(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
 			ft_phase	= 	myExp(	dot_product(kpt_abs(1:3),	r_vect(1:3)	)		)
-
-!			write(*,*)	"[#",mpi_id,"; wann_interp_ft]:	now start with ft at kpt_rel=(",	(kpt_rel(x),", ", x=1,3   )		,	") and R_vect=(",(r_vect(x),", ", x=1,3   ),")."	
-!			write(*,'(a,i3,a)',			advance="no")	"[#",mpi_id,"; wann_interp_ft]:	ft_phase=("
-!			write(*,'(f6.2,a,f6.2)',	advance="no")	dreal(ft_phase),'+ i ',dimag(ft_phase)
-!			write(*,'(a,i3,a)',			advance="no")	") sc=",sc," kpt_rel=("
-!			write(*,'(f6.2,a,f6.2,a,f6.2,a)')			kpt_rel(1),", ",kpt_rel(2),", ",kpt_rel(3),")."
-
-			!hamilton operator
-			H_k(:,:)		= 	H_k(:,:)		+	ft_phase 					* H_real(:,:,sc)
-			H_ka(1,:,:)		= 	H_ka(1,:,:)		+	ft_phase * i_dp * r_vect(1)	* H_real(:,:,sc)	
-			H_ka(2,:,:)		= 	H_ka(2,:,:)		+	ft_phase * i_dp * r_vect(2)	* H_real(:,:,sc)	
-			H_ka(3,:,:)		= 	H_ka(3,:,:)		+	ft_phase * i_dp * r_vect(3)	* H_real(:,:,sc)	
-
-			!positional operator
-			if( do_pos ) then
-				A_ka(1,:,:)	=	A_ka(1,:,:)		+	ft_phase 					* r_real(1,:,:,sc)	
-				A_ka(2,:,:)	=	A_ka(2,:,:)		+	ft_phase 					* r_real(2,:,:,sc)	
-				A_ka(3,:,:)	=	A_ka(3,:,:)		+	ft_phase 					* r_real(3,:,:,sc)	
-			end if
+			!
+			!
+			!Hamilton operator
+			H_k(:,:)				= 	H_k(:,:)		+	ft_phase 					* H_real(:,:,sc)	
+			do a = 1, 3
+				!energy gradients
+				H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * r_vect(a) * H_real(:,:,sc)
+				!Position operator
+				if( use_pos_op ) then
+					A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)
+				end if
+				!Curvature
+				if( calc_om	) then
+					do b = 1, 3
+						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * r_vect(a) * r_real(b,:,:,sc)
+						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * r_vect(b) * r_real(a,:,:,sc)
+					end do
+				end if 
+			end do
+			!
+			!
 		end do		
-
-
-
+		!
+		!get curvature in desired vector convention
+		if(calc_om)	call om_tens_to_vect(Om_kab, Om_ka)
+		!
 		return
 	end subroutine
 
@@ -124,6 +131,17 @@ module wann_interp
 
 
 
+!private:
+	subroutine om_tens_to_vect(om_tens, om_vect)
+		complex(dp),		intent(in)		::	om_tens(:,:,:,:)
+		complex(dp),		intent(out)		::	om_vect(:,:,:)
+
+		om_vect	=	dcmplx(0.0_dp)
+		write(*,*)	'[om_tens_to_vect]: WARNING NOT IMPLEMENTED YET, SET OM_VECT TO ZERO'
+		return
+	end subroutine
+
+
 
 	subroutine gauge_trafo(U_mat, M_mat)
 		!	does a gauge trafo of the gauge-covariant matrix M_mat
@@ -142,10 +160,6 @@ module wann_interp
 		!
 		return
 	end subroutine
-
-
-
-
 
 
 
