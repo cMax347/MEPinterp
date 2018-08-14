@@ -195,7 +195,7 @@ module file_io
 
 	subroutine write_mep_tensors(mep_ic, mep_lc, mep_cs)
 		real(dp),			intent(in)		::	mep_ic(3,3), mep_lc(3,3), mep_cs(3,3)
-		real(dp)							::	mep_tot(3,3)
+		real(dp)							::	mep_tens(3,3)
 		character(len=12)					::	fname
 		character(len=50)					::	info_string
 		!
@@ -224,8 +224,8 @@ module file_io
 		fname		= 'mep_tens.dat'
 		info_string	= '# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)'
 		!
-		mep_tot		= mep_ic +	mep_lc	+	mep_cs
-		call	write_mep_file(fname,	mep_tot,	info_string )
+		mep_tens	= mep_ic +	mep_lc	+	mep_cs
+		call	write_mep_file(fname,	mep_tens,	info_string )
 		!-----------------------------------------------------------------------------------
 		!
 		return
