@@ -28,23 +28,29 @@ module wann_interp
 		!	according to
 		!		PRB 74, 195118 (2006)
 		!
+		!
+		!	->	only the H_real, and H_k have to be allocated
+		!	->	all other quantities are only calculated if allocated
+		!
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
-		complex(dp),					intent(out)				::	H_k(:,:), H_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_ka(:,:,:)
+		complex(dp),					intent(out)				::	H_k(:,:)
+		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_ka(:,:,:)
 		complex(dp),	allocatable								::	Om_kab(:,:,:,:)
 		real(dp)												::	r_vect(3), kpt_abs(3)
 		complex(dp)												::	ft_phase
-		logical													::	use_pos_op
+		logical													::	use_pos_op, do_en_grad
 		integer    												::	sc, a, b 
 		!
 		kpt_abs(1:3)	= 	matmul(		recip_latt(1:3,1:3)	, kpt_rel(1:3)	)	
 		!
 		H_k				=	dcmplx(0.0_dp)
-		H_ka			=	dcmplx(0.0_dp)
 		!
-		!OPTIONAL
+		!OPTIONAL energy gradients
+		do_en_grad		= allocated(H_ka)
+		if(do_en_grad)	H_ka	=	dcmplx(0.0_dp)
+		!OPTIONAL position operator
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_ka)
 		if(use_pos_op)	then
 			allocate(	Om_kab(	3, 3, size(r_real,2), size(r_real,3) ))
@@ -61,11 +67,15 @@ module wann_interp
 			!
 			!Hamilton operator
 			H_k(:,:)				= 	H_k(:,:)		+	ft_phase 					* H_real(:,:,sc)	
+			!
+			!
 			do a = 1, 3
-				!energy gradients
-				H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * r_vect(a) * H_real(:,:,sc)
-				!OPTIONAL
-				if( use_pos_op ) then
+				!OPTIONAL energy gradients
+				if( do_en_grad)		then
+					H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * r_vect(a) * H_real(:,:,sc)
+				end if
+				!OPTIONAL position operator
+				if( use_pos_op )	then
 					!connection
 					A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)
 					!curvature
