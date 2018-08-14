@@ -163,7 +163,7 @@ def unit_test(n_phi, val_bands, mp_grid,	use_interp_kpt='F', do_gauge_trafo='T',
 
 
 
-unit_test(n_phi=20, val_bands=2, mp_grid=[4,4,4],plot_bands=True	)
+unit_test(n_phi=11, val_bands=2, mp_grid=[12,12,12],plot_bands=True	)
 
 
 

@@ -47,14 +47,14 @@ module mep_niu
 		!	cs	: chern - simons term	
 		!
 		real(dp)							::	F_ic(3,3), F_lc(3,3), F_cs(3,3),		&
+												!local sum targets:
 												mep_tens_ic_loc(	3,3),	 			&
 												mep_tens_lc_loc(	3,3),				&
 												mep_tens_cs_loc(	3,3),				&
 												!mpi sum targets:
 												mep_tens_ic_glob(	3,3),				&
 												mep_tens_lc_glob(	3,3),				&
-												mep_tens_cs_glob(	3,3),				&
-												mep_tens_glob(		3,3) 	
+												mep_tens_cs_glob(	3,3)				
 		integer								::	ki, n_ki_loc, n_ki_glob
 		complex(dp),	allocatable			::	H_real(:,:,:), r_mat(:,:,:,:), 			&
 												U_k(:,:), 								&
@@ -121,7 +121,7 @@ module mep_niu
 		end do
 		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: finished interpolating ",n_ki_loc," kpts"
 		!
-
+		!
 		!sum mep over global kpts
 		call MPI_REDUCE(	n_ki_loc,				n_ki_glob,			1,		MPI_INTEGER,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_REDUCE(	mep_tens_ic_loc,	mep_tens_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
