@@ -36,7 +36,7 @@ module wann_interp
 		complex(dp),	allocatable								::	Om_kab(:,:,:,:)
 		real(dp)												::	r_vect(3), kpt_abs(3)
 		complex(dp)												::	ft_phase
-		logical													::	use_pos_op, calc_om
+		logical													::	use_pos_op
 		integer    												::	sc, a, b 
 		!
 		kpt_abs(1:3)	= 	matmul(		recip_latt(1:3,1:3)	, kpt_rel(1:3)	)	
@@ -45,11 +45,10 @@ module wann_interp
 		H_ka			=	dcmplx(0.0_dp)
 		!
 		!OPTIONAL
-		use_pos_op		= allocated(A_ka) .and. allocated(r_real)
-		calc_om			= allocated(Om_ka)
-		if(use_pos_op)	A_ka =	dcmplx(0.0_dp)
-		if(calc_om)	then
+		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_ka)
+		if(use_pos_op)	then
 			allocate(	Om_kab(	3, 3, size(r_real,2), size(r_real,3) ))
+			A_ka 		=	dcmplx(0.0_dp)
 			Om_kab		=	dcmplx(0.0_dp)
 		end if
 		!			
@@ -65,12 +64,11 @@ module wann_interp
 			do a = 1, 3
 				!energy gradients
 				H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * r_vect(a) * H_real(:,:,sc)
-				!Position operator
+				!OPTIONAL
 				if( use_pos_op ) then
+					!connection
 					A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)
-				end if
-				!Curvature
-				if( calc_om	) then
+					!curvature
 					do b = 1, 3
 						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * r_vect(a) * r_real(b,:,:,sc)
 						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * r_vect(b) * r_real(a,:,:,sc)
@@ -82,7 +80,7 @@ module wann_interp
 		end do		
 		!
 		!get curvature in desired vector convention
-		if(calc_om)	call om_tens_to_vect(Om_kab, Om_ka)
+		if(use_pos_op)	call om_tens_to_vect(Om_kab, Om_ka)
 		!
 		return
 	end subroutine
