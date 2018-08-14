@@ -93,7 +93,7 @@ class MEP_worker:
 	def get_mep_tens(self):
 		mep_tens = []
 		if self.success:
-			mep_file_path	= self.work_dir+'/MEPout/mep_tens.dat'
+			mep_file_path	= self.work_dir+'/out/mep_tens.dat'
 			with open(mep_file_path, 'r') as mep_file:
 				start = -10
 				for idx,line in enumerate(mep_file):
