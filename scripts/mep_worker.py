@@ -2,10 +2,11 @@ import os
 import time
 import datetime
 import sys, traceback
-import numpy 			as 		np
+import numpy as np
 from shutil 			import 	copy
 from tb_input_writer 	import 	write_souza_tb_input
 from plot_bandStruct 	import	plot_bandstruct
+from fortran_io			import 	read_mep_file
 
 
 
@@ -91,29 +92,9 @@ class MEP_worker:
 
 
 	def get_mep_tens(self):
-		mep_tens = []
-		if self.success:
-			mep_file_path	= self.work_dir+'/out/mep_tens.dat'
-			with open(mep_file_path, 'r') as mep_file:
-				start = -10
-				for idx,line in enumerate(mep_file):
-					if 'begin mep' in line:
-						start = idx
-					if idx > start  and idx <= start + 3:
-						mep_tens.append(np.fromstring( line, dtype=np.float, sep=' ' ) )
-					if idx == start + 4 and 'end mep' not in line:
-						print('error at the end of reading mep tensor')
-
-			mep_tens = np.array(mep_tens)
-			print('read file '+mep_file_path)
-			if mep_tens.size is not 9:
-				print('WARNING issues with dimensionalty of MEP tensor')
-				print('mep_tens interpretation: '+str(mep_tens))
-		else:
-			print('calculation was not successfull, can not grep MEP tensor.')
-
+		mep_file_path	= self.work_dir+'/out/mep_tens.dat'
+		mep_tens		= read_mep_file(mep_file_path)
 		return mep_tens
-
 
 
 
