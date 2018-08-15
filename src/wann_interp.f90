@@ -141,13 +141,41 @@ module wann_interp
 
 !private:
 	subroutine om_tens_to_vect(om_tens, om_vect)
+		!	converts om_tens to a vector by applying Levi Cevita Tensor
+		!	see PRB 74, 195118 (2006)	Eq.(5)
+		!
 		complex(dp),		intent(in)		::	om_tens(:,:,:,:)
 		complex(dp),		intent(out)		::	om_vect(:,:,:)
-
+		integer								::	a, b, c
+		!
 		om_vect	=	dcmplx(0.0_dp)
-		write(*,*)	'[om_tens_to_vect]: WARNING NOT IMPLEMENTED YET, SET OM_VECT TO ZERO'
+		!
+		do c = 1, 3
+			!
+			do a = 1, 3
+				do b = 1,3
+					om_vect(c,:,:)	= om_vect(c,:,:) + real(levi_cicvita(a,b,c),dp) * om_tens(a,b,:,:)
+				end do
+			end do
+			!
+		end do
 		return
+
 	end subroutine
+
+	integer function levi_cicvita(a,b,c)
+		integer							::	a, b, c
+		!
+		levi_cicvita = 0
+		!
+		if(			(a==1 .and. b==2 .and. c==3) .or. (a==2 .and. b==3 .and. c==1) .or. (a==3 .and. b==1 .and. c==2)	) then
+			levi_cicvita = 1
+		else if(	(a==3 .and. b==2 .and. c==1) .or. (a==1 .and. b==3 .and. c==2) .or.	(a==2 .and. b==1 .and. c==3)	) then
+			levi_cicvita = -1
+		end if
+		!
+		return
+	end function
 
 
 
