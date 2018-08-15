@@ -4,7 +4,7 @@ module wann_interp
 									a_latt,	recip_latt, 		&
 									do_gauge_trafo
 
-
+	use matrix_math,	only:	zheevd_wrapper
 
 
 
@@ -15,7 +15,7 @@ module wann_interp
 
 
 	private
-	public					::		wann_interp_ft,		velo_interp		
+	public					::		get_wann_interp	
 
 
 	contains
@@ -23,7 +23,138 @@ module wann_interp
 
 
 !public:
-	subroutine wann_interp_ft(H_real, r_real, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_ka)			
+	subroutine get_wann_interp(H_real, r_real, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_ka  )
+		complex(dp),					intent(in)				::	H_real(:,:,:)
+		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
+		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
+		real(dp),						intent(out)				::	e_k(:)
+		complex(dp),	allocatable,	intent(out)				::	V_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_ka(:,:,:)
+		
+		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:), Om_kab(:,:,:,:), D_ka(:,:,:)
+
+		!
+		!
+		allocate(	U_k(			size(H_real,1),size(H_real,2)	)			)		
+		if(	allocated(V_ka)	)	then	
+			allocate(	H_ka(	3,size(H_real,1),size(H_real,2)	 )		)
+			!
+			!
+			if(	allocated(r_real)	) then
+				allocate(	Om_kab(	3, 3, 	size(r_real,2), size(r_real,3) 	))
+				allocate(	D_ka(		3,	size(r_real,2),	size(r_real,3)	))
+
+			end if
+		end if
+		!
+		!
+		!ft onto k-space (W)-gauge
+		call wann_interp_ft(H_real, r_real, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
+		!get energies (H)-gauge
+		call zheevd_wrapper(U_k, e_k)
+		!
+		!
+		if(	allocated(V_ka)	)	then
+			!do 	(W) -> (Hbar)
+			call rotate_gauge(U_k, 	A_ka, Om_kab, H_ka )
+			!
+			!Velos (Hbar)->(H)
+			call velo_gaugeTrafo(e_k, H_ka, A_ka, 	V_ka)
+
+
+
+			!conn/curv	 (Hbar) -> (H)
+			if( allocated(r_real) )	then
+				call conn_gaugeTrafo(H_ka, A_ka, D_ka)
+				call curv_gaugeTrafo(H_ka, A_ka, D_ka, Om_kab)
+				!curv tens to vectors
+				call om_tens_to_vect(Om_kab, Om_ka)
+			end if
+		end if
+
+
+		return
+	end subroutine
+
+
+
+
+
+
+
+!private
+	subroutine velo_gaugeTrafo(e_k, H_ka, A_ka, V_k)
+		real(dp),						intent(in)		::		e_k(:)
+		complex(dp),					intent(inout)	::		H_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
+		complex(dp),					intent(out)		::		V_k(:,:,:)
+		integer											::		x, m, n
+		!
+		V_k	=	dcmplx(0.0_dp)
+		!
+		!
+		do x = 1, 3
+			V_k(x,:,:)	=	V_k(x,:,:) +	H_ka(x,:,:)
+			!
+			if( allocated(A_ka)	) then
+				do n = 1, size(V_k,3)
+					do m = 1, size(V_k,2)
+						V_k(x,m,n)	= V_k(x,m,n)	-	i_dp	*	(	e_k(m) - e_k(n)	)	*	A_ka(x,m,n)
+					end do
+				end do
+			end if
+			!
+		end do
+		!
+		!
+		return
+	end subroutine
+
+
+	subroutine conn_gaugeTrafo(H_ka, A_ka, D_ka)
+		complex(dp),		intent(in)		::	H_ka(:,:,:)
+		complex(dp),		intent(inout)	::	A_ka(:,:,:)
+		complex(dp),		intent(out)		::	D_ka(:,:,:)
+
+		D_ka	= 	dcmplx(0.0_dp)
+
+		write(*,*)	"WARNING [wann_interp/do_conn_gaugeTrafo] is not implemented yet"
+		return
+	end subroutine
+
+	subroutine curv_gaugeTrafo(H_ka, A_ka, D_ka, Om_kab)
+		complex(dp),		intent(in)		::	H_ka(:,:,:), A_ka(:,:,:), D_ka(:,:,:)
+		complex(dp),		intent(inout)	::	Om_kab(:,:,:,:)
+
+		write(*,*)	"WARNING [wann_interp/do_curv_gaugeTrafo] is not implemented yet"
+		return 
+	end subroutine
+
+	
+
+
+	subroutine rotate_gauge(U_k, A_ka, Om_kab, H_ka)
+		complex(dp),					intent(in)		::	U_k(:,:)
+		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
+		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		integer											::	a, b
+		
+		write(*,*)	"[wann_interp/rotate_gauge]:	WARNING not implemented yet"
+		!
+		if( allocated(A_ka)		)	then
+
+		end if
+		!
+		if( allocated(Om_kab)	)	then
+
+		end if
+		!
+		return
+	end subroutine
+
+
+
+	subroutine wann_interp_ft(H_real, r_real, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)
@@ -36,8 +167,7 @@ module wann_interp
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
 		complex(dp),					intent(out)				::	H_k(:,:)
-		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_ka(:,:,:)
-		complex(dp),	allocatable								::	Om_kab(:,:,:,:)
+		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp)												::	r_vect(3), kpt_abs(3)
 		complex(dp)												::	ft_phase
 		logical													::	use_pos_op, do_en_grad
@@ -51,9 +181,8 @@ module wann_interp
 		do_en_grad		= allocated(H_ka)
 		if(do_en_grad)	H_ka	=	dcmplx(0.0_dp)
 		!OPTIONAL position operator
-		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_ka)
+		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
 		if(use_pos_op)	then
-			allocate(	Om_kab(	3, 3, size(r_real,2), size(r_real,3) ))
 			A_ka 		=	dcmplx(0.0_dp)
 			Om_kab		=	dcmplx(0.0_dp)
 		end if
@@ -89,57 +218,17 @@ module wann_interp
 			!
 		end do		
 		!
-		!get curvature in desired vector convention
-		if(use_pos_op)	call om_tens_to_vect(Om_kab, Om_ka)
 		!
 		return
 	end subroutine
 
 
 
-	subroutine velo_interp(U_k, en_k, H_ka, A_ka, V_k)
-		complex(dp),					intent(in)		::		U_k(:,:)
-		real(dp),						intent(in)		::		en_k(:)
-		complex(dp),					intent(inout)	::		H_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
-		complex(dp),					intent(out)		::		V_k(:,:,:)
-		integer											::		x, m, n
-		!
-		V_k	=	dcmplx(0.0_dp)
-		!
-		!
-		do x = 1, 3
-
-			if( do_gauge_trafo)		call gauge_trafo(U_k,	H_ka(x,:,:)		)
-
-			V_k(x,:,:)	=	V_k(x,:,:) +	H_ka(x,:,:)
-
-			if( allocated(A_ka)	) then
-				if( do_gauge_trafo)		call gauge_trafo(U_k,	A_ka(x,:,:) )
-				!
-				do n = 1, size(V_k,3)
-					do m = 1, size(V_k,2)
-						V_k(x,m,n)	= V_k(x,m,n)	-	i_dp	*	(	en_k(m) - en_k(n)	)	*	A_ka(x,m,n)
-					end do
-				end do
-			end if
-			!
-			!
-		end do
-
-
-		return
-	end subroutine
 
 
 
 
 
-
-
-
-
-!private:
 	subroutine om_tens_to_vect(om_tens, om_vect)
 		!	converts om_tens to a vector by applying Levi Cevita Tensor
 		!	see PRB 74, 195118 (2006)	Eq.(5)
