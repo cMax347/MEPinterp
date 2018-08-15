@@ -55,9 +55,9 @@ module mep_niu
 												mep_tens_lc_glob(	3,3),				&
 												mep_tens_cs_glob(	3,3)				
 		integer								::	ki, n_ki_loc, n_ki_glob
-		complex(dp),	allocatable			::	H_real(:,:,:), r_mat(:,:,:,:), 			&
+		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_ka(:,:,:),				&
-												v_k(:,:,:)
+												V_ka(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
 		!
 		mep_tens_ic_loc		=	0.0_dp
@@ -73,16 +73,16 @@ module mep_niu
 		num_kpts	= 	size(kpt_latt,2)
 		!
 		!get real space matrice(s)
-		call read_tb_basis(seed_name, R_vect, H_real, r_mat)
+		call read_tb_basis(seed_name, R_vect, H_tb, r_tb)
 		!
 		!allocate k-space
-		allocate(	en_k(						size(H_real,2)	)	)
+		allocate(	en_k(						size(H_tb,2)	)	)
 		!
 		if(.not. plot_bands		)	then
-			allocate(	V_k(	3,	size(H_real,1),	size(H_real,2)	)	)
-			if(	allocated(r_mat)	)	then	
-				allocate(	A_ka(	3,	size(r_mat,2),	size(r_mat,3)	)	)
-				allocate(	Om_ka(	3,	size(r_mat,2),	size(r_mat,3)	)	)
+			allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
+			if(	allocated(r_tb)	)	then	
+				allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+				allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
 			end if
 		end if
 		!
@@ -93,14 +93,14 @@ module mep_niu
 			!
 			!
 			!interpolate
-			call get_wann_interp(H_real, r_real, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_ka )
+			call get_wann_interp(H_tb, r_tb, R_vect, kpt_latt(:,ki), 	en_k, V_ka, A_ka, Om_ka )
 			!
 			if(plot_bands)	then
 				call write_en_binary(ki,en_k)
 			else
 				!get MEP_tensors
-				call get_F2(V_k, en_k, 		F_ic)
-				call get_F3(V_k, en_k, 		F_lc)
+				call get_F2(V_ka, en_k, 		F_ic)
+				call get_F3(V_ka, en_k, 		F_lc)
 				call get_CS(A_ka, Om_ka, 	F_cs)
 				!sum MEP over local kpts
 				mep_tens_ic_loc	=	mep_tens_ic_loc + F_ic		!	itinerant		(Kubo)
