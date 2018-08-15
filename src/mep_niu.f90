@@ -14,8 +14,7 @@ module mep_niu
 								write_en_binary, read_en_binary,				&
 								write_en_global,								&
 								write_mep_tensors
-	use wann_interp,	only:	wann_interp_ft, velo_interp
-	use matrix_math,	only:	zheevd_wrapper
+	use wann_interp,	only:	get_wann_interp
 
 	implicit none
 
@@ -57,8 +56,7 @@ module mep_niu
 												mep_tens_cs_glob(	3,3)				
 		integer								::	ki, n_ki_loc, n_ki_glob
 		complex(dp),	allocatable			::	H_real(:,:,:), r_mat(:,:,:,:), 			&
-												U_k(:,:), 								&
-												H_ka(:,:,:), A_ka(:,:,:), Om_ka(:,:,:),	&
+												A_ka(:,:,:), Om_ka(:,:,:),				&
 												v_k(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
 		!
@@ -78,11 +76,9 @@ module mep_niu
 		call read_tb_basis(seed_name, R_vect, H_real, r_mat)
 		!
 		!allocate k-space
-		allocate(	U_k(		size(H_real,1),	size(H_real,2)	)	)
 		allocate(	en_k(						size(H_real,2)	)	)
 		!
 		if(.not. plot_bands		)	then
-			allocate(	H_ka(	3,	size(H_real,1),	size(H_real,2)	)	)	
 			allocate(	V_k(	3,	size(H_real,1),	size(H_real,2)	)	)
 			if(	allocated(r_mat)	)	then	
 				allocate(	A_ka(	3,	size(r_mat,2),	size(r_mat,3)	)	)
@@ -97,16 +93,11 @@ module mep_niu
 			!
 			!
 			!interpolate
-			call wann_interp_ft(H_real, r_mat,  R_vect,	 kpt_latt(1:3,ki),	U_k,	H_ka, A_ka, Om_ka)	
-			!get energies
-			call zheevd_wrapper(U_k, en_k)
-			!
+			call get_wann_interp(H_real, r_real, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_ka )
 			!
 			if(plot_bands)	then
 				call write_en_binary(ki,en_k)
 			else
-				!get velos
-				call velo_interp(U_k, en_k, H_ka, A_ka, V_k)
 				!get MEP_tensors
 				call get_F2(V_k, en_k, 		F_ic)
 				call get_F3(V_k, en_k, 		F_lc)
