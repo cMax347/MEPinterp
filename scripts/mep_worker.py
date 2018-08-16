@@ -79,7 +79,8 @@ class MEP_worker:
 		
 		os.chdir(self.work_dir)
 
-		print('['+str(datetime.datetime.now())+']start calculation....')
+		nK	= self.mp_grid[0]*self.mp_grid[1]*self.mp_grid[2]
+		print('['+str(datetime.datetime.now())+']start calculation (nK='+str(nK)+')....')
 		try:
 			os.system('mpirun -np 4 ./mepInterp > mep.log')
 			self.success = True
@@ -92,9 +93,21 @@ class MEP_worker:
 
 
 	def get_mep_tens(self):
+		#TOTAL
 		mep_file_path	= self.work_dir+'/out/mep_tens.dat'
 		mep_tens		= read_mep_file(mep_file_path)
-		return mep_tens
+		#CHERN-SIMONS
+		mep_file_path	= self.work_dir+'/out/mep_cs.dat'
+		mep_cs			= read_mep_file(mep_file_path)
+		#LOCAL
+		mep_file_path	= self.work_dir+'/out/mep_lc.dat'
+		mep_lc		= read_mep_file(mep_file_path)
+		#ITINERANT
+		mep_file_path	= self.work_dir+'/out/mep_ic.dat'
+		mep_ic		= read_mep_file(mep_file_path)
+
+
+		return mep_tens, mep_cs, mep_lc, mep_ic
 
 
 
