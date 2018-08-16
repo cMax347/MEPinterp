@@ -7,9 +7,9 @@ module wann_interp
 	use parameters,		only:		mpi_id,						&
 									dp, i_dp, myExp,			&
 									a_latt,	recip_latt, 		&
-									do_gauge_trafo
+									my_Levi_Civita
 
-	use matrix_math,	only:	zheevd_wrapper
+	use matrix_math,	only:	zheevd_wrapper, matrix_comm
 
 
 
@@ -33,7 +33,7 @@ module wann_interp
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
 		real(dp),						intent(out)				::	e_k(:)
-		complex(dp),	allocatable,	intent(out)				::	V_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_ka(:,:,:)
 		
 		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:), Om_kab(:,:,:,:), D_ka(:,:,:)
@@ -41,16 +41,15 @@ module wann_interp
 		!
 		!
 		allocate(	U_k(			size(H_real,1),size(H_real,2)	)			)		
-		if(	allocated(V_ka)	)	then	
+		if(	allocated(V_ka)	)	then				
 			allocate(	H_ka(	3,size(H_real,1),size(H_real,2)	 )		)
 			!
 			!
 			if(	allocated(r_real)	) then
 				allocate(	Om_kab(	3, 3, 	size(r_real,2), size(r_real,3) 	))
 				allocate(	D_ka(		3,	size(r_real,2),	size(r_real,3)	))
-
 			end if
-		end if
+		else
 		!
 		!
 		!ft onto k-space (W)-gauge
@@ -67,17 +66,17 @@ module wann_interp
 			call velo_gaugeTrafo(e_k, H_ka, A_ka, 	V_ka)
 
 
-
 			!conn/curv	 (Hbar) -> (H)
 			if( allocated(r_real) )	then
-				call conn_gaugeTrafo(e_k, H_ka, A_ka, D_ka)
+				call get_gauge_covar_deriv(e_k, H_ka, D_ka)
+				!
+				call conn_gaugeTrafo(D_ka, A_ka)
 				call curv_gaugeTrafo(H_ka, A_ka, D_ka, Om_kab)
 				!curv tens to vectors
 				call om_tens_to_vect(Om_kab, Om_ka)
 			end if
 		end if
-
-
+		!
 		return
 	end subroutine
 
@@ -158,6 +157,8 @@ module wann_interp
 
 
 
+
+!gauge TRAFOs
 	subroutine velo_gaugeTrafo(e_k, H_ka, A_ka, V_k)
 		!	calc the (H)-gauge velocity matrix
 		!
@@ -166,57 +167,28 @@ module wann_interp
 		complex(dp),					intent(inout)	::		H_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
 		complex(dp),					intent(out)		::		V_k(:,:,:)
-		integer											::		x, m, n
+		integer											::		a, m, n
 		!
 		V_k	=	dcmplx(0.0_dp)
 		!
-		!
-		do x = 1, 3
-			V_k(x,:,:)	=	V_k(x,:,:) +	H_ka(x,:,:)
+		do a = 1, 3
+			V_k(a,:,:)	=	V_k(a,:,:) +	H_ka(a,:,:)
 			!
 			if( allocated(A_ka)	) then
 				do n = 1, size(V_k,3)
 					do m = 1, size(V_k,2)
-						V_k(x,m,n)	= V_k(x,m,n)	-	i_dp	*	(	e_k(m) - e_k(n)	)	*	A_ka(x,m,n)
+						V_k(a,m,n)	= V_k(a,m,n)	-	i_dp	*	(	e_k(m) - e_k(n)	)	*	A_ka(a,m,n)
 					end do
 				end do
 			end if
 			!
 		end do
 		!
-		!
 		return
 	end subroutine
 
 
-
-
-
-
-
-
-
-
-	subroutine conn_gaugeTrafo(e_k, H_ka, A_ka, D_ka)
-		!	PRB 74, 195118 (2006)	EQ.(25)
-		real(dp),			intent(in)		::	e_k(:)
-		complex(dp),		intent(in)		::	H_ka(:,:,:)
-		complex(dp),		intent(inout)	::	A_ka(:,:,:)
-		complex(dp),		intent(out)		::	D_ka(:,:,:)
-
-		D_ka	= 	dcmplx(0.0_dp)
-
-		call setup_gauge_deriv(e_k, H_ka,	D_ka )
-
-
-
-
-		write(*,*)	"WARNING [wann_interp/do_conn_gaugeTrafo] is not implemented yet"
-		return
-	end subroutine
-
-
-	subroutine setup_gauge_deriv(e_k, H_ka,	D_ka )
+	subroutine get_gauge_covar_deriv(e_k, H_ka,	D_ka )
 		!	PRB 74, 195118 (2006)	EQ.(24)
 		real(dp),			intent(in)		::	e_k(:)
 		complex(dp),		intent(in)		::	H_ka(:,:,:)
@@ -224,17 +196,20 @@ module wann_interp
 		integer								::	m, n
 		real(dp)							::	eDiff
 		!
+		D_ka(:,:,:)	=	dcmplx(0.0_dp)
+		!
 		do m = 1, size(D_ka,3)
 			do n = 1, size(D_ka,2)
 				if(	n/=	m )	then
 					eDiff		=	e_k(m)	- e_k(n)
 					if(abs(eDiff) < 1e-14_dp)	then
 						eDiff	= sign(1e-14_dp,eDiff)
-						write(*,'(a,i3,a,i6,a,i6)')	'[#',mpi_id,';setup_gauge_deriv]: WARNING degenerate bands detetected n=',n,' m=',m
+						write(*,'(a,i3,a)',advance="no")	'[#',mpi_id,';get_gauge_covar_deriv]:'
+						write(*,'(a,i6,a,i6)')	' WARNING degenerate bands detetected n=',n,' m=',m
 					end if
 					!
 					!
-					D(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff
+					D_ka(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff
 				end if
 			end do
 		end do 
@@ -245,38 +220,49 @@ module wann_interp
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	subroutine conn_gaugeTrafo( D_ka, A_ka)
+		!	PRB 74, 195118 (2006)	EQ.(25)
+		complex(dp),		intent(in)		::	D_ka(:,:,:)
+		complex(dp),		intent(inout)	::	A_ka(:,:,:)
+		integer								::	a
+		!
+		do a = 1, 3
+			A_ka(a,:,:)	=	A_ka(a,:,:)		+	i_dp	*	D_ka(a,:,:)
+		end do
+		!
+		return
+	end subroutine
 
 
 	subroutine curv_gaugeTrafo(H_ka, A_ka, D_ka, Om_kab)
-		!	PRB 74, 195118 (2006)	EQ.(xxxxxxxxxxxx)
+		!	PRB 74, 195118 (2006)	EQ.(27)
 		complex(dp),		intent(in)		::	H_ka(:,:,:), A_ka(:,:,:), D_ka(:,:,:)
 		complex(dp),		intent(inout)	::	Om_kab(:,:,:,:)
-
-		write(*,*)	"WARNING [wann_interp/do_curv_gaugeTrafo] is not implemented yet"
+		complex(dp),	allocatable			::	mat_comm(:,:)
+		integer								::	a, b
+		!
+		allocate(	mat_comm(	size(Om_kab,3),size(Om_kab,4)	)		)
+		!
+		do b = 1, 3
+			do a = 1, 3
+				call matrix_comm( D_ka(a,:,:), 	A_ka(b,:,:),		mat_comm(:,:)	)
+				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			mat_comm(:,:)
+				!
+				!
+				call matrix_comm( D_ka(b,:,:), 	A_ka(a,:,:),		mat_comm(:,:)	)
+				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			mat_comm(:,:)
+				!
+				!
+				call matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:),		mat_comm(:,:)	)
+				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	mat_comm(:,:)
+			end do
+		end do
+		!
+		!
 		return 
 	end subroutine
 
 	
-
-
-
-
-
-
 
 
 
@@ -285,8 +271,6 @@ module wann_interp
 		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
 		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		integer											::	a, b
-		
-		write(*,*)	"[wann_interp/rotate_gauge]:	WARNING not implemented yet"
 		!
 		do a = 1, 3
 			call gauge_trafo(U_k,	H_ka(a,:,:))
@@ -343,24 +327,7 @@ module wann_interp
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+!helpers:
 	subroutine om_tens_to_vect(om_tens, om_vect)
 		!	converts om_tens to a vector by applying Levi Cevita Tensor
 		!	see PRB 74, 195118 (2006)	Eq.(5)
@@ -373,9 +340,9 @@ module wann_interp
 		!
 		do c = 1, 3
 			!
-			do a = 1, 3
-				do b = 1,3
-					om_vect(c,:,:)	= om_vect(c,:,:) + real(levi_cicvita(a,b,c),dp) * om_tens(a,b,:,:)
+			do b = 1, 3
+				do a = 1,3
+					om_vect(c,:,:)	= om_vect(c,:,:) + real(my_Levi_Civita(a,b,c),dp) * om_tens(a,b,:,:)
 				end do
 			end do
 			!
@@ -383,24 +350,6 @@ module wann_interp
 		return
 
 	end subroutine
-
-	integer function levi_cicvita(a,b,c)
-		integer							::	a, b, c
-		!
-		levi_cicvita = 0
-		!
-		if(			(a==1 .and. b==2 .and. c==3) .or. (a==2 .and. b==3 .and. c==1) .or. (a==3 .and. b==1 .and. c==2)	) then
-			levi_cicvita = 1
-		else if(	(a==3 .and. b==2 .and. c==1) .or. (a==1 .and. b==3 .and. c==2) .or.	(a==2 .and. b==1 .and. c==3)	) then
-			levi_cicvita = -1
-		end if
-		!
-		return
-	end function
-
-
-
-
 
 
 
