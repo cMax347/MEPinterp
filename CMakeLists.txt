@@ -16,9 +16,6 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 
 #use all files provided in src, i.e. my .f90 files
 file(GLOB_RECURSE sources src/*.f90 src/*.F90 )
-
-
-
 add_executable(mepInterp ${sources})
 
 
@@ -30,20 +27,10 @@ target_link_libraries(mepInterp config_fortran)
 
 
 
-
-
-
-
-
 if(CMAKE_Fortran_COMPILER_IS_Intel)
   #use intel mkl for LAPACK
-
   set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
   set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
-
-
-
-
 else(CMAKE_Fortran_COMPILER_IS_Intel) 
   #
   find_package(LAPACK REQUIRED)
@@ -54,16 +41,20 @@ else(CMAKE_Fortran_COMPILER_IS_Intel)
 endif(CMAKE_Fortran_COMPILER_IS_Intel)
 
 
- 
-
-
-
-
 
 if(CMAKE_Fortran_COMPILER_IS_GNU) 
   set(CMAKE_Fortran_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
   set(COVERAGE_LINK_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
 endif(CMAKE_Fortran_COMPILER_IS_GNU)
+
+
+
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
+
+
+#OLD:
+
 
 #for LINUX use intel compiler with performance options
 #if (UNIX AND NOT APPLE)
@@ -92,16 +83,6 @@ endif(CMAKE_Fortran_COMPILER_IS_GNU)
 
 
 
-
-
-
-
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
-
-
-
-
-#add thirdparty libraries
 
 
 
