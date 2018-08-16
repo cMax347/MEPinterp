@@ -8,6 +8,7 @@ module matrix_math
 
 	private
 	public						::			zheevr_wrapper, zheevd_wrapper,       & 
+                                            matrix_comm,                          &
                                             crossP, is_equal_vect
 
 
@@ -126,7 +127,18 @@ module matrix_math
 
 
 
-
+    subroutine  matrix_comm(A,  B,  C)
+        !   calculates the commutator of matrix A with matrix B
+        !       C   = [A,B] =   AB - BA
+        !
+        complex(dp),    intent(in)      ::  A(:,:),     B(:,:)
+        complex(dp),    intent(out)     ::  C(:,:)
+        !
+        C   = matmul(A, B)
+        C   = C - matmul(B, A)
+        !
+        return
+    end subroutine
 
 
 
