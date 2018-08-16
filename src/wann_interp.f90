@@ -49,7 +49,7 @@ module wann_interp
 				allocate(	Om_kab(	3, 3, 	size(r_real,2), size(r_real,3) 	))
 				allocate(	D_ka(		3,	size(r_real,2),	size(r_real,3)	))
 			end if
-		else
+		end if
 		!
 		!
 		!ft onto k-space (W)-gauge

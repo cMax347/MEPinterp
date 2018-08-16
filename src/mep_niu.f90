@@ -4,7 +4,7 @@ module mep_niu
 	! 	see Niu PRL 112, 166601 (2014)
 	!use omp_lib
 	use mpi
-	use parameters,		only:	myLeviCivita,									&
+	use parameters,		only:	my_Levi_Civita,									&
 								dp, aUtoAngstrm, auToTesla,	machineP,			&
 								mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								seed_name,										&
@@ -80,10 +80,13 @@ module mep_niu
 		!
 		if(.not. plot_bands		)	then
 			allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
+			if(allocated(V_ka))		write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will calculate velocities"
 			if(	allocated(r_tb)	)	then	
 				allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
 				allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+				write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
 			end if
+
 		end if
 		!
 		!
@@ -92,7 +95,6 @@ module mep_niu
 		do ki = mpi_id + 1, num_kpts,	mpi_nProcs
 			!
 			!
-			!interpolate
 			call get_wann_interp(H_tb, r_tb, R_vect, kpt_latt(:,ki), 	en_k, V_ka, A_ka, Om_ka )
 			!
 			if(plot_bands)	then
@@ -206,7 +208,7 @@ module mep_niu
 			 						en_denom	=	(	en(n0) - en(n)	)**3		
 			 						!
 			 						if(abs(en_denom) > 1e-15_dp) then 
-			 							F3(i,j)	= F3(i,j) + real(myLeviCivita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
+			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
 			 						else
 			 							write(*,*)	"[get_F3]: degenerate band warning"
 			 						end if
@@ -252,7 +254,7 @@ module mep_niu
 				 						en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
 				 						!
 				 						if( abs(en_denom) > 1e-15_dp) then
-				 							F2(i,j)	= F2(i,j) - real(myLeviCivita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom
+				 							F2(i,j)	= F2(i,j) - real(my_Levi_Civita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom
 				 						else
 				 							write(*,*)	"[get_F2]: degenerate band warning"
 				 						end if	
@@ -528,8 +530,8 @@ end module mep_Niu
 !										Vtmp		= Velo(k,n,m,ki) * Velo(l,m,nZero,ki) * Velo(i,nZero,n,ki) 
 !										!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF2]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
 !										!MATRIX
-!										F2(i,j) 	= F2(i,j) +   real(myLeviCivita(j,k,l),dp) *  dreal( Vtmp )  / eDiff	
-!										!F2(i,j) 	= F2(i,j) +   myLeviCivita(j,k,l) *  dreal( Vtmp )  / eDiff	
+!										F2(i,j) 	= F2(i,j) +   real(my_Levi_Civita(j,k,l),dp) *  dreal( Vtmp )  / eDiff	
+!										!F2(i,j) 	= F2(i,j) +   my_Levi_Civita(j,k,l) *  dreal( Vtmp )  / eDiff	
 !									end do
 !								end do
 !								!
@@ -582,8 +584,8 @@ end module mep_Niu
 !								!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF3]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
 !								!
 !								!MATRIX
-!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(myLeviCivita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
-!								!F3(i,j) 	= F3(i,j) + prefactF3 * myLeviCivita(j,k,l) *	 dreal( Vtmp ) / eDiff
+!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(my_Levi_Civita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
+!								!F3(i,j) 	= F3(i,j) + prefactF3 * my_Levi_Civita(j,k,l) *	 dreal( Vtmp ) / eDiff
 !							end do								!
 !						end do
 !						!
@@ -633,8 +635,8 @@ end module mep_Niu
 !								!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF3]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
 !								!
 !								!MATRIX
-!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(myLeviCivita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
-!								!F3(i,j) 	= F3(i,j) + prefactF3 * myLeviCivita(j,k,l) *	 dreal( Vtmp ) / eDiff
+!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(my_Levi_Civita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
+!								!F3(i,j) 	= F3(i,j) + prefactF3 * my_Levi_Civita(j,k,l) *	 dreal( Vtmp ) / eDiff
 !							end do								!
 !						end do
 !						!
