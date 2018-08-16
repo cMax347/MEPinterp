@@ -442,7 +442,8 @@ module file_io
 		rHopp	= 	rHopp / aUtoAngstrm
 		!
 		!
-		write(*,'(a,i3,a)')	"[#",mpi_id,";read_tb_file]: success!"
+		write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,";read_tb_file]: success (input interpretation: nWfs="
+		write(*,'(i6,a,i6,a)')				f_nwfs, ";	nrpts=",f_nSC,")!"
 		return
 	end subroutine 
 
@@ -563,6 +564,8 @@ module file_io
 		!convert angstom to (au)
 		r_mat	= r_mat	/ aUtoAngstrm
 		!
+		write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,";read_r_file]: success (input interpretation: nWfs="
+		write(*,'(i6,a)')				f_nwfs, ";)"
 		!
 		return
 	end subroutine
