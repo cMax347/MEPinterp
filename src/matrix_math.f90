@@ -29,9 +29,6 @@ module matrix_math
 
 
 !public:
-
-
-
 	subroutine zheevr_wrapper(a, w ,z, m)
     	!https://software.intel.com/en-us/mkl-developer-reference-fortran-heevr#6ADF761A-127A-4C9B-9A2A-1A8AA4602CE1
     	!with ability to solve only selected eigenvalues (& vectors)
@@ -139,8 +136,6 @@ module matrix_math
         !
         return
     end subroutine
-
-
 
 
 
