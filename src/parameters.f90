@@ -9,7 +9,7 @@ module parameters
 	private
 	public								::		&
 												!routines		
-												myExp, myLeviCivita, init_parameters, get_rel_kpts,					&
+												myExp, my_Levi_Civita, init_parameters, get_rel_kpts,			  	&
 												!dirs
 												w90_dir, out_dir, raw_dir,											&
 												!jobs
@@ -21,7 +21,7 @@ module parameters
 												!mpi vars
 												mpi_root_id, mpi_id, mpi_nProcs, ierr,								&
 												!vars
-												seed_name,	do_gauge_trafo,	 valence_bands,							&
+												seed_name,	valence_bands,											&
 												a_latt, unit_vol, recip_latt, mp_grid
 
 
@@ -49,7 +49,7 @@ module parameters
 	character(len=4)			::	out_dir ="out/"					
 	character(len=9)			::	w90_dir	="w90files/"
 	character(len=4)			::	raw_dir ="raw/"
-	logical						::	do_gauge_trafo, plot_bands, use_interp_kpt
+	logical						::	plot_bands, use_interp_kpt
 	real(dp)					::	a_latt(3,3), a0, unit_vol, recip_latt(3,3)
 
 
@@ -87,7 +87,6 @@ module parameters
 			call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
 			call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files			")
 			call CFG_add_get(my_cfg,	"wannInterp%use_interp_kpt"		,	use_interp_kpt		,	"use w90 _geninterp.kpt file"		)
-			call CFG_add_get(my_cfg,	"wannInterp%do_gauge_trafo"		,	do_gauge_trafo		,	"if true calc velos in Ham gauge"	)
 			![mep]
 			call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
 
@@ -104,7 +103,6 @@ module parameters
 			write(*,*)					"[wannInterp]"
 			write(*,*)					"	seed_name=",seed_name
 			write(*,'(a,200(i3))')		"	mp_grid=",mp_grid(1:3)
-			write(*,*)					"	gauge_trafo=",do_gauge_trafo
 			write(*,*)					"	use_interp_kpt=",use_interp_kpt
 			write(*,*)					"[mep]"
 			write(*,'(a,i4)')			"	val bands=",valence_bands
@@ -120,7 +118,6 @@ module parameters
 		!ROOT BCAST
 		call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		use_interp_kpt	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		seed_name		,	len(seed_name)		,		MPI_CHAR			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
@@ -160,7 +157,7 @@ module parameters
 
 
 
-	integer function myLeviCivita(i,j,k)
+	integer function my_Levi_Civita(i,j,k)
 		!Hard coded Levi Civita tensor
 		integer,		intent(in)		:: i,j,k
 		logical							:: even, odd
@@ -169,12 +166,12 @@ module parameters
 		even	= (i==1 .and. j==2 .and. k==3) .or. (i==2 .and. j==3 .and. k==1) .or. (i==3 .and. j==1 .and. k==2)
 		odd		= (i==3 .and. j==2 .and. k==1) .or. (i==1 .and. j==3 .and. k==2) .or. (i==2 .and. j==1 .and. k==3)
 		!
-		if(even) then
-			myLeviCivita	=  1
-		else if (odd) then
-			myLeviCivita	= -1
-		else
-			myLeviCivita	=  0
+		if(even) 		then		
+								my_Levi_Civita	=  1
+		else if(odd)	then	
+								my_Levi_Civita	= -1
+		else				
+								my_Levi_Civita	=  0
 		end if
 		!
 		!DEBUGGING
