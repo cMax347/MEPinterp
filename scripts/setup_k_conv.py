@@ -69,18 +69,19 @@ def test():
 
 
 
-def prepare_cluster():
+def run_cluster():
 	root_dir		=	os.getcwd()+'/k_conv_cluster'
 
 
 	val_bands		=	2
-	mp_dens			=	[1, 2, 4, 6, 8, 12, 16, 42, 32, 48, 64, 80, 128]
-	phi_lst			=	[0.0]
+	mp_dens			=	[1, 2, 4, 6, 8, 12, 16]#, 42, 32, 48, 64, 80, 128,256]
+	phi_lst			=	[0.0, .1]
 
 	for phi in phi_lst:
 		cluster_calc 	= 	conv_run(root_dir+'_phi'+str(phi))
 		#
 		cluster_calc.add_jobs(phi,	val_bands,	mp_dens)
+		cluster_cal.run_jobs(mpi_np=16)
 
 
 
@@ -97,11 +98,13 @@ while (breaker<10) 	and 	(do_test is not "t")  and (do_test is not "c"):
 	do_test	=	input("do you want to run a test job or prepare cluster? (t/c)")
 
 
-if do_test is "t":
-	test()
-elif do_test is "c":
-	prepare_cluster()
-else:
-	print("I dont know what I should do, so I do nothing instead")
+#if do_test is "t":
+#	test()
+#elif do_test is "c":
+#	prepare_cluster()
+#else:
+#	print("I dont know what I should do, so I do nothing instead")
+
+run_cluster()
 
 
