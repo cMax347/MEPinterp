@@ -510,8 +510,9 @@ module file_io
 					idx = idx +1 
 					R_vect(1:3,idx)	= real(int3(1:3),dp)
 					if(wf /= 1)	then 
-						write(*,*)	"[read_hr_file]: 	WARNING unexpected new R_vect"
-						write(*,*)	"[read_hr_file]: 	wf=",wf," sc=",sc," raw R_vect=",R_vect(:,idx)
+						write(*,'(a)',advance="no")				"[read_hr_file]: 	WARNING unexpected new R_vect"
+						write(*,'(a,i4,a,i4)',advance="no")		"	m=",m," n=",n
+						write(*,*)								"	wf=",wf," sc=",sc," raw R_vect=",R_vect(:,idx)
 					end if
 				end if
 				!
