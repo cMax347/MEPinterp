@@ -205,7 +205,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 				outfile.write(str(val)+whitespace)
 			#floats
 			for val in r[5:11]:
-				outfile.write("{:16.8f}".format(val)+whitespace)
+				outfile.write("{:16.8f}".format(float(val))+whitespace)
 			outfile.write('\n')
 	print('wrote '+seed_name+'_r.dat'+' file')
 
