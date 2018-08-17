@@ -504,14 +504,14 @@ module file_io
 				!
 				!get Wigner Seitz vector
 				if( wf==1 .and. sc==1 ) then
-					R_vect(1:3,1)	= real(int3(1:3),dp)
 					idx = 1
+					R_vect(1:3,idx)	= real(int3(1:3),dp)
 				else if( .not.	is_equal_vect(1e-8_dp,	R_vect(1:3,idx),	real(int3(1:3),dp) )		) then
 					idx = idx +1 
 					R_vect(1:3,idx)	= real(int3(1:3),dp)
 					if(wf /= 1)	then 
 						write(*,*)	"[read_hr_file]: 	WARNING unexpected new R_vect"
-						write(*,*)	"[read_hr_file]: 	wf=",wf," raw R_vect=",R_vect(:,idx)
+						write(*,*)	"[read_hr_file]: 	wf=",wf," sc=",sc," raw R_vect=",R_vect(:,idx)
 					end if
 				end if
 				!
