@@ -45,9 +45,9 @@ class conv_run:
 			self.jobs.append( 	job	)
 
 
-	def run_jobs(self):
+	def run_jobs(self, mpi_np=1):
 		for job in self.jobs:
-			job.run()
+			job.run(mpi_np)
 
 
 
@@ -64,7 +64,7 @@ def test():
 	mp_dens = [1, 2, 4, 8, 12, 16, 24, 32, 48, 64, 80 ,96, 128]
 	test.add_jobs(0.0, 2, mp_dens)
 
-	test.run_jobs()
+	test.run_jobs(mpi_np=16)
 
 
 
