@@ -181,13 +181,14 @@ module matrix_math
 		return
 	end subroutine
 
-    logical function is_equal_vect(a,b)
+    logical function is_equal_vect(acc, a,b)
+        real(dp),                   intent(in)     ::   acc
         real(dp),   dimension(3),   intent(in)     ::   a, b
         integer                                    ::   x
         !
         is_equal_vect = .true.
         do x = 1, 3
-            is_equal_vect =    is_equal_vect  .and.      abs(   a(x) - b(x)  )  < 1e-10_dp
+            is_equal_vect =    is_equal_vect  .and.      abs(   a(x) - b(x)  )  < acc
         end do
         !
         return

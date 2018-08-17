@@ -506,7 +506,7 @@ module file_io
 				if( wf==1 .and. sc==1 ) then
 					R_vect(1:3,1)	= int3(1:3)
 					idx = 1
-				else if( .not.	is_equal_vect(	R_vect(1:3,idx),	real(int3(1:3),dp) )		) then
+				else if( .not.	is_equal_vect(1e-8_dp,	R_vect(1:3,idx),	real(int3(1:3),dp) )		) then
 					idx = idx +1 
 					R_vect(1:3,idx)	= int3(1:3)
 					if(wf /= 1) write(*,*)	"[read_hr_file]: 	WARNING unexpected new R_vect"
@@ -548,7 +548,7 @@ module file_io
 		do sc = 1, size(R_vect,2)
 			do it= 1, f_nWfs**2
 				read(320,*)		int3(1:3), 		m, n, 	real6(1:6)
-				if( .not.	is_equal_vect(	R_vect(1:3,sc),	real(int3(1:3),dp)	)	)	then
+				if( .not.	is_equal_vect(1e-8dp,	R_vect(1:3,sc),	real(int3(1:3),dp)	)	)	then
 					write(*,*)	"[read_r_file]: R_vect=",R_vect(1:3,sc)
 					write(*,*)	"[read_r_file]:	input_R=",real(int3(1:3),dp)
 					stop 'different R_vect order in _hr.dat and _r.dat file'
