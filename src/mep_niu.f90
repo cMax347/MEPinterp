@@ -103,7 +103,7 @@ module mep_niu
 				!get MEP_tensors
 				call get_F2(V_ka, en_k, 		F_ic)
 				call get_F3(V_ka, en_k, 		F_lc)
-				call get_CS(A_ka, Om_ka, 	F_cs)
+				call get_CS(A_ka, Om_ka, 		F_cs)
 				!sum MEP over local kpts
 				mep_tens_ic_loc	=	mep_tens_ic_loc + F_ic		!	itinerant		(Kubo)
 				mep_tens_lc_loc	=	mep_tens_lc_loc + F_lc		!	local			(Kubo)

@@ -61,7 +61,7 @@ def test():
 	root_dir	=	os.getcwd()+'/'+datetime.date.today().strftime("%d%B%Y")+'_k_conv_run_TEST'
 
 	test	= conv_run(root_dir)
-	mp_dens = [1, 2, 4, 8]  #, 16, 32, 51, 64, 80]
+	mp_dens = [1, 2, 4, 8, 12, 16, 24, 32, 48, 64, 80 ,96, 128]
 	test.add_jobs(0.0, 2, mp_dens)
 
 	test.run_jobs()
@@ -88,8 +88,20 @@ def prepare_cluster():
 
 #************************************************************************************************************************************************************************
 
+do_test	=	input("do you want to run a test job or prepare cluster? (t/c)")
 
-#test()
-prepare_cluster()
+breaker	= 0
+while (breaker<10) 	and 	(do_test is not "t")  and (do_test is not "c"): 
+	print('input has to be "t" or "c"')
+	breaker = breaker+ 1
+	do_test	=	input("do you want to run a test job or prepare cluster? (t/c)")
+
+
+if do_test is "t":
+	test()
+elif do_test is "c":
+	prepare_cluster()
+else:
+	print("I dont know what I should do, so I do nothing instead")
 
 
