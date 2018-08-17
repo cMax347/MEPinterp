@@ -27,25 +27,25 @@ target_link_libraries(mepInterp config_fortran)
 
 
 
-if(CMAKE_Fortran_COMPILER_IS_Intel)
-  #use intel mkl for LAPACK
-  set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
-  set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
-else(CMAKE_Fortran_COMPILER_IS_Intel) 
-  #
-  find_package(LAPACK REQUIRED)
-  target_link_libraries(mepInterp ${LAPACK_LIBRARIES})
-  #
-  find_package(MPI REQUIRED)
-  target_link_libraries(mepInterp ${MPI_LIBRARIES})
-endif(CMAKE_Fortran_COMPILER_IS_Intel)
+#if(CMAKE_Fortran_COMPILER_IS_Intel)
+#  #use intel mkl for LAPACK
+#  set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
+#  set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
+#else(CMAKE_Fortran_COMPILER_IS_Intel) 
+#  #
+#  find_package(LAPACK REQUIRED)
+#  target_link_libraries(mepInterp ${LAPACK_LIBRARIES})
+#  #
+#  find_package(MPI REQUIRED)
+#  target_link_libraries(mepInterp ${MPI_LIBRARIES})
+#endif(CMAKE_Fortran_COMPILER_IS_Intel)
 
 
 
-if(CMAKE_Fortran_COMPILER_IS_GNU) 
-  set(CMAKE_Fortran_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-  set(COVERAGE_LINK_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-endif(CMAKE_Fortran_COMPILER_IS_GNU)
+#if(CMAKE_Fortran_COMPILER_IS_GNU) 
+#  set(CMAKE_Fortran_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+#  set(COVERAGE_LINK_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+#endif(CMAKE_Fortran_COMPILER_IS_GNU)
 
 
 
@@ -57,29 +57,26 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 
 
 #for LINUX use intel compiler with performance options
-#if (UNIX AND NOT APPLE)
-# find_package(MPI)
-#  if(MPI_FOUND)
-#    target_link_libraries(mepInterp ${MPI_LIBRARIES})
-#    message("mpi link library is ${MPI_LIBRARIES}")
-#  else(MPI_FOUND)
-#    message("no mpi library found")
-#  endif(MPI_FOUND)
-#
-#
-#
-#  message("will use LINUX (intel) compiler options")
-#  set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
-#  set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
-#    #do something
-#endif (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE)
+  message("detected unix will assume intel compiler")
+  set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
+  set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
+    #do something
+endif (UNIX AND NOT APPLE)
 
 #for APPLE use a debugging flag scheme
-#if (APPLE)
-#  message("will use MAC compiler options")
-#  set(CMAKE_Fortran_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-#  set(COVERAGE_LINK_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-#endif (APPLE)
+if (APPLE)
+  message("will use MAC compiler options")
+  find_package(LAPACK REQUIRED)
+  target_link_libraries(mepInterp ${LAPACK_LIBRARIES})
+
+  find_package(MPI REQUIRED)
+  target_link_libraries(mepInterp ${MPI_LIBRARIES})
+
+
+  set(CMAKE_Fortran_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  set(COVERAGE_LINK_FLAGS "-Og -O0 -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+endif (APPLE)
 
 
 
