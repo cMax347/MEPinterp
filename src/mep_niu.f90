@@ -3,7 +3,7 @@ module mep_niu
 	!	to the polariztion induced by a perturbive magnetic field
 	! 	see Niu PRL 112, 166601 (2014)
 	!use omp_lib
-	use mpi_f08
+	use mpi
 	use parameters,		only:	my_Levi_Civita,									&
 								dp, aUtoAngstrm, auToTesla,	machineP,			&
 								mpi_root_id, mpi_id, mpi_nProcs, ierr,			&

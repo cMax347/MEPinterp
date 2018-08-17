@@ -1,5 +1,5 @@
 module parameters
-	use mpi_f08
+	use mpi
 	use m_config
 	use matrix_math,				only:		crossP
 
