@@ -1,5 +1,5 @@
 module parameters
-	use mpi
+	use mpi_f08
 	use m_config
 	use matrix_math,				only:		crossP
 
@@ -120,7 +120,7 @@ module parameters
 		call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_BCAST(		use_interp_kpt	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-		call MPI_BCAST(		seed_name		,	len(seed_name)		,		MPI_CHAR			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+		call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 
 		a1(1:3)		=	a_latt(1,1:3)

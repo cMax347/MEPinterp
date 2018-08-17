@@ -1,5 +1,5 @@
 program MEPinterp
-	use mpi
+	use mpi_f08
 	use parameters,				only:		init_parameters,									&
 											mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use mep_niu,				only:		mep_interp
