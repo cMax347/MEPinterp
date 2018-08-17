@@ -91,7 +91,7 @@ module matrix_math
             complex(dp), allocatable, dimension(:)   :: work
             real(dp)   , allocatable, dimension(:)   :: rwork
             integer    , allocatable, dimension(:)   :: iwork
-            character*1                              :: jobz,uplo
+            character(len=1)                         :: jobz,uplo
             integer                                  :: n, info,lwork,lrwork,liwork
             n		= size(A,1)
             if(n /= size(A,2)) then
@@ -114,9 +114,9 @@ module matrix_math
             !check if system was solved correctly
             call errCheck(n,info,jobz)
             !
-            if(.true.) then
-                  call normalCheck(n,A)
-            end if
+!            if(.true.) then
+!                  call normalCheck(n,A)
+!            end if
             !
             return
 	end subroutine
@@ -145,8 +145,8 @@ module matrix_math
 	subroutine errCheck(n,info, jobz)
 		!small subroutine used in subroutine eigSolver
 		implicit none
-		integer    , intent(in) :: n,info
-		character*1, intent(in) :: jobz
+		integer    , intent(in)        :: n,info
+		character(len=1), intent(in)   :: jobz
 		!
 		if(info > 0) then
 		      write(*,*) '[solver/errCheck]: WARNING, Problem solving the eigenvalue problem: '
@@ -162,24 +162,25 @@ module matrix_math
     end subroutine
 
 
-    subroutine normalCheck(n,eigVec)
-    	!check if eigVec are orthonormal this should always be the case
-		integer     , intent(in)      :: n
-		complex(dp) , intent(in)      :: eigVec(:,:)
-		integer                       :: i1,i2
-		real(dp)                      :: tmp
-		do i2=1,n
-		      tmp = 0.0_dp
-		      do i1=1,n
-		            tmp = tmp + dconjg(eigVec(i1,i2))*eigVec(i1,i2)
-		      end do
-		      if(abs(tmp)-1.0_dp>1e-12_dp) then
-		            write(*,*)"[solver/normalCheck]: WARNING eigVec not normal: ",dsqrt(tmp)
-		      end if
-		end do
-		!
-		return
-	end subroutine
+!    subroutine normalCheck(n,eigVec)
+!    	!check if eigVec are orthonormal this should always be the case
+!		integer     , intent(in)      :: n
+!		complex(dp) , intent(in)      :: eigVec(:,:)
+!		integer                       :: i1,i2
+!		real(dp)                      :: tmp
+!		do i2=1,n
+!		      tmp = 0.0_dp
+!		      do i1=1,n
+!		            tmp = tmp + dconjg(eigVec(i1,i2))*eigVec(i1,i2)
+!		      end do
+!		      if(abs(tmp)-1.0_dp>1e-12_dp) then
+!		            write(*,*)"[solver/normalCheck]: WARNING eigVec not normal: ",dsqrt(tmp)
+!		      end if
+!		end do
+!		!
+!		return
+!	end subroutine
+
 
     logical function is_equal_vect(acc, a,b)
         real(dp),                   intent(in)     ::   acc
