@@ -71,7 +71,7 @@ module wann_interp
 				call get_gauge_covar_deriv(e_k, H_ka, D_ka)
 				!
 				call conn_gaugeTrafo(D_ka, A_ka)
-				call curv_gaugeTrafo(H_ka, A_ka, D_ka, Om_kab)
+				call curv_gaugeTrafo(D_ka, A_ka, Om_kab)
 				!curv tens to vectors
 				call om_tens_to_vect(Om_kab, Om_ka)
 			end if
@@ -220,7 +220,7 @@ module wann_interp
 
 
 
-	subroutine conn_gaugeTrafo( D_ka, A_ka)
+	subroutine conn_gaugeTrafo(D_ka, A_ka)
 		!	PRB 74, 195118 (2006)	EQ.(25)
 		complex(dp),		intent(in)		::	D_ka(:,:,:)
 		complex(dp),		intent(inout)	::	A_ka(:,:,:)
@@ -234,9 +234,9 @@ module wann_interp
 	end subroutine
 
 
-	subroutine curv_gaugeTrafo(H_ka, A_ka, D_ka, Om_kab)
+	subroutine curv_gaugeTrafo(D_ka, A_ka, Om_kab)
 		!	PRB 74, 195118 (2006)	EQ.(27)
-		complex(dp),		intent(in)		::	H_ka(:,:,:), A_ka(:,:,:), D_ka(:,:,:)
+		complex(dp),		intent(in)		::	D_ka(:,:,:), A_ka(:,:,:)
 		complex(dp),		intent(inout)	::	Om_kab(:,:,:,:)
 		complex(dp),	allocatable			::	mat_comm(:,:)
 		integer								::	a, b
