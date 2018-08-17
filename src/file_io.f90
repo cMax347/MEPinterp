@@ -111,7 +111,7 @@ module file_io
 		character(len=24)				::	filename
 		integer							::	mpi_unit
 		!
-		mpi_unit	= mpi_id + 5* mpi_nProcs
+		mpi_unit	= 100 + mpi_id + 5* mpi_nProcs
 		!
 		write(filename, format) raw_dir//'/enK.',qi_idx
 		open(unit=mpi_unit, file = filename, form='unformatted', action='read', access='stream',		status='old'		)
@@ -157,7 +157,7 @@ module file_io
 		character(len=24)				::	filename
 		integer							::	mpi_unit
 		!
-		mpi_unit	=	mpi_id + 6 * mpi_nProcs
+		mpi_unit	=	100 + mpi_id + 6 * mpi_nProcs
 		!
 		write(filename, format) raw_dir//'/enK.',qi_idx
 		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
@@ -455,9 +455,10 @@ module file_io
 		real(dp)										::	real2(2)
 		integer,		allocatable						::	R_degneracy(:)
 		!
-		mpi_unit	= 	mpi_id	+ mpi_nProcs
-		open(unit=mpi_unit, file=seed_name//'_hr.dat',	form='formatted', action='read', access='stream', status='old')
-		write(*,'(a,i3,a,i3)')				 		"[#",mpi_id,";read_hr_file]: 	opened _hr file on unit=",mpi_unit
+		mpi_unit	= 	100 + mpi_id	+ mpi_nProcs
+
+		open(unit=mpi_unit, file=seed_name//'_hr.dat',	form='formatted', action='read', access='sequential', status='old')
+		write(*,'(a,i3,a,i3)')				 		"[#",mpi_id,";read_hr_file]: 	will open _hr file on unit=",mpi_unit
 		!read header
 		read(mpi_unit,*)
 		read(mpi_unit,*)	f_nwfs
@@ -500,8 +501,8 @@ module file_io
 				!read next line
 				read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
 				!
-				write(*,'(a,i3,a,i3,a,i3,a,i3)',advance="no") "[#",mpi_id,";read_hr_file]: raw input: ",int3(1)," ",int3(2)," ",int3(3)
-				write(*,'(a,i1,a,i1,a,f8.2,a,f8.2)')" m/n=",m," ",n," ",real2(1)," ",real2(2)
+!				write(*,'(a,i3,a,i3,a,i3,a,i3)',advance="no") "[#",mpi_id,";read_hr_file]: raw input: ",int3(1)," ",int3(2)," ",int3(3)
+!				write(*,'(a,i1,a,i1,a,f8.2,a,f8.2)')" m/n=",m," ",n," ",real2(1)," ",real2(2)
 				!get Wigner Seitz vector
 				if( wf==1 .and. sc==1 ) then
 					idx = 1
@@ -510,7 +511,6 @@ module file_io
 					idx = idx +1 
 					R_vect(1:3,idx)	= real(int3(1:3),dp)
 					if(wf /= 1)	then 
-						write(*,'(a)',advance="no")				
 						write(*,'(a,i3,a)')				 		"[#",mpi_id,";read_hr_file]: 	WARNING unexpected new R_vect"
 						write(*,'(a,i4,a,i4)',advance="no")		"	m=",m," n=",n
 						write(*,*)								"	wf=",wf," sc=",sc," raw R_vect=",R_vect(:,idx)
@@ -543,7 +543,7 @@ module file_io
 															f_nwfs, sc, m, n, int3(3), it
 		real(dp)										::	real6(6)
 		!
-		mpi_unit	= mpi_id + 2*mpi_nProcs
+		mpi_unit	= 100 + mpi_id + 2*mpi_nProcs
 		!
 		open(unit=mpi_unit, file=seed_name//'_r.dat',	form='formatted', action='read', access='stream', status='old')
 		read(mpi_unit,*)
