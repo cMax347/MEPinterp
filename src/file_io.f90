@@ -457,6 +457,7 @@ module file_io
 		!
 		mpi_unit	= 	mpi_id	+ mpi_nProcs
 		open(unit=mpi_unit, file=seed_name//'_hr.dat',	form='formatted', action='read', access='stream', status='old')
+		write(*,'(a,i3,a,i3)')				 		"[#",mpi_id,";read_hr_file]: 	opened _hr file on unit=",mpi_unit
 		!read header
 		read(mpi_unit,*)
 		read(mpi_unit,*)	f_nwfs
@@ -509,7 +510,8 @@ module file_io
 					idx = idx +1 
 					R_vect(1:3,idx)	= real(int3(1:3),dp)
 					if(wf /= 1)	then 
-						write(*,'(a)',advance="no")				"[read_hr_file]: 	WARNING unexpected new R_vect"
+						write(*,'(a)',advance="no")				
+						write(*,'(a,i3,a)')				 		"[#",mpi_id,";read_hr_file]: 	WARNING unexpected new R_vect"
 						write(*,'(a,i4,a,i4)',advance="no")		"	m=",m," n=",n
 						write(*,*)								"	wf=",wf," sc=",sc," raw R_vect=",R_vect(:,idx)
 					end if
