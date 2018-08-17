@@ -81,7 +81,7 @@ def run_cluster():
 		cluster_calc 	= 	conv_run(root_dir+'_phi'+str(phi))
 		#
 		cluster_calc.add_jobs(phi,	val_bands,	mp_dens)
-		cluster_cal.run_jobs(mpi_np=16)
+		cluster_calc.run_jobs(mpi_np=16)
 
 
 
@@ -89,13 +89,12 @@ def run_cluster():
 
 #************************************************************************************************************************************************************************
 
-do_test	=	input("do you want to run a test job or prepare cluster? (t/c)")
-
-breaker	= 0
-while (breaker<10) 	and 	(do_test is not "t")  and (do_test is not "c"): 
-	print('input has to be "t" or "c"')
-	breaker = breaker+ 1
-	do_test	=	input("do you want to run a test job or prepare cluster? (t/c)")
+#do_test	=	input("do you want to run a test job or prepare cluster? (t/c)")
+#breaker	= 0
+#while (breaker<10) 	and 	(do_test is not "t")  and (do_test is not "c"): 
+#	print('input has to be "t" or "c"')
+#	breaker = breaker+ 1
+#	do_test	=	input("do you want to run a test job or prepare cluster? (t/c)")
 
 
 #if do_test is "t":
