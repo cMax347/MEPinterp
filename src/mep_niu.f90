@@ -10,7 +10,7 @@ module mep_niu
 								seed_name,										&
 								plot_bands,										&
 								a_latt, valence_bands, mp_grid			
-	use file_io,		only:	read_k_mesh, read_tb_basis,						&
+	use file_io,		only:	mpi_read_k_mesh, mpi_read_tb_basis,	&
 								write_en_binary, read_en_binary,				&
 								write_en_global,								&
 								write_mep_tensors
@@ -69,11 +69,11 @@ module mep_niu
 		!
 		!	
 		!get (realtive) interp mesh
-		call read_k_mesh(seed_name, kpt_latt)
+		call mpi_read_k_mesh(seed_name, kpt_latt)
 		num_kpts	= 	size(kpt_latt,2)
 		!
 		!get real space matrice(s)
-		call read_tb_basis(seed_name, R_vect, H_tb, r_tb)
+		call mpi_read_tb_basis(seed_name, R_vect, H_tb, r_tb)
 		!
 		!allocate k-space
 		allocate(	en_k(						size(H_tb,2)	)	)
@@ -169,7 +169,7 @@ module mep_niu
 		if(	allocated(A_ka)		.and.		allocated(Om_ka)		)then
 			cs_scal	= 0.0_dp
 			do n0 = 1, valence_bands
-				cs_scal	= cs_scal + 0.5_dp * dot_product(	A_ka(:,n0,n0)	,	Om_ka(:,n0,n0)	)
+				cs_scal	= cs_scal + 0.5_dp *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	Om_ka(:,n0,n0)	)		)
 				do i = 1, 3
 					cs_tens(i,i)	= cs_scal
 				end do

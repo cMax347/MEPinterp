@@ -1,6 +1,6 @@
 module file_io
 	use parameters,						only:		dp, aUtoAngstrm, aUtoEv, 			&
-													mpi_id, mpi_root_id,				&
+													mpi_id, mpi_root_id, mpi_nProcs,	&
 													w90_dir, out_dir, raw_dir, 			&
 													a_latt, mp_grid, 					&
 													plot_bands,  use_interp_kpt,		&
@@ -10,7 +10,7 @@ module file_io
 	implicit none
 
 	private
-	public									::		read_k_mesh, read_tb_basis,			& 
+	public									::		mpi_read_k_mesh, mpi_read_tb_basis,	& 
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
 													write_mep_tensors
@@ -25,7 +25,7 @@ module file_io
 
 
 !public read:
-	subroutine read_k_mesh(seed_name,	kpt_latt)
+	subroutine mpi_read_k_mesh(seed_name,	kpt_latt)
 		!	reads the file seed_name//.nnkp 
 		character(len=*), 					intent(in) 			:: 	seed_name
 		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
@@ -66,7 +66,7 @@ module file_io
 
 
 
-	subroutine read_tb_basis(seed_name, R_vect, H_mat, r_mat)		!ead_tb_basis(seed_name, H_real, r_exist, r_mat)
+	subroutine mpi_read_tb_basis(seed_name, R_vect, H_mat, r_mat)		!ead_tb_basis(seed_name, H_real, r_exist, r_mat)
 		!	reads the following files:
 		!		'_tb.dat' file			(optional)
 		!		if not available
@@ -109,11 +109,14 @@ module file_io
 		integer,		intent(in)		::	qi_idx
 		real(dp),		intent(out)		::	e_bands(:)
 		character(len=24)				::	filename
+		integer							::	mpi_unit
+		!
+		mpi_unit	= mpi_id + 5* mpi_nProcs
 		!
 		write(filename, format) raw_dir//'/enK.',qi_idx
-		open(unit=211, file = filename, form='unformatted', action='read', access='stream',		status='old'		)
-		read(211)	e_bands(:)
-		close(211)
+		open(unit=mpi_unit, file = filename, form='unformatted', action='read', access='stream',		status='old'		)
+		read(mpi_unit)	e_bands(:)
+		close(mpi_unit)
 		!
 		return
 	end subroutine
@@ -152,11 +155,14 @@ module file_io
 		integer,		intent(in)		::	qi_idx
 		real(dp),		intent(in)		::	e_bands(:)
 		character(len=24)				::	filename
+		integer							::	mpi_unit
+		!
+		mpi_unit	=	mpi_id + 6 * mpi_nProcs
 		!
 		write(filename, format) raw_dir//'/enK.',qi_idx
-		open(unit=210,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
-		write(210)	e_bands(:)
-		close(210) 
+		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
+		write(mpi_unit)	e_bands(:)
+		close(mpi_unit) 
 		write(*,'(a,i3,a,a)')	"[#",mpi_id," ;write_en_binary]: prepare bands, wrote binary file ",filename
 		!
 		return
@@ -282,23 +288,24 @@ module file_io
 		!reads the kpt file generatred by kptsgen.pl
 		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
 		character(len=50)										::	filename 
-		integer													::	num_kpts, kpt
+		integer													::	mpi_unit, num_kpts, kpt
 		real(dp)												::	raw_kpt(3), tmp
 		!
 		filename = 'kpts'
 		inquire(file=filename, exist= read_kptsgen_pl_file)
-		if( read_kptsgen_pl_file ) then
+		if(read_kptsgen_pl_file ) then
 			!
-			open(unit=100, file=filename, form='formatted', action='read', access='stream', status='old')
-			read(100,*) num_kpts, raw_kpt(1)
+			mpi_unit	= mpi_id + 4*mpi_nProcs
+			open(unit=mpi_unit, file=filename, form='formatted', action='read', access='stream', status='old')
+			read(mpi_unit,*) num_kpts, raw_kpt(1)
 			!
 			allocate(	kpt_latt(3,num_kpts)	)
 			!
 			do kpt = 1, num_kpts
-				read(100,*) raw_kpt(1:3), tmp
+				read(mpi_unit,*) raw_kpt(1:3), tmp
 				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
 			end do
-			close(100)
+			close(mpi_unit)
 			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
 		end if 
 
@@ -312,7 +319,7 @@ module file_io
 		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
 		character(len=50)										::	filename 
 		character(len=500)										::	info_line
-		integer													::	num_kpts, kpt, raw_idx
+		integer													::	mpi_unit, num_kpts, kpt, raw_idx
 		real(dp)												::	raw_kpt(3)
 		logical													::	found_file, is_frac
 		!
@@ -321,22 +328,23 @@ module file_io
 		is_frac	= .false.
 		!
 		if(	found_file ) then
-			open(unit=110, file=w90_dir//filename,	form='formatted', action='read', access='stream', 	status='old'	)
+			mpi_unit	=	mpi_id + 3*mpi_nProcs
+			open(unit=mpi_unit, file=w90_dir//filename,	form='formatted', action='read', access='stream', 	status='old'	)
 			!
 			!read header
-			read(110,*)
-			read(110,*)	info_line
+			read(mpi_unit,*)
+			read(mpi_unit,*)	info_line
 			is_frac = 	index(info_line,'frac') /=0
 			
 			if( is_frac ) then
-				read(110,*)	num_kpts
+				read(mpi_unit,*)	num_kpts
 				!
 				!allocate body container
 				allocate(	kpt_latt(3,	num_kpts)	)
 				!
 				!read body
 				do kpt = 1, num_kpts
-					read(110,*)		raw_idx, raw_kpt(1:3)
+					read(mpi_unit,*)		raw_idx, raw_kpt(1:3)
 					kpt_latt(1:3,raw_idx)	= raw_kpt(1:3)
 					if(raw_idx /= kpt)	write(*,'(a,i3,a)') '[#',mpi_id,'; read_geninterp_kpt_file]: WARNING, issues with k-mesh ordering detected'	
 				end do
@@ -345,7 +353,7 @@ module file_io
 				write(*,'(a,i3,a)')	"[#",mpi_id,"; read_geninterp_kpt_file]: file is not given in fractional coordinates (will not use file)"
 			end if
 			!
-			close(110)
+			close(mpi_unit)
 		end if
 		!
 		read_geninterp_kpt_file = found_file .and. is_frac
@@ -359,67 +367,56 @@ module file_io
 		character(len=*)									::	seed_name
 		real(dp),		intent(out), allocatable			::	R_vect(:,:)
 		complex(dp),	intent(out), allocatable			:: 	tHopp(:,:,:), rHopp(:,:,:,:)
-		integer												::	f_nwfs, f_nSC, readLines, line, &
+		integer												::	mpi_unit, &
+																f_nwfs, f_nSC, readLines, line, &
 																cell, n
 		integer												::	cell_rel(3), index(2)
 		real(dp)											::	unit_cell(3,3), compl1(2),compl3(6), rTest(3), real3(3)
-
-		
-
-		open(unit=300, file=seed_name//'_tb.dat',form='formatted', status='old', action='read')
-
+		!
+		mpi_unit	= mpi_id
+		open(unit=mpi_unit, file=seed_name//'_tb.dat',form='formatted', status='old', action='read')
 		!read unit cell
-		read(300,*)
-		read(300,*)	real3
+		read(mpi_unit,*)
+		read(mpi_unit,*)	real3
 		unit_cell(1,1:3)	= real3
-		read(300,*)	 real3
+		read(mpi_unit,*)	 real3
 		unit_cell(2,1:3) 	= real3
-		read(300,*)	 real3
+		read(mpi_unit,*)	 real3
 		unit_cell(3,1:3)	= real3
 		unit_cell = unit_cell / aUtoAngstrm
-
+		!
 		!overwrite the lattice read in from input
 		a_latt	= unit_cell
-
-
-
 		!read basis size
-		read(300,*)	f_nwfs
-		read(300,*)	f_nSC
-
+		read(mpi_unit,*)	f_nwfs
+		read(mpi_unit,*)	f_nSC
 		!allocate targets
 		allocate(	R_vect(	3,						f_nSC		)	)
 		allocate(	rHopp(	3,	f_nwfs, f_nwfs,		f_nSC		)	)
 		allocate(	tHopp(		f_nwfs,	f_nwfs,		f_nSC		)	)
-
-
-		
-		
-
 		!dummy read the degeneracy list
 		readLines = ceiling( real(f_nSC,dp) / real(15,dp)		)
 		do line = 1, readLines
-			read(300,*)
+			read(mpi_unit,*)
 		end do
-
+		!
 		!read tHopp (eV)
 		do cell = 1, f_nSC
-			read(300,*)
-			read(300,*) cell_rel(1:3)
+			read(mpi_unit,*)
+			read(mpi_unit,*) cell_rel(1:3)
 
 			R_vect(1:3,cell)	= matmul(unit_cell,	real(cell_rel(1:3),dp)	)
 			do n = 1, f_nWfs**2
-				read(300,*)	index(1:2), compl1(1:2)
+				read(mpi_unit,*)	index(1:2), compl1(1:2)
 				!
 				tHopp(index(1),index(2), cell)	= dcmplx(	compl1(1), compl1(2)		)
 			end do
 		end do
-		
-
+		!
 		!read rHopp (ang)
 		do cell = 1, f_nSC
-			read(300,*)
-			read(300,*)	cell_rel(1:3)
+			read(mpi_unit,*)
+			read(mpi_unit,*)	cell_rel(1:3)
 
 			rTest(1:3)	= matmul(unit_cell,	real(cell_rel(1:3),dp)	)
 			if(		 norm2( rTest(1:3) - R_vect(1:3,cell) )	> 1e-8_dp		) then
@@ -427,15 +424,14 @@ module file_io
 			end if
 
 			do n = 1, f_nWfs**2
-				read(300,*)	index(1:2), compl3(1:6)
+				read(mpi_unit,*)	index(1:2), compl3(1:6)
 
 				rHopp(1,	index(1), index(2), cell)	= dcmplx( compl3(1), compl3(2)	)
 				rHopp(2,	index(1), index(2), cell)	= dcmplx( compl3(3), compl3(4)	)
 				rHopp(3,	index(1), index(2), cell)	= dcmplx( compl3(5), compl3(6)	)
 			end do
 		end do 
-		!
-		close(300)
+		close(mpi_unit)
 		!
 		!convert to a.u.
 		tHopp	= 	tHopp / aUtoEv
@@ -454,16 +450,17 @@ module file_io
 		character(len=*),	 			intent(in) 		::	seed_name
 		real(dp),		allocatable,	intent(inout)	::	R_vect(:,:)
 		complex(dp),	allocatable, 	intent(inout)	::	H_mat(:,:,:)
-		integer											::	f_nwfs, f_nSC, to_read, int15(15), int3(3), m,n, idx, sc, wf
+		integer											::	mpi_unit,&
+															f_nwfs, f_nSC, to_read, int15(15), int3(3), m,n, idx, sc, wf
 		real(dp)										::	real2(2)
 		integer,		allocatable						::	R_degneracy(:)
-
-		open(unit=310, file=seed_name//'_hr.dat',	form='formatted', action='read', access='stream', status='old')
-
+		!
+		mpi_unit	= 	mpi_id	+ mpi_nProcs
+		open(unit=mpi_unit, file=seed_name//'_hr.dat',	form='formatted', action='read', access='stream', status='old')
 		!read header
-		read(310,*)
-		read(310,*)	f_nwfs
-		read(310,*)	f_nSC
+		read(mpi_unit,*)
+		read(mpi_unit,*)	f_nwfs
+		read(mpi_unit,*)	f_nSC
 		!
 		allocate(	R_degneracy(					f_nSC	)		)
 		allocate(	R_vect(			3,				f_nSC	)		)
@@ -474,12 +471,12 @@ module file_io
 		idx		= 1
 		do while(to_read>0)
 			if(to_read >= 15)	then
-				read(310,*)		int15(1:15)
+				read(mpi_unit,*)		int15(1:15)
 				R_degneracy(idx:idx+14)	=	int15(1:15)
 				idx = idx+15	
 				to_read = to_read-15
 			else
-				read(310,*)		int15(1:to_read)
+				read(mpi_unit,*)		int15(1:to_read)
 				R_degneracy(idx:(idx+to_read-1))	= int15(1:to_read)
 				idx	= idx + to_read
 				to_read	= 0
@@ -500,7 +497,7 @@ module file_io
 		do sc = 1, f_nSC
 			do wf  = 1, f_nwfs**2
 				!read next line
-				read(310,*)		int3(1:3), m,n, 	real2(1:2)
+				read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
 				!
 				!get Wigner Seitz vector
 				if( wf==1 .and. sc==1 ) then
@@ -520,15 +517,13 @@ module file_io
 				H_mat(m,n, idx)	= dcmplx(	real2(1),	real2(2)	)
 			end do
 		end do
-		close(310)
+		close(mpi_unit)
 		if(idx /= f_nSC)	stop 'issue reading the body in _hr.dat file'
 		!
 		!
 		!convert to a.u
 		H_mat	= H_mat / aUtoEv
 		!
-		!
-		
 		write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,";read_hr_file]: success (input interpretation: nWfs="
 		write(*,'(i6,a,i6,a)')				f_nwfs, ";	nrpts=",size(R_vect,2),")!"
 		return
@@ -540,18 +535,21 @@ module file_io
 		character(len=*),	 			intent(in) 		::	seed_name
 		real(dp),						intent(in)		::	R_vect(:,:)
 		complex(dp),	allocatable,	intent(inout)	::	r_mat(:,:,:,:)
-		integer											::	f_nwfs, sc, m, n, int3(3), it
+		integer											::	mpi_unit, &
+															f_nwfs, sc, m, n, int3(3), it
 		real(dp)										::	real6(6)
 		!
-		open(unit=320, file=seed_name//'_r.dat',	form='formatted', action='read', access='stream', status='old')
-		read(320,*)
-		read(320,*)	f_nwfs
+		mpi_unit	= mpi_id + 2*mpi_nProcs
+		!
+		open(unit=mpi_unit, file=seed_name//'_r.dat',	form='formatted', action='read', access='stream', status='old')
+		read(mpi_unit,*)
+		read(mpi_unit,*)	f_nwfs
 		!
 		allocate(	r_mat(3, f_nwfs, f_nwfs,	size(R_vect,2)	)			)
 		!
 		do sc = 1, size(R_vect,2)
 			do it= 1, f_nWfs**2
-				read(320,*)		int3(1:3), 		m, n, 	real6(1:6)
+				read(mpi_unit,*)		int3(1:3), 		m, n, 	real6(1:6)
 				if( .not.	is_equal_vect(1e-8_dp,	R_vect(1:3,sc),	real(int3(1:3),dp))	)	then
 					write(*,*)	"[read_r_file]: R_vect=",R_vect(1:3,sc)
 					write(*,*)	"[read_r_file]:	input_R=",real(int3(1:3),dp)
@@ -563,7 +561,7 @@ module file_io
 				r_mat(3,m,n,sc)	=	dcmplx(	real6(5)	, real6(6)	)
 			end do
 		end do
-		close(320)
+		close(mpi_unit)
 		!
 		!convert angstom to (au)
 		r_mat	= r_mat	/ aUtoAngstrm
