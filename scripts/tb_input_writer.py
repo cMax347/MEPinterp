@@ -184,7 +184,7 @@ def write_hr_file(seed_name, nAt, nrpts, thopp):
 				outfile.write(str(val)+whitespace)
 			#write floats
 			for val in t[5:7]:
-				outfile.write("{:16.8f}".format(val)+whitespace)
+				outfile.write("{:16.8f}".format(float(val))+whitespace)
 			outfile.write('\n')
 	print('wrote '+seed_name+'_hr.dat'+' file')
 
