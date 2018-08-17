@@ -548,7 +548,7 @@ module file_io
 		do sc = 1, size(R_vect,2)
 			do it= 1, f_nWfs**2
 				read(320,*)		int3(1:3), 		m, n, 	real6(1:6)
-				if( .not.	is_equal_vect(1e-8_dp	R_vect(1:3,sc),	real(int3(1:3),dp)	)	)	then
+				if( .not.	is_equal_vect(1e-8_dp,	R_vect(1:3,sc),	real(int3(1:3),dp))	)	then
 					write(*,*)	"[read_r_file]: R_vect=",R_vect(1:3,sc)
 					write(*,*)	"[read_r_file]:	input_R=",real(int3(1:3),dp)
 					stop 'different R_vect order in _hr.dat and _r.dat file'
