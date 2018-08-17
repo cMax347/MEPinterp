@@ -499,6 +499,7 @@ module file_io
 				!read next line
 				read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
 				!
+				write(*,*) "[#",mpi_id,";read_hr_file]: raw input: ",int3(1:3)," m/n=",m," ",n," ",real2(1:2)
 				!get Wigner Seitz vector
 				if( wf==1 .and. sc==1 ) then
 					idx = 1
