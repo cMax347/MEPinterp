@@ -500,7 +500,7 @@ module file_io
 				read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
 				!
 				write(*,'(a,i3,a,i3,a,i3,a,i3)',advance="no") "[#",mpi_id,";read_hr_file]: raw input: ",int3(1)," ",int3(2)," ",int3(3)
-				write(*,'(a,i1,a,i1,a,f8.2,a,f8.2)')" m/n=",m," ",n," ",real2(1:2)
+				write(*,'(a,i1,a,i1,a,f8.2,a,f8.2)')" m/n=",m," ",n," ",real2(1)," ",real2(2)
 				!get Wigner Seitz vector
 				if( wf==1 .and. sc==1 ) then
 					idx = 1
