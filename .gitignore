@@ -30,7 +30,7 @@ bin/**
 **/CMakeFiles
 
 
-
+**/tests/test
 **/test_tb_input_writer
 *CMakeCache.txt
 *sublimeMake.sh
