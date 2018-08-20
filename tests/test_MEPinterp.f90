@@ -1,17 +1,17 @@
 program test_MEPinterp
-	use test_matrix_math,	only:			test_matrix_math
-	use test_file_io,		only:			test_file_io
+	use test_matrix_math,	only:			matrix_math_test
+	use test_file_io,		only:			file_io_test
 
 	use test_log,			only:			init_outFile
 	implicit none
 
-
+	logical						::			matrix_math_success
 			
 	!init the log
 	call init_outFile("test.log")
 
 	!performe tests
-	call test_matrix_math()
+	matrix_math_success		=	matrix_math_test()
 
 	
 

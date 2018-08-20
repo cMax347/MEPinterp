@@ -8,7 +8,7 @@ module test_log
 
 
 
-	character(len=1)			::		out_dir="."
+	character(len=2)			::		out_dir="./"
 	character(len=30)			::		fpath	
 	integer						::		unit = 111
 	logical						::		initialized=.false.
@@ -32,7 +32,9 @@ module test_log
 		!
 		!print header to file
 		open(unit=unit, file=fpath, form='formatted', 	action='write', access='stream',	status='replace')
-		write(unit,*)	"# MEPinterp TESTS performed on ",date, time, zone
+		call date_and_time(date,time,zone,values)
+		write(unit,*)	"# MEPinterp TESTS performed on ",date," ", time," ", zone
+		write(unit,*)
 		close(unit)
 		!
 		initialized	= .true.
