@@ -110,16 +110,16 @@ module wann_interp
 		!
 		kpt_abs(1:3)	= 	matmul(		recip_latt(1:3,1:3)	, kpt_rel(1:3)	)	
 		!
-		H_k				=	dcmplx(0.0_dp)
+		H_k				= cmplx(0.0_dp, 0.0_dp, dp)
 		!
 		!OPTIONAL energy gradients
 		do_en_grad		= allocated(H_ka)
-		if(do_en_grad)	H_ka	=	dcmplx(0.0_dp)
+		if(do_en_grad)	H_ka	= cmplx(0.0_dp, 0.0_dp, dp)
 		!OPTIONAL position operator
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
 		if(use_pos_op)	then
-			A_ka 		=	dcmplx(0.0_dp)
-			Om_kab		=	dcmplx(0.0_dp)
+			A_ka 		= cmplx(0.0_dp, 0.0_dp, dp)
+			Om_kab		= cmplx(0.0_dp, 0.0_dp, dp)
 		end if
 		!			
 		!
@@ -192,7 +192,7 @@ module wann_interp
 		complex(dp),					intent(out)		::		V_k(:,:,:)
 		integer											::		a, m, n
 		!
-		V_k	=	dcmplx(0.0_dp)
+		V_k	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
 		do a = 1, 3
 			V_k(a,:,:)	=	V_k(a,:,:) +	H_ka(a,:,:)
@@ -219,7 +219,7 @@ module wann_interp
 		integer								::	m, n
 		real(dp)							::	eDiff
 		!
-		D_ka(:,:,:)	=	dcmplx(0.0_dp)
+		D_ka(:,:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
 		do m = 1, size(D_ka,3)
 			do n = 1, size(D_ka,2)

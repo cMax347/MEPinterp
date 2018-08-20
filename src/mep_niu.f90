@@ -4,8 +4,7 @@ module mep_niu
 	! 	see Niu PRL 112, 166601 (2014)
 	!use omp_lib
 	use mpi
-	use parameters,		only:	my_Levi_Civita,									&
-								dp, aUtoAngstrm, auToTesla,	machineP,			&
+	use parameters,		only:	dp, aUtoAngstrm, auToTesla,	machineP,			&
 								mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								seed_name,										&
 								plot_bands,										&
@@ -14,6 +13,7 @@ module mep_niu
 								write_en_binary, read_en_binary,				&
 								write_en_global,								&
 								write_mep_tensors
+	use matrix_math,	only:	my_Levi_Civita
 	use wann_interp,	only:	get_wann_interp
 
 	implicit none
@@ -21,7 +21,7 @@ module mep_niu
 
 
 	private
-	public ::			mep_interp
+	public ::			mep_worker
 
 	real(dp),		parameter 	::	elemCharge	 	= 1.6021766208 * 1e-19_dp  *1e+6_dp! in  mu Coulomb
 
@@ -38,7 +38,7 @@ module mep_niu
 
 
 !public
-	subroutine	mep_interp()
+	subroutine	mep_worker()
 		!	interpolate the linear magnetoelectric response tensor alpha
 		!
 		!	lc	: local current contribution

@@ -15,9 +15,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 
 #use all files provided in src, i.e. my .f90 files
-file(GLOB_RECURSE sources src/*.f90 src/*.F90 )
+file(GLOB_RECURSE sources src/*.f90 src/*.F90   )
+file(GLOB_RECURSE tests tests/*.f90 tests/*.F90 )
+
+#file( toBeTested src/matrix_math.f90)
+
 add_executable(mepInterp ${sources})
 
+#add_executable(test ${tests} ${toBeTested})
 
 
 include_directories("${PROJECT_SOURCE_DIR}/thirdparty")

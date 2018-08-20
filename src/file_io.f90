@@ -409,7 +409,7 @@ module file_io
 			do n = 1, f_nWfs**2
 				read(mpi_unit,*)	index(1:2), compl1(1:2)
 				!
-				tHopp(index(1),index(2), cell)	= dcmplx(	compl1(1), compl1(2)		)
+				tHopp(index(1),index(2), cell)	= cmplx(	compl1(1), compl1(2),	dp		)
 			end do
 		end do
 		!
@@ -426,9 +426,9 @@ module file_io
 			do n = 1, f_nWfs**2
 				read(mpi_unit,*)	index(1:2), compl3(1:6)
 
-				rHopp(1,	index(1), index(2), cell)	= dcmplx( compl3(1), compl3(2)	)
-				rHopp(2,	index(1), index(2), cell)	= dcmplx( compl3(3), compl3(4)	)
-				rHopp(3,	index(1), index(2), cell)	= dcmplx( compl3(5), compl3(6)	)
+				rHopp(1,	index(1), index(2), cell)	= cmplx( compl3(1), compl3(2),	dp	)
+				rHopp(2,	index(1), index(2), cell)	= cmplx( compl3(3), compl3(4),	dp	)
+				rHopp(3,	index(1), index(2), cell)	= cmplx( compl3(5), compl3(6),	dp	)
 			end do
 		end do 
 		close(mpi_unit)
@@ -518,7 +518,7 @@ module file_io
 				end if
 				!
 				!fill Hamiltonian
-				H_mat(m,n, idx)	= dcmplx(	real2(1),	real2(2)	)
+				H_mat(m,n, idx)	= cmplx(	real2(1),	real2(2)	, dp	)
 			end do
 		end do
 		close(mpi_unit)
@@ -560,9 +560,9 @@ module file_io
 					stop 'different R_vect order in _hr.dat and _r.dat file'
 				end if
 				!
-				r_mat(1,m,n,sc)	=	dcmplx(	real6(1)	, real6(2)	)
-				r_mat(2,m,n,sc)	=	dcmplx(	real6(3)	, real6(4)	)
-				r_mat(3,m,n,sc)	=	dcmplx(	real6(5)	, real6(6)	)
+				r_mat(1,m,n,sc)	=	cmplx(	real6(1)	, real6(2)	, dp	)
+				r_mat(2,m,n,sc)	=	cmplx(	real6(3)	, real6(4)	, dp	)
+				r_mat(3,m,n,sc)	=	cmplx(	real6(5)	, real6(6)	, dp	)
 			end do
 		end do
 		close(mpi_unit)

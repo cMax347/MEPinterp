@@ -278,7 +278,7 @@ module matrix_math
         complex(dp),        intent(out)     ::  vect(:,:,:)
         integer                             ::  a, b, c
         !
-        vect =   dcmplx(0.0_dp)
+        vect =   cmplx(0.0_dp,0.0_dp, dp)
         do c = 1, 3
             !
             do b = 1, 3

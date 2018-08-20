@@ -32,7 +32,7 @@ module parameters
 	
 	!mathematical constants
 	real(dp), 		parameter 	::	PI_dp 			= 4 * atan (1.0_dp)
-	complex(dp),	parameter 	::	i_dp 			= cmplx(0.0_dp, 1.0_dp)
+	complex(dp),	parameter 	::	i_dp 			= cmplx(0.0_dp, 1.0_dp, dp)
 
 
 	!physical constants
@@ -149,7 +149,7 @@ module parameters
 		!supposed to boost performance
 		real(dp), intent(in) :: x
 		!
-		myExp = dcmplx(  dcos(x) , dsin(x) ) 
+		myExp = cmplx(  cos(x) , sin(x), dp ) 
 		!
 		return
 	end function
