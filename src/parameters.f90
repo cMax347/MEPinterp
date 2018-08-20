@@ -9,7 +9,7 @@ module parameters
 	private
 	public								::		&
 												!routines		
-												myExp, my_Levi_Civita, init_parameters, get_rel_kpts,			  	&
+												myExp, init_parameters, get_rel_kpts,							  	&
 												!dirs
 												w90_dir, out_dir, raw_dir,											&
 												!jobs
@@ -156,31 +156,6 @@ module parameters
 
 
 
-
-	integer function my_Levi_Civita(i,j,k)
-		!Hard coded Levi Civita tensor
-		integer,		intent(in)		:: i,j,k
-		logical							:: even, odd
-		!
-		!
-		even	= (i==1 .and. j==2 .and. k==3) .or. (i==2 .and. j==3 .and. k==1) .or. (i==3 .and. j==1 .and. k==2)
-		odd		= (i==3 .and. j==2 .and. k==1) .or. (i==1 .and. j==3 .and. k==2) .or. (i==2 .and. j==1 .and. k==3)
-		!
-		if(even) 		then		
-								my_Levi_Civita	=  1
-		else if(odd)	then	
-								my_Levi_Civita	= -1
-		else				
-								my_Levi_Civita	=  0
-		end if
-		!
-		!DEBUGGING
-		if(even .and. odd) then
-			write(*,*)"[myLeviCivita]: myLeviCivita detected even and odd, contact the programer he fucked up"
-		end if
-		!
-		return
-	end function
 
 
 
