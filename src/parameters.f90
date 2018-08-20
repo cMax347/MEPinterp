@@ -31,8 +31,8 @@ module parameters
 	real(dp)					:: 	acc				= 1e-14_dp
 	
 	!mathematical constants
-	real(dp), 		parameter 	::	PI_dp 			= 4 * datan (1.0_dp)
-	complex(dp),	parameter 	::	i_dp 			= dcmplx(0.0_dp, 1.0_dp)
+	real(dp), 		parameter 	::	PI_dp 			= 4 * atan (1.0_dp)
+	complex(dp),	parameter 	::	i_dp 			= cmplx(0.0_dp, 1.0_dp)
 
 
 	!physical constants
