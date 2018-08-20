@@ -6,10 +6,12 @@ module wann_interp
 	!	was used
 	use parameters,		only:		mpi_id,						&
 									dp, i_dp, myExp,			&
-									a_latt,	recip_latt, 		&
-									my_Levi_Civita
+									a_latt,	recip_latt 		
 
-	use matrix_math,	only:	zheevd_wrapper, matrix_comm
+	use matrix_math,	only:		zheevd_wrapper, 					&
+									matrix_comm, uni_gauge_trafo,		&
+									convert_tens_to_vect
+
 
 
 
@@ -73,7 +75,7 @@ module wann_interp
 				call conn_gaugeTrafo(D_ka, A_ka)
 				call curv_gaugeTrafo(D_ka, A_ka, Om_kab)
 				!curv tens to vectors
-				call om_tens_to_vect(Om_kab, Om_ka)
+				call convert_tens_to_vect(Om_kab, Om_ka)
 			end if
 		end if
 		!
@@ -159,6 +161,27 @@ module wann_interp
 
 
 !gauge TRAFOs
+	subroutine rotate_gauge(U_k, H_ka, A_ka, Om_kab)
+		!	PRB 74, 195118 (2006)	EQ.(21)
+		complex(dp),					intent(in)		::	U_k(:,:)
+		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
+		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		integer											::	a, b
+		!
+		do a = 1, 3
+			call uni_gauge_trafo(U_k,	H_ka(a,:,:))
+			if( allocated(A_ka)		)	call uni_gauge_trafo( U_k, A_ka(a,:,:))
+			if( allocated(Om_kab)	)	then
+				do b = 1,3 
+					call uni_gauge_trafo( U_k, Om_kab(a,b,:,:))
+				end do
+			end if
+		end do
+		!
+		return
+	end subroutine	
+
+
 	subroutine velo_gaugeTrafo(e_k, H_ka, A_ka, V_k)
 		!	calc the (H)-gauge velocity matrix
 		!
@@ -266,55 +289,6 @@ module wann_interp
 
 
 
-	subroutine rotate_gauge(U_k, H_ka, A_ka, Om_kab)
-		complex(dp),					intent(in)		::	U_k(:,:)
-		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
-		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		integer											::	a, b
-		!
-		do a = 1, 3
-			call gauge_trafo(U_k,	H_ka(a,:,:))
-			if( allocated(A_ka)		)	call gauge_trafo( U_k, A_ka(a,:,:))
-
-			do b = 1,3 
-				if( allocated(Om_kab)	)	call gauge_trafo( U_k, Om_kab(a,b,:,:))
-			end do
-		end do
-		!
-		return
-	end subroutine
-
-
-	subroutine gauge_trafo(U_mat, M_mat)
-		!	does a gauge trafo of the gauge-covariant matrix M_mat
-		!	by applying the unitary matrix U_mat as shown in 
-		!	Eq.(21), PRB 74, 195118, (2006)
-		!
-		!	since U is defined differently in the paper and in the lapack
-		!	consider the following
-		!
-		!	want: 	M^(hbar) 	
-		!	
-		!	 paper:		 U^*	H^(W)	U 	= H^(H)
-		!			and	M^(hbar) = U^* M^(W) U
-		!
-		!	lapack:
-		!			 U	H^(W)	U^* 	= H^(H)	
-		!	therefore here M^(hbar) = U M^(W) U^*
-
-		complex(dp),		intent(in)		::	U_mat(:,:)
-		complex(dp),		intent(inout)	::	M_mat(:,:)
-		complex(dp),	allocatable			::	U_dag(:,:)
-		!
-		allocate(		U_dag(	size(U_mat,1),size(U_mat,2)	)			)
-		!
-		U_dag 	= conjg(	transpose( U_mat )	)
-		!
-		M_mat	= matmul(	M_mat	,	U_dag	)
-		M_mat	= matmul(	U_mat	,	M_mat	)
-		!
-		return
-	end subroutine
 
 
 
@@ -323,33 +297,6 @@ module wann_interp
 
 
 
-
-
-
-
-!helpers:
-	subroutine om_tens_to_vect(om_tens, om_vect)
-		!	converts om_tens to a vector by applying Levi Cevita Tensor
-		!	see PRB 74, 195118 (2006)	Eq.(5)
-		!
-		complex(dp),		intent(in)		::	om_tens(:,:,:,:)
-		complex(dp),		intent(out)		::	om_vect(:,:,:)
-		integer								::	a, b, c
-		!
-		om_vect	=	dcmplx(0.0_dp)
-		!
-		do c = 1, 3
-			!
-			do b = 1, 3
-				do a = 1,3
-					om_vect(c,:,:)	= om_vect(c,:,:) + real(my_Levi_Civita(a,b,c),dp) * om_tens(a,b,:,:)
-				end do
-			end do
-			!
-		end do
-		return
-
-	end subroutine
 
 
 
