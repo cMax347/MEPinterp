@@ -15,7 +15,7 @@ module matrix_math
 
     interface crossP
         module procedure real_crossP
-        module procedure cplx_crossP
+        !module procedure cplx_crossP
     end interface crossP
 
     interface  is_equal_vect
