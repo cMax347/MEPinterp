@@ -42,11 +42,11 @@ endif (APPLE)
 
 
 #use all files provided in src, i.e. my .f90 files
-file(GLOB_RECURSE tests       tests/*.f90 tests/*.F90 )
+file(GLOB_RECURSE test_files       tests/*.f90 tests/*.F90 )
 
 #put all sources(but main.f90) into a library
 file(GLOB_RECURSE mep_src_lst src/*.f90)
-list (REMOVE_ITEM  mep_src_lst src/main.f90  src/main.F90)
+list(REMOVE_ITEM  mep_src_lst src/main.f90)
 add_library(mep_src ${mep_src_lst})
 
 
@@ -61,10 +61,10 @@ endif(APPLE)
 
 
 #     test      BUILD
-add_executable(test ${tests})
-target_link_libraries(test mep_src)
+add_executable(testMEP ${test_files})
+target_link_libraries(testMEP mep_src)
 if (APPLE)
-  target_link_libraries(test ${LAPACAK_LIBRARIES})
+  target_link_libraries(testMEP ${LAPACAK_LIBRARIES})
 endif (APPLE)
 
 
