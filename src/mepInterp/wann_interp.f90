@@ -190,22 +190,28 @@ module wann_interp
 		complex(dp),					intent(inout)	::		H_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
 		complex(dp),					intent(out)		::		V_k(:,:,:)
+		complex(dp)										::		eDiff
 		integer											::		a, m, n
 		!
-		V_k	=	cmplx(0.0_dp, 0.0_dp, dp)
+		V_k		=	H_ka
 		!
-		do a = 1, 3
-			V_k(a,:,:)	=	V_k(a,:,:) +	H_ka(a,:,:)
-			!
-			if( allocated(A_ka)	) then
-				do n = 1, size(V_k,3)
-					do m = 1, size(V_k,2)
-						V_k(a,m,n)	= V_k(a,m,n)	-	i_dp	*	(	e_k(m) - e_k(n)	)	*	A_ka(a,m,n)
-					end do
+		!
+		if( allocated(A_ka)	) then
+			do m = 1, size(V_k,3)
+				do n = 1, size(V_k,2)
+					!
+					if(	n/=	m)	then
+						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
+						!
+						do a = 1, 3
+							V_k(a,n,m)	= V_k(a,n,m)	-	i_dp	*	eDiff	*	A_ka(a,n,m)
+						end do
+					end if
+					!
 				end do
-			end if
-			!
-		end do
+			end do
+		end if
+		!
 		!
 		return
 	end subroutine
