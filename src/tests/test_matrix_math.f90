@@ -194,17 +194,15 @@ module test_matrix_math
 		real(dp),		allocatable			::	eigVal(:)
 		logical								::	test1, test2
 		integer								::	size
-
+		!
 		size	= 1000
 		!
 		allocate(	M_W1(	size, size	)		)
 		allocate(	M_W2(	size, size	)		)
-		!
 		allocate(	U_l(	size, size	)		)
 		allocate(	U_r(	size, size	)		)
 		allocate(	eigVal(	size		)		)
 		!
-
 		! FILL M_W, todo: setup random hermitian matrix
 		call get_rand_herm_matrix(M_W1, M_W2, U_l, U_r)									
 		!
@@ -213,6 +211,9 @@ module test_matrix_math
 		!
 		test1	=	equal_mat(M_W1, U_l)
 		test2	=	equal_mat(M_W2, U_l)
+		!
+		if(	.not. test1)	call push_to_outFile("[test_eig_solver]: failed test 1")
+		if(	.not. test2)	call push_to_outFile("[test_eig_solver]: failed test 2")
 		!
 		test_eig_solver	= test1 .and. test2
 		return
