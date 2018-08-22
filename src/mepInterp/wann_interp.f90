@@ -4,8 +4,8 @@ module wann_interp
 	!	the interpolation scheme from 
 	!			PRB 74, 195118 (2006) 
 	!	was used
-	use parameters,		only:		mpi_id,						&
-									dp, i_dp, myExp,			&
+	use parameters,		only:		mpi_id,								&
+									dp, fp_acc, i_dp, myExp,			&
 									a_latt,	recip_latt 		
 
 	use matrix_math,	only:		zheevd_wrapper, 					&
@@ -225,8 +225,8 @@ module wann_interp
 			do n = 1, size(D_ka,2)
 				if(	n/=	m )	then
 					eDiff		=	e_k(m)	- e_k(n)
-					if(abs(eDiff) < 1e-14_dp)	then
-						eDiff	= sign(1e-14_dp,eDiff)
+					if(abs(eDiff) < fp_acc)	then
+						eDiff	= sign(fp_acc,eDiff)
 						write(*,'(a,i3,a)',advance="no")	'[#',mpi_id,';get_gauge_covar_deriv]:'
 						write(*,'(a,i6,a,i6)')	' WARNING degenerate bands detetected n=',n,' m=',m
 					end if

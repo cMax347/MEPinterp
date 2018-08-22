@@ -1,5 +1,5 @@
 module file_io
-	use parameters,						only:		dp, fp_acc,							&
+	use parameters,						only:		dp, fp_acc, my_mkdir,				&
 													aUtoAngstrm, aUtoEv, 				&
 													mpi_id, mpi_root_id, mpi_nProcs,	&
 													w90_dir, out_dir, raw_dir, 			&
@@ -114,8 +114,9 @@ module file_io
 		!
 		mpi_unit	= 100 + mpi_id + 5* mpi_nProcs
 		!
-		write(filename, format) raw_dir//'/enK.',qi_idx
+		write(filename, format) raw_dir//'enK.',qi_idx
 		open(unit=mpi_unit, file = filename, form='unformatted', action='read', access='stream',		status='old'		)
+		write(*,*)	"[read_en_binary]: opened ",	filename," now try to read ",size(e_bands)," real values"
 		read(mpi_unit)	e_bands(:)
 		close(mpi_unit)
 		!
@@ -160,7 +161,8 @@ module file_io
 		!
 		mpi_unit	=	100 + mpi_id + 6 * mpi_nProcs
 		!
-		write(filename, format) raw_dir//'/enK.',qi_idx
+		call my_mkdir(raw_dir)
+		write(filename, format) raw_dir//'enK.',qi_idx
 		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
 		write(mpi_unit)	e_bands(:)
 		close(mpi_unit) 
@@ -178,6 +180,7 @@ module file_io
 		!
 		allocate(	ek_bands(num_bands)		)
 		!
+		call my_mkdir(out_dir)
 		open(unit=220, file=out_dir//'eBands.dat', form='formatted', action='write', access='stream', status='replace')
 		write(220,*)	'# energies interpolated by MEPinterp program'
 		write(220,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
@@ -206,6 +209,7 @@ module file_io
 		character(len=12)					::	fname
 		character(len=50)					::	info_string
 		!
+		call my_mkdir(out_dir)
 		!-------------------------------------itinerant contribution MEP tensor-------------
 		fname		= 'mep_ic.dat'
 		info_string	= '# itinerant contribution of mep tensor'
