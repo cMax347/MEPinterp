@@ -209,8 +209,8 @@ module test_matrix_math
 		call zheevd_wrapper(M_W1, eigVal)
 		call zheevd_wrapper(M_W2, eigVal)
 		!
-		test1	=	equal_mat(M_W1, U_l)
-		test2	=	equal_mat(M_W2, U_l)
+		test1	=	equal_mat(M_W1, U_r)
+		test2	=	equal_mat(M_W2, U_r)
 		!
 		if(	.not. test1)	call push_to_outFile("[test_eig_solver]: failed test 1")
 		if(	.not. test2)	call push_to_outFile("[test_eig_solver]: failed test 2")
