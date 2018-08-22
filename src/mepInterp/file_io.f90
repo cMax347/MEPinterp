@@ -109,16 +109,23 @@ module file_io
 	subroutine read_en_binary(qi_idx, e_bands)
 		integer,		intent(in)		::	qi_idx
 		real(dp),		intent(out)		::	e_bands(:)
-		character(len=24)				::	filename
+		character(len=24)				::	filepath
 		integer							::	mpi_unit
+		logical							::	exists
 		!
-		mpi_unit	= 100 + mpi_id + 5* mpi_nProcs
+		mpi_unit	= 200 + mpi_id + 5 * mpi_nProcs
 		!
-		write(filename, format) raw_dir//'enK.',qi_idx
-		open(unit=mpi_unit, file = filename, form='unformatted', action='read', access='stream',		status='old'		)
-		write(*,*)	"[read_en_binary]: opened ",	filename," now try to read ",size(e_bands)," real values"
-		read(mpi_unit)	e_bands(:)
-		close(mpi_unit)
+		write(filepath, format) raw_dir//'enK.',qi_idx
+		inquire(file = filepath, exist=exists)
+		if(exists)	then 
+			open(unit=mpi_unit, file = filepath, form='unformatted', action='read', access='stream',	status='old'	)
+			read(mpi_unit)	e_bands(:)
+			close(mpi_unit)
+			write(*,*)	'[read_en_binary]: read ',size(e_bands),' real values from "',	filepath,'"'
+		else
+			e_bands	=	0.0_dp
+			write(*,*)	"[read_en_binary]: WARNING could not read ",	filepath,". Does not exist"
+		end if
 		!
 		return
 	end subroutine
@@ -129,6 +136,26 @@ module file_io
 
 
 !public write:
+	subroutine write_en_binary(qi_idx, e_bands)
+		integer,		intent(in)		::	qi_idx
+		real(dp),		intent(in)		::	e_bands(:)
+		character(len=24)				::	filename
+		integer							::	mpi_unit
+		!
+		mpi_unit	=	100 + mpi_id + 6 * mpi_nProcs
+		!
+		call my_mkdir(raw_dir)
+		write(filename, format) raw_dir//'enK.',qi_idx
+		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
+		write(mpi_unit)	e_bands(:)
+		close(mpi_unit) 
+		write(*,'(a,i3,a)'	)		"[#",mpi_id," ;write_en_binary]: prepare bands, wrote binary file "
+		write(*,'(a,a,i4,a)')		filename, " with ",size(e_bands), " entries"
+		!
+		return
+	end subroutine
+
+
 	subroutine write_geninterp_kpt_file(seed_name, kpt_latt)
 		character(len=*),	intent(in)			::	seed_name
 		real(dp),			intent(in)			::	kpt_latt(:,:)	
@@ -148,26 +175,6 @@ module file_io
 		close(200)
 		write(*,'(a,i3,a,a)')		'[#',mpi_id,'; write_geninterp_kpt_file]: wrote ',seed_name//'_geninterp.kpt file'
 
-		return
-	end subroutine
-
-
-
-	subroutine write_en_binary(qi_idx, e_bands)
-		integer,		intent(in)		::	qi_idx
-		real(dp),		intent(in)		::	e_bands(:)
-		character(len=24)				::	filename
-		integer							::	mpi_unit
-		!
-		mpi_unit	=	100 + mpi_id + 6 * mpi_nProcs
-		!
-		call my_mkdir(raw_dir)
-		write(filename, format) raw_dir//'enK.',qi_idx
-		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
-		write(mpi_unit)	e_bands(:)
-		close(mpi_unit) 
-		write(*,'(a,i3,a,a)')	"[#",mpi_id," ;write_en_binary]: prepare bands, wrote binary file ",filename
-		!
 		return
 	end subroutine
 
