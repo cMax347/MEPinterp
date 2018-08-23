@@ -29,6 +29,9 @@ bin/**
 **/zzz_todo_zzz.txt
 **/CMakeFiles
 
+**/Testing
+**/tests/Testing
+**/raw
 
 **/tests/test
 **/test_tb_input_writer

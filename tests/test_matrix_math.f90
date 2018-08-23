@@ -3,7 +3,6 @@ module test_matrix_math
 	use matrix_math,	only:				my_Levi_Civita,                         &
                                             zheevr_wrapper, zheevd_wrapper,         & 
                                             uni_gauge_trafo,                        &
-                                            crossP,                                 &
                                             is_equal_vect,                          &
                                             convert_tens_to_vect,                   &
                                             blas_matmul,							&
@@ -43,7 +42,7 @@ module test_matrix_math
 		smpl_size	= test_mat_size
 		!
 		matrix_math_test	= .false.
-		nTests	= 6
+		nTests	= 5
 		succ_cnt= 0
 		allocate(	passed(nTests)	)		
 		allocate(	label(nTests)	)		
@@ -55,17 +54,14 @@ module test_matrix_math
 		label(		2	)			=	"equality of  vectors"
 		passed(		2	)			=	test_vect_equal()
 		!-----------------------------------------------------------------
-		label(		3	)			=	"Cross product"
-		passed(		3	)			=	test_crossp()
-		!-----------------------------------------------------------------
-		label(		4	)			=	"Gauge rotation"
-		passed(		4	)			=	test_gauge_trafo()				
+		label(		3	)			=	"Gauge rotation"
+		passed(		3	)			=	test_gauge_trafo()				
 		!-----------------------------------------------------------------			
-		label(		5	)			=	"matmul with Blas"
-		passed(		5	)			=	test_blas_matmul()
+		label(		4	)			=	"matmul with Blas"
+		passed(		4	)			=	test_blas_matmul()
 		!-----------------------------------------------------------------			
-		label(		6	)			=	"matrix commutator"
-		passed(		6	)			=	test_mat_comm()
+		label(		5	)			=	"matrix commutator"
+		passed(		5	)			=	test_mat_comm()
 		!
 		!
 		!	WRITE RESULTS TO LOG
@@ -137,58 +133,6 @@ module test_matrix_math
 
 		return
 	end function
-!--------------------------------------------------------------------------------------------------------------------------------
-!
-!
-	logical function test_crossp()
-		real(dp)			::	real_a(3), real_b(3), real_c_sol(3), real_c_test(3)
-		logical				::	real_test, imag_test
-		!
-		test_crossp		=	.false.
-		real_test		= .false.
-		imag_test		= .false.
-		!
-		!REAL(DP) TEST
-		real_a(1)		= 	-1.4_dp
-		real_a(2)		=	3.5_dp
-		real_a(3)		=	2.6_dp
-		!
-		real_b(1)		=	0.9_dp	
-		real_b(2)		=	-14.5_dp	
-		real_b(3)		=	0.001_dp		
-		!
-		real_c_sol(1)	=	37.703500_dp
-		real_c_sol(2)	=	2.341400_dp
-		real_c_sol(3)	=	17.1500_dp
-		!
-		real_c_test		=	crossP(real_a,real_b)
-		real_test		= 	norm2(real_c_test - real_c_sol) < fp_acc 
-		!
-		!COMPLEX(DP) TEST
-		imag_test	= .true.
-		!cplx_a(1)		=	cmplx(-1.4_dp, 1.0_dp,dp)
-		!cplx_a(2)		=	cmplx(3.5_dp,-0.5_dp,dp)
-		!cplx_a(3)		=	cmplx(2.6_dp,0.0_dp,dp)
-		!!
-		!cplx_b(1)		=	cmplx(0.9_dp,0.0_dp,dp)
-		!cplx_b(2)		=	cmplx(-14.5_dp,0.0_dp,dp)
-		!cplx_b(3)		=	cmplx(0.001_dp,-0.001_dp,dp)
-		!!
-		!cplx_c_sol(1)	=	cmplx(37.7030_dp,0.004_dp,dp)
-		!cplx_c_sol(2)	=	cmplx( 2.3404_dp,0.0024_dp,dp)
-		!cplx_c_sol(3)	=	cmplx(17.15_dp,14.05_dp,dp)
-		!!
-		!cplx_c_test		=	crossP(cplx_a, cplx_b)
-		!cplx_delta		=	cplx_c_test - cplx_c_sol
-		!imag_test		=	abs(	sum(cplx_delta)		) < fp_prec
-		!
-		if(.not. real_test	)	call push_to_outFile("[test_crossp]: FAILED real    cross product")
-		if(.not. imag_test	)	call push_to_outFile("[test_crossp]: FAILED	complex cross product")
-		!
-		test_crossp	= real_test .and. imag_test
-		!
-		return
-	end function	
 !--------------------------------------------------------------------------------------------------------------------------------
 !
 !

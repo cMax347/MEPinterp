@@ -6,17 +6,13 @@ module matrix_math
 	public						::			my_Levi_Civita,                         &
                                             zheevr_wrapper, zheevd_wrapper,         & 
                                             uni_gauge_trafo,                        &
-                                            crossP,                                 &
                                             is_equal_vect,                          &
                                             convert_tens_to_vect,                   &
                                             blas_matmul,                            &
                                             matrix_comm                                         
 
 
-    interface crossP
-        module procedure    real_crossP
-        !module procedure   cplx_crossP
-    end interface crossP
+   
 
     interface  is_equal_vect
         module procedure    real_is_equal_vect
@@ -204,30 +200,6 @@ module matrix_math
 !----------------------------------------------------------------------------------------------------------------------
 !------------INTERFACES------------------------------------------------------------------------------------------------
 !
-!
-    function real_crossP(a,b)
-        !cross product of two real 3dim vectors a,b
-        real(dp), dimension(3)              :: real_crossP
-        real(dp), dimension(3), intent(in)  :: a, b
-        !
-        real_crossP(1)   =   a(2) * b(3)     -   a(3) * b(2)  
-        real_crossP(2)   =   a(3) * b(1)     -   a(1) * b(3) 
-        real_crossP(3)   =   a(1) * b(2)     -   a(2) * b(1) 
-        !
-        return
-    end function
-
-    function cplx_crossP(a,b)
-        !cross product of two complex 3dim vectors a,b
-        complex(dp)                 :: cplx_crossP(3)
-        complex(dp),    intent(in)  :: a(3), b(3)
-        !
-        cplx_crossP(1)   =   a(2) * b(3)     -   a(3) * b(2)  
-        cplx_crossP(2)   =   a(3) * b(1)     -   a(1) * b(3) 
-        cplx_crossP(3)   =   a(1) * b(2)     -   a(2) * b(1) 
-        !
-        return
-    end function
 !----------------------------------------------------------------------------------------------------------------------
 !
 !

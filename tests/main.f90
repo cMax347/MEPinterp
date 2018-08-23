@@ -24,7 +24,7 @@ program test_MEPinterp
 
 
 	!allocation size of test arrays, matrices, etc.
-	mm_array_size	= 10
+	mm_array_size	= 1000
 	io_array_size	= 10000
 
 
@@ -69,8 +69,11 @@ program test_MEPinterp
 	!
 	!
 	tot_success	=	mm_success .and. io_success
-	if( .not. tot_success	)	stop "not all tests where passsed"
-
+	if(		tot_success		)	then
+		call exit(0)
+	else
+		call exit(0)
+	end if
 
 	!stop
 end program
