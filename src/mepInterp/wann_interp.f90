@@ -108,20 +108,16 @@ module wann_interp
 		logical													::	use_pos_op, do_en_grad
 		integer    												::	sc, a, b 
 		!
-		kpt_abs(1:3)	= 	matmul(		recip_latt(1:3,1:3)	, kpt_rel(1:3)	)	
-		!
-		H_k				= cmplx(0.0_dp, 0.0_dp, dp)
-		!
-		!OPTIONAL energy gradients
+		!jobs
 		do_en_grad		= allocated(H_ka)
-		if(do_en_grad)	H_ka	= cmplx(0.0_dp, 0.0_dp, dp)
-		!OPTIONAL position operator
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
-		if(use_pos_op)	then
-			A_ka 		= cmplx(0.0_dp, 0.0_dp, dp)
-			Om_kab		= cmplx(0.0_dp, 0.0_dp, dp)
-		end if
-		!			
+		!
+		!init
+		kpt_abs		= 	matmul(	recip_latt	, kpt_rel	)	
+						H_k		= 0.0_dp
+		if(do_en_grad)	H_ka	= 0.0_dp
+		if(use_pos_op)	A_ka	= 0.0_dp
+		if(use_pos_op)	Om_kab	= 0.0_dp			
 		!
 		!sum real space cells
 		do sc = 1, size(R_frac,2)
@@ -130,8 +126,7 @@ module wann_interp
 			!
 			!
 			!Hamilton operator
-			H_k(:,:)				= 	H_k(:,:)		+	ft_phase 					* H_real(:,:,sc)	
-			!
+			H_k(:,:)				= 	H_k(:,:)			+	ft_phase 					* H_real(:,:,sc)	
 			!
 			do a = 1, 3
 				!OPTIONAL energy gradients
@@ -251,9 +246,14 @@ module wann_interp
 
 	subroutine conn_gaugeTrafo(D_ka, A_ka)
 		!	PRB 74, 195118 (2006)	EQ.(25)
+		!
+		!	Lapack
+		!		https://software.intel.com/en-us/mkl-developer-reference-fortran-gemm#90EAA001-D4C8-4211-9EA0-B62F5ADE9CF0
+		!		C :- 
 		complex(dp),		intent(in)		::	D_ka(:,:,:)
 		complex(dp),		intent(inout)	::	A_ka(:,:,:)
 		integer								::	a
+		!
 		!
 		do a = 1, 3
 			A_ka(a,:,:)	=	A_ka(a,:,:)		+	i_dp	*	D_ka(a,:,:)
