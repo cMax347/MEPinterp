@@ -9,28 +9,33 @@ module matrix_math
                                             crossP,                                 &
                                             is_equal_vect,                          &
                                             convert_tens_to_vect,                   &
+                                            blas_matmul,                            &
                                             matrix_comm                                         
 
 
-
     interface crossP
-        module procedure real_crossP
-        !module procedure cplx_crossP
+        module procedure    real_crossP
+        !module procedure   cplx_crossP
     end interface crossP
 
     interface  is_equal_vect
-        module procedure real_is_equal_vect
-        module procedure cplx_is_equal_vect
+        module procedure    real_is_equal_vect
+        module procedure    cplx_is_equal_vect
     end interface is_equal_vect
 
     interface convert_tens_to_vect
-        module procedure real_tens_to_vect
-        module procedure cplx_tens_to_vect
+        module procedure    real_tens_to_vect
+        module procedure    cplx_tens_to_vect
     end interface convert_tens_to_vect
 
+    interface blas_matmul
+        module procedure    d_blas_matmul
+        module procedure    z_blas_matmul  
+    end interface blas_matmul
+
     interface matrix_comm
-        module procedure real_matrix_comm
-        module procedure cplx_matrix_comm
+        module procedure    real_matrix_comm
+        module procedure    cplx_matrix_comm
     end interface matrix_comm
 
 
@@ -175,15 +180,19 @@ module matrix_math
 
         complex(dp),        intent(in)      ::  U_mat(:,:)
         complex(dp),        intent(inout)   ::  M_mat(:,:)
-        complex(dp),    allocatable         ::  U_dag(:,:)
+        complex(dp),        allocatable     ::  U_dag(:,:)
         !
-        allocate(       U_dag(  size(U_mat,1),size(U_mat,2) )           )
-        !
+        allocate(U_dag(  size(U_mat,1),size(U_mat,2)  ))
         U_dag   = conjg(    transpose( U_mat )  )
         !
-        M_mat   = matmul(   M_mat   ,   U_dag   )
-        M_mat   = matmul(   U_mat   ,   M_mat   )
+        !       WORKING:
+        M_mat   =   blas_matmul(    M_mat,  U_mat   )
+        M_mat   =   blas_matmul(    U_dag,  M_mat   )
         !
+        !       NOT WORKING:   
+        !M_mat   =   blas_matmul(    M_mat,  U_dag   )
+        !M_mat   =   blas_matmul(    U_mat,  M_mat   )
+        !       
         return
     end subroutine
 
@@ -223,27 +232,35 @@ module matrix_math
 !
 !
     logical function real_is_equal_vect(acc, a,b)
-        real(dp),                   intent(in)     ::   acc
-        real(dp),   dimension(3),   intent(in)     ::   a, b
-        integer                                    ::   x
+        real(dp),     intent(in)     ::   acc
+        real(dp),     intent(in)     ::   a(:), b(:)
+        integer                      ::   idx
         !
-        real_is_equal_vect = .true.
-        do x = 1, 3
-            real_is_equal_vect =    real_is_equal_vect  .and.      abs(   a(x) - b(x)  )  < acc
-        end do
+        real_is_equal_vect  =   ( size(a,1) == size(b,1) ) 
+        !
+        if(real_is_equal_vect) then
+            loop: do idx = 1, size(a,1)
+                real_is_equal_vect =    real_is_equal_vect  .and.      abs(   a(idx) - b(idx)  )  < acc
+                if(.not. real_is_equal_vect) exit loop
+            end do loop
+        end if
         !
         return
     end function
 
     logical function cplx_is_equal_vect(acc, a,b)
-        real(dp),                      intent(in)  ::   acc
-        complex(dp),   dimension(3),   intent(in)  ::   a, b
-        integer                                    ::   x
+        real(dp),           intent(in)  ::   acc
+        complex(dp),        intent(in)  ::   a(:), b(:)
+        integer                         ::   idx
         !
-        cplx_is_equal_vect = .true.
-        do x = 1, 3
-            cplx_is_equal_vect =    cplx_is_equal_vect  .and.      abs(   a(x) - b(x)  )  < acc
-        end do
+        cplx_is_equal_vect = ( size(a,1) == size(b,1) ) 
+        !
+        if(cplx_is_equal_vect) then
+            loop: do idx = 1, size(a,1)
+                cplx_is_equal_vect =    cplx_is_equal_vect  .and.      abs(   a(idx) - b(idx)  )  < acc
+                 if(.not. cplx_is_equal_vect) exit loop
+            end do loop
+        end if
         !
         return
     end function
@@ -298,8 +315,8 @@ module matrix_math
         real(dp),    intent(in)      ::  A(:,:),     B(:,:)
         real(dp),    intent(out)     ::  C(:,:)
         !
-        C   = matmul(A, B)
-        C   = C - matmul(B, A)
+        C   = blas_matmul(A, B)
+        C   = C - blas_matmul(B, A)
         !
         return
     end subroutine
@@ -310,8 +327,8 @@ module matrix_math
         complex(dp),    intent(in)      ::  A(:,:),     B(:,:)
         complex(dp),    intent(out)     ::  C(:,:)
         !
-        C   = matmul(A, B)
-        C   = C - matmul(B, A)
+        C   = blas_matmul(A, B)
+        C   = C - blas_matmul(B, A)
         !
         return
     end subroutine
@@ -343,6 +360,67 @@ module matrix_math
         return
     end subroutine
 
+
+
+
+
+
+    function d_blas_matmul(A, B) result(C)
+        real(dp),        allocatable     ::  C(:,:)
+        real(dp),        intent(in)      ::  A(:,:), B(:,:)
+        !
+        character(len=1)                    ::  transa, transb
+        integer                             ::  m, n, k, lda, ldb, ldc
+        real(dp)                             ::  alpha, beta
+        !
+        m       =   size(A,1)
+        n       =   size(B,2)
+        k       =   size(A,2)
+        lda     =   size(A,1)
+        ldb     =   size(B,1)
+        ldc     =   m
+        !
+        allocate(   C(m,n)     )
+        !
+        transa  = 'n'
+        transb  = 'n'
+        alpha   =  1.0_dp   
+        beta    = 0.0_dp
+        !
+         C      = 0.0_dp
+        !
+        call dgemm(transa, transb, m, n, k, alpha, A(:,:), lda, B(:,:), ldb, beta, C(:,:), ldc)
+    end function
+
+
+
+
+    function z_blas_matmul(A, B) result(C)
+        complex(dp),        allocatable     ::  C(:,:)
+        complex(dp),        intent(in)      ::  A(:,:), B(:,:)
+        !
+        character(len=1)                    ::  transa, transb
+        integer                             ::  m, n, k, lda, ldb, ldc
+        complex(dp)                         ::  alpha, beta
+        !
+        m       =   size(A,1)
+        n       =   size(B,2)
+        k       =   size(A,2)
+        lda     =   size(A,1)
+        ldb     =   size(B,1)
+        ldc     =   m
+        !
+        allocate(   C(m,n)     )
+        !
+        transa  = 'n'
+        transb  = 'n'
+        alpha   = cmplx(   1.0_dp   ,   0.0_dp  ,   dp)
+        beta    = cmplx(   0.0_dp   ,   0.0_dp  ,   dp)
+        !
+        C       = cmplx(   0.0_dp   ,   0.0_dp  ,   dp)
+        !
+        call zgemm(transa, transb, m, n, k, alpha, A(:,:), lda, B(:,:), ldb, beta, C(:,:), ldc)
+    end function
 
 
 end module
