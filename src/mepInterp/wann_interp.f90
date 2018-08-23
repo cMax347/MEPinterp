@@ -5,7 +5,7 @@ module wann_interp
 	!			PRB 74, 195118 (2006) 
 	!	was used
 	use parameters,		only:		mpi_id,								&
-									dp, fp_acc, i_dp, myExp,			&
+									dp, fp_acc, i_dp,					&
 									a_latt,	recip_latt 		
 
 	use matrix_math,	only:		zheevd_wrapper, 					&
@@ -103,7 +103,7 @@ module wann_interp
 		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
-		real(dp)												::	r_vect(3), kpt_abs(3)
+		real(dp)												::	r_vect(3), kpt_abs(3), ft_angle
 		complex(dp)												::	ft_phase
 		logical													::	use_pos_op, do_en_grad
 		integer    												::	sc, a, b 
@@ -122,7 +122,8 @@ module wann_interp
 		!sum real space cells
 		do sc = 1, size(R_frac,2)
 			r_vect(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-			ft_phase	= 	myExp(	dot_product(kpt_abs(1:3),	r_vect(1:3)	)		)
+			ft_angle	=	dot_product(kpt_abs(1:3),	r_vect(1:3))
+			ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
 			!
 			!
 			!Hamilton operator
