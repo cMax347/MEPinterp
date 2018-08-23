@@ -12,14 +12,24 @@ module test_file_io
 	private
 	public					::		file_io_test
 
+	integer					::		smpl_size
+
 	contains
 
 
 !public:
-	logical function file_io_test(succ_cnt, nTests)
+	logical function file_io_test(test_arr_size, succ_cnt, nTests)
+		integer,			intent(in)			::	test_arr_size
 		integer,			intent(out)			::	succ_cnt, nTests
-		logical,			dimension(1)		::	passed
-		character(len=80), 	dimension(1)		::	label
+		logical,			allocatable			::	passed(:)
+		character(len=80), 	allocatable			::	label(:)
+		!
+		smpl_size		=	test_arr_size
+		file_io_test	= 	.false.
+		nTests			= 	1
+		succ_cnt		= 	0
+		allocate(	label(nTests)	)
+		allocate(	passed(nTests)	)		
 		!
 		!		GIVE EACH TEST A LABEL THEN PERFORM TEST				
 		!
@@ -48,40 +58,56 @@ module test_file_io
 !private
 	logical function test_bin_en_io()
 		real(dp),		allocatable			::	en_orig(:), en_clone(:)
-		real(dp)							::	rand1, rand2
-		integer								::	size, qi_idx, idx
+		real(dp)							::	rand
+		integer								::	qi_idx, idx
 
 
-		size = 20
-		allocate(	en_orig(size)		)		
-		allocate(	en_clone(size)		)
+		allocate(	en_orig(smpl_size)		)		
+		allocate(	en_clone(smpl_size)		)
 		!
-		!	FILL original	(RANDOM VALUES)
+		!	try to write at random index								
+		call random_number(rand)
+		qi_idx	= 100 + int(	rand * 100	)
+		!	a random array
+		call d_rand_arr(	en_orig		)
 		!
-		call random_number(rand1)
-		qi_idx	= 100 + int(	rand1 * 100	)
-		do idx	= 1, size
-			call random_number(rand1)
-			call random_number(rand2)
-			en_orig(idx)	=	 (	rand1-.5_dp	) 	* rand2 * size**2
-		end do
-		!
-		!	WRITE: orignal 			READ: clone
-		!
-		write(*,*)	"en_orig=",en_orig
-		call write_en_binary(	qi_idx, 	en_orig(1:size)		)
-		call read_en_binary(	qi_idx,		en_clone(1:size)	)
+		!											WRITE: orignal 			READ: clone
+		call write_en_binary(	qi_idx, 	en_orig		)
+		call read_en_binary(	qi_idx,		en_clone	)
 		!
 		!	COMPARE ORIG & CLONE
 		!
 		test_bin_en_io	=	.true.
-		do idx = 1, size
+		do idx = 1, smpl_size
 			test_bin_en_io	=	test_bin_en_io .and. 	(	abs( en_orig(idx) - en_clone(idx) )		<	fp_acc	)
 		end do
 		!
 		!
 		return
 	end function
+
+	subroutine d_rand_arr(v)
+		real(dp),	intent(out)		::	v(:)
+		integer						:: idx
+		real(dp)					:: rand, scal
+		!
+		call random_number(scal)
+		scal	=	scal * size(v,1)
+		!
+		do idx = 1, size(v,1)
+			call random_number(rand)
+			rand = (rand-.5_dp)	* scal
+			!
+			!
+			v(idx)	= rand
+		end do
+		!
+		return
+	end subroutine
+
+
+
+
 
 
 

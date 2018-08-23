@@ -9,7 +9,7 @@ module parameters
 	private
 	public								::		&
 												!routines		
-												myExp, init_parameters, get_rel_kpts,	my_mkdir,				  	&
+												init_parameters, get_rel_kpts,	my_mkdir,				  	&
 												!dirs
 												w90_dir, out_dir, raw_dir,											&
 												!jobs

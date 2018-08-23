@@ -92,10 +92,10 @@ module test_log
 		if( .not. initialized	)	call init_outFile(.false.,"test.log")
 		!
 		open(unit=unit,file=fpath, form="formatted",  action='write', status='old', position='append')
-			write(unit,*)	push_notification
+			write(unit,*)	trim(push_notification)
 		close(unit)
 		!
-		if(	print_cli	)	write(*,*)	push_notification
+		if(	print_cli	)	write(*,*)	trim(push_notification)
 		!
 		return
 	end subroutine

@@ -6,9 +6,10 @@ module test_matrix_math
                                             crossP,                                 &
                                             is_equal_vect,                          &
                                             convert_tens_to_vect,                   &
+                                            blas_matmul,							&
                                             matrix_comm             
 
-    use test_log,		only:				push_to_outFile                         
+    use test_log,		only:				push_to_outFile, write_test_results                         
 
 	implicit none
 
@@ -17,60 +18,62 @@ module test_matrix_math
 	public				::				matrix_math_test
 
 
+	interface random_matrix
+		module procedure ds_rand_mat
+		module procedure zh_rand_mat	
+	end interface random_matrix
+
+	interface is_equal_mat
+		module procedure d_is_equal_mat
+		module procedure z_is_equal_mat
+	end interface is_equal_mat
+
+
+	integer				::				smpl_size
 
 	contains
 
 !public:
-	logical function matrix_math_test(succ_cnt, nTests)
-		integer,			intent(out)			::	succ_cnt, nTests
-		logical,			dimension(7)		::	passed
-		character(len=80), dimension(7)			::	label
-		character(len=10)						:: 	result
-		character(len=121)						::	succ_message
-		integer									::	test
+	logical function matrix_math_test(test_mat_size, succ_cnt, nTests)
+		integer,			intent(in)		::	test_mat_size
+		integer,			intent(out)		::	succ_cnt, nTests
+		logical,		   allocatable		::	passed(:)
+		character(len=80), allocatable		::	label(:)
 		!
-		nTests	= size(passed)
+		smpl_size	= test_mat_size
+		!
+		matrix_math_test	= .false.
+		nTests	= 6
 		succ_cnt= 0
-		matrix_math_test	= .true.
+		allocate(	passed(nTests)	)		
+		allocate(	label(nTests)	)		
+		!
 		!
 		label(		1	)			=	"Levi Civitia operartor"
 		passed(		1	)			=	test_levi_civita()
 		!-----------------------------------------------------------------
-		label(		2	)			=	"equality of 3D vectors"
+		label(		2	)			=	"equality of  vectors"
 		passed(		2	)			=	test_vect_equal()
 		!-----------------------------------------------------------------
-		label(		3	)			=	"tensor to vector conversion"
-		passed(		3	)			=	test_tens_vect()
+		label(		3	)			=	"Cross product"
+		passed(		3	)			=	test_crossp()
 		!-----------------------------------------------------------------
-		label(		4	)			=	"Cross product"
-		passed(		4	)			=	test_crossp()
-		!-----------------------------------------------------------------
-		label(		5	)			=	"eigen Solver"
-		passed(		5	)			=	test_eig_solver()
-		!-----------------------------------------------------------------
-		label(		6	)			=	"Gauge rotation"
-		passed(		6	)			=	test_gauge_trafo()				
+		label(		4	)			=	"Gauge rotation"
+		passed(		4	)			=	test_gauge_trafo()				
 		!-----------------------------------------------------------------			
-		label(		7	)			=	"matrix commutator"
-		passed(		7	)			=	test_mat_comm()
+		label(		5	)			=	"matmul with Blas"
+		passed(		5	)			=	test_blas_matmul()
+		!-----------------------------------------------------------------			
+		label(		6	)			=	"matrix commutator"
+		passed(		6	)			=	test_mat_comm()
 		!
-		do test = 1, nTests
-			matrix_math_test	= matrix_math_test .and. passed(test)
-			if( passed(test) )	then 
-				result	=	"passed"
-				succ_cnt=	1 + succ_cnt
-			else
-				result	=	"not passed"
-			end if
-			write(succ_message,'(a,a,a,a,a)')	'[matrix_math_test]: ',result,' test of "',trim(label(test)),'"'
-			!
-			!WRITE TO LOG FILE
-			call push_to_outFile(succ_message)
-		end do
 		!
-		write(succ_message,'(a,i1,a,i1,a)')		'[matrix_math_test]: passed ',succ_cnt,' of ',nTests,' tests'
-		call push_to_outFile(succ_message)
-		call push_to_outFile(" ")
+		!	WRITE RESULTS TO LOG
+		!
+		call write_test_results(	'matrix_math_test', passed, label, succ_cnt, nTests	)
+		!
+		matrix_math_test	=	( succ_cnt	==	nTests)
+		!
 		return
 	end function
 
@@ -107,22 +110,23 @@ module test_matrix_math
 !
 !
 	logical function test_vect_equal()
-		real(dp)				::	a(3), b(3), c(3)
-		test_vect_equal		=	.false.
-
-		a(:)	= 0.0_dp	
-		a(1)	= 1e-14_dp
+		real(dp), 	allocatable				::	a(:), b(:), a_cpy(:)
+		integer								::	smpl_size
 		!
-		b(:)	= 0.0_dp
-		b(2)	= -1e-14_dp
+		smpl_size	= 1000
+		allocate( a(		smpl_size)	)
+		allocate( b(		smpl_size)	)		
+		allocate( a_cpy(	smpl_size)	)
 		!
-		c(:)	= 0.0_dp
-		c(1)	= 1e-14_dp
+		call d_rand_vec(a)
+		call d_rand_vec(b)
+		b(1)		=	a(1)-1e-13_dp
+		a_cpy(:)	= 	a(:)
+
 		!
-		test_vect_equal	= .not. is_equal_vect(fp_acc, a,b)
-		test_vect_equal	=	test_vect_equal .and. is_equal_vect(fp_acc, a,c)
-
-
+		test_vect_equal	=  .not. is_equal_vect(fp_acc, a,b)
+		test_vect_equal	=	test_vect_equal .and. is_equal_vect(fp_acc, a,a_cpy)
+		!
 		return
 	end function
 !--------------------------------------------------------------------------------------------------------------------------------
@@ -188,76 +192,126 @@ module test_matrix_math
 !--------------------------------------------------------------------------------------------------------------------------------
 !
 !
-	logical function test_eig_solver()
-		complex(dp),	allocatable			::	M_W1(:,:),  M_W2(:,:),	&
-												U_l(:,:), U_r(:,:)
+	logical function test_gauge_trafo()
+		complex(dp),	allocatable			::	M_W(:,:),				&
+												U(:,:)
 		real(dp),		allocatable			::	eigVal(:)
-		logical								::	test1, test2
-		integer								::	size
+		integer								::	n,m
 		!
-		size	= 1000
+		test_gauge_trafo	=	.false.
 		!
-		allocate(	M_W1(	size, size	)		)
-		allocate(	M_W2(	size, size	)		)
-		allocate(	U_l(	size, size	)		)
-		allocate(	U_r(	size, size	)		)
-		allocate(	eigVal(	size		)		)
+		allocate(	M_W(	smpl_size, smpl_size	)		)
+		allocate(	U(		smpl_size, smpl_size	)		)
+		allocate(	eigVal(	smpl_size		)		)
 		!
-		! FILL M_W, todo: setup random hermitian matrix
-		call get_rand_herm_matrix(M_W1, M_W2, U_l, U_r)									
+		!random hermitian matrix
+		call zh_rand_mat(M_W)
+		!GET EIGVAL & EIGVEC
+		U	=	M_W
+		call zheevd_wrapper(U,	eigVal)
+		write(*,*)	"[test_gauge_trafo]: solved random hermitian matrix with eigvals:"
+		write(*,*)	eigVal
 		!
-		call zheevd_wrapper(M_W1, eigVal)
-		call zheevd_wrapper(M_W2, eigVal)
+		!rotate M_W with U should yield diagonal matrix (matrix in H gauge)
+		call uni_gauge_trafo(U, M_W)
 		!
-		test1	=	equal_mat(M_W1, U_r)
-		test2	=	equal_mat(M_W2, U_r)
 		!
-		if(	.not. test1)	call push_to_outFile("[test_eig_solver]: failed test 1")
-		if(	.not. test2)	call push_to_outFile("[test_eig_solver]: failed test 2")
+		!todo: check now if M_H is diagonal with eival on diago
+		test_gauge_trafo	= .true.
+		outer_loop:	do m = 1, size(M_W,2)
+			do n = 1, size(M_W,1)
+			
+				if(	n==m	) then
+					test_gauge_trafo =	test_gauge_trafo .and. 		(	abs(	M_W(n,n)-eigVal(n) 	) < fp_acc	)		
+				else
+					test_gauge_trafo =	test_gauge_trafo .and.		(	abs(		M_W(n,m)		) < fp_acc	)
+				end if
+				!
+				!
+				if(.not. test_gauge_trafo	)	then
+					write(*,*)	"[test_gauge_trafo]:	unexpected value at  |M(n=",n,',m=',m,')|= ', abs(M_W(m,n))
+					if(n==m)	write(*,*)	"[test_gauge_trafo]:	eigen value=",eigVal(n)
+					!exit outer_loop
+				end if
+			end do
+		end do outer_loop
 		!
-		test_eig_solver	= test1 .and. test2
 		return
 	end function
 !--------------------------------------------------------------------------------------------------------------------------------
 !
 !
-	logical function test_gauge_trafo()
-		complex(dp),	allocatable			::	M_H(:,:),				& 
-												M_W1(:,:),  M_W2(:,:),	&
-												M_solv(:,:),			&
-												U_l(:,:), U_r(:,:)
-		real(dp),		allocatable			::	eigVal(:)
-		integer								::	size
-		test_gauge_trafo	=	.false.
+	logical function test_blas_matmul()
+		logical					::	real_test, imag_test
 		!
-		size	= 1000
+		real_test			= test_d_blas_matmul()
+		imag_test			= test_z_blas_matmul()
 		!
-		allocate(	M_H(	size, size	)		)
-		allocate(	M_W1(	size, size	)		)
-		allocate(	M_W2(	size, size	)		)
-		allocate(	M_solv(	size, size	)		)
+		if(.not. real_test)	call push_to_outFile("[test_blas_matmul]: failed real matrix ")
+		if(.not. imag_test)	call push_to_outFile("[test_blas_matmul]: failed imag matrix ")
 		!
-		allocate(	U_l(	size, size	)		)
-		allocate(	U_r(	size, size	)		)
-		allocate(	eigVal(	size		)		)
+		test_blas_matmul	= real_test .and. imag_test
+		return
+	end function
+	!
+	logical function test_d_blas_matmul()
+		real(dp),	allocatable			::	A(:,:), B(:,:), C_intern(:,:), C_blas(:,:)
+		real(dp)						::	acc
+		character(len=130)				::	msg
 		!
-		! FILL M_W, todo: setup random hermitian matrix
-		call get_rand_herm_matrix(M_W1, M_W2, U_l, U_r)
-
-		!cpy M_W to U
-
-		!GET U
-		M_solv	=	M_W1
-		call zheevd_wrapper(M_solv,	eigVal)
+		allocate(	A(			smpl_size	, smpl_size		)		)
+		allocate(	B(			smpl_size	, smpl_size		)		)
+		allocate(	C_intern(	smpl_size	, smpl_size		)		)			
+		allocate(	C_blas(		smpl_size	, smpl_size		)		)
 		!
-		!rotate M_W with U should yield diagonal matrix
-		M_H	=	M_W1
-		call uni_gauge_trafo(M_solv, M_H)
+		call random_matrix(A)
+		call random_matrix(B)
+		!
+		C_intern	=	matmul(A,B)
+		C_blas		=	blas_matmul(A,B)
+		!
+		test_d_blas_matmul	=	.false.
+		acc					= 	fp_acc
+		do while ((.not. test_d_blas_matmul) .and. (acc < 1e-5_dp))
+			test_d_blas_matmul	=	 is_equal_mat(acc, C_intern, C_blas)
+			acc	= acc * 10.0_dp
+		end do
+		if(test_d_blas_matmul )	then	
+			write(msg,*)	"d_blas_matmul has accuracy ",acc
+			call push_to_outFile(msg)
+		end if
+		!
+		return
+	end function
+	!
+	logical function test_z_blas_matmul()
+		complex(dp),	allocatable		::	A(:,:), B(:,:), C_intern(:,:), C_blas(:,:)
+		real(dp)						::	acc
+		character(len=130)				::	msg
+		!
+		allocate(	A(			smpl_size	, smpl_size		)		)
+		allocate(	B(			smpl_size	, smpl_size		)		)
+		allocate(	C_intern(	smpl_size	, smpl_size		)		)			
+		allocate(	C_blas(		smpl_size	, smpl_size		)		)
+		!
+		call random_matrix(A)
+		call random_matrix(B)
+		!
+		C_intern	=	matmul(A,B)
+		C_blas		=	blas_matmul(A,B)
 		!
 		!
-		!todo: check now if M_H is diagonal with eival on diago
-
-
+		test_z_blas_matmul	= .false.
+		acc			= 	fp_acc
+		do while ((.not. test_z_blas_matmul) .and. (acc < 1e-5_dp))
+			test_z_blas_matmul	=	 is_equal_mat(acc,C_intern, C_blas)
+			acc	= acc * 10_dp
+		end do
+		if( test_z_blas_matmul)	then
+			write(msg,*)	"z_blas_matmul has accuracy ",acc
+			call push_to_outFile(msg)
+		end if
+		!
 		return
 	end function
 !--------------------------------------------------------------------------------------------------------------------------------
@@ -270,7 +324,7 @@ module test_matrix_math
 		!
 		complex(dp),	allocatable		::	I_mat(:,:), M_mat(:,:), cplx_comm(:,:)
 		real(dp)						::	A(2,2), B(2,2), real_comm(2,2)
-		integer							::	size, m,n, succ_cnt
+		integer							::	m,n, succ_cnt
 		real(dp)						::	scale, rand1, rand2
 		logical							::	identity_test, wikipedia_comm, wikipedia_non_comm
 		!
@@ -278,18 +332,17 @@ module test_matrix_math
 		!	IDENTITY_TEST:	TEST IF RANDOM MATRIX M COMMUTES WITH IDENTITY
 		!
 		test_mat_comm	=	.false.
-		size			= 	100
 		scale			=	1023.34514_dp
 		!
-		allocate(	I_mat(		size, size	)		)		
-		allocate(	M_mat(		size, size	)		)
-		allocate(	cplx_comm(	size, size	)		)
+		allocate(	I_mat(		smpl_size, smpl_size	)		)		
+		allocate(	M_mat(		smpl_size, smpl_size	)		)
+		allocate(	cplx_comm(	smpl_size, smpl_size	)		)
 		I_mat(:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
 		M_mat(:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
 		!FILL MATRICES
-		do n = 1, size
-			do m = 1, size
+		do n = 1, smpl_size
+			do m = 1, smpl_size
 				if(m==n)	I_mat(m,n)	=	cmplx(1.0,0.0_dp, dp)
 				call random_number(	rand1	)			
 				call random_number(	rand2	)
@@ -302,12 +355,12 @@ module test_matrix_math
 		!
 		!TEST IF COMMUTATOR IS ZERO
 		succ_cnt = 0
-		do n = 1, size
-			do m = 1, size
+		do n = 1, smpl_size
+			do m = 1, smpl_size
 				if(	 abs(	cplx_comm(m,n)	) < fp_acc		)	succ_cnt = succ_cnt + 1
 			end do
 		end do
-		identity_test	=	( succ_cnt == size**2 )	
+		identity_test	=	( succ_cnt == smpl_size**2 )	
 		!----------------------------------------------------------------------------------------------------------
 		!	wikipedia_comm:	COMMUTING MATRICES TEST
 		!
@@ -352,61 +405,143 @@ module test_matrix_math
 
 
 
-!helpers:
 
-	subroutine get_rand_herm_matrix(Mat_a, Mat_b, left_eig, right_eig)
-		!	
-		!	https://software.intel.com/en-us/mkl-developer-reference-fortran-latm6#045E00E9-CEEC-40C3-8283-0CE8166BF2B9
+
+
+!helpers:
+!------------------------------------------------------------------------------------------------------
+	subroutine ds_rand_mat(Mat)
+		real(dp), intent(out)	::	Mat(:,:)
+		integer						::	n, m
+		real(dp)					::	re_rand
 		!
-		complex(dp), intent(out)	::	Mat_a(:,:), Mat_b(:,:), left_eig(:,:), right_eig(:,:)
-		integer						::	typ, n, lda, ldx, ldy
-		complex(dp)					::	alpha, beta, wx, wy		
-		complex(dp),	allocatable	::	cond_eig_val(:), cond_eig_vec(:)
 		!
-		typ		= 2
-		n		= size(Mat_a		, 1)
-		lda		= size(Mat_a		, 1)
-		ldx		= size(right_eig	, 1)
-		ldy		= size(left_eig		, 1)
-		!
-		allocate(		cond_eig_val( n )		)		
-		allocate(		cond_eig_vec( n )		)
-		!
-		alpha	=	cmplx(1.3_dp		, 	-0.4_dp		,dp)
-		beta	=	cmplx(-3.1_dp		, 	2.5_dp		,dp)
-		wx		=	cmplx(1.3_dp		, 	-0.0013_dp	,dp)
-		wy		=	cmplx(-0.0001_dp	, 	-2.567_dp	,dp)
-		!
-		!call zlatm6( type, n, a, lda, b, x, ldx, y, ldy, alpha, beta, wx, wy, s, dif )
-		call zlatm6( typ, n, Mat_a, lda, Mat_b, right_eig, ldx, left_eig, ldy, alpha, beta, wx, wy, cond_eig_val, cond_eig_vec)
+		do n = 1, size(Mat,2)
+			do m = 1, size(Mat,1)
+				call random_number(re_rand)	
+				!
+				re_rand	= (re_rand - .5_dp) 							
+				!
+				Mat(n,m)	=	re_rand
+				if(n<m) then
+					Mat(m,n)	=	re_rand
+				end if
+				!
+				!
+			end do
+		end do
 		!
 		return
 	end subroutine	
 
 
+	subroutine zh_rand_mat(Mat)
+		complex(dp), intent(out)	::	Mat(:,:)
+		integer						::	n, m
+		complex(dp)					::	rand
+		real(dp)					::	re_rand, im_rand
+		!
+		do n = 1, size(Mat,2)
+			do m = 1, size(Mat,1)
+				call random_number(re_rand)
+				re_rand	= (re_rand - .5_dp) 		
+				!
+				if(	n==m ) then
+					Mat(n,n)	=	re_rand
+				else
+					call random_number(im_rand)	
+					im_rand	= (im_rand - .5_dp)					
+					rand	= cmplx(	re_rand, im_rand,	dp)
+					!
+					Mat(n,m)	=	rand
+					Mat(m,n)	= conjg(rand)
+				end if
+				!
+				!
+			end do
+		end do
+		!
+		return
+	end subroutine	
+!------------------------------------------------------------------------------------------------------
 
-	logical function	equal_mat(A, B)
-		complex(dp),	intent(in)		::	A(:,:), B(:,:)
+
+!------------------------------------------------------------------------------------------------------
+	logical function	d_is_equal_mat(acc, A, B)
+		real(dp),	intent(in)			::	acc
+		real(dp),	intent(in)			::	A(:,:), B(:,:)
 		real(dp)						::	delta
 		integer							::	n, m
 		!
-		equal_mat	=	(	size(A,1) /= size(B,1) .or. size(A,2) /= size(B,2) )
+		d_is_equal_mat	=	(	size(A,1) == size(B,1) .and. size(A,2) == size(B,2) )
 		!
-		if( equal_mat	) then
+		if( d_is_equal_mat	) then
 
 			loop_out: do n = 1, size(A,2)
-				loop_in: do m = 1, size(A,1)
+				do m = 1, size(A,1)
 					delta	=	abs(	A(m,n) - B(m,n)	)
 					!
-					equal_mat	= equal_mat .and. (delta < fp_acc)
+					d_is_equal_mat	= d_is_equal_mat .and. (delta < acc)
 					!
-					if(.not. equal_mat) exit loop_out
-				end do loop_in
+					if(.not. d_is_equal_mat) exit loop_out
+				end do
 			end do loop_out
 		end if
 		!
 		return
 	end function
+
+	logical function	z_is_equal_mat(acc, A, B)
+		real(dp),		intent(in)		::	acc
+		complex(dp),	intent(in)		::	A(:,:), B(:,:)
+		real(dp)						::	delta
+		integer							::	n, m
+		character(len=120)				::	msg
+		!
+		z_is_equal_mat	=	(	size(A,1) == size(B,1) .and. size(A,2) == size(B,2) )
+		!
+		if( z_is_equal_mat	) then
+
+			loop_out: do n = 1, size(A,2)
+				loop_in: do m = 1, size(A,1)
+					delta	=	abs(	A(m,n) - B(m,n)	)
+					!
+					z_is_equal_mat	= z_is_equal_mat .and. (delta < acc)
+					!
+					if(.not. z_is_equal_mat)then 
+						!write(msg,'(a,f4.2,a,f4.2,a,f4.2,a,f4.2,a)')"[z_is_equal_mat]: (",real(A(m,n)),"+i",imag(A(m,n)) ,") vs (", real(B(m,n)),"+i",imag(B(m,n)),")"
+						call push_to_outFile(msg)
+						exit loop_out
+					end if
+				end do loop_in
+			end do loop_out
+		else
+			write(msg,*)	"[z_is_equal_mat]: sizes to not compare"
+			call push_to_outFile(msg)
+		end if
+		!
+		return
+	end function
+!------------------------------------------------------------------------------------------------------
+
+	subroutine d_rand_vec(v)
+		real(dp),	intent(out)		::	v(:)
+		integer						:: idx
+		real(dp)					:: rand, scal
+		!
+		call random_number(scal)
+		scal	=	scal * size(v,1)
+		!
+		do idx = 1, size(v,1)
+			call random_number(rand)
+			rand = (rand-.5_dp)	* scal
+			!
+			!
+			v(idx)	= rand
+		end do
+		!
+		return
+	end subroutine
 
 
 
