@@ -34,8 +34,8 @@ module matrix_math
     end interface blas_matmul
 
     interface matrix_comm
-        module procedure    real_matrix_comm
-        module procedure    cplx_matrix_comm
+        module procedure    d_matrix_comm
+        module procedure    z_matrix_comm
     end interface matrix_comm
 
 
@@ -309,29 +309,39 @@ module matrix_math
 !----------------------------------------------------------------------------------------------------------------------
 !
 !
-    subroutine real_matrix_comm(A, B, C)
+    function d_matrix_comm(A, B) result(C)
         !   calculates the commutator of matrix A with matrix B
         !       C   = [A,B] =   AB - BA
         real(dp),    intent(in)      ::  A(:,:),     B(:,:)
-        real(dp),    intent(out)     ::  C(:,:)
+        real(dp),    allocatable     ::  C(:,:)
+        !
+        if(size(A,2) /= size(B,1)   .or. size(B,2) /= size(A,1) ) stop "real_matrix_comm: mat sizes not matching"
+        !
+        !
+        allocate(   C(size(A,1),size(B,2))     )
         !
         C   = blas_matmul(A, B)
         C   = C - blas_matmul(B, A)
         !
         return
-    end subroutine
+    end function
 
-    subroutine cplx_matrix_comm(A,  B,  C)
+    function z_matrix_comm(A,  B) result(C)
         !   calculates the commutator of matrix A with matrix B
         !       C   = [A,B] =   AB - BA
         complex(dp),    intent(in)      ::  A(:,:),     B(:,:)
-        complex(dp),    intent(out)     ::  C(:,:)
+        complex(dp),    allocatable     ::  C(:,:)
+        !
+        if(size(A,2) /= size(B,1)   .or. size(B,2) /= size(A,1) ) stop "real_matrix_comm: mat sizes not matching"
+        !
+        !
+        allocate(   C(size(A,1),size(B,2))     )
         !
         C   = blas_matmul(A, B)
         C   = C - blas_matmul(B, A)
         !
         return
-    end subroutine
+    end function
 !----------------------------------------------------------------------------------------------------------------------
 
 

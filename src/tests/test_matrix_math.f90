@@ -351,7 +351,7 @@ module test_matrix_math
 		end do
 		!
 		!GET COMMUTATOR
-		call matrix_comm(I_mat, M_mat, cplx_comm)
+		cplx_comm	=	 matrix_comm(I_mat, M_mat)
 		!
 		!TEST IF COMMUTATOR IS ZERO
 		succ_cnt = 0
@@ -370,7 +370,7 @@ module test_matrix_math
 		B(1,1)	=	1.0_dp
 		B(2,2)	=	1.0_dp
 		!
-		call matrix_comm(A,B,	real_comm )
+		real_comm		=	matrix_comm(A,B)
 		wikipedia_comm	=							(	abs(real_comm(1,1))	< fp_acc	)
 		wikipedia_comm	=	wikipedia_comm	.and.	(	abs(real_comm(1,2))	< fp_acc	)
 		wikipedia_comm	=	wikipedia_comm	.and.	(	abs(real_comm(2,1))	< fp_acc	)
@@ -386,7 +386,7 @@ module test_matrix_math
 		B(:,:)	=	1.0_dp
 		B(2,1)	=	0.0_dp
 		!
-		call matrix_comm(A,B,	real_comm )
+		real_comm			=	matrix_comm(A,B)
 		wikipedia_non_comm	=								(	abs(real_comm(1,1))	< fp_acc	)
 		wikipedia_non_comm	=	wikipedia_non_comm	.and.	(	abs(real_comm(1,2))	< fp_acc	)
 		wikipedia_non_comm	=	wikipedia_non_comm	.and.	(	abs(real_comm(2,1))	< fp_acc	)

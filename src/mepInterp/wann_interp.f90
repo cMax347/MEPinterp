@@ -195,7 +195,6 @@ module wann_interp
 		if( allocated(A_ka)	) then
 			do m = 1, size(V_k,3)
 				do n = 1, size(V_k,2)
-					!
 					if(	n/=	m)	then
 						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
 						!
@@ -203,7 +202,6 @@ module wann_interp
 							V_k(a,n,m)	= V_k(a,n,m)	-	i_dp	*	eDiff	*	A_ka(a,n,m)
 						end do
 					end if
-					!
 				end do
 			end do
 		end if
@@ -219,22 +217,22 @@ module wann_interp
 		complex(dp),		intent(in)		::	H_ka(:,:,:)
 		complex(dp),		intent(out)		::	D_ka(:,:,:)
 		integer								::	m, n
-		real(dp)							::	eDiff
+		real(dp)							::	eDiff_mn
 		!
 		D_ka(:,:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
 		do m = 1, size(D_ka,3)
 			do n = 1, size(D_ka,2)
 				if(	n/=	m )	then
-					eDiff		=	e_k(m)	- e_k(n)
-					if(abs(eDiff) < fp_acc)	then
-						eDiff	= sign(fp_acc,eDiff)
+					eDiff_mn	=	e_k(m)	- e_k(n)
+					if(abs(eDiff_mn) < fp_acc)	then
+						eDiff_mn	= sign(fp_acc,eDiff_mn)
 						write(*,'(a,i3,a)',advance="no")	'[#',mpi_id,';get_gauge_covar_deriv]:'
 						write(*,'(a,i6,a,i6)')	' WARNING degenerate bands detetected n=',n,' m=',m
 					end if
 					!
 					!
-					D_ka(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff
+					D_ka(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff_mn
 				end if
 			end do
 		end do 
@@ -275,16 +273,14 @@ module wann_interp
 		!
 		do b = 1, 3
 			do a = 1, 3
-				call matrix_comm( D_ka(a,:,:), 	A_ka(b,:,:),		mat_comm(:,:)	)
-				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			mat_comm(:,:)
+				!call matrix_comm( D_ka(a,:,:), 	A_ka(b,:,:),		mat_comm(:,:)	)
+				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			matrix_comm(	D_ka(a,:,:), 	A_ka(b,:,:)		)
 				!
 				!
-				call matrix_comm( D_ka(b,:,:), 	A_ka(a,:,:),		mat_comm(:,:)	)
-				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			mat_comm(:,:)
+				!call matrix_comm( ,		mat_comm(:,:)	)
+				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			matrix_comm(	D_ka(b,:,:), 	A_ka(a,:,:)		)
 				!
-				!
-				call matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:),		mat_comm(:,:)	)
-				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	mat_comm(:,:)
+				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:))
 			end do
 		end do
 		!
