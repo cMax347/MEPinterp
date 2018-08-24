@@ -121,7 +121,7 @@ module file_io
 			open(unit=mpi_unit, file = filepath, form='unformatted', action='read', access='stream',	status='old'	)
 			read(mpi_unit)	e_bands(:)
 			close(mpi_unit)
-			write(*,*)	'[read_en_binary]: read ',size(e_bands),' real values from "',trim(filepath),'"'
+			!write(*,*)	'[read_en_binary]: read ',size(e_bands),' real values from "',trim(filepath),'"'
 		else
 			e_bands	=	0.0_dp
 			write(*,*)	"[read_en_binary]: WARNING could not read ",	filepath,". Does not exist"
@@ -149,8 +149,8 @@ module file_io
 		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
 		write(mpi_unit)	e_bands(:)
 		close(mpi_unit) 
-		write(*,'(a,i3,a)', advance="no")		"[#",mpi_id," ;write_en_binary]: prepare bands, wrote binary file "
-		write(*,'(a,a,i4,a)')		trim(filename), " with ",size(e_bands), " entries"
+		!write(*,'(a,i3,a)', advance="no")		"[#",mpi_id," ;write_en_binary]: prepare bands, wrote binary file "
+		!write(*,'(a,a,i4,a)')		trim(filename), " with ",size(e_bands), " entries"
 		!
 		return
 	end subroutine
