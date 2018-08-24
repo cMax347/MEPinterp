@@ -52,6 +52,8 @@ program test_matrix_math
 	!	WRITE RESULTS TO LOG
 	!
 	call write_test_results(	'matrix_math_test', passed, label, succ_cnt, nTests	)
+	call push_to_outFile("------------------------------------------------------")
+	call push_to_outFile("")
 	!
 	!	EXIT
 	!
@@ -211,6 +213,7 @@ contains
 												U(:,:)
 		real(dp),		allocatable			::	eigVal(:)
 		real(dp)							::	acc
+		character(len=120)					::	msg
 		!
 		test_gauge_trafo	=	.false.
 		!
@@ -234,6 +237,15 @@ contains
 			acc 				=	acc * 10.0_dp
 		end do
 		!
+		if( test_gauge_trafo)	 then
+			write(msg,*)	'[test_gauge_trafo]:	PASSED gauge rotation with accuracy', acc
+			call push_to_outFile(msg)
+		else
+			write(msg,*)	'[test_gauge_trafo]:	FAILED gauge rotation with final accuracy', acc
+			call push_to_outFile(msg)
+		end if
+
+
 		return
 	end function
 
@@ -241,7 +253,6 @@ contains
 		real(dp),		intent(in)			::	acc, eigVal(:)
 		complex(dp),	intent(in)			::	M_W(:,:)
 		integer								::	n,m
-		character(len=120)					::	msg
 		!
 		test_gauge_with_acc	= .true.
 		outer_loop:	do m = 1, size(M_W,2)
@@ -252,20 +263,9 @@ contains
 					test_gauge_with_acc =	test_gauge_with_acc .and.		(	abs(		M_W(n,m)		) < acc	)
 				end if
 				!
-				!
 				if(.not. test_gauge_with_acc	)	exit outer_loop
-				end if
 			end do
 		end do outer_loop
-		!
-		!
-		if( test_gauge_with_acc	)	 then
-			write(msg,*)	'[test_gauge_with_acc]:	PASSED gauge rotation with accuracy', acc
-			call push_to_outFile(msg)
-		else
-			write(msg,*)	'[test_gauge_with_acc]:	FAILED gauge rotation with final accuracy', acc
-			call push_to_outFile(msg)
-		end if
 		!
 		return
 	end function

@@ -165,11 +165,11 @@ module wann_interp
 		integer											::	a, b
 		!
 		do a = 1, 3
-			call uni_gauge_trafo(U_k,	H_ka(a,:,:))
-			if( allocated(A_ka)		)	call uni_gauge_trafo( U_k, A_ka(a,:,:))
-			if( allocated(Om_kab)	)	then
+										call uni_gauge_trafo( U_k,		H_ka(a,:,:)		)
+			if( allocated(A_ka)		)	call uni_gauge_trafo( U_k, 		A_ka(a,:,:)		)
+			if( allocated(Om_kab)	)then
 				do b = 1,3 
-					call uni_gauge_trafo( U_k, Om_kab(a,b,:,:))
+										call uni_gauge_trafo( U_k,		Om_kab(a,b,:,:)	)
 				end do
 			end if
 		end do

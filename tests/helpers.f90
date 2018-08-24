@@ -19,10 +19,8 @@ module helpers
 										random_vector
 
 
-	character(len=2)			::		out_dir="./"
-	character(len=30)			::		fpath	
+	character(len=30)			::		fpath="./test.log"	
 	integer						::		unit = 111
-	logical						::		initialized=.false., print_cli
 
 
 
@@ -59,26 +57,24 @@ contains
 	!-----------------------------------------------------------------------------------------------------------------------|
 	! 			IO - HELPERS																								|
 	!- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
-	subroutine	init_outFile(cli_print, fname)
-		logical,				intent(in)				::	cli_print
-		character(len=*),		intent(in)				::	fname
+	subroutine	init_outFile()
 		character(8)  :: date
     	character(10) :: time
     	character(5)  :: zone
     	integer,dimension(8) :: values
-    	!
-    	print_cli	= cli_print
-    	!set fpath
-		fpath	=	out_dir//fname
-		!
+    	
 		!print header to file
-		open(unit=unit, file=fpath, form='formatted', 	action='write', access='stream',	status='replace')
+		open(unit=unit, file=fpath, form='formatted', 	action='write', status='replace')
 		call date_and_time(date,time,zone,values)
+		write(unit,*)	'*'
+		write(unit,*)	'*'
+		write(unit,*)	'*'
+		write(unit,*)	'*'
+		write(unit,*)	'*'
+		write(unit,*)	'*'
 		write(unit,*)	"# MEPinterp TESTS performed on ",date," ", time," ", zone
 		write(unit,*)
 		close(unit)
-		!
-		initialized	= .true.
 		!
 		return
 	end subroutine
@@ -90,14 +86,17 @@ contains
 		integer									::	test
 		character(len=10)						:: 	result
 		character(len=121)						::	succ_message
+		logical									::	initialized
 		!
 		if(size(passed) /= size(label)	)	stop "non matching passed and label array"
 		nTests		= size(passed)
 		succ_cnt	= 0
 		!
-		if( .not. initialized	)	call init_outFile(.false.,"test.log")
-		open(unit=unit,file=fpath, form="formatted",  action='write', status='old', position='append')
+		inquire(file=fpath, exist= initialized)
+		if( .not. initialized	)	call init_outFile()
 		!
+		!
+		open(unit=unit,file=fpath, form="formatted",  action='write', status='old', position='append')
 		do test = 1, nTests
 			if( passed(test) )	then 
 				result	=	"passed"
@@ -120,14 +119,14 @@ contains
 
 	subroutine push_to_outFile(push_notification)
 		character(len=*),	intent(in)		::	push_notification
+		logical								::	initialized
 		!
-		if( .not. initialized	)	call init_outFile(.false.,"test.log")
+		inquire(file=fpath, exist= initialized)
+		if( .not. initialized	)	call init_outFile()
 		!
 		open(unit=unit,file=fpath, form="formatted",  action='write', status='old', position='append')
 			write(unit,*)	trim(push_notification)
 		close(unit)
-		!
-		if(	print_cli	)	write(*,*)	trim(push_notification)
 		!
 		return
 	end subroutine

@@ -34,14 +34,14 @@ program test_file_io
 	!
 	!		WRITE LOG FILE
 	call write_test_results("file_io_test", passed, label, succ_cnt, nTests)
+	call push_to_outFile("------------------------------------------------------")
+	call push_to_outFile("")
 	!
 	!		RETURN SUCCESS
 	!
 	all_passed	=	(succ_cnt == nTests)
-	if(.not. all_passed)	call push_to_outFile('[test_MEPinterp]: not all file_io tests passed')
-	call push_to_outFile("------------------------------------------------")
-
 	call my_exit(all_passed)
+
 
 
 

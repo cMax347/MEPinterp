@@ -10,8 +10,10 @@ program test_crossp
 
 
 	logical			::	passed, real_test, imag_test
+	integer			::	cnt
 	!
 	!
+	cnt				=	0
 	!	TESTS
 	real_test		=	d_test_crossp()
 	imag_test		= 	z_test_crossp()
@@ -28,6 +30,8 @@ program test_crossp
 	else
 							call push_to_outFile("[test_crossp]: FAILED	complex cross product")
 	end if
+	call push_to_outFile("------------------------------------------------------")
+	call push_to_outFile("")
 	!
 	!
 	!	EXIT
