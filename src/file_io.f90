@@ -183,21 +183,24 @@ module file_io
 	subroutine write_en_global(kpt_latt)
 		real(dp),	intent(in)			::	kpt_latt(:,:)
 		real(dp),	allocatable			::	ek_bands(:)
-		integer							::	qi_idx, band, x
+		integer							::	qi_idx, band, x, mpi_unit
 		!
 		allocate(	ek_bands(num_bands)		)
 		!
 		call my_mkdir(out_dir)
-		open(unit=220, file=out_dir//'eBands.dat', form='formatted', action='write', access='stream', status='replace')
-		write(220,*)	'# energies interpolated by MEPinterp program'
-		write(220,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
-		write(220,*)	'# Kpt_idx  K_x (frac)       K_y (frac)        K_z (frac)       Energy (Hartree)  '
+		
+		mpi_unit	= 200 + mpi_id + 7 * mpi_nProcs
+
+		open(unit=mpi_unit, file=out_dir//'eBands.dat', form='formatted', action='write', access='stream', status='replace')
+		write(mpi_unit,*)	'# energies interpolated by MEPinterp program'
+		write(mpi_unit,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
+		write(mpi_unit,*)	'# Kpt_idx  K_x (frac)       K_y (frac)        K_z (frac)       Energy (Hartree)  '
 		do qi_idx = 1, size(kpt_latt,2)
 			call read_en_binary(qi_idx, ek_bands)
 			!
 			do band = 1, size(ek_bands,1)
-				write(220,'(200(f16.8))',advance="no")	(kpt_latt(x,qi_idx), x=1,size(kpt_latt,1)	)
-				write(220, '(a,f18.8)')			'	',ek_bands(band)
+				write(mpi_unit,'(200(f16.8))',advance="no")	(kpt_latt(x,qi_idx), x=1,size(kpt_latt,1)	)
+				write(mpi_unit, '(a,f18.8)')			'	',ek_bands(band)
 			end do
 			!		
 		end do
