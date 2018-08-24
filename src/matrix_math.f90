@@ -7,6 +7,7 @@ module matrix_math
                                             zheevr_wrapper, zheevd_wrapper,         & 
                                             uni_gauge_trafo,                        &
                                             is_equal_vect,                          &
+                                            is_equal_mat,                           &
                                             convert_tens_to_vect,                   &
                                             blas_matmul,                            &
                                             matrix_comm                                         
@@ -18,6 +19,11 @@ module matrix_math
         module procedure    real_is_equal_vect
         module procedure    cplx_is_equal_vect
     end interface is_equal_vect
+
+    interface is_equal_mat
+        module procedure d_is_equal_mat
+        module procedure z_is_equal_mat
+    end interface is_equal_mat
 
     interface convert_tens_to_vect
         module procedure    real_tens_to_vect
@@ -33,6 +39,8 @@ module matrix_math
         module procedure    d_matrix_comm
         module procedure    z_matrix_comm
     end interface matrix_comm
+
+
 
 
 
@@ -232,6 +240,55 @@ module matrix_math
                 cplx_is_equal_vect =    cplx_is_equal_vect  .and.      abs(   a(idx) - b(idx)  )  < acc
                  if(.not. cplx_is_equal_vect) exit loop
             end do loop
+        end if
+        !
+        return
+    end function
+!
+!----------------------------------------------------------------------------------------------------------------------
+!
+!
+    logical function  d_is_equal_mat(acc, A, B)
+        real(dp),   intent(in)          ::  acc
+        real(dp),   intent(in)          ::  A(:,:), B(:,:)
+        real(dp)                        ::  delta
+        integer                         ::  n, m
+        !
+        d_is_equal_mat  =   (   size(A,1) == size(B,1) .and. size(A,2) == size(B,2) )
+        !
+        if( d_is_equal_mat  ) then
+            loop_out: do n = 1, size(A,2)
+                do m = 1, size(A,1)
+                    delta   =   abs(    A(m,n) - B(m,n) )
+                    !
+                    d_is_equal_mat  = d_is_equal_mat .and. (delta < acc)
+                    !
+                    if(.not. d_is_equal_mat) exit loop_out
+                end do
+            end do loop_out
+        end if
+        !
+        return
+    end function
+
+    logical function z_is_equal_mat(acc, A, B)
+        real(dp),       intent(in)      ::  acc
+        complex(dp),    intent(in)      ::  A(:,:), B(:,:)
+        real(dp)                        ::  delta
+        integer                         ::  n, m
+        !
+        z_is_equal_mat  =   (   size(A,1) == size(B,1) .and. size(A,2) == size(B,2) )
+        !
+        if( z_is_equal_mat  ) then
+            loop_out: do n = 1, size(A,2)
+                do m = 1, size(A,1)
+                    delta   =   abs(    A(m,n) - B(m,n) )
+                    !
+                    z_is_equal_mat  = z_is_equal_mat .and. (delta < acc)
+                    !
+                    if(.not. z_is_equal_mat)    exit loop_out
+                end do
+            end do loop_out
         end if
         !
         return

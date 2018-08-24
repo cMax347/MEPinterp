@@ -50,27 +50,7 @@ add_subdirectory(src)
 #build tests
 enable_testing()
 add_subdirectory(tests)
-#   add tests - FULL TEST IS DEPRECATED AND SHOULD BE REPLACED BY INDIVIDUAL TESTS
-add_test (NAME FullTest COMMAND testExe)
-
-add_test(NAME parameters COMMAND testCrossP)
 
 
-#EXECUTABLES
-#add_executable(mepInterp ${mep_main})
-##add_executable(testMEP ${test_src_lst})
-#
-##CREATE MEP LIBRARY
-#add_library(mep_src ${mep_src_lst})
-#target_link_libraries(mep_src config_fortran)
-#if(APPLE)
-#  target_link_libraries(mep_src ${LAPACK_LIBRARIES} ${MPI_LIBRARIES})
-#  target_link_libraries(mepInterp ${MPI_LIBRARIES})
-#  target_link_libraries(testMEP ${LAPACK_LIBRARIES})
-#endif(APPLE)
-#
-##LINK MEP-LIB TO EXECUTABLES
-#target_link_libraries(mepInterp mep_src)
-#target_link_libraries(testMEP mep_src)
 
 

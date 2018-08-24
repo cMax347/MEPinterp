@@ -1,77 +1,64 @@
-module test_matrix_math 
+program test_matrix_math 
 	use parameters,		only:				dp, fp_acc
-	use matrix_math,	only:				my_Levi_Civita,                         &
-                                            zheevr_wrapper, zheevd_wrapper,         & 
-                                            uni_gauge_trafo,                        &
-                                            is_equal_vect,                          &
-                                            convert_tens_to_vect,                   &
-                                            blas_matmul,							&
-                                            matrix_comm             
+	use matrix_math,	only:				my_Levi_Civita, 	&
+											is_equal_vect,		&
+											is_equal_mat,		&
+											zheevd_wrapper,		&
+											uni_gauge_trafo, 	&
+											blas_matmul,		&
+											matrix_comm
 
-    use test_log,		only:				push_to_outFile, write_test_results                         
+    use helpers,		only:				my_exit,									&
+    										push_to_outFile, write_test_results, 		&
+    										random_matrix, random_vector                     
 
 	implicit none
 
 
-	private
-	public				::				matrix_math_test
+	logical		::	all_passed
+	integer		::	smpl_size, succ_cnt, nTests
+	logical,		   allocatable		::	passed(:)
+	character(len=80), allocatable		::	label(:)
+	!
+	all_passed	= .false.
+	nTests		= 6
+	succ_cnt	= 0
+	smpl_size	=	1000	
+	allocate(	passed(nTests)	)		
+	allocate(	label(nTests)	)		
+	!
+	!	PERFORM TESTS
+	!
+	label(		1	)			=	"Levi Civitia operartor"
+	passed(		1	)			=	test_levi_civita()
+	!-----------------------------------------------------------------
+	label(		2	)			=	"equality of  vectors"
+	passed(		2	)			=	test_vect_equal()
+	!-----------------------------------------------------------------
+	label(		3	)			=	"equality of  matrices"
+	passed(		3	)			=	test_mat_equal()
+	!-----------------------------------------------------------------
+	label(		4	)			=	"Gauge rotation"
+	passed(		4	)			=	test_gauge_trafo()				
+	!-----------------------------------------------------------------			
+	label(		5	)			=	"matmul with Blas"
+	passed(		5	)			=	test_blas_matmul()
+	!-----------------------------------------------------------------			
+	label(		6	)			=	"matrix commutator"
+	passed(		6	)			=	test_mat_comm()
+	!
+	!
+	!	WRITE RESULTS TO LOG
+	!
+	call write_test_results(	'matrix_math_test', passed, label, succ_cnt, nTests	)
+	!
+	!	EXIT
+	!
+	all_passed	=	( succ_cnt	==	nTests)
+	call my_exit(all_passed)
 
 
-	interface random_matrix
-		module procedure ds_rand_mat
-		module procedure zh_rand_mat	
-	end interface random_matrix
-
-	interface is_equal_mat
-		module procedure d_is_equal_mat
-		module procedure z_is_equal_mat
-	end interface is_equal_mat
-
-
-	integer				::				smpl_size
-
-	contains
-
-!public:
-	logical function matrix_math_test(test_mat_size, succ_cnt, nTests)
-		integer,			intent(in)		::	test_mat_size
-		integer,			intent(out)		::	succ_cnt, nTests
-		logical,		   allocatable		::	passed(:)
-		character(len=80), allocatable		::	label(:)
-		!
-		smpl_size	= test_mat_size
-		!
-		matrix_math_test	= .false.
-		nTests	= 5
-		succ_cnt= 0
-		allocate(	passed(nTests)	)		
-		allocate(	label(nTests)	)		
-		!
-		!
-		label(		1	)			=	"Levi Civitia operartor"
-		passed(		1	)			=	test_levi_civita()
-		!-----------------------------------------------------------------
-		label(		2	)			=	"equality of  vectors"
-		passed(		2	)			=	test_vect_equal()
-		!-----------------------------------------------------------------
-		label(		3	)			=	"Gauge rotation"
-		passed(		3	)			=	test_gauge_trafo()				
-		!-----------------------------------------------------------------			
-		label(		4	)			=	"matmul with Blas"
-		passed(		4	)			=	test_blas_matmul()
-		!-----------------------------------------------------------------			
-		label(		5	)			=	"matrix commutator"
-		passed(		5	)			=	test_mat_comm()
-		!
-		!
-		!	WRITE RESULTS TO LOG
-		!
-		call write_test_results(	'matrix_math_test', passed, label, succ_cnt, nTests	)
-		!
-		matrix_math_test	=	( succ_cnt	==	nTests)
-		!
-		return
-	end function
+contains
 
 
 
@@ -107,15 +94,15 @@ module test_matrix_math
 !
 	logical function test_vect_equal()
 		real(dp), 	allocatable				::	a(:), b(:), a_cpy(:)
-		integer								::	smpl_size
+		!integer								::	smpl_size
 		!
-		smpl_size	= 1000
+		!smpl_size	= 1000
 		allocate( a(		smpl_size)	)
 		allocate( b(		smpl_size)	)		
 		allocate( a_cpy(	smpl_size)	)
 		!
-		call d_rand_vec(a)
-		call d_rand_vec(b)
+		call random_vector(a)
+		call random_vector(b)
 		b(1)		=	a(1)-1e-13_dp
 		a_cpy(:)	= 	a(:)
 
@@ -125,6 +112,22 @@ module test_matrix_math
 		!
 		return
 	end function
+!--------------------------------------------------------------------------------------------------------------------------------
+!
+!	
+	logical function test_mat_equal()
+		real(dp),	allocatable		::	d_A(:,:), d_B(:,:), d_A_cpy(:,:)
+
+
+
+
+
+
+
+		return
+	end function
+
+
 !--------------------------------------------------------------------------------------------------------------------------------
 !
 !
@@ -148,8 +151,7 @@ module test_matrix_math
 		allocate(	U(		smpl_size, smpl_size	)		)
 		allocate(	eigVal(	smpl_size		)		)
 		!
-		!random hermitian matrix
-		call zh_rand_mat(M_W)
+		call random_matrix(M_W)
 		!GET EIGVAL & EIGVEC
 		U	=	M_W
 		call zheevd_wrapper(U,	eigVal)
@@ -347,180 +349,4 @@ module test_matrix_math
 
 
 
-
-
-
-
-
-!helpers:
-!------------------------------------------------------------------------------------------------------
-	subroutine ds_rand_mat(Mat)
-		real(dp), intent(out)	::	Mat(:,:)
-		integer						::	n, m
-		real(dp)					::	re_rand
-		!
-		!
-		do n = 1, size(Mat,2)
-			do m = 1, size(Mat,1)
-				call random_number(re_rand)	
-				!
-				re_rand	= (re_rand - .5_dp) 							
-				!
-				Mat(n,m)	=	re_rand
-				if(n<m) then
-					Mat(m,n)	=	re_rand
-				end if
-				!
-				!
-			end do
-		end do
-		!
-		return
-	end subroutine	
-
-
-	subroutine zh_rand_mat(Mat)
-		complex(dp), intent(out)	::	Mat(:,:)
-		integer						::	n, m
-		complex(dp)					::	rand
-		real(dp)					::	re_rand, im_rand
-		!
-		do n = 1, size(Mat,2)
-			do m = 1, size(Mat,1)
-				call random_number(re_rand)
-				re_rand	= (re_rand - .5_dp) 		
-				!
-				if(	n==m ) then
-					Mat(n,n)	=	re_rand
-				else
-					call random_number(im_rand)	
-					im_rand	= (im_rand - .5_dp)					
-					rand	= cmplx(	re_rand, im_rand,	dp)
-					!
-					Mat(n,m)	=	rand
-					Mat(m,n)	= conjg(rand)
-				end if
-				!
-				!
-			end do
-		end do
-		!
-		return
-	end subroutine	
-!------------------------------------------------------------------------------------------------------
-
-
-!------------------------------------------------------------------------------------------------------
-	logical function	d_is_equal_mat(acc, A, B)
-		real(dp),	intent(in)			::	acc
-		real(dp),	intent(in)			::	A(:,:), B(:,:)
-		real(dp)						::	delta
-		integer							::	n, m
-		!
-		d_is_equal_mat	=	(	size(A,1) == size(B,1) .and. size(A,2) == size(B,2) )
-		!
-		if( d_is_equal_mat	) then
-
-			loop_out: do n = 1, size(A,2)
-				do m = 1, size(A,1)
-					delta	=	abs(	A(m,n) - B(m,n)	)
-					!
-					d_is_equal_mat	= d_is_equal_mat .and. (delta < acc)
-					!
-					if(.not. d_is_equal_mat) exit loop_out
-				end do
-			end do loop_out
-		end if
-		!
-		return
-	end function
-
-	logical function	z_is_equal_mat(acc, A, B)
-		real(dp),		intent(in)		::	acc
-		complex(dp),	intent(in)		::	A(:,:), B(:,:)
-		real(dp)						::	delta
-		integer							::	n, m
-		character(len=120)				::	msg
-		!
-		z_is_equal_mat	=	(	size(A,1) == size(B,1) .and. size(A,2) == size(B,2) )
-		!
-		if( z_is_equal_mat	) then
-
-			loop_out: do n = 1, size(A,2)
-				loop_in: do m = 1, size(A,1)
-					delta	=	abs(	A(m,n) - B(m,n)	)
-					!
-					z_is_equal_mat	= z_is_equal_mat .and. (delta < acc)
-					!
-					if(.not. z_is_equal_mat)then 
-						!write(msg,'(a,f4.2,a,f4.2,a,f4.2,a,f4.2,a)')"[z_is_equal_mat]: (",real(A(m,n)),"+i",imag(A(m,n)) ,") vs (", real(B(m,n)),"+i",imag(B(m,n)),")"
-						call push_to_outFile(msg)
-						exit loop_out
-					end if
-				end do loop_in
-			end do loop_out
-		else
-			write(msg,*)	"[z_is_equal_mat]: sizes to not compare"
-			call push_to_outFile(msg)
-		end if
-		!
-		return
-	end function
-!------------------------------------------------------------------------------------------------------
-
-	subroutine d_rand_vec(v)
-		real(dp),	intent(out)		::	v(:)
-		integer						:: idx
-		real(dp)					:: rand, scal
-		!
-		call random_number(scal)
-		scal	=	scal * size(v,1)
-		!
-		do idx = 1, size(v,1)
-			call random_number(rand)
-			rand = (rand-.5_dp)	* scal
-			!
-			!
-			v(idx)	= rand
-		end do
-		!
-		return
-	end subroutine
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-end module               
+end program            
