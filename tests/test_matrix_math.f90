@@ -228,7 +228,8 @@ contains
 		!
 		!
 		!todo: check now if M_H is diagonal with eival on diago
-		do while( .not. test_gauge_trafo .and. acc<	acc_limit)
+		acc = fp_acc
+		do while( .not. test_gauge_trafo .and. (acc	<	acc_limit)	)
 			test_gauge_trafo	=	test_gauge_with_acc(acc, M_W, eigVal)
 			acc 				=	acc * 10.0_dp
 		end do
@@ -246,27 +247,23 @@ contains
 		outer_loop:	do m = 1, size(M_W,2)
 			do n = 1, size(M_W,1)
 				if(	n==m	) then
-					test_gauge_with_acc =	test_gauge_with_acc .and. 		(	abs(	M_W(n,n)-eigVal(n) 	) < fp_acc	)		
+					test_gauge_with_acc =	test_gauge_with_acc .and. 		(	abs(	M_W(n,n)-eigVal(n) 	) < acc	)		
 				else
-					test_gauge_with_acc =	test_gauge_with_acc .and.		(	abs(		M_W(n,m)		) < fp_acc	)
+					test_gauge_with_acc =	test_gauge_with_acc .and.		(	abs(		M_W(n,m)		) < acc	)
 				end if
 				!
 				!
-				if(.not. test_gauge_with_acc	)	then
-					write(msg,*)	"[test_gauge_trafo]: FAILED	unexpected value at  |M(n=",n,',m=',m,')|= ', abs(M_W(m,n))
-					call push_to_outFile(msg)
-					if(n==m)	then
-						write(msg,*)	"[test_gauge_trafo]:	eigen value(n=",n,")=",eigVal(n)
-						call push_to_outFile(msg)
-					end if
-					exit outer_loop
+				if(.not. test_gauge_with_acc	)	exit outer_loop
 				end if
 			end do
 		end do outer_loop
 		!
 		!
 		if( test_gauge_with_acc	)	 then
-			write(msg,*)	'[test_gauge_with_acc]:	gauge rotation has accuracy', acc
+			write(msg,*)	'[test_gauge_with_acc]:	PASSED gauge rotation with accuracy', acc
+			call push_to_outFile(msg)
+		else
+			write(msg,*)	'[test_gauge_with_acc]:	FAILED gauge rotation with final accuracy', acc
 			call push_to_outFile(msg)
 		end if
 		!
