@@ -17,6 +17,7 @@ program test_matrix_math
 
 	logical		::	all_passed
 	integer		::	smpl_size, succ_cnt, nTests
+	real(dp)	::	acc_limit=1e-11_dp
 	logical,		   allocatable		::	passed(:)
 	character(len=80), allocatable		::	label(:)
 	!
@@ -103,7 +104,7 @@ contains
 		!
 		call random_vector(a)
 		call random_vector(b)
-		b(1)		=	a(1)-1e-13_dp
+		b(1)		=	a(1)-acc_limit
 		a_cpy(:)	= 	a(:)
 
 		!
@@ -116,18 +117,84 @@ contains
 !
 !	
 	logical function test_mat_equal()
-		real(dp),	allocatable		::	d_A(:,:), d_B(:,:), d_A_cpy(:,:)
-
-
-
-
-
-
-
+		logical							::	real_test, imag_test
+		!
+		real_test	=	d_test_mat_equal()
+		imag_test	=	z_test_mat_equal()
+		!
+		if(.not.	real_test)	call push_to_outFile('[test_mat_equal]:  FAILED real test')		
+		if(.not.	real_test)	call push_to_outFile('[test_mat_equal]:  FAILED cplx test')
+		!
+		test_mat_equal	=	real_test .and. imag_test
+		!
 		return
 	end function
 
 
+	!-------
+	logical function d_test_mat_equal()
+		real(dp),		allocatable		::	A(:,:), B(:,:), A_cpy(:,:)
+		real(dp)						::	acc
+		character(len=120)				:: 	msg
+		!
+		allocate(		A(		smpl_size,	smpl_size)		)
+		allocate(		A_cpy(	smpl_size,	smpl_size)		)
+		allocate(		B(	smpl_size,	smpl_size)		)
+		!
+		d_test_mat_equal	= .false.
+		!
+		call random_matrix(A)
+		A_cpy	=	A
+		!	now get B matrix
+		call random_matrix(B)
+		!		(make explicitly sure that it is not equal A)
+		B(smpl_size,smpl_size)	=	A(smpl_size,smpl_size)	+ 1.0_dp
+		!
+		!
+		acc	= fp_acc
+		do while(.not. d_test_mat_equal .and. acc< acc_limit)
+			d_test_mat_equal	= 	is_equal_mat(acc,A, A_cpy) .and. (	.not. is_equal_mat(acc,A,B)	)
+			acc					=	acc * 10.0_dp
+		end do
+		!
+		if( 		d_test_mat_equal)	write(msg,*) '[d_test_mat_equal]: test was successful with accuracy ',acc
+		if( .not. 	d_test_mat_equal)	write(msg,*) '[d_test_mat_equal]: FAILED with final accuracy ',acc
+		call push_to_outFile(msg)
+		!
+		return
+	end function
+
+	logical function z_test_mat_equal()
+		complex(dp),		allocatable		::	A(:,:), B(:,:), A_cpy(:,:)
+		real(dp)							::	acc
+		character(len=120)					:: 	msg
+		!
+		z_test_mat_equal	= .false.
+		!
+		allocate(		A(		smpl_size,	smpl_size)		)
+		allocate(		A_cpy(	smpl_size,	smpl_size)		)
+		allocate(		B(	smpl_size,	smpl_size)		)
+		!
+		call random_matrix(A)
+		A_cpy	=	A
+		!	now get B matrix
+		call random_matrix(B)
+		!		(make explicitly sure that it is not equal A)
+		B(smpl_size,smpl_size)	=	A(smpl_size,smpl_size)	+ 1.0_dp
+		!
+		!
+		acc	= fp_acc
+		do while(.not. z_test_mat_equal .and. acc< acc_limit)
+			z_test_mat_equal	= is_equal_mat(acc,A, A_cpy) .and. .not. is_equal_mat(acc,A,B)
+			acc					=	acc * 10.0_dp
+		end do
+		!
+		if( 		z_test_mat_equal)	write(msg,*) '[z_test_mat_equal]: test was successful with accuracy ',acc
+		if( .not. 	z_test_mat_equal)	write(msg,*) '[z_test_mat_equal]: FAILED with final accuracy ',acc
+		call push_to_outFile(msg)
+		!
+		return
+	end function
 !--------------------------------------------------------------------------------------------------------------------------------
 !
 !
@@ -143,7 +210,7 @@ contains
 		complex(dp),	allocatable			::	M_W(:,:),				&
 												U(:,:)
 		real(dp),		allocatable			::	eigVal(:)
-		integer								::	n,m
+		real(dp)							::	acc
 		!
 		test_gauge_trafo	=	.false.
 		!
@@ -155,35 +222,57 @@ contains
 		!GET EIGVAL & EIGVEC
 		U	=	M_W
 		call zheevd_wrapper(U,	eigVal)
-		write(*,*)	"[test_gauge_trafo]: solved random hermitian matrix with eigvals:"
-		write(*,*)	eigVal
-		!
+
 		!rotate M_W with U should yield diagonal matrix (matrix in H gauge)
 		call uni_gauge_trafo(U, M_W)
 		!
 		!
 		!todo: check now if M_H is diagonal with eival on diago
-		test_gauge_trafo	= .true.
+		do while( .not. test_gauge_trafo .and. acc<	acc_limit)
+			test_gauge_trafo	=	test_gauge_with_acc(acc, M_W, eigVal)
+			acc 				=	acc * 10.0_dp
+		end do
+		!
+		return
+	end function
+
+	logical function test_gauge_with_acc(acc, M_W, eigVal)
+		real(dp),		intent(in)			::	acc, eigVal(:)
+		complex(dp),	intent(in)			::	M_W(:,:)
+		integer								::	n,m
+		character(len=120)					::	msg
+		!
+		test_gauge_with_acc	= .true.
 		outer_loop:	do m = 1, size(M_W,2)
 			do n = 1, size(M_W,1)
-			
 				if(	n==m	) then
-					test_gauge_trafo =	test_gauge_trafo .and. 		(	abs(	M_W(n,n)-eigVal(n) 	) < fp_acc	)		
+					test_gauge_with_acc =	test_gauge_with_acc .and. 		(	abs(	M_W(n,n)-eigVal(n) 	) < fp_acc	)		
 				else
-					test_gauge_trafo =	test_gauge_trafo .and.		(	abs(		M_W(n,m)		) < fp_acc	)
+					test_gauge_with_acc =	test_gauge_with_acc .and.		(	abs(		M_W(n,m)		) < fp_acc	)
 				end if
 				!
 				!
-				if(.not. test_gauge_trafo	)	then
-					write(*,*)	"[test_gauge_trafo]:	unexpected value at  |M(n=",n,',m=',m,')|= ', abs(M_W(m,n))
-					if(n==m)	write(*,*)	"[test_gauge_trafo]:	eigen value=",eigVal(n)
-					!exit outer_loop
+				if(.not. test_gauge_with_acc	)	then
+					write(msg,*)	"[test_gauge_trafo]: FAILED	unexpected value at  |M(n=",n,',m=',m,')|= ', abs(M_W(m,n))
+					call push_to_outFile(msg)
+					if(n==m)	then
+						write(msg,*)	"[test_gauge_trafo]:	eigen value(n=",n,")=",eigVal(n)
+						call push_to_outFile(msg)
+					end if
+					exit outer_loop
 				end if
 			end do
 		end do outer_loop
 		!
+		!
+		if( test_gauge_with_acc	)	 then
+			write(msg,*)	'[test_gauge_with_acc]:	gauge rotation has accuracy', acc
+			call push_to_outFile(msg)
+		end if
+		!
 		return
 	end function
+
 !--------------------------------------------------------------------------------------------------------------------------------
 !
 !
