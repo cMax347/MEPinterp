@@ -171,11 +171,15 @@ module mep_niu
 		cs_tens	=	0.0_dp
 		if(	allocated(A_ka)		.and.		allocated(Om_ka)		)then
 			cs_scal	= 0.0_dp
+			!
+			!	sum over valence
 			do n0 = 1, valence_bands
 				cs_scal	= cs_scal + 0.5_dp *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	Om_ka(:,n0,n0)	)		)
-				do i = 1, 3
-					cs_tens(i,i)	= cs_scal
-				end do
+			end do
+			!
+			!	the CS is diagonal
+			do i = 1, 3
+				cs_tens(i,i)	= cs_scal
 			end do
 		else
 			write(*,'(a,i3,a)')	'[#',mpi_id,';get_CS]: missing connection and/or curvature, Chern-Simons set to .0'
