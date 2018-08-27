@@ -212,8 +212,10 @@ module mep_niu
 			 						!
 			 						if(abs(en_denom) > fp_acc) then 
 			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
+	
+			 							if(abs(en_denom) < 1e-3_dp) write(*,*)	"[get_F3]: WARNING potential band crossing"
 			 						else
-			 							write(*,*)	"[get_F3]: degenerate band warning"
+			 							write(*,*)	"[get_F3]: WARNING degenerate bands detected"
 			 						end if
 			 					end do
 			 				end do
@@ -258,8 +260,9 @@ module mep_niu
 				 						!
 				 						if( abs(en_denom) > fp_acc) then
 				 							F2(i,j)	= F2(i,j) - real(my_Levi_Civita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom
+				 							if(abs(en_denom) < 1e-3_dp) write(*,*)	"[get_F2]: WARNING potential band crossing"
 				 						else
-				 							write(*,*)	"[get_F2]: degenerate band warning"
+				 							write(*,*)	"[get_F2]: WARNING degenerate bands detected"
 				 						end if	
 				 					end do
 				 				end do
