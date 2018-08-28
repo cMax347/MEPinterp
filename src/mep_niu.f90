@@ -7,13 +7,11 @@ module mep_niu
 	use parameters,		only:	dp, fp_acc,										&
 								mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								seed_name,										&
-								plot_bands,										&
 								aUtoAngstrm, auToTesla,							&
-								a_latt, valence_bands, mp_grid
+								a_latt, valence_bands, 							&
+								mp_grid, get_rel_kpt
 								!			
-	use file_io,		only:	mpi_read_k_mesh, mpi_read_tb_basis,	&
-								write_en_binary, read_en_binary,				&
-								write_en_global,								&
+	use file_io,		only:	mpi_read_tb_basis,	&
 								write_mep_tensors
 								!
 	use matrix_math,	only:	my_Levi_Civita
@@ -30,10 +28,8 @@ module mep_niu
 
 	integer									::		num_kpts
 !
-	real(dp),		allocatable				::		kpt_latt(:,:)
 
-
-	contains
+contains
 
 
 
@@ -48,7 +44,8 @@ module mep_niu
 		!	ic	: itinerant current contribution
 		!	cs	: chern - simons term	
 		!
-		real(dp)							::	F_ic(3,3), F_lc(3,3), F_cs(3,3),		&
+		real(dp)							::	kpt(3),									&
+												F_ic(3,3), F_lc(3,3), F_cs(3,3),		&
 												!local sum targets:
 												mep_tens_ic_loc(	3,3),	 			&
 												mep_tens_lc_loc(	3,3),				&
@@ -57,7 +54,8 @@ module mep_niu
 												mep_tens_ic_glob(	3,3),				&
 												mep_tens_lc_glob(	3,3),				&
 												mep_tens_cs_glob(	3,3)				
-		integer								::	ki, n_ki_loc, n_ki_glob
+		integer								::	kix, kiy, kiz, ki, 						&
+												n_ki_loc, n_ki_glob
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_ka(:,:,:),				&
 												V_ka(:,:,:)
@@ -69,51 +67,47 @@ module mep_niu
 		mep_tens_ic_glob	=	0.0_dp
 		mep_tens_lc_glob	=	0.0_dp
 		mep_tens_cs_glob	=	0.0_dp
-		!
-		!	
-		!get (realtive) interp mesh
-		call mpi_read_k_mesh(seed_name, kpt_latt)
-		num_kpts	= 	size(kpt_latt,2)
+		n_ki_loc			= 	0
+		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
 		!
 		!get real space matrice(s)
 		call mpi_read_tb_basis(seed_name, R_vect, H_tb, r_tb)
 		!
 		!allocate k-space
 		allocate(	en_k(						size(H_tb,2)	)	)
+		allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
 		!
-		if(.not. plot_bands		)	then
-			allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
-			if(allocated(V_ka))		write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will calculate velocities"
-			if(	allocated(r_tb)	)	then	
-				allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
-				allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
-				write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
-			end if
-
+		if(	allocated(r_tb)	)	then	
+			allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+			allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+			write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
 		end if
 		!
 		!
-		write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: I start interpolating now"
-		n_ki_loc	= 	0
-		do ki = mpi_id + 1, num_kpts,	mpi_nProcs
-			!
-			!
-			call get_wann_interp(H_tb, r_tb, R_vect, kpt_latt(:,ki), 	en_k, V_ka, A_ka, Om_ka )
-			!
-			if(plot_bands)	then
-				call write_en_binary(ki,en_k)
-			else
-				!get MEP_tensors
-				call get_F2(V_ka, en_k, 		F_ic)
-				call get_F3(V_ka, en_k, 		F_lc)
-				call get_CS(A_ka, Om_ka, 		F_cs)
-				!sum MEP over local kpts
-				mep_tens_ic_loc	=	mep_tens_ic_loc + F_ic		!	itinerant		(Kubo)
-				mep_tens_lc_loc	=	mep_tens_lc_loc + F_lc		!	local			(Kubo)
-				mep_tens_cs_loc =	mep_tens_cs_loc + F_cs		!	chern simons	(geometrical)
-			end if
-			!
-			n_ki_loc = n_ki_loc + 1
+		write(*,'(a,i3,a,i4,a)')		"[#",mpi_id,"; mep_interp]: I start interpolating now (nValence=",valence_bands,")."
+		do kiz = 1, mp_grid(3)
+			do kiy = 1, mp_grid(2)
+				do kix = 1, mp_grid(1)
+					ki	=	get_rel_kpt(kix, kiy, kiz, mp_grid, kpt)
+					!
+					if( mpi_ki_selector(ki, num_kpts)) then
+						!
+						call get_wann_interp(H_tb, r_tb, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_ka )
+						!
+						!get MEP_tensors
+						call get_F2(V_ka, en_k, 		F_ic)
+						call get_F3(V_ka, en_k, 		F_lc)
+						call get_CS(A_ka, Om_ka, 		F_cs)
+						!sum MEP over local kpts
+						mep_tens_ic_loc	=	mep_tens_ic_loc + F_ic		!	itinerant		(Kubo)
+						mep_tens_lc_loc	=	mep_tens_lc_loc + F_lc		!	local			(Kubo)
+						mep_tens_cs_loc =	mep_tens_cs_loc + F_cs		!	chern simons	(geometrical)
+						!
+						n_ki_loc = n_ki_loc + 1
+						write(*,'(a,i3,a,i10,a)')		"[#",mpi_id,"; mep_interp]: I interpolated #ki=",ki,"."
+					end if
+				end do
+			end do
 		end do
 		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: finished interpolating ",n_ki_loc," kpts"
 		!
@@ -126,26 +120,61 @@ module mep_niu
 		!
 		!write some files
 		if(mpi_id == mpi_root_id) 	then
-			write(*,*)	"--------------------------------------------------------------------------------------------------------"		
-			!
-			if(plot_bands)	then
-				call write_en_global(kpt_latt)
-			else
-				!check k-integration
-				if(	n_ki_glob	/=	mp_grid(1)*mp_grid(2)*mp_grid(3)	)	then 
-					write(*,'(a,i3,a,i8,a,i8)') '[#',mpi_id,'mep_interp]: n_ki_glob=',n_ki_glob,"  n_mp_grid=",mp_grid(1)*mp_grid(2)*mp_grid(3)
-					stop "WARNING n_ki_glob is not equal to the given mp_grid"
-				end if
-				!
-				!normalize k-integration
-				mep_tens_ic_glob	=	mep_tens_ic_glob	/	real(n_ki_glob, dp)				
-				mep_tens_lc_glob	=	mep_tens_lc_glob	/	real(n_ki_glob, dp)
-				mep_tens_cs_glob	=	mep_tens_cs_glob	/	real(n_ki_glob, dp)
-				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: calculated MEP tensor on ",n_ki_glob," kpts"
-				call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
-			end if
+			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
+			call normalize_k_int(n_ki_glob, mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
 		end if
 		!
+		!
+		return
+	end subroutine
+
+
+
+
+
+
+
+
+
+!private:
+	!
+	!
+!HELPERS
+	logical function mpi_ki_selector(ki_request, num_kpts)
+		integer,		intent(in)		::		ki_request, num_kpts 
+		integer							::		ki_todo
+		!
+		mpi_ki_selector = .false.
+		!
+		loop_todos: do ki_todo = mpi_id +1, num_kpts, mpi_nProcs
+			if(	ki_request == ki_todo) then
+				mpi_ki_selector = .true.
+				exit loop_todos
+			end if
+		end do loop_todos
+		!
+		return
+	end function
+
+
+	subroutine normalize_k_int(n_ki_glob, mep_tens_ic, mep_tens_lc, mep_tens_cs)
+		integer,		intent(in)		::	n_ki_glob
+		real(dp),		intent(inout)	::	mep_tens_ic(3,3), mep_tens_lc(3,3), mep_tens_cs(3,3)
+		!
+		!	check k-integration for consitency
+		if(	n_ki_glob	/=	mp_grid(1)*mp_grid(2)*mp_grid(3)	)	then 
+			write(*,'(a,i3,a,i8,a,i8)') '[#',mpi_id,'mep_interp]: n_ki_glob=',n_ki_glob,"  n_mp_grid=",mp_grid(1)*mp_grid(2)*mp_grid(3)
+			stop "WARNING n_ki_glob is not equal to the given mp_grid"
+		end if
+		!
+		!	normalize k-integration
+		mep_tens_ic	=	mep_tens_ic	/	real(n_ki_glob, dp)				
+		mep_tens_lc	=	mep_tens_lc	/	real(n_ki_glob, dp)
+		mep_tens_cs	=	mep_tens_cs	/	real(n_ki_glob, dp)
+		!
+		!	write results
+		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: calculated MEP tensor on ",n_ki_glob," kpts"
+		call write_mep_tensors(mep_tens_ic, mep_tens_lc, mep_tens_cs)
 		!
 		return
 	end subroutine
@@ -161,7 +190,13 @@ module mep_niu
 
 
 
-!private:
+
+
+
+
+	!
+	!
+!MEP RESPONSES
 	subroutine get_CS(A_ka, Om_ka, cs_tens)
 		complex(dp),	allocatable, 	intent(in)		::	A_ka(:,:,:), Om_ka(:,:,:)
 		real(dp),						intent(out)		::	cs_tens(3,3)
@@ -215,7 +250,7 @@ module mep_niu
 			 						en_denom	=	(	en(n0) - en(n)	)**3		
 			 						!
 			 						if(abs(en_denom) > fp_acc) then 
-			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
+			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom	,dp )	/	en_denom	
 	
 			 							if(abs(en_denom) < 1e-3_dp) write(*,*)	"[get_F3]: WARNING potential band crossing"
 			 						else
@@ -263,7 +298,7 @@ module mep_niu
 				 						en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
 				 						!
 				 						if( abs(en_denom) > fp_acc) then
-				 							F2(i,j)	= F2(i,j) - real(my_Levi_Civita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom
+				 							F2(i,j)	= F2(i,j) - real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom 	,dp )	/	en_denom
 				 							if(abs(en_denom) < 1e-3_dp) write(*,*)	"[get_F2]: WARNING potential band crossing"
 				 						else
 				 							write(*,*)	"[get_F2]: WARNING degenerate bands detected"
