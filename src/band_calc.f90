@@ -1,11 +1,12 @@
 module band_calc
+	use mpi
 	use parameters,		only:			dp, mpi_root_id, mpi_id, mpi_nProcs, ierr,		&
 										seed_name
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										mpi_read_tb_basis,								&
 										write_en_binary, 								&
 										write_en_global
-
+	use wann_interp,	only:			get_wann_interp									
 	implicit none
 
 
@@ -21,9 +22,7 @@ contains
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_ka(:,:,:),				&
 												V_ka(:,:,:)
-
-
-
+		!
 		if( read_kptsgen_pl_file(rel_kpts)	) then
 			num_kpts	= size(rel_kpts,2)
 			k_per_mpi	= 0
@@ -33,7 +32,11 @@ contains
 			!
 			allocate(	en_k(						size(H_tb,2)	)	)
 			allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
-
+			if(	allocated(r_tb)	)	then	
+				allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+				allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+				!write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
+			end if
 			!
 			!	do the work
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
@@ -45,16 +48,13 @@ contains
 			!
 			!
 			!	write the results
-			call MPI_BARRIER(ierr)
+			call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+			write(*,*) 'beyond the barrier'
 			if(mpi_id == mpi_root_id)	call write_en_global(rel_kpts)
 		else
 			stop 'for bandstructure calculations a kpts file has to be provided'
 		end if
-
-
-
-
-
+		!
 		return
 	end subroutine
 
