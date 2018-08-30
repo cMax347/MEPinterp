@@ -43,7 +43,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 
 
 #GET THE thirdparty libraries
-include_directories(${PROJECT_SOURCE_DIR}/thirdparty)
+#include_directories(${PROJECT_SOURCE_DIR}/thirdparty)
+#include_directories(${PROJECT_SOURCE_DIR}/src)
 add_subdirectory(thirdparty)
 add_subdirectory(src)
 
