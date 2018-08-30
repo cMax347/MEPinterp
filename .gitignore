@@ -29,6 +29,8 @@ bin/**
 **/zzz_todo_zzz.txt
 **/CMakeFiles
 
+**/build
+
 **/Testing
 **/tests/Testing
 **/raw
