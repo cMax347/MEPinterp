@@ -1,5 +1,5 @@
 #configure for fotran use
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 2.6 )
 enable_language (Fortran)
 
 #project name
@@ -38,8 +38,11 @@ endif (APPLE)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 
-
-
+#	ToDo's:
+#
+#	1) debug and release build
+#	2) INTEL compiler matching
+#
 
 
 #GET THE thirdparty libraries
