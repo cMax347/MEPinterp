@@ -1,5 +1,5 @@
 #configure for fotran use
-cmake_minimum_required (VERSION 2.6 )
+cmake_minimum_required (VERSION 2.6 FATAL_ERROR)
 enable_language (Fortran)
 
 #project name
