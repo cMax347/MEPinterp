@@ -8,7 +8,8 @@ module parameters
 	private
 	public								::		&
 												!routines		
-												init_parameters, get_rel_kpts,	my_mkdir,	crossP,				  	&
+												init_parameters, 	my_mkdir,	crossP,				 		 		&
+												get_rel_kpts, get_rel_kpt,	get_recip_latt,							&
 												!dirs
 												w90_dir, out_dir, raw_dir,											&
 												!jobs
@@ -21,7 +22,7 @@ module parameters
 												mpi_root_id, mpi_id, mpi_nProcs, ierr,								&
 												!vars
 												seed_name,	valence_bands,											&
-												a_latt, unit_vol, recip_latt, mp_grid
+												a_latt, recip_latt, mp_grid
 
 
 
@@ -55,7 +56,7 @@ module parameters
 	character(len=9)			::	w90_dir	="w90files/"
 	character(len=4)			::	raw_dir ="raw/"
 	logical						::	plot_bands, use_interp_kpt
-	real(dp)					::	a_latt(3,3), a0, unit_vol, recip_latt(3,3)
+	real(dp)					::	a_latt(3,3), a0, recip_latt(3,3)
 
 
 
@@ -67,8 +68,8 @@ module parameters
 
 !public
 	subroutine init_parameters()
-		real(dp)				::	tmp(3), a1(3), a2(3), a3(3)
 		type(CFG_t) 			:: 	my_cfg
+		real(dp)				::	a1(3), a2(3), a3(3)
 		!
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
@@ -127,18 +128,9 @@ module parameters
 		call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-
-		a1(1:3)		=	a_latt(1,1:3)
-		a2(1:3)		=	a_latt(2,1:3)
-		a3(1:3)		=	a_latt(3,1:3)
-		!get Unit cell volume
-		tmp(1:3)	= 	crossP( a1(1:3) , a2(1:3)	)
-		unit_vol	=	dot_product(	tmp(1:3)		,	a3(1:3)	)	 
 		!
 		!get reciprocal grid
-		recip_latt(1,1:3)	= 2.0_dp * pi_dp * crossP( a2(1:3) , a3(1:3) ) / unit_vol
-		recip_latt(2,1:3)	= 2.0_dp * pi_dp * crossP( a3(1:3) , a1(1:3) ) / unit_vol
-		recip_latt(3,1:3)	= 2.0_dp * pi_dp * crossP( a1(1:3) , a2(1:3) ) / unit_vol
+		recip_latt	= get_recip_latt(a_latt)
 		!
 		return 
 	end subroutine
@@ -146,15 +138,24 @@ module parameters
 
 
 
-
-
-
-
-	complex(dp) function myExp(x)
-		!supposed to boost performance
-		real(dp), intent(in) :: x
+	function get_recip_latt(a_latt) result(recip_latt)
+		!	
+		!	see eq.(2)		PRB, 13, 5188 (1976)
 		!
-		myExp = cmplx(  cos(x) , sin(x), dp ) 
+		real(dp)				::	recip_latt(3,3)
+		real(dp), intent(in)	::	a_latt(3,3)
+		real(dp)				::	unit_vol, a1(3), a2(3), a3(3)
+		!
+		a1(1:3)		=	a_latt(1,1:3)
+		a2(1:3)		=	a_latt(2,1:3)
+		a3(1:3)		=	a_latt(3,1:3)
+		!get Unit cell volume
+		unit_vol	=	dot_product(	crossP( a1(1:3) , a2(1:3)	)		,	a3(1:3)	)	 
+		!
+		!
+		recip_latt(1,1:3)	= 2.0_dp * pi_dp * crossP( a2(1:3) , a3(1:3) ) / unit_vol
+		recip_latt(2,1:3)	= 2.0_dp * pi_dp * crossP( a3(1:3) , a1(1:3) ) / unit_vol
+		recip_latt(3,1:3)	= 2.0_dp * pi_dp * crossP( a1(1:3) , a2(1:3) ) / unit_vol
 		!
 		return
 	end function
@@ -164,27 +165,50 @@ module parameters
 
 
 
+
 	subroutine get_rel_kpts(mp_grid, kpt_latt)
-		!get relative k-pt following the Monkhorst Pack scheme PRB, 13, 5188 (1976)
+		!get relative k-pt following the Monkhorst Pack scheme 
+		!	see eq.(4)		PRB, 13, 5188 (1976)
+		!
 		integer,					intent(in)	::	mp_grid(3)
 		real(dp),	allocatable, intent(inout)	::	kpt_latt(:,:)
-		integer									::	qix, qiy, qiz, qi_idx
+		real(dp)								::	kpt(3)
+		integer									::	qix, qiy, qiz, qi_idx, qi_test
 		!
 		allocate(	kpt_latt(3,	mp_grid(1)*mp_grid(2)*mp_grid(3)	)	)
 		!
-		qi_idx = 1
+		qi_test = 0
 		do qiz = 1, mp_grid(3)
 			do qiy = 1, mp_grid(2)
-				do qix = 1, mp_grid(1)	
-					kpt_latt(1,qi_idx)	=	(	 2.0_dp*qix	- mp_grid(1) - 1.0_dp		) 	/ 	( 2.0_dp*mp_grid(1) )
-					kpt_latt(2,qi_idx)	=	(	 2.0_dp*qiy	- mp_grid(2) - 1.0_dp		) 	/ 	( 2.0_dp*mp_grid(2) )
-					kpt_latt(3,qi_idx)	=	(	 2.0_dp*qiz	- mp_grid(3) - 1.0_dp		) 	/ 	( 2.0_dp*mp_grid(3) )
-					qi_idx				= 	qi_idx + 1
+				do qix = 1, mp_grid(1)
+					qi_idx	= get_rel_kpt(qix,qiy,qiz, mp_grid, kpt	)	
+					kpt_latt(:,qi_idx)	=	kpt(:)
+					qi_test	= qi_test +1
+					if(qi_idx /= qi_test) then
+						write(*,'(a,i10,a,i10)')	'[get_rel_kpts]: WARNING k-mesh order! qi_idx=',qi_idx,' vs ',qi_test,'=qi_test'
+					end if
 				end do
 			end do
 		end do
 		!
 	end subroutine
+
+
+	integer function get_rel_kpt(qix, qiy, qiz, mp_grid, kpt)
+		integer,	intent(in)	::	qix, qiy, qiz, mp_grid(3)
+		real(dp),	intent(out)	::	kpt(3)
+		!
+		kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
+		kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
+		kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+		!
+		!	start at 0 convention
+		get_rel_kpt	=	(qix-1) + mp_grid(2)	* ( (qiy-1) + mp_grid(3) * (qiz-1)	)
+		!
+		!	start at 1 convention
+		get_rel_kpt	=	get_rel_kpt + 1
+		return
+	end function
 
 
 	subroutine my_mkdir(dir)

@@ -1,8 +1,10 @@
 program MEPinterp
 	use mpi
 	use parameters,				only:		init_parameters,									&
-											mpi_root_id, mpi_id, mpi_nProcs, ierr
+											mpi_root_id, mpi_id, mpi_nProcs, ierr,				&
+											plot_bands
 	use mep_niu,				only:		mep_worker
+	use band_calc,				only:		band_worker
 	implicit none
 	!
 	!
@@ -15,8 +17,11 @@ program MEPinterp
     !read the input file
     call init_parameters()
     !
-	!do the interpolation
-	call mep_worker()			
+	if(	plot_bands	) then
+		call band_worker()
+	else
+		call mep_worker()			
+	end if
 	!
 	call MPI_FINALIZE(ierr)
 	stop

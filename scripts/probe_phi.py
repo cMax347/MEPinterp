@@ -47,7 +47,7 @@ class Phi_probe:
 
 
 
-	def iterate_phi(self, plot_bands=False):
+	def iterate_phi(self,mpi_np=1, plot_bands=False):
 		for phi  in np.linspace(0.0, 2.0, num = self.n_phi):		#iterate over relative phi (phi_rel = phi / np.pi)
 			work_dir =	self.root_dir+'/phi'+str(phi)		
 			phi_pi	 = 	phi*np.pi 
@@ -61,7 +61,7 @@ class Phi_probe:
 									self.do_gauge_trafo
 								)
 			#run calc 
-			worker.run()
+			worker.run(mpi_np=mpi_np)
 			mep_tens, mep_cs, mep_lc, mep_ic = worker.get_mep_tens()
 			self.phi_tot_data.append(		[phi, mep_tens	]			)
 			self.phi_cs_data.append(		[phi, mep_cs	]			)
@@ -194,10 +194,10 @@ class Phi_probe:
 
 
 
-def unit_test(n_phi, val_bands, mp_grid,	use_interp_kpt='F', do_gauge_trafo='T', plot_bands=False ):
+def unit_test(n_phi, val_bands, mp_grid,mpi_np=1,	use_interp_kpt='F', do_gauge_trafo='T', plot_bands=False ):
 	myTest	= Phi_probe(n_phi, val_bands, mp_grid, use_interp_kpt, do_gauge_trafo)
 	#
-	myTest.iterate_phi(plot_bands)
+	myTest.iterate_phi(plot_bands=plot_bands, mpi_np=mpi_np)
 	myTest.print_results_container()
 	
 	myTest.plot_mep_over_phi(label_size=14, xtick_size=12, ytick_size=12)
@@ -208,7 +208,7 @@ def unit_test(n_phi, val_bands, mp_grid,	use_interp_kpt='F', do_gauge_trafo='T',
 
 
 
-unit_test(n_phi=11, val_bands=2, mp_grid=[12,12,12],plot_bands=True	)
+unit_test(n_phi=3, val_bands=2, mp_grid=[32,32,32], mpi_np=4, plot_bands=True	)
 
 
 

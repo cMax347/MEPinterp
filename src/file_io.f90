@@ -11,7 +11,8 @@ module file_io
 	implicit none
 
 	private
-	public									::		mpi_read_k_mesh, mpi_read_tb_basis,	& 
+	public									::		mpi_read_tb_basis,					& 
+													read_kptsgen_pl_file,				&
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
 													write_mep_tensors

@@ -104,7 +104,6 @@ contains
 						mep_tens_cs_loc =	mep_tens_cs_loc + F_cs		!	chern simons	(geometrical)
 						!
 						n_ki_loc = n_ki_loc + 1
-						write(*,'(a,i3,a,i10,a)')		"[#",mpi_id,"; mep_interp]: I interpolated #ki=",ki,"."
 					end if
 				end do
 			end do

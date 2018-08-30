@@ -169,9 +169,10 @@ contains
 		a 	= 	1.0_dp
 		b 	=	0.3_dp
 		c 	= 	0.1_dp
-		d	=  	6.0_dp		/ pi_dp
-		e	=  	4.2_dp 		/ pi_dp
-		f	= 	5.0_dp		/ pi_dp
+		!	
+		d	=  	1.0_dp		
+		e	=  	1.1_dp 		
+		f	= 	1.2_dp		
 		int_ana			=	ana_integral(a,b,c,d,e,f)	
 		!
 		!	refine mesh
