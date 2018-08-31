@@ -1,7 +1,7 @@
 module band_calc
 	use mpi
 	use constants,		only:			dp, mpi_root_id, mpi_id, mpi_nProcs, ierr
-	use input_paras,	only:			seed_name										
+	use input_paras,	only:			seed_name, a_latt, recip_latt										
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										mpi_read_tb_basis,								&
 										write_en_binary, 								&
@@ -40,7 +40,7 @@ contains
 			!
 			!	do the work
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
-				call get_wann_interp(H_tb, r_tb, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_ka )
+				call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_ka )
 				call write_en_binary(ki,en_k)
 				k_per_mpi	= k_per_mpi + 1
 			end do

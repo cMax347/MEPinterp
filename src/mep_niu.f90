@@ -8,7 +8,8 @@ module mep_niu
 								mpi_root_id, mpi_id, mpi_nProcs, ierr			
 						
 
-	use input_paras,	only:	a_latt, valence_bands, 							&
+	use input_paras,	only:	a_latt, recip_latt, 							&
+								valence_bands, 									&
 								seed_name,										&
 								mp_grid, get_rel_kpt
 								!			
@@ -85,7 +86,7 @@ contains
 					!
 					if( mpi_ki_selector(ki, num_kpts)) then
 						!
-						call get_wann_interp(H_tb, r_tb, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_ka )
+						call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_ka )
 						!
 						!get MEP_tensors
 						call get_F2(V_ka, en_k, 		F_ic)

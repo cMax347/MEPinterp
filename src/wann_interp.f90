@@ -4,9 +4,7 @@ module wann_interp
 	!	the interpolation scheme from 
 	!			PRB 74, 195118 (2006) 
 	!	was used
-	use constants,		only:		dp, fp_acc, i_dp
-	use input_paras,	only:		a_latt,	recip_latt 		
-
+	use constants,		only:		dp, fp_acc, i_dp	
 	use matrix_math,	only:		zheevd_wrapper, 					&
 									matrix_comm, uni_gauge_trafo,		&
 									convert_tens_to_vect
@@ -29,10 +27,11 @@ module wann_interp
 
 
 !public:
-	subroutine get_wann_interp(H_real, r_real, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_ka  )
+	subroutine get_wann_interp(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_ka  )
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
-		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
+		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	& 
+																	R_frac(:,:), kpt_rel(3)	
 		real(dp),						intent(out)				::	e_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_ka(:,:,:)
@@ -54,7 +53,7 @@ module wann_interp
 		!
 		!
 		!ft onto k-space (W)-gauge
-		call wann_interp_ft(H_real, r_real, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
+		call wann_interp_ft(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
 		!
@@ -88,7 +87,7 @@ module wann_interp
 
 
 !private
-	subroutine wann_interp_ft(H_real, r_real, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
+	subroutine wann_interp_ft(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)		EQ.(37)-(40)
@@ -99,7 +98,8 @@ module wann_interp
 		!
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
-		real(dp),						intent(in)				::	R_frac(:,:), kpt_rel(3)	
+		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	&
+																	R_frac(:,:), kpt_rel(3)	
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp)												::	r_vect(3), kpt_abs(3), ft_angle
