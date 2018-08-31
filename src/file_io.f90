@@ -1,12 +1,12 @@
 module file_io
+	use matrix_math,					only:		is_equal_vect	
 	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv, &
 													mpi_id, mpi_root_id, mpi_nProcs
 	use input_paras,					only:		my_mkdir,							&												
 													w90_dir, out_dir, raw_dir, 			&
-													a_latt, mp_grid, 					&
-													plot_bands,  use_interp_kpt,		&
-													get_rel_kpts
-	use matrix_math,					only:		is_equal_vect												
+													a_latt, 							&
+													plot_bands
+	use k_space,						only:		mp_grid, get_rel_kpts											
 
 	implicit none
 
@@ -26,48 +26,7 @@ module file_io
 
 
 
-!public read:
-	subroutine mpi_read_k_mesh(seed_name,	kpt_latt)
-		!	reads the file seed_name//.nnkp 
-		character(len=*), 					intent(in) 			:: 	seed_name
-		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
-		logical													::	found_kpts_pl, found_kpts_wann
-		!
-		found_kpts_pl	= .false.
-		found_kpts_wann	= .false.
-		!
-		!TRY TO READ EXISTING KPT FILE
-		if( plot_bands	) then
-			found_kpts_pl = read_kptsgen_pl_file(kpt_latt)
-		else if( use_interp_kpt ) then
-			found_kpts_wann = read_geninterp_kpt_file(seed_name, kpt_latt)
-		end if
-		!
-		!
-		!IF NOT FOUND SET UP MP GRID
-		if( .not. plot_bands .and. .not. found_kpts_wann) then
-			if( use_interp_kpt)	then
-				write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,"; read_k_mesh]: no kpt file found, will generate ("
-				write(*,'(i3,a,i3,a,i3,a)')									mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
-			else 
-				write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,"; read_k_mesh]: a new kpt mesh will be generated ("
-				write(*,'(i3,a,i3,a,i3,a)')							mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),") MP grid"
-			end if
-			call get_rel_kpts(mp_grid, kpt_latt)
-			!
-			!write to file
-			if( mpi_id == mpi_root_id)	call write_geninterp_kpt_file(seed_name, kpt_latt)
-		end if
-		!
-		return
-	end subroutine
-
-
-
-
-
-
-
+!public read
 	subroutine mpi_read_tb_basis(seed_name, R_vect, H_mat, r_mat)		!ead_tb_basis(seed_name, H_real, r_exist, r_mat)
 		!	reads the following files:
 		!		'_tb.dat' file			(optional)
@@ -105,6 +64,37 @@ module file_io
 		!
 		return
 	end subroutine
+
+
+
+	logical function read_kptsgen_pl_file(kpt_latt)
+		!reads the kpt file generatred by kptsgen.pl
+		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
+		character(len=50)										::	filename 
+		integer													::	mpi_unit, num_kpts, kpt
+		real(dp)												::	raw_kpt(3), tmp
+		!
+		filename = 'kpts'
+		inquire(file=filename, exist= read_kptsgen_pl_file)
+		if(read_kptsgen_pl_file ) then
+			!
+			mpi_unit	= mpi_id + 4*mpi_nProcs
+			open(unit=mpi_unit, file=filename, form='formatted', action='read', access='stream', status='old')
+			read(mpi_unit,*) num_kpts, raw_kpt(1)
+			!
+			allocate(	kpt_latt(3,num_kpts)	)
+			!
+			do kpt = 1, num_kpts
+				read(mpi_unit,*) raw_kpt(1:3), tmp
+				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
+			end do
+			close(mpi_unit)
+			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
+		end if 
+
+		!
+		return 
+	end function
 
 
 	subroutine read_en_binary(qi_idx, e_bands)
@@ -300,36 +290,6 @@ module file_io
 
 
 !private read:	
-	logical function read_kptsgen_pl_file(kpt_latt)
-		!reads the kpt file generatred by kptsgen.pl
-		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
-		character(len=50)										::	filename 
-		integer													::	mpi_unit, num_kpts, kpt
-		real(dp)												::	raw_kpt(3), tmp
-		!
-		filename = 'kpts'
-		inquire(file=filename, exist= read_kptsgen_pl_file)
-		if(read_kptsgen_pl_file ) then
-			!
-			mpi_unit	= mpi_id + 4*mpi_nProcs
-			open(unit=mpi_unit, file=filename, form='formatted', action='read', access='stream', status='old')
-			read(mpi_unit,*) num_kpts, raw_kpt(1)
-			!
-			allocate(	kpt_latt(3,num_kpts)	)
-			!
-			do kpt = 1, num_kpts
-				read(mpi_unit,*) raw_kpt(1:3), tmp
-				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
-			end do
-			close(mpi_unit)
-			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
-		end if 
-
-		!
-		return 
-	end function
-
-
 	logical function read_geninterp_kpt_file(seed_name, kpt_latt)
 		character(len=*),					intent(in)			::	seed_name
 		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)

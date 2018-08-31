@@ -4,19 +4,15 @@ module mep_niu
 	! 	see Niu PRL 112, 166601 (2014)
 	!use omp_lib
 	use mpi
+	use matrix_math,	only:	my_Levi_Civita
 	use constants,		only:	dp, aUtoAngstrm, auToTesla,						&			
 								mpi_root_id, mpi_id, mpi_nProcs, ierr			
-						
-
-	use input_paras,	only:	a_latt, recip_latt, 							&
+	use input_paras,	only:	a_latt, 										&
 								valence_bands, 									&
-								seed_name,										&
-								mp_grid, get_rel_kpt
-								!			
-	use file_io,		only:	mpi_read_tb_basis,	&
+								seed_name
+	use file_io,		only:	mpi_read_tb_basis,								&
 								write_mep_tensors
-								!
-	use matrix_math,	only:	my_Levi_Civita
+	use k_space,		only:	recip_latt, mp_grid, get_rel_kpt
 	use wann_interp,	only:	get_wann_interp
 
 	implicit none
@@ -82,7 +78,7 @@ contains
 		do kiz = 1, mp_grid(3)
 			do kiy = 1, mp_grid(2)
 				do kix = 1, mp_grid(1)
-					ki	=	get_rel_kpt(kix, kiy, kiz, mp_grid, kpt)
+					ki	=	get_rel_kpt(kix, kiy, kiz, kpt)
 					!
 					if( mpi_ki_selector(ki, num_kpts)) then
 						!

@@ -1,7 +1,8 @@
 module band_calc
 	use mpi
 	use constants,		only:			dp, mpi_root_id, mpi_id, mpi_nProcs, ierr
-	use input_paras,	only:			seed_name, a_latt, recip_latt										
+	use input_paras,	only:			seed_name, a_latt
+	use k_space,		only:			recip_latt										
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										mpi_read_tb_basis,								&
 										write_en_binary, 								&

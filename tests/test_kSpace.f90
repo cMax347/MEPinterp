@@ -1,7 +1,7 @@
 program test_kSpace
 
 	use		constants,			only:			dp, pi_dp
-	use		input_paras, 		only:			get_recip_latt, get_rel_kpts
+	use		k_space,	 		only:			set_recip_latt, set_mp_grid, get_rel_kpts
 	use		matrix_math,		only:			is_equal_mat, crossp
 	use 	helpers,			only:			my_exit,						&
 	    										push_to_outFile, write_test_results
@@ -69,7 +69,7 @@ contains
 		!	perform test for each lattice
 		loop_latt:	do lattice	=	1, nLatt
 			!
-			recip_latt		=	get_recip_latt(a_latt(:,:,lattice))
+			call set_recip_latt(a_latt(:,:,lattice))
 			!
 			unit_vol		= dot_product(	crossP(a_latt(1,1:3,lattice),a_latt(2,1:3,lattice)),	a_latt(3,1:3,lattice))
 			bz_vol			= dot_product(	crossP(recip_latt(1,1:3),recip_latt(2,1:3)),	recip_latt(3,1:3))
@@ -180,7 +180,8 @@ contains
 			!
 			!	setup new mesh
 			mp_grid(1:3)	=	nk_dim_lst(mesh)
-			call get_rel_kpts(mp_grid, rel_kpts)
+			call set_mp_grid(mp_grid)
+			call get_rel_kpts(rel_kpts)
 			!
 			!	do numerical integration
 			int_num	=	num_integral(a,b,c, d, e, f, rel_kpts)
