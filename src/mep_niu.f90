@@ -25,7 +25,7 @@ module mep_niu
 	public ::			mep_worker
 
 	real(dp),		parameter 	::	elemCharge	 	= 1.6021766208 * 1e-19_dp  *1e+6_dp! in  mu Coulomb
-	real(dp),		parameter	::	kubo_tol		=	1.0e-3dp
+	real(dp),		parameter	::	kubo_tol		= 1e-3_dp
 
 	integer									::		num_kpts
 !
@@ -71,18 +71,9 @@ contains
 		n_ki_loc			= 	0
 		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
 		!
-		!get real space matrice(s)
-		call mpi_read_tb_basis(seed_name, R_vect, H_tb, r_tb)
-		!
-		!allocate k-space
-		allocate(	en_k(						size(H_tb,2)	)	)
-		allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
-		!
-		if(	allocated(r_tb)	)	then	
-			allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
-			allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
-			write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
-		end if
+		!read real & allocate k-space
+		call mpi_read_tb_basis(	seed_name, R_vect,		 	H_tb, r_tb				)
+		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_ka	)
 		!
 		!
 		write(*,'(a,i3,a,i4,a)')		"[#",mpi_id,"; mep_interp]: I start interpolating now (nValence=",valence_bands,")."
@@ -140,6 +131,25 @@ contains
 	!
 	!
 !HELPERS
+	subroutine kspace_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_ka)
+		complex(dp),	allocatable, intent(inout)	::		H_tb(:,:,:), r_tb(:,:,:,:),					& 
+															V_ka(:,:,:), A_ka(:,:,:), Om_ka(:,:,:)
+		real(dp),		allocatable, intent(inout)	::		en_k(:)
+		!
+		!allocate k-space
+		allocate(	en_k(						size(H_tb,2)	)	)
+		allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
+		!
+		if(	allocated(r_tb)	)	then	
+			allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+			allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+			write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
+		end if
+		!
+		return
+	end subroutine
+
+
 	logical function mpi_ki_selector(ki_request, num_kpts)
 		integer,		intent(in)		::		ki_request, num_kpts 
 		integer							::		ki_todo
