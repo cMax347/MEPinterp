@@ -1,6 +1,8 @@
 module input_paras
 	use constants,					only:		dp, fp_acc, pi_dp,			&
 												mpi_id, mpi_root_id, mpi_nProcs, ierr
+	use matrix_math,				only:		crossP
+
 	use mpi
 	use m_config
 
@@ -10,7 +12,7 @@ module input_paras
 	private
 	public								::		&
 												!routines		
-												init_parameters, 	my_mkdir,	crossP,				 		 		&
+												init_parameters, 	my_mkdir,						 		 		&
 												get_rel_kpts, get_rel_kpt,	get_recip_latt,							&
 												!dirs
 												w90_dir, out_dir, raw_dir,											&
@@ -22,10 +24,7 @@ module input_paras
 
 
 
-	 interface crossP
-        module procedure    real_crossP
-        !module procedure   cplx_crossP
-    end interface crossP
+	
 
 
 	
@@ -206,29 +205,6 @@ module input_paras
 
 
 !private
-	function real_crossP(a,b)
-        !cross product of two real 3dim vectors a,b
-        real(dp), dimension(3)              :: real_crossP
-        real(dp), dimension(3), intent(in)  :: a, b
-        !
-        real_crossP(1)   =   a(2) * b(3)     -   a(3) * b(2)  
-        real_crossP(2)   =   a(3) * b(1)     -   a(1) * b(3) 
-        real_crossP(3)   =   a(1) * b(2)     -   a(2) * b(1) 
-        !
-        return
-    end function
-
-    function cplx_crossP(a,b)
-        !cross product of two complex 3dim vectors a,b
-        complex(dp)                 :: cplx_crossP(3)
-        complex(dp),    intent(in)  :: a(3), b(3)
-        !
-        cplx_crossP(1)   =   a(2) * b(3)     -   a(3) * b(2)  
-        cplx_crossP(2)   =   a(3) * b(1)     -   a(1) * b(3) 
-        cplx_crossP(3)   =   a(1) * b(2)     -   a(2) * b(1) 
-        !
-        return
-    end function
 
 
 

@@ -1,6 +1,7 @@
 program test_matrix_math 
 	use constants,		only:				dp, fp_acc
 	use matrix_math,	only:				my_Levi_Civita, 	&
+											crossP,				&
 											is_equal_vect,		&
 											is_equal_mat,		&
 											zheevd_wrapper,		&
@@ -22,7 +23,7 @@ program test_matrix_math
 	character(len=80), allocatable		::	label(:)
 	!
 	all_passed	= 	.false.
-	nTests		= 	6
+	nTests		= 	7
 	succ_cnt	= 	0
 	smpl_size	=	500	
 	allocate(	passed(nTests)	)		
@@ -33,20 +34,23 @@ program test_matrix_math
 	label(		1	)			=	"Levi Civitia operartor"
 	passed(		1	)			=	test_levi_civita()
 	!-----------------------------------------------------------------
-	label(		2	)			=	"equality of  vectors"
-	passed(		2	)			=	test_vect_equal()
+	label(		2	)			=	"3D cross product"
+	passed(		2	)			=	test_cross_product()
 	!-----------------------------------------------------------------
-	label(		3	)			=	"equality of  matrices"
-	passed(		3	)			=	test_mat_equal()
+	label(		3	)			=	"equality of  vectors"
+	passed(		3	)			=	test_vect_equal()
 	!-----------------------------------------------------------------
-	label(		4	)			=	"Gauge rotation"
-	passed(		4	)			=	test_gauge_trafo()				
+	label(		4	)			=	"equality of  matrices"
+	passed(		4	)			=	test_mat_equal()
+	!-----------------------------------------------------------------
+	label(		5	)			=	"Gauge rotation"
+	passed(		5	)			=	test_gauge_trafo()				
 	!-----------------------------------------------------------------			
-	label(		5	)			=	"matmul with Blas"
-	passed(		5	)			=	test_blas_matmul()
+	label(		6	)			=	"matmul with Blas"
+	passed(		6	)			=	test_blas_matmul()
 	!-----------------------------------------------------------------			
-	label(		6	)			=	"matrix commutator"
-	passed(		6	)			=	test_mat_comm()
+	label(		7	)			=	"matrix commutator"
+	passed(		7	)			=	test_mat_comm()
 	!
 	!
 	!	WRITE RESULTS TO LOG
@@ -92,6 +96,65 @@ contains
 		!
 		return
 	end function
+!--------------------------------------------------------------------------------------------------------------------------------
+!
+!
+
+	logical function test_cross_product()
+		logical				::	re_crossp, im_crossp
+		!
+		re_crossp			=	d_test_crossp()
+		im_crossp			=	z_test_crossp()
+		!
+		test_cross_product	=	re_crossp .and. im_crossp
+		return
+	end function
+
+	logical function d_test_crossp()
+		real(dp)		::	real_a(3), real_b(3), real_c_sol(3), real_c_test(3)
+		!
+		!REAL(DP) TEST
+		real_a(1)		= 	-1.4_dp
+		real_a(2)		=	3.5_dp
+		real_a(3)		=	2.6_dp
+		!
+		real_b(1)		=	0.9_dp	
+		real_b(2)		=	-14.5_dp	
+		real_b(3)		=	0.001_dp		
+		!
+		real_c_sol(1)	=	37.703500_dp
+		real_c_sol(2)	=	2.341400_dp
+		real_c_sol(3)	=	17.1500_dp
+		!
+		real_c_test		=	crossP(real_a,real_b)
+		d_test_crossp	= 	norm2(real_c_test - real_c_sol) < fp_acc 
+		!
+		return
+	end function
+
+	logical function z_test_crossp()
+		!cplx_a(1)		=	cmplx(-1.4_dp, 1.0_dp,dp)
+		!cplx_a(2)		=	cmplx(3.5_dp,-0.5_dp,dp)
+		!cplx_a(3)		=	cmplx(2.6_dp,0.0_dp,dp)
+		!!
+		!cplx_b(1)		=	cmplx(0.9_dp,0.0_dp,dp)
+		!cplx_b(2)		=	cmplx(-14.5_dp,0.0_dp,dp)
+		!cplx_b(3)		=	cmplx(0.001_dp,-0.001_dp,dp)
+		!!
+		!cplx_c_sol(1)	=	cmplx(37.7030_dp,0.004_dp,dp)
+		!cplx_c_sol(2)	=	cmplx( 2.3404_dp,0.0024_dp,dp)
+		!cplx_c_sol(3)	=	cmplx(17.15_dp,14.05_dp,dp)
+		!!
+		!cplx_c_test		=	crossP(cplx_a, cplx_b)
+		!cplx_delta		=	cplx_c_test - cplx_c_sol
+		!z_test_crossp	=	abs(	sum(cplx_delta)		) < fp_prec
+		!
+		z_test_crossp	=	.true.
+		!
+		return
+	end function
+
+
 !--------------------------------------------------------------------------------------------------------------------------------
 !
 !

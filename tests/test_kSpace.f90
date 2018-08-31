@@ -1,10 +1,9 @@
 program test_kSpace
 
 	use		constants,			only:			dp, pi_dp
-	use		input_paras, 		only:			crossp,										&	
-												get_recip_latt, get_rel_kpts
-	use		matrix_math,		only:			is_equal_mat
-	use 	helpers,			only:			my_exit,									&
+	use		input_paras, 		only:			get_recip_latt, get_rel_kpts
+	use		matrix_math,		only:			is_equal_mat, crossp
+	use 	helpers,			only:			my_exit,						&
 	    										push_to_outFile, write_test_results
 
 
