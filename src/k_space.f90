@@ -6,13 +6,12 @@ module k_space
 
 	public						::		set_mp_grid,		get_mp_grid,		&
 										set_recip_latt, 	get_recip_latt,		&
-										get_rel_kpts,							&
 										get_rel_kpt
 	private	
 
 
 	integer			::		mp_grid(3)
-	real(dp)		::		recip_latt(3,3)
+	real(dp)		::		recip_latt(3,3), bz_vol
 
 contains
 
@@ -49,8 +48,12 @@ contains
 		recip_latt(1,1:3)	= 2.0_dp * pi_dp * crossP( a2(1:3) , a3(1:3) ) / unit_vol
 		recip_latt(2,1:3)	= 2.0_dp * pi_dp * crossP( a3(1:3) , a1(1:3) ) / unit_vol
 		recip_latt(3,1:3)	= 2.0_dp * pi_dp * crossP( a1(1:3) , a2(1:3) ) / unit_vol
-		!
 		write(*,*) '[set_recip_latt]: recip_latt set to ', recip_latt
+		!
+		! BZ volume
+
+
+
 		!
 		return
 	end subroutine
@@ -63,34 +66,6 @@ contains
 		return
 	end function
 
-
-
-
-
-	subroutine get_rel_kpts(kpt_latt)
-		!get relative k-pt following the Monkhorst Pack scheme 
-		!	see eq.(4)		PRB, 13, 5188 (1976)
-		!
-		real(dp),	allocatable, intent(inout)	::	kpt_latt(:,:)
-		real(dp)								::	kpt(3)
-		integer									::	qix, qiy, qiz, qi_idx, qi_test
-		!
-		allocate(kpt_latt(3,mp_grid(1)*mp_grid(2)*mp_grid(3)))
-		qi_test = 0
-		do qiz = 1, mp_grid(3)
-			do qiy = 1, mp_grid(2)
-				do qix = 1, mp_grid(1)
-					qi_idx	= get_rel_kpt(qix,qiy,qiz, kpt	)	
-					kpt_latt(:,qi_idx)	=	kpt(:)
-					qi_test	= qi_test +1
-					if(qi_idx /= qi_test) then
-						write(*,'(a,i10,a,i10)')	'[get_rel_kpts]: WARNING k-mesh order! qi_idx=',qi_idx,' vs ',qi_test,'=qi_test'
-					end if
-				end do
-			end do
-		end do
-		!
-	end subroutine
 
 
 	integer function get_rel_kpt(qix, qiy, qiz, kpt)
