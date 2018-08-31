@@ -1,7 +1,9 @@
 program test_kSpace
 
 	use		constants,			only:			dp, pi_dp
-	use		k_space,	 		only:			set_recip_latt, set_mp_grid, get_rel_kpts
+	use		k_space,	 		only:			set_recip_latt,	get_recip_latt,	& 
+												set_mp_grid,					& 
+												get_rel_kpts
 	use		matrix_math,		only:			is_equal_mat, crossp
 	use 	helpers,			only:			my_exit,						&
 	    										push_to_outFile, write_test_results
@@ -70,6 +72,8 @@ contains
 		loop_latt:	do lattice	=	1, nLatt
 			!
 			call set_recip_latt(a_latt(:,:,lattice))
+			recip_latt	= get_recip_latt()
+			write(*,*)	'[test_reciprocal]:	got recip lattice ',recip_latt
 			!
 			unit_vol		= dot_product(	crossP(a_latt(1,1:3,lattice),a_latt(2,1:3,lattice)),	a_latt(3,1:3,lattice))
 			bz_vol			= dot_product(	crossP(recip_latt(1,1:3),recip_latt(2,1:3)),	recip_latt(3,1:3))

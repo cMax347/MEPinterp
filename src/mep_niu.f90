@@ -12,7 +12,7 @@ module mep_niu
 								seed_name
 	use file_io,		only:	mpi_read_tb_basis,								&
 								write_mep_tensors
-	use k_space,		only:	recip_latt, mp_grid, get_rel_kpt
+	use k_space,		only:	get_recip_latt, get_mp_grid, get_rel_kpt
 	use wann_interp,	only:	get_wann_interp
 
 	implicit none
@@ -43,7 +43,7 @@ contains
 		!	ic	: itinerant current contribution
 		!	cs	: chern - simons term	
 		!
-		real(dp)							::	kpt(3),									&
+		real(dp)							::	kpt(3),	recip_latt(3,3),				&
 												F_ic(3,3), F_lc(3,3), F_cs(3,3),		&
 												!local sum targets:
 												mep_tens_ic_loc(	3,3),	 			&
@@ -54,7 +54,7 @@ contains
 												mep_tens_lc_glob(	3,3),				&
 												mep_tens_cs_glob(	3,3)				
 		integer								::	kix, kiy, kiz, ki, 						&
-												n_ki_loc, n_ki_glob
+												mp_grid(3), n_ki_loc, n_ki_glob
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_ka(:,:,:),				&
 												V_ka(:,:,:)
@@ -66,8 +66,12 @@ contains
 		mep_tens_ic_glob	=	0.0_dp
 		mep_tens_lc_glob	=	0.0_dp
 		mep_tens_cs_glob	=	0.0_dp
+		!
+		!	k-space
+		mp_grid				=	get_mp_grid()
 		n_ki_loc			= 	0
 		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
+		recip_latt			=	get_recip_latt()
 		!
 		!read real & allocate k-space
 		call mpi_read_tb_basis(	seed_name, R_vect,		 	H_tb, r_tb				)
@@ -81,6 +85,7 @@ contains
 					ki	=	get_rel_kpt(kix, kiy, kiz, kpt)
 					!
 					if( mpi_ki_selector(ki, num_kpts)) then
+
 						!
 						call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_ka )
 						!
@@ -110,7 +115,7 @@ contains
 		!write some files
 		if(mpi_id == mpi_root_id) 	then
 			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
-			call normalize_k_int(n_ki_glob, mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
+			call normalize_k_int(n_ki_glob, num_kpts, mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
 		end if
 		!
 		!
@@ -165,13 +170,13 @@ contains
 	end function
 
 
-	subroutine normalize_k_int(n_ki_glob, mep_tens_ic, mep_tens_lc, mep_tens_cs)
-		integer,		intent(in)		::	n_ki_glob
+	subroutine normalize_k_int(n_ki_glob, num_kpts, mep_tens_ic, mep_tens_lc, mep_tens_cs)
+		integer,		intent(in)		::	n_ki_glob, num_kpts
 		real(dp),		intent(inout)	::	mep_tens_ic(3,3), mep_tens_lc(3,3), mep_tens_cs(3,3)
 		!
 		!	check k-integration for consitency
-		if(	n_ki_glob	/=	mp_grid(1)*mp_grid(2)*mp_grid(3)	)	then 
-			write(*,'(a,i3,a,i8,a,i8)') '[#',mpi_id,'mep_interp]: n_ki_glob=',n_ki_glob,"  n_mp_grid=",mp_grid(1)*mp_grid(2)*mp_grid(3)
+		if(	n_ki_glob	/=	num_kpts	)	then 
+			write(*,'(a,i3,a,i8,a,i8)') '[#',mpi_id,'mep_interp]: n_ki_glob=',n_ki_glob,"  n_mp_grid=",num_kpts
 			stop "WARNING n_ki_glob is not equal to the given mp_grid"
 		end if
 		!

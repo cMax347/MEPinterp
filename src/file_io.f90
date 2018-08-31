@@ -5,8 +5,7 @@ module file_io
 	use input_paras,					only:		my_mkdir,							&												
 													w90_dir, out_dir, raw_dir, 			&
 													a_latt, 							&
-													plot_bands
-	use k_space,						only:		mp_grid, get_rel_kpts											
+													plot_bands										
 
 	implicit none
 

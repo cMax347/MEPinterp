@@ -2,7 +2,7 @@ module band_calc
 	use mpi
 	use constants,		only:			dp, mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,	only:			seed_name, a_latt
-	use k_space,		only:			recip_latt										
+	use k_space,		only:			get_recip_latt										
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										mpi_read_tb_basis,								&
 										write_en_binary, 								&
@@ -19,12 +19,14 @@ contains
 
 	subroutine band_worker()
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:), R_vect(:,:)
+		real(dp)							::	recip_latt(3,3)
 		integer								::	num_kpts, ki, k_per_mpi
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_ka(:,:,:),				&
 												V_ka(:,:,:)
 		!
 		if( read_kptsgen_pl_file(rel_kpts)	) then
+			recip_latt	= get_recip_latt()
 			num_kpts	= size(rel_kpts,2)
 			k_per_mpi	= 0
 			!
