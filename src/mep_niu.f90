@@ -228,43 +228,47 @@ contains
 		complex(dp),		intent(in)		::	velo(:,:,:)
 		real(dp),			intent(in)		::	En(:)
 		real(dp),			intent(out)		::	F3(3,3)
-		integer								::	n0, n, 		&
+		integer								::	n0, n, neglected, tot, 		&
 												i, j, k, l
 		complex(dp)							::	velo_nom
 		real(dp) 							::	en_denom
+		!
+		neglected	= 0
+		tot 		= 0
 		!
 		F3	= 0.0_dp
 		do n0 = 1, valence_bands
 			!
 			!MIXING
 			do n = 1, size(velo,2)
-			 	if( n/= n0 )	then
-					!
-					!TRIPLE PRODUCT			 		
-			 		do j = 1, 3
-			 			do i = 1, 3
-			 				do l = 1, 3
-			 					do k = 1, 3
-			 						velo_nom	=	velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)
-			 						!
-			 						en_denom	=	(	en(n0) - en(n)	)**3		
-			 						!
-			 						if(abs(en_denom) > kubo_tol) then 
+			 	if( n/= n0 )	then	
+			 		en_denom	=	(	en(n0) - en(n)	)**3
+			 		tot			= 	tot + 1
+			 		if(abs(en_denom) > kubo_tol) then 
+			 			!
+						!TRIPLE PRODUCT			 		
+			 			do j = 1, 3
+			 				do i = 1, 3
+			 					do l = 1, 3
+			 						do k = 1, 3
+			 							velo_nom	=	velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)
+			 							!		
 			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom	,dp )	/	en_denom	
-			 						else
-			 							write(*,*)	"[get_F3]: WARNING degenerate bands detected"
-			 						end if
+			 							
+			 						end do
 			 					end do
 			 				end do
 			 			end do
-			 		end do
+			 		else
+			 			neglected = neglected + 1
+			 		end if
 			 	end if
 			 	!
 			 	!
 			end do
-			!
-			!
 		end do
+		!
+		if(neglected > 0) write(*,'(a,i5,a,i6,a)')	'[get_F3]: dropped ',neglected,' of ',tot,' contributions due to degenerate bands'
 		return
 	end subroutine
 
@@ -274,9 +278,13 @@ contains
 		real(dp),			intent(in)		::	En(:)
 		real(dp),			intent(out)		::	F2(3,3)
 		integer								::	n0, m, n, 		&
-												i, j, k, l
+												i, j, k, l,		&
+												neglected, tot
 		complex(dp)							::	velo_nom
 		real(dp) 							::	en_denom
+		!
+		neglected	= 0
+		tot 		= 0
 		!
 		F2	= 0.0_dp
 		do n0 = 1, valence_bands
@@ -285,33 +293,33 @@ contains
 			do m = 1, size(velo,2)
 				do n = 1, size(velo,2)
 				 	if( n/= n0 .and. m/=n0 )	then
-				 		!
-				 		!TRIPLE PRODUCT
-				 		do j = 1, 3
-				 			do i = 1, 3
-				 				do l = 1, 3
-				 					do k = 1, 3
-				 						velo_nom	=	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)
-				 						!
-				 						en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
-				 						!
-				 						if( abs(en_denom) > kubo_tol) then
-				 							F2(i,j)	= F2(i,j) - real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom 	,dp )	/	en_denom
-				 						else
-				 							write(*,*)	"[get_F2]: WARNING degenerate bands detected"
-				 						end if	
+				 		en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
+				 		tot 		= 	tot + 1
+				 		if( abs(en_denom) > kubo_tol) then
+				 			!
+				 			!TRIPLE PRODUCT
+				 			do j = 1, 3
+				 				do i = 1, 3
+				 					do l = 1, 3
+				 						do k = 1, 3
+				 							velo_nom	=	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)
+				 							!
+				 							F2(i,j)	= F2(i,j) - real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom 	,dp )	/	en_denom	
+				 						end do
 				 					end do
 				 				end do
 				 			end do
-				 		end do
-				 		!
-				 		!
+				 		else
+				 			neglected	= neglected + 1
+				 		end if
 				 	end if
+				 	!
+				 	!
 				end do
 			end do
-			!
-			!
 		end do
+		!
+		if(neglected > 0) write(*,'(a,i5,a,i6,a)')	'[get_F2]: dropped ',neglected,' of ',tot,' contributions due to degenerate bands'
 		return
 	end subroutine
 
