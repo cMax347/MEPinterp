@@ -21,10 +21,10 @@ program test_matrix_math
 	logical,		   allocatable		::	passed(:)
 	character(len=80), allocatable		::	label(:)
 	!
-	all_passed	= .false.
-	nTests		= 6
-	succ_cnt	= 0
-	smpl_size	=	1000	
+	all_passed	= 	.false.
+	nTests		= 	6
+	succ_cnt	= 	0
+	smpl_size	=	500	
 	allocate(	passed(nTests)	)		
 	allocate(	label(nTests)	)		
 	!
