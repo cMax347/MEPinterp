@@ -4,7 +4,7 @@ module mep_niu
 	! 	see Niu PRL 112, 166601 (2014)
 	!use omp_lib
 	use mpi
-	use parameters,		only:	dp, fp_acc,										&
+	use parameters,		only:	dp,												&
 								mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								seed_name,										&
 								aUtoAngstrm, auToTesla,							&
@@ -25,6 +25,7 @@ module mep_niu
 	public ::			mep_worker
 
 	real(dp),		parameter 	::	elemCharge	 	= 1.6021766208 * 1e-19_dp  *1e+6_dp! in  mu Coulomb
+	real(dp),		parameter	::	kubo_tol		=	1.0e-3dp
 
 	integer									::		num_kpts
 !
@@ -248,10 +249,8 @@ contains
 			 						!
 			 						en_denom	=	(	en(n0) - en(n)	)**3		
 			 						!
-			 						if(abs(en_denom) > fp_acc) then 
+			 						if(abs(en_denom) > kubo_tol) then 
 			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom	,dp )	/	en_denom	
-	
-			 							if(abs(en_denom) < 1e-3_dp) write(*,*)	"[get_F3]: WARNING potential band crossing"
 			 						else
 			 							write(*,*)	"[get_F3]: WARNING degenerate bands detected"
 			 						end if
@@ -296,9 +295,8 @@ contains
 				 						!
 				 						en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
 				 						!
-				 						if( abs(en_denom) > fp_acc) then
+				 						if( abs(en_denom) > kubo_tol) then
 				 							F2(i,j)	= F2(i,j) - real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom 	,dp )	/	en_denom
-				 							if(abs(en_denom) < 1e-3_dp) write(*,*)	"[get_F2]: WARNING potential band crossing"
 				 						else
 				 							write(*,*)	"[get_F2]: WARNING degenerate bands detected"
 				 						end if	
