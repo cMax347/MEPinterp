@@ -15,14 +15,15 @@ program MEPinterp
     call MPI_COMM_SIZE (MPI_COMM_WORLD, 	mpi_nProcs		, ierr)
     !
     !read the input file
-    call init_parameters()
-    !
-	if(	plot_bands	) then
-		call band_worker()
+    if( init_parameters()	) then
+		if(	plot_bands	) then
+			call band_worker()
+		else
+			call mep_worker()			
+		end if
 	else
-		call mep_worker()			
+		write(*,*)	'[#',mpi_id,': main]: input file not found, by'
 	end if
-	!
 	call MPI_FINALIZE(ierr)
 	stop
 end program 

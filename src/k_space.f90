@@ -31,7 +31,7 @@ contains
 	end function
 
 	
-	subroutine set_recip_latt(a_latt) 
+	subroutine set_recip_latt(a_latt)
 		!	
 		!	see eq.(2)		PRB, 13, 5188 (1976)
 		!
