@@ -268,7 +268,10 @@ contains
 			end do
 		end do
 		!
-		if(neglected > 0) write(*,'(a,i5,a,i6,a)')	'[get_F3]: dropped ',neglected,' of ',tot,' contributions due to degenerate bands'
+		if(neglected > 0) then
+			write(*,'(a,i3,a,i5)',advance="no")		'[#',mpi_id,':get_F3]: dropped ',neglected
+			write(*,'(a,i6,a)')						' of ',tot,' contributions due to degenerate bands'
+		end if
 		return
 	end subroutine
 
@@ -319,7 +322,10 @@ contains
 			end do
 		end do
 		!
-		if(neglected > 0) write(*,'(a,i5,a,i6,a)')	'[get_F2]: dropped ',neglected,' of ',tot,' contributions due to degenerate bands'
+		if(neglected > 0) then
+			write(*,'(a,i3,a,i5)',advance="no")		'[#',mpi_id,':get_F2]: dropped ',neglected
+			write(*,'(a,i6,a)')						' of ',tot,' contributions due to degenerate bands'
+		end if
 		return
 	end subroutine
 
