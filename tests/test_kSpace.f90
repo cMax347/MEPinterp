@@ -1,8 +1,9 @@
 program test_kSpace
 
-	use		parameters, 		only	:		dp, pi_dp, crossp,							&	
+	use		constants,			only:			dp, pi_dp
+	use		input_paras, 		only:			crossp,										&	
 												get_recip_latt, get_rel_kpts
-	use		matrix_math,		only	:		is_equal_mat
+	use		matrix_math,		only:			is_equal_mat
 	use 	helpers,			only:			my_exit,									&
 	    										push_to_outFile, write_test_results
 
@@ -167,12 +168,12 @@ contains
 		!
 		!	get analytic integral
 		a 	= 	1.0_dp
-		b 	=	0.3_dp
-		c 	= 	0.1_dp
+		b 	=	1.0_dp
+		c 	= 	1.0_dp
 		!	
-		d	=  	1.0_dp		
-		e	=  	1.1_dp 		
-		f	= 	1.2_dp		
+		d	=  	2.0_dp		
+		e	=  	2.0_dp 		
+		f	= 	2.0_dp		
 		int_ana			=	ana_integral(a,b,c,d,e,f)	
 		!
 		!	refine mesh
@@ -201,7 +202,7 @@ contains
 		if(.not. test_k_mesh_int	) then
 			write(msg,*) "[test_k_mesh]: the numerical integration did not converge for precision=",precision
 			call push_to_outFile(msg)
-			write(msg,'(a,f16.8,a,f16.8,a)') '[test_k_mesh]: analytic int=',int_ana,' /= ', int_num,'= numerical in'
+			write(msg,'(a,f16.8,a,f16.8,a)') '[test_k_mesh]: ana_int=',int_ana,' /= ', int_num,'= num_int'
 			call push_to_outFile(msg)
 		else
 			write(msg,*)	'[test_k_mesh]: the k_integration converged for precision=',precision,' on mp_grid: ',mp_grid(1)
@@ -213,10 +214,10 @@ contains
 
 	
 	real(dp) function f_test(a,b,c,x)
-		!	f_test	=	a x^2    b y^4     c z**6 
+		!	f_test	=	a x^2    b y^4     c z^2 
 		real(dp),	intent(in)		::	a, b, c, x(3)
 		!
-		f_test	=	(a * x(1)**2)	*	(b * x(2)**4) 	*	(c * x(3)**6)
+		f_test	=	(a *b*c) *  x(1)**2	*  x(2)**2 	*  x(3)**2
 		!
 		return
 	end function 
@@ -224,12 +225,12 @@ contains
 
 
 	real(dp) function ana_integral(a,b,c,d,e,f)
-		!	a x^2    b y^4     c z**6    {  {x,-d,d},{y,-e,e},{z,-f,f}	}  
+		!	a x^2    b y^4     c z**2    {  {x,-d,d},{y,-e,e},{z,-f,f}	}  
 		!	WOLFRRAM ALPHA:
-		!	'integrate[(a*x**2) * (b*y**4) * (c*z**6),{x,-d,+d},{y,-e,e},{z,-f,+f}]'		
+		!	'integrate[(a*x**2) * (b*y**4) * (c*z**4),{x,-d,+d},{y,-e,e},{z,-f,+f}]'		
 		real(dp),	intent(in)				::	a, b, c, d, e, f
 		!
-		ana_integral	= 	(8.0_dp/105.0_dp) * a * b * c * d**3 * e**5 * f**7
+		ana_integral	= 	(8.0_dp/27.0_dp) * a * b * c * d**3 * e**3 * f**3
 		!
 		return
 	end function
@@ -248,6 +249,7 @@ contains
 			abs_kpt(1)	= rel_kpts(1,kpt) * d * 2.0_dp 
 			abs_kpt(2)	= rel_kpts(2,kpt) * e * 2.0_dp
 			abs_kpt(3)	= rel_kpts(3,kpt) * f * 2.0_dp
+			!
 			!
 			num_integral	= num_integral + f_test(a,b,c, abs_kpt)
 		end do

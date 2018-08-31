@@ -1,7 +1,7 @@
 program MEPinterp
 	use mpi
-	use parameters,				only:		init_parameters,									&
-											mpi_root_id, mpi_id, mpi_nProcs, ierr,				&
+	use constants,				only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
+	use input_paras,			only:		init_parameters,	&
 											plot_bands
 	use mep_niu,				only:		mep_worker
 	use band_calc,				only:		band_worker

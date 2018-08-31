@@ -4,11 +4,12 @@ module mep_niu
 	! 	see Niu PRL 112, 166601 (2014)
 	!use omp_lib
 	use mpi
-	use parameters,		only:	dp,												&
-								mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
+	use constants,		only:	dp, aUtoAngstrm, auToTesla,						&			
+								mpi_root_id, mpi_id, mpi_nProcs, ierr			
+						
+
+	use input_paras,	only:	a_latt, valence_bands, 							&
 								seed_name,										&
-								aUtoAngstrm, auToTesla,							&
-								a_latt, valence_bands, 							&
 								mp_grid, get_rel_kpt
 								!			
 	use file_io,		only:	mpi_read_tb_basis,	&

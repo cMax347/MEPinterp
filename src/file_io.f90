@@ -1,7 +1,7 @@
 module file_io
-	use parameters,						only:		dp, fp_acc, my_mkdir,				&
-													aUtoAngstrm, aUtoEv, 				&
-													mpi_id, mpi_root_id, mpi_nProcs,	&
+	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv, &
+													mpi_id, mpi_root_id, mpi_nProcs
+	use input_paras,					only:		my_mkdir,							&												
 													w90_dir, out_dir, raw_dir, 			&
 													a_latt, mp_grid, 					&
 													plot_bands,  use_interp_kpt,		&

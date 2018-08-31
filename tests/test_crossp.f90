@@ -2,8 +2,8 @@ program test_crossp
 	use helpers,			only:			my_exit,				&
 											init_outFile, 			&
 											push_to_outFile
-	use parameters,			only:			dp, fp_acc,				& 
-											crossP
+	use constants,			only:			dp, fp_acc
+	use input_paras,		only:			crossP
 
 
 	implicit none

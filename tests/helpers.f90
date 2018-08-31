@@ -3,7 +3,7 @@
 
 
 module helpers	
-	use	parameters,			only:		dp, fp_acc
+	use	constants,			only:		dp, fp_acc
 
 	implicit none
 

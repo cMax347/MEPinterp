@@ -1,4 +1,6 @@
-module parameters
+module input_paras
+	use constants,					only:		dp, fp_acc, pi_dp,			&
+												mpi_id, mpi_root_id, mpi_nProcs, ierr
 	use mpi
 	use m_config
 
@@ -14,12 +16,6 @@ module parameters
 												w90_dir, out_dir, raw_dir,											&
 												!jobs
 												plot_bands,	use_interp_kpt,											&
-												!constatns
-												dp, fp_acc,															&
-												PI_dp, i_dp,														&
-												aUtoAngstrm, aUtoEv, aUtoTesla, speedOfLight,						&
-												!mpi vars
-												mpi_root_id, mpi_id, mpi_nProcs, ierr,								&
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, recip_latt, mp_grid
@@ -32,25 +28,8 @@ module parameters
     end interface crossP
 
 
-	!for clean double precision convention through the code
-	integer, 		parameter 	:: 	dp 				= kind(0.d0)
-	real(dp)					:: 	fp_acc			= 1e-14_dp
 	
-	!mathematical constants
-	real(dp), 		parameter 	::	PI_dp 			= 4 * atan (1.0_dp)
-	complex(dp),	parameter 	::	i_dp 			= cmplx(0.0_dp, 1.0_dp, dp)
-
-
-	!physical constants
-	real(dp),		parameter 	::	aUtoAngstrm 	= 0.52917721092_dp
-	real(dp),		parameter 	::	aUtoEv	 		= 27.211385_dp
-	real(dp),		parameter	::	aUtoTesla		= 235051.76_dp
-	real(dp),		parameter	::	speedOfLight	= 137.035999_dp !in atomic units
-
-
-	!
-	integer						::	mpi_id, mpi_root_id, mpi_nProcs, ierr,												&
-									valence_bands, mp_grid(3)
+	integer						::	valence_bands, mp_grid(3)
 	character(len=3)			:: 	seed_name
 	character(len=4)			::	out_dir ="out/"					
 	character(len=9)			::	w90_dir	="w90files/"
@@ -254,4 +233,4 @@ module parameters
 
 
 
-end module
+end module input_paras

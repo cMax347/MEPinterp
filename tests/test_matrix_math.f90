@@ -1,5 +1,5 @@
 program test_matrix_math 
-	use parameters,		only:				dp, fp_acc
+	use constants,		only:				dp, fp_acc
 	use matrix_math,	only:				my_Levi_Civita, 	&
 											is_equal_vect,		&
 											is_equal_mat,		&
