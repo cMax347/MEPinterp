@@ -12,7 +12,9 @@ module mep_niu
 								seed_name
 	use file_io,		only:	mpi_read_tb_basis,								&
 								write_mep_tensors
-	use k_space,		only:	get_recip_latt, get_mp_grid, get_rel_kpt
+	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
+								get_rel_kpt,									&
+								normalize_k_int
 	use wann_interp,	only:	get_wann_interp
 
 	implicit none
@@ -115,7 +117,14 @@ contains
 		!write some files
 		if(mpi_id == mpi_root_id) 	then
 			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
-			call normalize_k_int(n_ki_glob, num_kpts, mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
+			if(	n_ki_glob	/=	num_kpts	) stop "WARNING n_ki_glob is not equal to the given mp_grid"
+			!
+			call normalize_k_int(mep_tens_ic_glob)
+			call normalize_k_int(mep_tens_lc_glob)
+			call normalize_k_int(mep_tens_cs_glob)
+			!
+			call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: calculated MEP tensor on ",n_ki_glob," kpts"
 		end if
 		!
 		!
@@ -170,27 +179,6 @@ contains
 	end function
 
 
-	subroutine normalize_k_int(n_ki_glob, num_kpts, mep_tens_ic, mep_tens_lc, mep_tens_cs)
-		integer,		intent(in)		::	n_ki_glob, num_kpts
-		real(dp),		intent(inout)	::	mep_tens_ic(3,3), mep_tens_lc(3,3), mep_tens_cs(3,3)
-		!
-		!	check k-integration for consitency
-		if(	n_ki_glob	/=	num_kpts	)	then 
-			write(*,'(a,i3,a,i8,a,i8)') '[#',mpi_id,'mep_interp]: n_ki_glob=',n_ki_glob,"  n_mp_grid=",num_kpts
-			stop "WARNING n_ki_glob is not equal to the given mp_grid"
-		end if
-		!
-		!	normalize k-integration
-		mep_tens_ic	=	mep_tens_ic	/	real(n_ki_glob, dp)				
-		mep_tens_lc	=	mep_tens_lc	/	real(n_ki_glob, dp)
-		mep_tens_cs	=	mep_tens_cs	/	real(n_ki_glob, dp)
-		!
-		!	write results
-		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; mep_interp]: calculated MEP tensor on ",n_ki_glob," kpts"
-		call write_mep_tensors(mep_tens_ic, mep_tens_lc, mep_tens_cs)
-		!
-		return
-	end subroutine
 
 
 

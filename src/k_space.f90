@@ -6,8 +6,16 @@ module k_space
 
 	public						::		set_mp_grid,		get_mp_grid,		&
 										set_recip_latt, 	get_recip_latt,		&
-										get_rel_kpt
+										get_rel_kpt,		get_bz_vol,			&
+										normalize_k_int
 	private	
+
+
+
+	interface normalize_k_int
+		module procedure d_matrix_normalize_k_int
+		module procedure d_scalar_normalize_k_int
+	end interface normalize_k_int
 
 
 	integer			::		mp_grid(3)
@@ -15,6 +23,40 @@ module k_space
 
 contains
 
+!-----------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------		
+!
+!			INTERFACE:		normalize_k_int
+!
+!-----------------------------------------------------------------------------------
+
+	subroutine d_matrix_normalize_k_int(mat)
+		real(dp),	intent(inout)	::	mat(:,:)
+		integer						:: 	n, m
+		!
+		do m = 1, size(mat,2)
+			do n = 1, size(mat,1)
+				call d_scalar_normalize_k_int(	mat(n,m)	)
+			end do
+		end do
+		!
+		return
+	end subroutine
+
+	subroutine d_scalar_normalize_k_int(scalar)
+		real(dp),	intent(inout)	::	scalar
+		integer						::	n_k
+		!
+		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
+		
+		!
+		return
+	end subroutine
+
+!-----------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------
 
 	subroutine set_mp_grid(input_grid)
 		integer,		intent(in)		::	input_grid(3)
@@ -30,6 +72,10 @@ contains
 	end function
 
 	
+
+
+
+
 	subroutine set_recip_latt(a_latt)
 		!	
 		!	see eq.(2)		PRB, 13, 5188 (1976)
@@ -51,19 +97,22 @@ contains
 		write(*,*) '[set_recip_latt]: recip_latt set to ', recip_latt
 		!
 		! BZ volume
-
-
-
+		bz_vol	=	dot_product(		crossP( recip_latt(1,1:3), recip_latt(2,2:3))	, recip_latt(3,1:3)		)
+		write(*,'(a,f8.3)') '[set_recip_latt]: the 1st Brillouin zone volume is bz_vol=', bz_vol
 		!
 		return
 	end subroutine
 
 	function get_recip_latt() result( this_recip_latt )
 		real(dp)		::	this_recip_latt(3,3)
-		!
 		this_recip_latt	= recip_latt
-		!
 		return
+	end function
+
+	function get_bz_vol() result(this_bz_vol)
+		real(dp)		::	this_bz_vol
+		this_bz_vol=bz_vol
+		return 
 	end function
 
 
