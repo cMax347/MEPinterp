@@ -46,7 +46,6 @@ contains
 		!	cs	: chern - simons term	
 		!
 		real(dp)							::	kpt(3),	recip_latt(3,3),				&
-												F_ic(3,3), F_lc(3,3), F_cs(3,3),		&
 												!local sum targets:
 												mep_tens_ic_loc(	3,3),	 			&
 												mep_tens_lc_loc(	3,3),				&
@@ -80,28 +79,28 @@ contains
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_ka	)
 		!
 		!
+		if(allocated(r_tb))		write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"	
 		write(*,'(a,i3,a,i4,a)')		"[#",mpi_id,"; mep_interp]: I start interpolating now (nValence=",valence_bands,")."
 		do kiz = 1, mp_grid(3)
 			do kiy = 1, mp_grid(2)
 				do kix = 1, mp_grid(1)
-					ki	=	get_rel_kpt(kix, kiy, kiz, kpt)
 					!
-					if( mpi_ki_selector(ki, num_kpts)) then
+					!
+					ki	=	get_rel_kpt(kix, kiy, kiz, kpt)
+					if( mpi_ki_selector(ki, num_kpts)	) then
 
 						!
 						call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_ka )
 						!
 						!get MEP_tensors
-						call get_F2(V_ka, en_k, 		F_ic)
-						call get_F3(V_ka, en_k, 		F_lc)
-						call get_CS(A_ka, Om_ka, 		F_cs)
-						!sum MEP over local kpts
-						mep_tens_ic_loc	=	mep_tens_ic_loc + F_ic		!	itinerant		(Kubo)
-						mep_tens_lc_loc	=	mep_tens_lc_loc + F_lc		!	local			(Kubo)
-						mep_tens_cs_loc =	mep_tens_cs_loc + F_cs		!	chern simons	(geometrical)
+						mep_tens_ic_loc	=	mep_tens_ic_loc + get_F2(V_ka, en_k)		!	itinerant		(Kubo)
+						mep_tens_lc_loc	=	mep_tens_lc_loc + get_F3(V_ka, en_k)		!	local			(Kubo)
+						mep_tens_cs_loc =	mep_tens_cs_loc + get_CS(A_ka, Om_ka)		!	chern simons	(geometrical)
 						!
 						n_ki_loc = n_ki_loc + 1
 					end if
+					!
+					!
 				end do
 			end do
 		end do
@@ -143,7 +142,7 @@ contains
 	!
 	!
 !HELPERS
-	subroutine kspace_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_ka)
+	pure subroutine kspace_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_ka)
 		complex(dp),	allocatable, intent(inout)	::		H_tb(:,:,:), r_tb(:,:,:,:),					& 
 															V_ka(:,:,:), A_ka(:,:,:), Om_ka(:,:,:)
 		real(dp),		allocatable, intent(inout)	::		en_k(:)
@@ -155,14 +154,13 @@ contains
 		if(	allocated(r_tb)	)	then	
 			allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
 			allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
-			write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
 		end if
 		!
 		return
 	end subroutine
 
 
-	logical function mpi_ki_selector(ki_request, num_kpts)
+	logical pure function mpi_ki_selector(ki_request, num_kpts)
 		integer,		intent(in)		::		ki_request, num_kpts 
 		integer							::		ki_todo
 		!
@@ -198,9 +196,9 @@ contains
 	!
 	!
 !MEP RESPONSES
-	subroutine get_CS(A_ka, Om_ka, cs_tens)
+	pure function get_CS(A_ka, Om_ka) result(cs_tens)
 		complex(dp),	allocatable, 	intent(in)		::	A_ka(:,:,:), Om_ka(:,:,:)
-		real(dp),						intent(out)		::	cs_tens(3,3)
+		real(dp)										::	cs_tens(3,3)
 		real(dp)										::	cs_scal
 		integer											::	n0, i
 		!
@@ -217,18 +215,18 @@ contains
 			do i = 1, 3
 				cs_tens(i,i)	= cs_scal
 			end do
-		else
-			write(*,'(a,i3,a)')	'[#',mpi_id,';get_CS]: missing connection and/or curvature, Chern-Simons set to .0'
 		end if
 		!
 		return
-	end subroutine
+	end function
 
 
-	subroutine get_F3(velo, En,	F3)
+	pure function get_F3(velo, En) result(F3)
+		!	LOCAL KUBO CONTRIBUTION
+		!
 		complex(dp),		intent(in)		::	velo(:,:,:)
 		real(dp),			intent(in)		::	En(:)
-		real(dp),			intent(out)		::	F3(3,3)
+		real(dp)							::	F3(3,3)
 		integer								::	n0, n, neglected, tot, 		&
 												i, j, k, l
 		complex(dp)							::	velo_nom
@@ -269,18 +267,20 @@ contains
 			end do
 		end do
 		!
-		if(neglected > 0) then
-			write(*,'(a,i3,a,i5)',advance="no")		'[#',mpi_id,':get_F3]: dropped ',neglected
-			write(*,'(a,i6,a)')						' of ',tot,' contributions due to degenerate bands'
-		end if
+		!if(neglected > 0) then
+		!	write(*,'(a,i3,a,i5)',advance="no")		'[#',mpi_id,':get_F3]: dropped ',neglected
+		!	write(*,'(a,i6,a)')						' of ',tot,' contributions due to degenerate bands'
+		!end if
 		return
-	end subroutine
+	end function
 
 
-	subroutine get_F2(velo, En,	F2)
+	pure function get_F2(velo, En) result(F2)
+		!	ITINERANT KUBO CONTRIBUTION
+		!
 		complex(dp),		intent(in)		::	velo(:,:,:)
 		real(dp),			intent(in)		::	En(:)
-		real(dp),			intent(out)		::	F2(3,3)
+		real(dp)							::	F2(3,3)
 		integer								::	n0, m, n, 		&
 												i, j, k, l,		&
 												neglected, tot
@@ -323,12 +323,12 @@ contains
 			end do
 		end do
 		!
-		if(neglected > 0) then
-			write(*,'(a,i3,a,i5)',advance="no")		'[#',mpi_id,':get_F2]: dropped ',neglected
-			write(*,'(a,i6,a)')						' of ',tot,' contributions due to degenerate bands'
-		end if
+		!if(neglected > 0) then
+		!	write(*,'(a,i3,a,i5)',advance="no")		'[#',mpi_id,':get_F2]: dropped ',neglected
+		!	write(*,'(a,i6,a)')						' of ',tot,' contributions due to degenerate bands'
+		!end if
 		return
-	end subroutine
+	end function
 
 
 
