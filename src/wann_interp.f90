@@ -1,3 +1,12 @@
+!
+!
+!	ToDo:
+!
+!	Introduce FFT
+!	this decreases the DFT(discrete fourrier transform)
+!	from O(n**2) to O(n log(n))
+!
+!
 module wann_interp
 	!	module for Wannier interpolation
 	!
@@ -177,7 +186,7 @@ module wann_interp
 	end subroutine	
 
 
-	subroutine velo_gaugeTrafo(e_k, H_ka, A_ka, V_k)
+	pure subroutine velo_gaugeTrafo(e_k, H_ka, A_ka, V_k)
 		!	calc the (H)-gauge velocity matrix
 		!
 		!	PRB 74, 195118 (2006) EQ.(31)
@@ -242,7 +251,7 @@ module wann_interp
 
 
 
-	subroutine conn_gaugeTrafo(D_ka, A_ka)
+	pure subroutine conn_gaugeTrafo(D_ka, A_ka)
 		!	PRB 74, 195118 (2006)	EQ.(25)
 		!
 		!	Lapack
