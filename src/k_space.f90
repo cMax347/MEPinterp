@@ -33,13 +33,10 @@ contains
 
 	subroutine d_matrix_normalize_k_int(mat)
 		real(dp),	intent(inout)	::	mat(:,:)
-		integer						:: 	n, m
+		integer						:: 	n_k
 		!
-		do m = 1, size(mat,2)
-			do n = 1, size(mat,1)
-				call d_scalar_normalize_k_int(	mat(n,m)	)
-			end do
-		end do
+		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+		mat		=	mat		* bz_vol	/ real(n_k,dp)
 		!
 		return
 	end subroutine
@@ -102,6 +99,8 @@ contains
 		!
 		return
 	end subroutine
+
+
 
 	function get_recip_latt() result( this_recip_latt )
 		real(dp)		::	this_recip_latt(3,3)
