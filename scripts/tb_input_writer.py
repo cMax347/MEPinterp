@@ -235,8 +235,8 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		outfile.write('[wannInterp]\n')
 		outfile.write('    '	+	'mp_grid= '			+	str(mp_grid[0]) +' '+str(mp_grid[1])+' '+str(mp_grid[2])		+	'\n')
 		outfile.write('    '	+	'seed_name= '		+	seed_name			+	'\n')
-		outfile.write('    '	+	'use_interp_kpt= '	+	use_interp_kpt		+	'\n')
-		outfile.write('    '	+	'do_gauge_trafo= '	+	do_gauge_trafo		+	'\n')
+		#outfile.write('    '	+	'use_interp_kpt= '	+	use_interp_kpt		+	'\n')
+		#outfile.write('    '	+	'do_gauge_trafo= '	+	do_gauge_trafo		+	'\n')
 		outfile.write('\n')
 		#
 		#
