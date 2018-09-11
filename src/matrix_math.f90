@@ -451,9 +451,9 @@ module matrix_math
         alpha   =  1.0_dp   
         beta    = 0.0_dp
         !
-         C      = 0.0_dp
+        C      = 0.0_dp
         !
-        call dgemm(transa, transb, m, n, k, alpha, A(:,:), lda, B(:,:), ldb, beta, C(:,:), ldc)
+        call dgemm(transa, transb, m, n, k, alpha, A(1,1), lda, B(1,1), ldb, beta, C(1,1), ldc)
     end function
 
 
@@ -474,6 +474,8 @@ module matrix_math
         ldb     =   size(B,1)
         ldc     =   m
         !
+        if( k /= ldb)   stop  '[z_blas_matmul]:   warning matrix size do not match correctly'  
+
         allocate(   C(m,n)     )
         !
         transa  = 'n'
@@ -483,7 +485,8 @@ module matrix_math
         !
         C       = cmplx(   0.0_dp   ,   0.0_dp  ,   dp)
         !
-        call zgemm(transa, transb, m, n, k, alpha, A(:,:), lda, B(:,:), ldb, beta, C(:,:), ldc)
+        call zgemm(transa, transb, m, n, k, alpha,   A(1,1)    , lda,  B(1,1)    , ldb, beta,    C(1,1)      , ldc)
+        !C = matmul(A,B)
     end function
 
 
