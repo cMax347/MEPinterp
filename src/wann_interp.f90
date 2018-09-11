@@ -17,7 +17,7 @@ module wann_interp
 	use matrix_math,	only:		zheevd_wrapper, 					&
 									matrix_comm, uni_gauge_trafo,		&
 									convert_tens_to_vect
-
+	use input_paras,	only:		kubo_tol
 
 
 
@@ -206,9 +206,10 @@ module wann_interp
 					if(	n/=	m)	then
 						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
 						!
-						do a = 1, 3
-							V_k(a,n,m)	= V_k(a,n,m)	-	i_dp	*	eDiff	*	A_ka(a,n,m)
-						end do
+						!do a = 1, 3
+						!	V_k(a,n,m)	= V_k(a,n,m)	-	i_dp	*	eDiff	*	A_ka(a,n,m)
+						!end do
+						V_k(:,n,m)	= V_k(:,n,m)	- i_dp	* 	eDiff	* 	A_ka(:,n,m)
 					end if
 				end do
 			end do
@@ -233,8 +234,8 @@ module wann_interp
 			do n = 1, size(D_ka,2)
 				if(	n/=	m )	then
 					eDiff_mn	=	e_k(m)	- e_k(n)
-					if(abs(eDiff_mn) < fp_acc)	then
-						eDiff_mn	= sign(fp_acc,eDiff_mn)
+					if(abs(eDiff_mn) < 	kubo_tol	)	then
+						eDiff_mn	= sign(kubo_tol,eDiff_mn)
 						write(*,'(a)',advance="no")	'[;get_gauge_covar_deriv]: '
 						write(*,'(a,i6,a,i6)')		'WARNING degenerate bands detetected n=',n,' m=',m
 					end if
