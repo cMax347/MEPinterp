@@ -10,7 +10,7 @@ module k_space
 										normalize_k_int
 	private	
 
-
+	save
 
 	interface normalize_k_int
 		module procedure d_matrix_normalize_k_int
@@ -97,7 +97,7 @@ contains
 		write(*,*) '[set_recip_latt]: recip_latt set to ', recip_latt
 		!
 		! BZ volume
-		bz_vol	=	dot_product(		crossP( recip_latt(1,1:3), recip_latt(2,2:3))	, recip_latt(3,1:3)		)
+		bz_vol	=	dot_product(		crossP( recip_latt(1,1:3), recip_latt(2,1:3))	, recip_latt(3,1:3)		)
 		write(*,'(a,f8.3)') '[set_recip_latt]: the 1st Brillouin zone volume is bz_vol=', bz_vol
 		!
 		return
