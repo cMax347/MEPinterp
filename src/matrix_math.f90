@@ -58,7 +58,7 @@ module matrix_math
 
 
 !public:
-    integer function my_Levi_Civita(i,j,k)
+    integer pure function my_Levi_Civita(i,j,k)
         !Hard coded Levi Civita tensor
         integer,        intent(in)      :: i,j,k
         logical                         :: even, odd
@@ -73,11 +73,6 @@ module matrix_math
                                 my_Levi_Civita  = -1
         else                
                                 my_Levi_Civita  =  0
-        end if
-        !
-        !DEBUGGING
-        if(even .and. odd) then
-            write(*,*)"[myLeviCivita]: myLeviCivita detected even and odd, contact the programer he fucked up"
         end if
         !
         return
@@ -214,7 +209,7 @@ module matrix_math
 !----------------------------------------------------------------------------------------------------------------------
 !
 !
-    function real_crossP(a,b)
+    pure function real_crossP(a,b)
         !cross product of two real 3dim vectors a,b
         real(dp), dimension(3)              :: real_crossP
         real(dp), dimension(3), intent(in)  :: a, b
@@ -226,7 +221,7 @@ module matrix_math
         return
     end function
 
-    function cplx_crossP(a,b)
+    pure function cplx_crossP(a,b)
         !cross product of two complex 3dim vectors a,b
         complex(dp)                 :: cplx_crossP(3)
         complex(dp),    intent(in)  :: a(3), b(3)
@@ -241,7 +236,7 @@ module matrix_math
 !----------------------------------------------------------------------------------------------------------------------
 !
 !
-    logical function real_is_equal_vect(acc, a,b)
+    logical pure function real_is_equal_vect(acc, a,b)
         real(dp),     intent(in)     ::   acc
         real(dp),     intent(in)     ::   a(:), b(:)
         integer                      ::   idx
@@ -258,7 +253,7 @@ module matrix_math
         return
     end function
 
-    logical function cplx_is_equal_vect(acc, a,b)
+    logical pure function cplx_is_equal_vect(acc, a,b)
         real(dp),           intent(in)  ::   acc
         complex(dp),        intent(in)  ::   a(:), b(:)
         integer                         ::   idx
@@ -278,7 +273,7 @@ module matrix_math
 !----------------------------------------------------------------------------------------------------------------------
 !
 !
-    logical function  d_is_equal_mat(acc, A, B)
+    logical pure function  d_is_equal_mat(acc, A, B)
         real(dp),   intent(in)          ::  acc
         real(dp),   intent(in)          ::  A(:,:), B(:,:)
         real(dp)                        ::  delta
@@ -301,7 +296,7 @@ module matrix_math
         return
     end function
 
-    logical function z_is_equal_mat(acc, A, B)
+    logical pure function z_is_equal_mat(acc, A, B)
         real(dp),       intent(in)      ::  acc
         complex(dp),    intent(in)      ::  A(:,:), B(:,:)
         real(dp)                        ::  delta
@@ -326,7 +321,7 @@ module matrix_math
 !----------------------------------------------------------------------------------------------------------------------
 !
 !
-    subroutine real_tens_to_vect(tens, vect)
+    pure subroutine real_tens_to_vect(tens, vect)
         !   converts om_tens to a vector by applying Levi Cevita Tensor
         !   see PRB 74, 195118 (2006)   Eq.(5)
         real(dp),           intent(in)      ::  tens(:,:,:,:)
@@ -346,7 +341,7 @@ module matrix_math
         return
     end subroutine
 
-    subroutine cplx_tens_to_vect(tens, vect)
+    pure subroutine cplx_tens_to_vect(tens, vect)
         !   converts om_tens to a vector by applying Levi Cevita Tensor
         !   see PRB 74, 195118 (2006)   Eq.(5)
         complex(dp),        intent(in)      ::  tens(:,:,:,:)
