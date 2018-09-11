@@ -78,7 +78,9 @@ contains
 		!	see eq.(2)		PRB, 13, 5188 (1976)
 		!
 		real(dp), intent(in)	::	a_latt(3,3)
-		real(dp)				::	unit_vol, a1(3), a2(3), a3(3)
+		real(dp)				::	unit_vol,				& 
+									a1(3), a2(3), a3(3),	&
+									b1(3), b2(3), b3(3)
 		!
 		!
 		a1(1:3)		=	a_latt(1,1:3)
@@ -87,15 +89,20 @@ contains
 		!get Unit cell volume
 		unit_vol	=	dot_product(	crossP( a1(1:3) , a2(1:3)	)		,	a3(1:3)	)	 
 		!
-		!
-		recip_latt(1,1:3)	= 2.0_dp * pi_dp * crossP( a2(1:3) , a3(1:3) ) / unit_vol
-		recip_latt(2,1:3)	= 2.0_dp * pi_dp * crossP( a3(1:3) , a1(1:3) ) / unit_vol
-		recip_latt(3,1:3)	= 2.0_dp * pi_dp * crossP( a1(1:3) , a2(1:3) ) / unit_vol
+		!setup reciprocal lattice vectors
+		b1(1:3)	= 2.0_dp * pi_dp * crossP( a2(1:3) , a3(1:3) ) / unit_vol
+		b2(1:3)	= 2.0_dp * pi_dp * crossP( a3(1:3) , a1(1:3) ) / unit_vol
+		b3(1:3)	= 2.0_dp * pi_dp * crossP( a1(1:3) , a2(1:3) ) / unit_vol
 		write(*,*) '[set_recip_latt]: recip_latt set to ', recip_latt
 		!
 		! BZ volume
-		bz_vol	=	dot_product(		crossP( recip_latt(1,1:3), recip_latt(2,1:3))	, recip_latt(3,1:3)		)
+		bz_vol	=	dot_product(		crossP( b1(:), b2(:))	, b3(:)		)
 		write(*,'(a,f8.3)') '[set_recip_latt]: the 1st Brillouin zone volume is bz_vol=', bz_vol
+		!
+		!	CPY TO TARGET 
+		recip_latt(1,:)	=	b1(:)
+		recip_latt(2,:)	=	b2(:)
+		recip_latt(3,:)	=	b3(:)
 		!
 		return
 	end subroutine
