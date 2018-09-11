@@ -48,14 +48,27 @@ module file_io
 			call read_tb_file(w90_dir//seed_name, R_vect, H_mat, r_mat)
 			r_exist	= .true.
 		else
+			!
+			!
+			!	HAMILTONIAN
 			inquire(file=w90_dir//seed_name//'_hr.dat', exist=hr_exist)
-			if( .not. hr_exist)		stop 'ERROR could not read the real space Hamiltonian'
+			if( .not. hr_exist)		stop '[mpi_read_tb_basis]:	ERROR could not read the real space Hamiltonian'
 			call read_hr_file(w90_dir//seed_name, R_vect, H_mat)
 			!
+			!
+			!	POSITION
 			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
-			if(  r_exist )	then
-				call	read_r_file(w90_dir//seed_name, R_vect, r_mat)
-			end if
+			if(  r_exist )	call read_r_file(w90_dir//seed_name, R_vect, r_mat)
+			!
+			!
+		end if
+		!
+		!	DEBUG
+		if(	size(H_mat,1) /=	size(H_mat,2)	)	stop '[mpi_read_tb_basis]:	H_mat is not symmetric'
+		if( r_exist	)	then
+			if(size(r_mat,2) /= size(H_mat,1))	stop '[mpi_read_tb_basis]:	r_mat and H_mat have different size in first dim'
+			if(size(r_mat,3) /= size(H_mat,2))	stop '[mpi_read_tb_basis]:	r_mat and H_mat have different size in second dim'
+			if(size(r_mat,4) /= size(H_mat,3))	stop '[mpi_read_tb_basis]:	r_mat and H_mat live on different real supercell grid'
 		end if
 		!
 		num_bands=size(H_mat,1)
