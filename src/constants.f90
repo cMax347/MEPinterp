@@ -1,6 +1,7 @@
 module constants
 	implicit none
 
+	save
 	
 	!FLOATING POINT
 	integer, 		parameter 	:: 	dp 				= kind(0.d0)
