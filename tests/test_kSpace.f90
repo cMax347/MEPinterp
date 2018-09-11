@@ -2,6 +2,7 @@ program test_kSpace
 
 	use		constants,			only:			dp, pi_dp
 	use		k_space,	 		only:			set_recip_latt,	get_recip_latt,			& 
+												get_bz_vol,								&
 												set_mp_grid,	get_mp_grid,			& 
 												get_rel_kpt,	normalize_k_int
 	use		matrix_math,		only:			is_equal_mat, crossp
@@ -76,7 +77,7 @@ contains
 			write(*,*)	'[test_reciprocal]:	got recip lattice ',recip_latt
 			!
 			unit_vol		= dot_product(	crossP(a_latt(1,1:3,lattice),a_latt(2,1:3,lattice)),	a_latt(3,1:3,lattice))
-			bz_vol			= dot_product(	crossP(recip_latt(1,1:3),recip_latt(2,1:3)),	recip_latt(3,1:3))
+			bz_vol			= get_bz_vol()
 			!
 			if( abs(bz_vol-	8.0_dp*pi_dp**3/unit_vol	) 	>  1e-10_dp) then
 				write(msg,*) '[test_reciprocal]: got bz_vol',bz_vol,' expected',	8.0_dp*pi_dp**3/unit_vol
@@ -152,7 +153,7 @@ contains
 		!
 		test_k_mesh_int	=	.false.
 		precision		=	1.0e-4_dp
-		n_meshes		=	10
+		n_meshes		=	11
 		!
 		!
 		allocate(	nk_dim_lst(n_meshes)		)
@@ -166,17 +167,17 @@ contains
 		nk_dim_lst(7)	=	64
 		nk_dim_lst(8)	=	128
 		nk_dim_lst(9)	=	256
-		nk_dim_lst(10)	=	512
-		!nK_dim_lst(11)	=	513
+		nk_dim_lst(10)	=	257
+		nK_dim_lst(11)	=	512
 		!
 		!	get analytic integral
-		call random_number(	a	)	 	
-		call random_number(	b	)	 
-		call random_number(	c	)	 	
-		!
-		d	=  	1.5_dp		
-		e	=  	1.5_dp 		
-		f	= 	1.5_dp		
+		a	=	1.0_dp
+		b	=	1.0_dp
+		c	=	1.0_dp
+
+		d	=  	4.0_dp		
+		e	=  	4.0_dp 		
+		f	= 	4.0_dp		
 		!
 		a_latt	= 0.0_dp
 		a_latt(1,1)	=	d
@@ -232,7 +233,7 @@ contains
 		!	f_test	=	a x^2    b y^4     c z^2 
 		real(dp),	intent(in)		::	a, b, c, x(3)
 		!
-		f_test	=	(a *b*c) *  x(1)**2	*  x(2)**4 	*  x(3)**6
+		f_test	=	(a *b*c) *  x(1)**2	*  x(2)**2 	*  x(3)**2
 		!
 		return
 	end function 
@@ -245,7 +246,8 @@ contains
 		!	'integrate[(a*x**2) * (b*y**4) * (c*z**4),{x,-d,+d},{y,-e,e},{z,-f,+f}]'		
 		real(dp),	intent(in)				::	a, b, c, d, e, f
 		!
-		ana_integral	= 	(8.0_dp/105.0_dp) * a * b * c * d**3 * e**5 * f**7
+		!write(*,*)	'[ana_integral] int box:',d,' x ',e, ' x ' ,f
+		ana_integral	= 	(8.0_dp/27.0_dp) * a * b * c * d**3 * e**3 * f**3
 		!
 		return
 	end function
@@ -258,6 +260,8 @@ contains
 		real(dp)					::	abs_kpt(3), rel_kpt(3)
 		!
 		mp_grid	= get_mp_grid()
+		!write(*,*)	'[num_integral] int box:',d,' x ',e, ' x ' ,f
+
 		!
 		num_integral	=	0.0_dp
 		n_ki			=	0
@@ -271,12 +275,15 @@ contains
 					abs_kpt(2)	= rel_kpt(2) * e * 2.0_dp
 					abs_kpt(3)	= rel_kpt(3) * f * 2.0_dp
 					!
+					!write(*,*)	"num_int abs_kpt: ",abs_kpt
 					num_integral	= num_integral + f_test(a,b,c, abs_kpt)
 				end do
 			end do
 		end do
 		!
+		write(*,*)	'[num_integral] raw integral sum=', num_integral
 		call normalize_k_int(num_integral)
+		write(*,*)	'[num_integral] normalized integral=', num_integral
 		!
 		return
 	end function
