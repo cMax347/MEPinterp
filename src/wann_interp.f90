@@ -62,7 +62,7 @@ module wann_interp
 		!
 		!
 		!ft onto k-space (W)-gauge
-		call wann_interp_ft(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
+		call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
 		!
@@ -96,7 +96,7 @@ module wann_interp
 
 
 !private
-	subroutine wann_interp_ft(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
+	subroutine FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)		EQ.(37)-(40)
@@ -263,9 +263,10 @@ module wann_interp
 		integer								::	a
 		!
 		!
-		do a = 1, 3
-			A_ka(a,:,:)	=	A_ka(a,:,:)		+	i_dp	*	D_ka(a,:,:)
-		end do
+		!do a = 1, 3
+		!	A_ka(a,:,:)	=	A_ka(a,:,:)		+	i_dp	*	D_ka(a,:,:)
+		!end do
+		A_ka	=	A_ka	+ i_dp	*	D_ka
 		!
 		return
 	end subroutine

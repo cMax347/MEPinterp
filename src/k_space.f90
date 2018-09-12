@@ -93,16 +93,21 @@ contains
 		b1(1:3)	= 2.0_dp * pi_dp * crossP( a2(1:3) , a3(1:3) ) / unit_vol
 		b2(1:3)	= 2.0_dp * pi_dp * crossP( a3(1:3) , a1(1:3) ) / unit_vol
 		b3(1:3)	= 2.0_dp * pi_dp * crossP( a1(1:3) , a2(1:3) ) / unit_vol
-		write(*,*) '[set_recip_latt]: recip_latt set to ', recip_latt
 		!
 		! BZ volume
 		bz_vol	=	dot_product(		crossP( b1(:), b2(:))	, b3(:)		)
-		write(*,'(a,f8.3)') '[set_recip_latt]: the 1st Brillouin zone volume is bz_vol=', bz_vol
+		write(*,'(a,f8.3)') 	'[set_recip_latt]: the 1st Brillouin zone volume is' 
+		write(*,*)				'	', 'bz_vol=', bz_vol
 		!
 		!	CPY TO TARGET 
 		recip_latt(1,:)	=	b1(:)
 		recip_latt(2,:)	=	b2(:)
 		recip_latt(3,:)	=	b3(:)
+		write(*,*) 				'[set_recip_latt]: recip_latt set to '
+		write(*,*)				'	',	recip_latt(1,:)
+		write(*,*)				'	',	recip_latt(2,:)
+		write(*,*)				'	',	recip_latt(3,:)
+
 		!
 		return
 	end subroutine

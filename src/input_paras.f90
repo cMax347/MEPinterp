@@ -21,7 +21,7 @@ module input_paras
 												plot_bands,															&
 												!vars
 												seed_name,	valence_bands,											&
-												a_latt
+												a_latt, kubo_tol
 
 
 
@@ -36,6 +36,7 @@ module input_paras
 	character(len=4)			::	raw_dir ="raw/"
 	logical						::	plot_bands
 	real(dp)					::	a_latt(3,3), a0
+	real(dp),		parameter	::	kubo_tol		= 1e-3_dp
 
 
 

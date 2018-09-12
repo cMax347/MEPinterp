@@ -66,6 +66,7 @@ module file_io
 		!	DEBUG
 		if(	size(H_mat,1) /=	size(H_mat,2)	)	stop '[mpi_read_tb_basis]:	H_mat is not symmetric'
 		if( r_exist	)	then
+			if(size(r_mat,1)/=	3			)	stop '[mpi_read_tb_basis]:	r_mat does not live in 3D'				
 			if(size(r_mat,2) /= size(H_mat,1))	stop '[mpi_read_tb_basis]:	r_mat and H_mat have different size in first dim'
 			if(size(r_mat,3) /= size(H_mat,2))	stop '[mpi_read_tb_basis]:	r_mat and H_mat have different size in second dim'
 			if(size(r_mat,4) /= size(H_mat,3))	stop '[mpi_read_tb_basis]:	r_mat and H_mat live on different real supercell grid'

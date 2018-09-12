@@ -7,9 +7,11 @@ module mep_niu
 	use matrix_math,	only:	my_Levi_Civita
 	use constants,		only:	dp, aUtoAngstrm, auToTesla,						&			
 								mpi_root_id, mpi_id, mpi_nProcs, ierr			
+	use statistics,		only:	fermi_dirac
 	use input_paras,	only:	a_latt, 										&
 								valence_bands, 									&
-								seed_name
+								seed_name,										&
+								kubo_tol
 	use file_io,		only:	mpi_read_tb_basis,								&
 								write_mep_tensors
 	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
@@ -25,7 +27,6 @@ module mep_niu
 	public ::			mep_worker
 
 	real(dp),		parameter 	::	elemCharge	 	= 1.6021766208 * 1e-19_dp  *1e+6_dp! in  mu Coulomb
-	real(dp),		parameter	::	kubo_tol		= 1e-3_dp
 
 	integer									::		num_kpts
 !
@@ -208,7 +209,7 @@ contains
 			!
 			!	sum over valence
 			do n0 = 1, valence_bands
-				cs_scal	= cs_scal + 0.5_dp *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	Om_ka(:,n0,n0)	)		)
+				cs_scal	= cs_scal +	 0.5_dp  *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	Om_ka(:,n0,n0)	)		)
 			end do
 			!
 			!	the CS is diagonal
@@ -252,7 +253,7 @@ contains
 			 						do k = 1, 3
 			 							velo_nom	=	velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)
 			 							!		
-			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom	,dp )	/	en_denom	
+			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp)  * real(	velo_nom	,dp )	/	en_denom	
 			 							
 			 						end do
 			 					end do
