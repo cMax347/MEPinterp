@@ -1,10 +1,7 @@
 program test_kSpace
 
 	use		constants,			only:			dp, pi_dp
-	use		k_space,	 		only:			set_recip_latt,	get_recip_latt,			& 
-												get_bz_vol,								&
-												set_mp_grid,	get_mp_grid,			& 
-												get_rel_kpt,	normalize_k_int
+	use		k_space
 	use		matrix_math,		only:			is_equal_mat, crossp
 	use 	helpers,			only:			my_exit,								&
 	    										push_to_outFile, write_test_results
@@ -147,13 +144,14 @@ contains
 		integer					::	mp_grid(3),  mesh, n_meshes
 		integer, allocatable	::	nk_dim_lst(:)
 		real(dp)				::	int_ana, int_num,	&
+									xmax, random,			&
 									precision,			&
-									a, b, c, d, e, f, a_latt(3,3), recip_latt(3,3)
+									a_latt(3,3), recip_latt(3,3)
 		character(len=120)		::	msg
 		!
 		test_k_mesh_int	=	.false.
 		precision		=	1.0e-4_dp
-		n_meshes		=	11
+		n_meshes		=	9
 		!
 		!
 		allocate(	nk_dim_lst(n_meshes)		)
@@ -167,29 +165,28 @@ contains
 		nk_dim_lst(7)	=	64
 		nk_dim_lst(8)	=	128
 		nk_dim_lst(9)	=	256
-		nk_dim_lst(10)	=	257
-		nK_dim_lst(11)	=	512
+		!nk_dim_lst(10)	=	257
+		!nK_dim_lst(11)	=	512
 		!
-		!	get analytic integral
-		a	=	1.0_dp
-		b	=	1.0_dp
-		c	=	1.0_dp
-
-		d	=  	4.0_dp		
-		e	=  	4.0_dp 		
-		f	= 	4.0_dp		
-		!
-		a_latt	= 0.0_dp
-		a_latt(1,1)	=	d
-		a_latt(2,2)	=	e
-		a_latt(3,3)	=	f
+		!	setup real lattice
+		call random_number(random)
+		xmax		=	.1_dp *  pi_dp
+		a_latt		= 	0.0_dp
+		a_latt(1,1)	=	xmax
+		a_latt(2,2)	=	xmax
+		a_latt(3,3)	=	xmax
 
 		call set_recip_latt(a_latt)
 		recip_latt	= get_recip_latt()
 
-
+		write(msg,*)	"[test_k_mesh_int]: recip_latt bx=",recip_latt(1,:)
+		call push_to_outFile(msg)
+		write(msg,*)	"[test_k_mesh_int]: recip_latt by=",recip_latt(2,:)
+		call push_to_outFile(msg)
+		write(msg,*)	"[test_k_mesh_int]: recip_latt bz=",recip_latt(3,:)
+		call push_to_outFile(msg)
 		
-		int_ana			=	ana_integral(a,b,c,recip_latt(1,1),recip_latt(2,2),recip_latt(3,3))	
+		int_ana			=	ana_integral()	
 		write(msg,*)	"[test_k_mesh_int]: analytic integral:	",int_ana
 		call push_to_outFile(msg)
 		!
@@ -201,7 +198,7 @@ contains
 			call set_mp_grid(mp_grid)
 			!
 			!	do numerical integration
-			int_num	=	num_integral(a,b,c, recip_latt(1,1),recip_latt(2,2),recip_latt(3,3))
+			int_num	=	num_3D_gauss(recip_latt(1,1))
 			!
 			!	compare to analytic solution
 			if( abs(int_ana-int_num)	< precision	.and. .not. test_k_mesh_int)	then 
@@ -228,62 +225,81 @@ contains
 		return
 	end function
 
-	
-	real(dp) function f_test(a,b,c,x)
-		!	f_test	=	a x^2    b y^4     c z^2 
-		real(dp),	intent(in)		::	a, b, c, x(3)
-		!
-		f_test	=	(a *b*c) *  x(1)**2	*  x(2)**2 	*  x(3)**2
-		!
-		return
-	end function 
 
 
 
-	real(dp) function ana_integral(a,b,c,d,e,f)
+
+	real(dp) function ana_integral()
 		!	a x^2    b y^4     c z**2    {  {x,-d,d},{y,-e,e},{z,-f,f}	}  
 		!	WOLFRRAM ALPHA:
 		!	'integrate[(a*x**2) * (b*y**4) * (c*z**4),{x,-d,+d},{y,-e,e},{z,-f,+f}]'		
-		real(dp),	intent(in)				::	a, b, c, d, e, f
+		!real(dp),	intent(in)				::	a, b, c, d, e, f
 		!
 		!write(*,*)	'[ana_integral] int box:',d,' x ',e, ' x ' ,f
-		ana_integral	= 	(8.0_dp/27.0_dp) * a * b * c * d**3 * e**3 * f**3
+		ana_integral	= 	1.0_dp
 		!
 		return
 	end function
 
 
 
-	real(dp) function num_integral(a,b,c, d, e, f)
-		real(dp),	intent(in)		::	a, b, c, d, e, f
-		integer						::	kix, kiy, kiz, ki_idx, n_ki, mp_grid(3)
-		real(dp)					::	abs_kpt(3), rel_kpt(3)
-		!
-		mp_grid	= get_mp_grid()
-		!write(*,*)	'[num_integral] int box:',d,' x ',e, ' x ' ,f
 
-		!
-		num_integral	=	0.0_dp
+
+
+	real(dp) function num_3D_gauss(xmax)
+		real(dp),	intent(in)		::	xmax
+		integer						::	kix, kiy, kiz, ki_idx, n_ki, mp_grid(3)
+		real(dp)					::	abs_kpt(3), rel_kpt(3), norm, dx, recip_latt(3,3), bz_vol, sigma
+		character(len=120)			::	msg
+
+		mp_grid	= get_mp_grid()
+		num_3D_gauss	=	0.0_dp
 		n_ki			=	0
+		!
+		!
+		recip_latt	=	get_recip_latt()
+		!write(msg,*)	"[num_3D_gauss]: recip_latt bx=",recip_latt(1,:)
+		!call push_to_outFile(msg)
+		!write(msg,*)	"[num_3D_gauss]: recip_latt by=",recip_latt(2,:)
+		!call push_to_outFile(msg)
+		!write(msg,*)	"[num_3D_gauss]: recip_latt bz=",recip_latt(3,:)
+		!call push_to_outFile(msg)
+
+		sigma	=	abs(	recip_latt(1,1)		/	3.0_dp		)
+
+		bz_vol	=	get_bz_vol()
+		write(msg,*)	"[num_3D_gauss]:  bz vol=",bz_vol
+		call push_to_outFile(msg)
+		!
 		do kiz	= 1, mp_grid(3)
 			do kiy = 1, mp_grid(2)
 				do kix = 1, mp_grid(1)
 					n_ki	= n_ki	+ 1
 					ki_idx	= get_rel_kpt(kix, kiy, kiz, rel_kpt)
 					!
-					abs_kpt(1)	= rel_kpt(1) * d * 2.0_dp 
-					abs_kpt(2)	= rel_kpt(2) * e * 2.0_dp
-					abs_kpt(3)	= rel_kpt(3) * f * 2.0_dp
+
+					abs_kpt(:)	= matmul(recip_latt,	rel_kpt)
+					
 					!
+					!if(n_ki == 1  )	then
+					!	write(msg,*)	'num_3D_gauss abs_kpt(1st)=',abs_kpt
+					!	call push_to_outFile(msg)
+					!else if( n_ki == mp_grid(1)*mp_grid(2)*mp_grid(3)) then
+					!	write(msg,*)	'num_3D_gauss abs_kpt(last)=',abs_kpt
+					!	call push_to_outFile(msg)
+					!end if
+
 					!write(*,*)	"num_int abs_kpt: ",abs_kpt
-					num_integral	= num_integral + f_test(a,b,c, abs_kpt)
+					num_3D_gauss	= num_3D_gauss + 	exp( 	-0.5_dp * norm2(abs_kpt)**2 ) 	/	sqrt(2.0_dp*pi_dp)**3
 				end do
 			end do
 		end do
 		!
-		write(*,*)	'[num_integral] raw integral sum=', num_integral
-		call normalize_k_int(num_integral)
-		write(*,*)	'[num_integral] normalized integral=', num_integral
+		write(msg,*)	'[num_3D_gauss] raw integral sum=', num_3D_gauss
+		call push_to_outFile(msg)
+		call normalize_k_int(num_3D_gauss)
+		write(*,*)	'[num_3D_gauss] normalized integral=', num_3D_gauss
+		call push_to_outFile(msg)
 		!
 		return
 	end function
