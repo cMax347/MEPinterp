@@ -15,8 +15,7 @@ module wann_interp
 	!	was used
 	use constants,		only:		dp, fp_acc, i_dp	
 	use matrix_math,	only:		zheevd_wrapper, 					&
-									matrix_comm, uni_gauge_trafo,		&
-									convert_tens_to_vect
+									matrix_comm, uni_gauge_trafo
 	use input_paras,	only:		kubo_tol
 
 
@@ -36,16 +35,16 @@ module wann_interp
 
 
 !public:
-	subroutine get_wann_interp(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_ka  )
+	subroutine get_wann_interp(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_kab  )
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	& 
 																	R_frac(:,:), kpt_rel(3)	
 		real(dp),						intent(out)				::	e_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		
-		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:), Om_kab(:,:,:,:), D_ka(:,:,:)
+		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:),  D_ka(:,:,:)
 
 		!
 		!
@@ -54,10 +53,7 @@ module wann_interp
 			allocate(	H_ka(	3,size(H_real,1),size(H_real,2)	 )		)
 			!
 			!
-			if(	allocated(r_real)	) then
-				allocate(	Om_kab(	3, 3, 	size(r_real,2), size(r_real,3) 	))
-				allocate(	D_ka(		3,	size(r_real,2),	size(r_real,3)	))
-			end if
+			if(	allocated(r_real)	) 	allocate(		D_ka(		3,	size(r_real,2),	size(r_real,3)	))
 		end if
 		!
 		!
@@ -81,8 +77,6 @@ module wann_interp
 				!
 				call conn_gaugeTrafo(D_ka, A_ka)
 				call curv_gaugeTrafo(D_ka, A_ka, Om_kab)
-				!curv tens to vectors
-				call convert_tens_to_vect(Om_kab, Om_ka)
 			end if
 		end if
 		!
@@ -195,7 +189,7 @@ module wann_interp
 		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
 		complex(dp),					intent(out)		::		V_k(:,:,:)
 		complex(dp)										::		eDiff
-		integer											::		a, m, n
+		integer											::		m, n
 		!
 		V_k		=	H_ka
 		!
@@ -260,7 +254,6 @@ module wann_interp
 		!		C :- 
 		complex(dp),		intent(in)		::	D_ka(:,:,:)
 		complex(dp),		intent(inout)	::	A_ka(:,:,:)
-		integer								::	a
 		!
 		!
 		!do a = 1, 3
