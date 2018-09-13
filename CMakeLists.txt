@@ -21,8 +21,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/archive)
 #for LINUX use intel compiler with performance options
 if (UNIX AND NOT APPLE)
   message("detected unix will assume intel compiler")
-  set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
-  set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
+  set(CMAKE_Fortran_FLAGS "-mkl -O3 -qopenmp")
+  set(COVERAGE_LINK_FLAGS "-mkl -O3 -qopenmp")
     #do something
 endif (UNIX AND NOT APPLE)
 
