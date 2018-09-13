@@ -3,7 +3,9 @@ module file_io
 	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv, &
 													mpi_id, mpi_root_id, mpi_nProcs
 	use input_paras,					only:		my_mkdir,							&												
-													w90_dir, out_dir, raw_dir, 			&
+													w90_dir, 							&
+													out_dir, mep_out_dir, ahc_out_dir,	&
+													raw_dir, 							&
 													a_latt, 							&
 													plot_bands										
 
@@ -14,7 +16,8 @@ module file_io
 													read_kptsgen_pl_file,				&
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
-													write_mep_tensors
+													write_mep_tensors,					&
+													write_ahc_tensor
 
 	character(len=64)						::		format='(a,i7.7)'
 	integer									::		num_bands
@@ -222,36 +225,56 @@ module file_io
 		real(dp)							::	mep_tens(3,3)
 		character(len=12)					::	fname
 		character(len=50)					::	info_string
+		character(len=3)					::	id_string
 		!
-		call my_mkdir(out_dir)
+		call my_mkdir(mep_out_dir)
+		id_string	=	'mep'
 		!-------------------------------------itinerant contribution MEP tensor-------------
-		fname		= 'mep_ic.dat'
-		info_string	= '# itinerant contribution of mep tensor'
+		fname		= 	'mep_ic.dat'
+		info_string	= 	'# itinerant contribution of mep tensor'
 		!
-		call	write_mep_file(fname,	mep_ic,	info_string )
+		call	write_tens_file(mep_out_dir,	fname,	mep_ic,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------local contribution MEP tensor-----------------
-		fname		= 'mep_lc.dat'
-		info_string	= '# local contribution of mep tensor'
+		fname		= 	'mep_lc.dat'
+		info_string	= 	'# local contribution of mep tensor'
 		!
-		call	write_mep_file(fname,	mep_lc,	info_string )
+		call	write_tens_file(mep_out_dir,	fname,	mep_lc,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------Chern-Simons term MEP tensor------------------
-		fname		= 'mep_cs.dat'
-		info_string	= '# Chern-Simons term of mep tensor'
+		fname		= 	'mep_cs.dat'
+		info_string	= 	'# Chern-Simons term of mep tensor'
 		!
-		call	write_mep_file(fname,	mep_cs,	info_string )
+		call	write_tens_file(mep_out_dir,	fname,	mep_cs,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------total MEP tensor------------------------------
-		fname		= 'mep_tens.dat'
-		info_string	= '# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)'
+		fname		= 	'mep_tens.dat'
+		info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)'
 		!
-		mep_tens	= mep_ic +	mep_lc	+	mep_cs
-		call	write_mep_file(fname,	mep_tens,	info_string )
+		mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
+		call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
 		!-----------------------------------------------------------------------------------
+		!
+		return
+	end subroutine
+
+
+	subroutine write_ahc_tensor(ahc_tens)
+		real(dp),		intent(in)		::	ahc_tens(3,3)
+		character(len=12)					::	fname
+		character(len=50)					::	info_string
+		character(len=3)					::	id_string
+		!
+		call my_mkdir(ahc_out_dir)
+		!
+		fname		=	'ahc_tens.dat'
+		info_string	=	'# anomalous Hall conductivity tensor'
+		id_string	=	'ahc'
+		!
+		call	write_tens_file(ahc_out_dir,	fname,	ahc_tens,	info_string,	id_string)
 		!
 		return
 	end subroutine
@@ -259,18 +282,18 @@ module file_io
 
 
 !private write
-	subroutine write_mep_file(fname,mep_tens, info_string)
-		character(len=*), 	intent(in)		::	fname, info_string
-		real(dp),			intent(in)		::	mep_tens(3,3)
+	subroutine write_tens_file(dir, fname,tens, info_string, id_string)
+		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
+		real(dp),			intent(in)		::	tens(3,3)
 		integer								::	row, clm		!
 		!write result to file
-		open(unit=250, file=out_dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
+		open(unit=250, file=dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
 			write(250,*)	info_string
-			write(250,*)	'begin mep'
+			write(250,*)	'begin '//id_string
 			do row = 1, 3
-				write(250,'(200(f16.8,a))')		(		mep_tens(row,clm), ' ', clm=1,3)
+				write(250,'(200(f16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
 			end do
-			write(250,*)	'end mep'
+			write(250,*)	'end '//id_string
 		close(250)
 		write(*,'(a,i3,a)')	"[#",mpi_id,"; write_mep_tensor]: success!"
 		!
