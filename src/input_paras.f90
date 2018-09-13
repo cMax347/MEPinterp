@@ -16,12 +16,15 @@ module input_paras
 												!routines		
 												init_parameters, 	my_mkdir,						 		 		&
 												!dirs
-												w90_dir, out_dir, raw_dir,											&
+												w90_dir, 															&
+												raw_dir,															&
+												out_dir,	mep_out_dir, ahc_out_dir, 	kubo_out_dir,				&
 												!jobs
 												plot_bands,															&
 												!vars
 												seed_name,	valence_bands,											&
-												a_latt, kubo_tol
+												a_latt, kubo_tol, unit_vol,											&
+												eFermi, T_kelvin
 
 
 
@@ -31,11 +34,15 @@ module input_paras
 	
 	integer						::	valence_bands
 	character(len=3)			:: 	seed_name
-	character(len=4)			::	out_dir ="out/"					
+	character(len=4)			::	out_dir	="out/"
+	character(len=4)			::	mep_out_dir ="mep/"	
+	character(len=4)			::	ahc_out_dir	="ahc/"
+	character(len=5)			::	kubo_out_dir ="kubo/"				
 	character(len=9)			::	w90_dir	="w90files/"
 	character(len=4)			::	raw_dir ="raw/"
 	logical						::	plot_bands
-	real(dp)					::	a_latt(3,3), a0
+	real(dp)					::	a_latt(3,3), a0, unit_vol
+	real(dp)					::	eFermi, T_kelvin
 	real(dp),		parameter	::	kubo_tol		= 1e-3_dp
 
 
@@ -65,21 +72,26 @@ module input_paras
 				call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"	)
 				!READ SCALARS
 				![unitCell]
-				call CFG_add_get(my_cfg,	"unitCell%a1"      				,	a1(1:3)  	  	,	"a_x lattice vector"				)
-				call CFG_add_get(my_cfg,	"unitCell%a2"      				,	a2(1:3)  	  	,	"a_y lattice vector"				)
-				call CFG_add_get(my_cfg,	"unitCell%a3"      				,	a3(1:3)  	  	,	"a_z lattice vector"				)
+				call CFG_add_get(my_cfg,	"unitCell%a1"      				,	a1(1:3)  	  		,	"a_x lattice vector"				)
+				call CFG_add_get(my_cfg,	"unitCell%a2"      				,	a2(1:3)  	  		,	"a_y lattice vector"				)
+				call CFG_add_get(my_cfg,	"unitCell%a3"      				,	a3(1:3)  	  		,	"a_z lattice vector"				)
 				call CFG_add_get(my_cfg,	"unitCell%a0"					,	a0					,	"lattice scaling factor "			)
 				!
 				a_latt(1,1:3)	= a1(1:3)
 				a_latt(2,1:3)	= a2(1:3)
 				a_latt(3,1:3)	= a3(1:3)
-				a_latt		=	a0 * a_latt
+				a_latt			=	a0 * a_latt
 				![wannInterp]
 				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
-				call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files			")
+				call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files"			)
 				![mep]
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
+				![Fermi]
+				call CFG_add_get(my_cfg,	"Fermi%eFermi"					,	eFermi				,	"set the Fermi energy"				)
+				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
 
+
+				!
 				write(*,*)					"**********************init_parameters********************************************"
 				write(*,*)					"parallelization with ",mpi_nProcs," MPI threads"
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
@@ -113,7 +125,12 @@ module input_paras
 			call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+			call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+			call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			!
+			!UNIT CELL VOLUME
+			unit_vol	=	dot_product(	crossP(a_latt(1,:), a_latt(2,:))	,	a_latt(3,:)		)
+
 			!SETUP K-SPACE
 			call set_recip_latt(a_latt)
 			call set_mp_grid(mp_grid)
