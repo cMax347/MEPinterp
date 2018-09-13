@@ -324,8 +324,8 @@ module matrix_math
     pure subroutine real_tens_to_vect(tens, vect)
         !   converts om_tens to a vector by applying Levi Cevita Tensor
         !   see PRB 74, 195118 (2006)   Eq.(5)
-        real(dp),           intent(in)      ::  tens(:,:,:,:)
-        real(dp),           intent(out)     ::  vect(:,:,:)
+        real(dp),           intent(in)      ::  tens(3,3)
+        real(dp),           intent(out)     ::  vect(3)
         integer                             ::  a, b, c
         !
         vect =  0.0_dp
@@ -333,7 +333,7 @@ module matrix_math
             !
             do b = 1, 3
                 do a = 1,3
-                    vect(c,:,:) = vect(c,:,:) + real(my_Levi_Civita(a,b,c),dp) * tens(a,b,:,:)
+                    vect(c) = vect(c) + real(my_Levi_Civita(a,b,c),dp) * tens(a,b)
                 end do
             end do
             !
@@ -344,8 +344,8 @@ module matrix_math
     pure subroutine cplx_tens_to_vect(tens, vect)
         !   converts om_tens to a vector by applying Levi Cevita Tensor
         !   see PRB 74, 195118 (2006)   Eq.(5)
-        complex(dp),        intent(in)      ::  tens(:,:,:,:)
-        complex(dp),        intent(out)     ::  vect(:,:,:)
+        complex(dp),        intent(in)      ::  tens(3,3)
+        complex(dp),        intent(out)     ::  vect(3)
         integer                             ::  a, b, c
         !
         vect =   cmplx(0.0_dp,0.0_dp, dp)
@@ -353,7 +353,7 @@ module matrix_math
             !
             do b = 1, 3
                 do a = 1,3
-                    vect(c,:,:) = vect(c,:,:) + real(my_Levi_Civita(a,b,c),dp) * tens(a,b,:,:)
+                    vect(c) = vect(c) + real(my_Levi_Civita(a,b,c),dp) * tens(a,b)
                 end do
             end do
             !
