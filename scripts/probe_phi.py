@@ -208,7 +208,7 @@ def unit_test(n_phi, val_bands, mp_grid,mpi_np=1,	use_interp_kpt='F', do_gauge_t
 
 
 
-unit_test(n_phi=3, val_bands=2, mp_grid=[32,32,32], mpi_np=4, plot_bands=True	)
+unit_test(n_phi=11, val_bands=2, mp_grid=[128,128,128], mpi_np=4, plot_bands=True	)
 
 
 
