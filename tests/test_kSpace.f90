@@ -186,7 +186,7 @@ contains
 		write(msg,*)	"[test_k_mesh_int]: recip_latt bz=",recip_latt(3,:)
 		call push_to_outFile(msg)
 		
-		int_ana			=	ana_integral()	
+		int_ana			=	1.0_dp	
 		write(msg,*)	"[test_k_mesh_int]: analytic integral:	",int_ana
 		call push_to_outFile(msg)
 		!
@@ -198,7 +198,7 @@ contains
 			call set_mp_grid(mp_grid)
 			!
 			!	do numerical integration
-			int_num	=	num_3D_gauss(recip_latt(1,1))
+			int_num	=	num_3D_gauss()
 			!
 			!	compare to analytic solution
 			if( abs(int_ana-int_num)	< precision	.and. .not. test_k_mesh_int)	then 
@@ -229,27 +229,12 @@ contains
 
 
 
-	real(dp) function ana_integral()
-		!	a x^2    b y^4     c z**2    {  {x,-d,d},{y,-e,e},{z,-f,f}	}  
-		!	WOLFRRAM ALPHA:
-		!	'integrate[(a*x**2) * (b*y**4) * (c*z**4),{x,-d,+d},{y,-e,e},{z,-f,+f}]'		
-		!real(dp),	intent(in)				::	a, b, c, d, e, f
-		!
-		!write(*,*)	'[ana_integral] int box:',d,' x ',e, ' x ' ,f
-		ana_integral	= 	1.0_dp
-		!
-		return
-	end function
 
 
 
-
-
-
-	real(dp) function num_3D_gauss(xmax)
-		real(dp),	intent(in)		::	xmax
+	real(dp) function num_3D_gauss()
 		integer						::	kix, kiy, kiz, ki_idx, n_ki, mp_grid(3)
-		real(dp)					::	abs_kpt(3), rel_kpt(3), norm, dx, recip_latt(3,3), bz_vol, sigma
+		real(dp)					::	abs_kpt(3), rel_kpt(3), recip_latt(3,3), bz_vol, sigma
 		character(len=120)			::	msg
 
 		mp_grid	= get_mp_grid()
@@ -258,15 +243,7 @@ contains
 		!
 		!
 		recip_latt	=	get_recip_latt()
-		!write(msg,*)	"[num_3D_gauss]: recip_latt bx=",recip_latt(1,:)
-		!call push_to_outFile(msg)
-		!write(msg,*)	"[num_3D_gauss]: recip_latt by=",recip_latt(2,:)
-		!call push_to_outFile(msg)
-		!write(msg,*)	"[num_3D_gauss]: recip_latt bz=",recip_latt(3,:)
-		!call push_to_outFile(msg)
-
 		sigma	=	abs(	recip_latt(1,1)		/	3.0_dp		)
-
 		bz_vol	=	get_bz_vol()
 		write(msg,*)	"[num_3D_gauss]:  bz vol=",bz_vol
 		call push_to_outFile(msg)
@@ -274,22 +251,12 @@ contains
 		do kiz	= 1, mp_grid(3)
 			do kiy = 1, mp_grid(2)
 				do kix = 1, mp_grid(1)
+					!get kpt
 					n_ki	= n_ki	+ 1
 					ki_idx	= get_rel_kpt(kix, kiy, kiz, rel_kpt)
-					!
-
 					abs_kpt(:)	= matmul(recip_latt,	rel_kpt)
-					
 					!
-					!if(n_ki == 1  )	then
-					!	write(msg,*)	'num_3D_gauss abs_kpt(1st)=',abs_kpt
-					!	call push_to_outFile(msg)
-					!else if( n_ki == mp_grid(1)*mp_grid(2)*mp_grid(3)) then
-					!	write(msg,*)	'num_3D_gauss abs_kpt(last)=',abs_kpt
-					!	call push_to_outFile(msg)
-					!end if
-
-					!write(*,*)	"num_int abs_kpt: ",abs_kpt
+					!get f(kpt)
 					num_3D_gauss	= num_3D_gauss + 	exp( 	-0.5_dp * norm2(abs_kpt)**2 ) 	/	sqrt(2.0_dp*pi_dp)**3
 				end do
 			end do
