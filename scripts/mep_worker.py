@@ -94,16 +94,16 @@ class MEP_worker:
 
 	def get_mep_tens(self):
 		#TOTAL
-		mep_file_path	= self.work_dir+'/out/mep_tens.dat'
+		mep_file_path	= self.work_dir+'/mep/mep_tens.dat'
 		mep_tens		= read_mep_file(mep_file_path)
 		#CHERN-SIMONS
-		mep_file_path	= self.work_dir+'/out/mep_cs.dat'
+		mep_file_path	= self.work_dir+'/mep/mep_cs.dat'
 		mep_cs			= read_mep_file(mep_file_path)
 		#LOCAL
-		mep_file_path	= self.work_dir+'/out/mep_lc.dat'
+		mep_file_path	= self.work_dir+'/mep/mep_lc.dat'
 		mep_lc		= read_mep_file(mep_file_path)
 		#ITINERANT
-		mep_file_path	= self.work_dir+'/out/mep_ic.dat'
+		mep_file_path	= self.work_dir+'/mep/mep_ic.dat'
 		mep_ic		= read_mep_file(mep_file_path)
 
 

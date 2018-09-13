@@ -50,7 +50,7 @@ class Phi_probe:
 	def iterate_phi(self,mpi_np=1, plot_bands=False):
 		for phi  in np.linspace(0.0, 2.0, num = self.n_phi):		#iterate over relative phi (phi_rel = phi / np.pi)
 			work_dir =	self.root_dir+'/phi'+str(phi)		
-			phi_pi	 = 	phi*np.pi 
+			phi_pi	 = 	phi
 			#init current job
 			worker = MEP_worker(	self.root_dir, 
 									work_dir, 

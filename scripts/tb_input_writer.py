@@ -21,7 +21,10 @@ seed_name		= 'wf1'
 
 def convert_phase_to_complex(phi):
 	#computes e^{i*phi}
-	tmp = np.exp(	1j * np.pi * phi)
+	tmp = []
+	for angle in phi:
+		tmp.append(	np.exp(	1j * np.pi * angle)		)
+
 	return tmp
 
 
@@ -242,6 +245,12 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		#
 		outfile.write('[MEP]\n')
 		outfile.write('    '	+	'valence_bands= '	+	str(valence_bands)	+	'\n')
+		#
+		#
+		outfile.write('[Fermi]\n')
+		outfile.write('    '	+	'eFermi= '	+	str(0.0)	+	'\n')
+		outfile.write('    '	+	'Tkelvin= '	+	str(300.0)	+	'\n')
+
 
 		print('wrote '+file_path+'input.txt')
 
@@ -292,10 +301,10 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 		valence_bands = nAt
 
 	#----------------------TB PARAMETERS---------------------------------------------------------------------------------------
-	onsite	= np.array(		[-6.5, 0.9, 1.4, 1.2, -6.0, 1.5, 0.8, 1.2]			)
-	phi_x	= np.array(		[phi_para, 	1.3, 0.8, 0.3, 1.4, 0.6, 0.8, 1.9]		)
-	phi_y	= np.array(		[	0.5,	0.2, 1.4, 1.9, 0.8, 1.7, 0.6, 0.3]		)
-	phi_z	= np.array(		[	1.7,	0.5, 0.6, 1.0, 0.3, 0.7, 1.2, 1.4]		)
+	onsite	=	np.array(	[-6.5, 0.9, 1.4, 1.2, -6.0, 1.5, 0.8, 1.2]			)
+	phi_x	=	np.array(	[phi_para, 	1.3, 0.8, 0.3, 1.4, 0.6, 0.8, 1.9]		)
+	phi_y	=	np.array(	[	0.5,	0.2, 1.4, 1.9, 0.8, 1.7, 0.6, 0.3]		)
+	phi_z	=	np.array(	[	1.7,	0.5, 0.6, 1.0, 0.3, 0.7, 1.2, 1.4]		)
 
 
 
@@ -304,17 +313,18 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 	phi_x	= convert_phase_to_complex(phi_x)
 	phi_y	= convert_phase_to_complex(phi_y)
 	phi_z	= convert_phase_to_complex(phi_z)
-	onsite	= onsite	* au_to_eV
-	phi_x	= phi_x		* au_to_eV
-	phi_y	= phi_y		* au_to_eV
-	phi_z	= phi_z		* au_to_eV
+	
+
+
 	#
 	phi		= []
 	phi.append(phi_x)
 	phi.append(phi_y)
 	phi.append(phi_z)
 
-
+	onsite	= onsite	#* au_to_eV
+	print('hoppings (phi='+str(phi_para)+'):	')
+	print(phi)
 	#get the lists
 	nrpts, thopp, R_nn_list = get_hopp_list(nAt, rel_atom_pos, onsite, phi)
 	rhopp	= get_pos_list(nAt, rel_atom_pos, a_latt, R_nn_list)

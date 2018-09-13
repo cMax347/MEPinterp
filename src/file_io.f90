@@ -295,7 +295,7 @@ module file_io
 			end do
 			write(250,*)	'end '//id_string
 		close(250)
-		write(*,'(a,i3,a)')	"[#",mpi_id,"; write_mep_tensor]: success!"
+		write(*,'(a,i3,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: success!"
 		!
 		!
 		return
