@@ -22,7 +22,7 @@ contains
 		real(dp)							::	recip_latt(3,3)
 		integer								::	num_kpts, ki, k_per_mpi
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
-												A_ka(:,:,:), Om_ka(:,:,:),				&
+												A_ka(:,:,:), Om_kab(:,:,:,:),				&
 												V_ka(:,:,:)
 		!
 		if( read_kptsgen_pl_file(rel_kpts)	) then
@@ -36,14 +36,14 @@ contains
 			allocate(	en_k(						size(H_tb,2)	)	)
 			allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
 			if(	allocated(r_tb)	)	then	
-				allocate(	A_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
-				allocate(	Om_ka(	3,	size(r_tb,2),	size(r_tb,3)	)	)
+				allocate(	A_ka(	3,		size(r_tb,2),	size(r_tb,3)	)	)
+				allocate(	Om_kab(	3,3,	size(r_tb,2),	size(r_tb,3)	)	)
 				!write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
 			end if
 			!
 			!	do the work
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
-				call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_ka )
+				call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_kab )
 				call write_en_binary(ki,en_k)
 				k_per_mpi	= k_per_mpi + 1
 			end do
