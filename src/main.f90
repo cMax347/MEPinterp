@@ -3,7 +3,7 @@ program MEPinterp
 	use constants,				only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,			only:		init_parameters,	&
 											plot_bands
-	use mep_niu,				only:		mep_worker
+	use berry,					only:		berry_worker
 	use band_calc,				only:		band_worker
 	implicit none
 	!
@@ -19,7 +19,7 @@ program MEPinterp
 		if(	plot_bands	) then
 			call band_worker()
 		else
-			call mep_worker()			
+			call berry_worker()			
 		end if
 	else
 		write(*,*)	'[#',mpi_id,': main]: input file not found, by'
