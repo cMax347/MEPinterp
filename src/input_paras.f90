@@ -129,8 +129,11 @@ module input_paras
 			call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			!
 			!UNIT CELL VOLUME
-			unit_vol	=	dot_product(	crossP(a_latt(1,:), a_latt(2,:))	,	a_latt(3,:)		)
-
+			a1			=	a_latt(1,:)
+			a2			=	a_latt(2,:)
+			a3			=	a_latt(3,:)
+			unit_vol	=	dot_product(	crossP(a1, a2)	,	a3		)
+			!
 			!SETUP K-SPACE
 			call set_recip_latt(a_latt)
 			call set_mp_grid(mp_grid)
