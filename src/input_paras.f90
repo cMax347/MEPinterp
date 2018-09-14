@@ -18,13 +18,13 @@ module input_paras
 												!dirs
 												w90_dir, 															&
 												raw_dir,															&
-												out_dir,	mep_out_dir, ahc_out_dir, 	kubo_out_dir,				&
+												out_dir,	mep_out_dir, ahc_out_dir, 	opt_out_dir,				&
 												!jobs
 												plot_bands,															&
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
-												eFermi, T_kelvin
+												hw, eFermi, T_kelvin
 
 
 
@@ -37,12 +37,12 @@ module input_paras
 	character(len=4)			::	out_dir	="out/"
 	character(len=4)			::	mep_out_dir ="mep/"	
 	character(len=4)			::	ahc_out_dir	="ahc/"
-	character(len=5)			::	kubo_out_dir ="kubo/"				
+	character(len=5)			::	opt_out_dir ="opt/"				
 	character(len=9)			::	w90_dir	="w90files/"
 	character(len=4)			::	raw_dir ="raw/"
 	logical						::	plot_bands
 	real(dp)					::	a_latt(3,3), a0, unit_vol
-	real(dp)					::	eFermi, T_kelvin
+	real(dp)					::	hw, eFermi, T_kelvin
 	real(dp),		parameter	::	kubo_tol		= 1e-3_dp
 
 
@@ -87,6 +87,7 @@ module input_paras
 				![mep]
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
 				![Fermi]
+				call CFG_add_get(my_cfg,	"Fermi%hw"						,	hw					,	"energy of incoming light"			)
 				call CFG_add_get(my_cfg,	"Fermi%eFermi"					,	eFermi				,	"set the Fermi energy"				)
 				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
 
@@ -125,6 +126,8 @@ module input_paras
 			call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+			![FERMI]
+			call MPI_BCAST(		hw				,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			!
