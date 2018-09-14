@@ -4,7 +4,10 @@ module file_io
 													mpi_id, mpi_root_id, mpi_nProcs
 	use input_paras,					only:		my_mkdir,							&												
 													w90_dir, 							&
-													out_dir, mep_out_dir, ahc_out_dir,	&
+													out_dir,							& 
+													mep_out_dir,						&
+													ahc_out_dir,						&
+													opt_out_dir,						&
 													raw_dir, 							&
 													a_latt, 							&
 													plot_bands										
@@ -17,7 +20,18 @@ module file_io
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
 													write_mep_tensors,					&
-													write_ahc_tensor
+													write_ahc_tensor,					&
+													write_opt_tensors
+
+
+
+
+	interface write_tens_file
+		module procedure d_write_tens_file
+		module procedure z_write_tens_file
+	end interface write_tens_file
+
+
 
 	character(len=64)						::		format='(a,i7.7)'
 	integer									::		num_bands
@@ -280,9 +294,33 @@ module file_io
 	end subroutine
 
 
+	subroutine write_opt_tensors(s_symm, a_symm)
+		complex(dp),		intent(in)		::	s_symm(3,3),	a_symm(3,3)
+		character(len=13)					::	fname
+		character(len=50)					::	info_string
+		character(len=4)					::	id_string
+		!
+		call my_mkdir(opt_out_dir)
+		!
+		fname		=	'opt_Ssymm.dat'
+		info_string	=	'# symmetric optical conductivity tensor'
+		id_string	=	'optS'
+		call 	write_tens_file(opt_out_dir,	fname,	s_symm,	info_string,	id_string)
+		!
+		fname		=	'opt_Asymm.dat'
+		info_string	=	'# asymmetric optical conductivity tensor'
+		id_string	=	'optA'
+		call 	write_tens_file(opt_out_dir,	fname,	a_symm,	info_string,	id_string)
+		!
+		return
+	end subroutine	
+
+
 
 !private write
-	subroutine write_tens_file(dir, fname,tens, info_string, id_string)
+
+
+	subroutine d_write_tens_file(dir, fname,tens, info_string, id_string)
 		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
 		real(dp),			intent(in)		::	tens(3,3)
 		integer								::	row, clm		!
@@ -301,6 +339,25 @@ module file_io
 		return
 	end subroutine
 
+
+	subroutine z_write_tens_file(dir, fname,tens, info_string, id_string)
+		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
+		complex(dp),		intent(in)		::	tens(3,3)
+		integer								::	row, clm		!
+		!write result to file
+		open(unit=255, file=dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
+			write(255,*)	info_string
+			write(255,*)	'begin '//id_string
+			do row = 1, 3
+				write(255,'(200(f16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
+			end do
+			write(255,*)	'end '//id_string
+		close(255)
+		write(*,'(a,i3,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: success!"
+		!
+		!
+		return
+	end subroutine
 
 
 
