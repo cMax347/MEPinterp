@@ -199,9 +199,14 @@ def unit_test(n_phi, val_bands, mp_grid,mpi_np=1,	use_interp_kpt='F', do_gauge_t
 	#
 	myTest.iterate_phi(plot_bands=plot_bands, mpi_np=mpi_np)
 	myTest.print_results_container()
-	
-	myTest.plot_mep_over_phi(label_size=14, xtick_size=12, ytick_size=12)
-
+	try:
+		myTest.plot_mep_over_phi(label_size=14, xtick_size=12, ytick_size=12)
+	except:
+		print("plotting failed. Please try plotting with plot_probe_phi.py")
+	finally:
+		print('')
+		print('')
+		print('all done by')
 
 
 
