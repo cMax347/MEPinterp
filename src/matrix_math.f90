@@ -430,12 +430,12 @@ module matrix_math
 
 
     function d_blas_matmul(A, B) result(C)
-        real(dp),        allocatable     ::  C(:,:)
-        real(dp),        intent(in)      ::  A(:,:), B(:,:)
+        real(dp),          allocatable      ::  C(:,:)
+        real(dp),        intent(in)         ::  A(:,:), B(:,:)
         !
         character(len=1)                    ::  transa, transb
         integer                             ::  m, n, k, lda, ldb, ldc
-        real(dp)                             ::  alpha, beta
+        real(dp)                            ::  alpha, beta
         !
         m       =   size(A,1)
         n       =   size(B,2)
@@ -450,8 +450,6 @@ module matrix_math
         transb  = 'n'
         alpha   =  1.0_dp   
         beta    = 0.0_dp
-        !
-        C      = 0.0_dp
         !
         call dgemm(transa, transb, m, n, k, alpha, A(1,1), lda, B(1,1), ldb, beta, C(1,1), ldc)
     end function
@@ -475,15 +473,13 @@ module matrix_math
         ldc     =   m
         !
         if( k /= ldb)   stop  '[z_blas_matmul]:   warning matrix size do not match correctly'  
-
+        !
         allocate(   C(m,n)     )
         !
         transa  = 'n'
         transb  = 'n'
         alpha   = cmplx(   1.0_dp   ,   0.0_dp  ,   dp)
         beta    = cmplx(   0.0_dp   ,   0.0_dp  ,   dp)
-        !
-        C       = cmplx(   0.0_dp   ,   0.0_dp  ,   dp)
         !
         call zgemm(transa, transb, m, n, k, alpha,   A(1,1)    , lda,  B(1,1)    , ldb, beta,    C(1,1)      , ldc)
         !C = matmul(A,B)
