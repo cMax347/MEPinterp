@@ -67,6 +67,6 @@ def do_band_calc(phi, val_bands):
 
 
 
-do_band_calc(0.0,2)
+do_band_calc(phi=0.0,val_bands=2)
 
 

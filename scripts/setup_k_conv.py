@@ -31,9 +31,7 @@ class conv_run:
 		os.mkdir(self.root_dir)
 
 
-	def add_jobs(self, phi, val_bands, mp_dens_per_dim):
-		const_False = 'F'	#must not be changed, breaks the k-mesh variation
-
+	def add_jobs(self, phi, val_bands, mp_dens_per_dim, hw, eFermi, Tkelvin, eta_smearing):
 		for n_mp in mp_dens_per_dim:
 			nK 		=	n_mp**3
 			mp_grid	=	[n_mp, n_mp, n_mp]
@@ -41,7 +39,7 @@ class conv_run:
 			work_dir= self.root_dir+'/nK'+str(nK)
 			self.work_dirs.append(work_dir)
 
-			job = MEP_worker(self.root_dir, work_dir, phi, val_bands, mp_grid, use_interp_kpt=const_False, do_gauge_trafo='T'	)
+			job = MEP_worker(self.root_dir, work_dir, phi, val_bands, mp_grid, hw, eFermi, Tkelvin, eta_smearing	)
 			self.jobs.append( 	job	)
 
 
@@ -57,19 +55,19 @@ class conv_run:
 
 
 
-def test():
+def test(hw, eFermi, Tkelvin, eta_smearing):
 	root_dir	=	os.getcwd()+'/'+datetime.date.today().strftime("%d%B%Y")+'_k_conv_run_TEST'
 
 	test	= conv_run(root_dir)
 	mp_dens = [1, 2, 4, 8, 12, 16, 24, 32, 48, 64, 80 ,96, 128]
-	test.add_jobs(0.0, 2, mp_dens)
+	test.add_jobs(0.0, 2, mp_dens, hw, eFermi, Tkelvin, eta_smearing)
 
 	test.run_jobs(mpi_np=16)
 
 
 
 
-def run_cluster():
+def run_cluster(hw, eFermi, Tkelvin, eta_smearing):
 	root_dir		=	os.getcwd()+'/k_conv_cluster'
 
 
@@ -80,7 +78,7 @@ def run_cluster():
 	for phi in phi_lst:
 		cluster_calc 	= 	conv_run(root_dir+'_phi'+str(phi))
 		#
-		cluster_calc.add_jobs(phi,	val_bands,	mp_dens)
+		cluster_calc.add_jobs(phi,	val_bands,	mp_dens, hw, eFermi, Tkelvin, eta_smearing)
 		cluster_calc.run_jobs(mpi_np=16)
 
 
@@ -104,6 +102,13 @@ def run_cluster():
 #else:
 #	print("I dont know what I should do, so I do nothing instead")
 
-run_cluster()
+hw				= 	0.0
+eFermi			=	0.0	
+Tkelvin			=	0.0	
+eta_smearing	=	0.0
+
+
+
+run_cluster(hw,eFermi, Tkelvin, eta_smearing)
 
 

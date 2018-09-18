@@ -44,26 +44,40 @@ class Phi_probe:
 		self.phi_lc_data = []
 		self.phi_ic_data = []
 		#
+		for dirName, subdirList, fileList in os.walk(self.root_dir):
+			print("SUBDIRLIST="+str(subdirList))
+			if 'phi' in dirName and not 'bands' in dirName:
+				print('Found directory: %s' % dirName)
+				print("associated phi= "+dirName.split("phi")[1])
+
 		for phi  in np.linspace(0.0, 2.0, num = self.n_phi):		#iterate over relative phi (phi_rel = phi / np.pi)
 			work_dir =	self.root_dir+'/phi'+str(phi)		
 			phi_pi	 = 	phi
 			
-			mep_file_path	= work_dir+'/out/mep/mep_tens.dat'
+			mep_file_path	= work_dir+'/mep/mep_tens.dat'
 			mep_tens		= read_mep_file(mep_file_path)
 			#CHERN-SIMONS
-			mep_file_path	= work_dir+'/out/mep/mep_cs.dat'
+			mep_file_path	= work_dir+'/mep/mep_cs.dat'
 			mep_cs			= read_mep_file(mep_file_path)
 			#LOCAL
-			mep_file_path	= work_dir+'/out/mep/mep_lc.dat'
+			mep_file_path	= work_dir+'/mep/mep_lc.dat'
 			mep_lc		= read_mep_file(mep_file_path)
 			#ITINERANT
-			mep_file_path	= work_dir+'/out/mep/mep_ic.dat'
+			mep_file_path	= work_dir+'/mep/mep_ic.dat'
 			mep_ic		= read_mep_file(mep_file_path)
 
-			self.phi_tot_data.append(		[phi, mep_tens	]			)
-			self.phi_cs_data.append(		[phi, mep_cs	]			)
-			self.phi_lc_data.append(		[phi, mep_lc	]			)
-			self.phi_ic_data.append(		[phi, mep_ic	]			)
+			#only record if the container is not empty (i.e. the file was found and had good behaviour)
+			if len(mep_tens) is 3:
+				self.phi_tot_data.append(		[phi, mep_tens	]			)
+			else:
+				print("skip mep_tens for phi="+str(phi))
+				print("len(mep_tens)="+str(len(mep_tens)))
+			if len(mep_cs) is 3:
+				self.phi_cs_data.append(		[phi, mep_cs	]			)
+			if len(mep_lc) is 3:
+				self.phi_lc_data.append(		[phi, mep_lc	]			)
+			if len(mep_ic) is 3:
+				self.phi_ic_data.append(		[phi, mep_ic	]			)
 		#			
 		self.phi_tot_data 	= 	sorted(self.phi_tot_data)
 		self.phi_cs_data	=	sorted(self.phi_cs_data)

@@ -2,6 +2,7 @@ import numpy as np
 import datetime
 import os
 from	shutil import rmtree
+from postw90_in_writer import postw90_job
 
 
 au_to_eV 		= 27.21139
@@ -215,7 +216,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 
 
 
-def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name, use_interp_kpt='F', do_gauge_trafo='T',  plot_bands='F'):
+def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  plot_bands='F'):
 	with open(file_path+'input.txt','w') as outfile:
 		outfile.write('# input file for TB model from New J Physics 12, 053032 (2010)'+'\n')
 		outfile.write('# generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
@@ -247,13 +248,21 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		outfile.write('    '	+	'valence_bands= '	+	str(valence_bands)	+	'\n')
 		#
 		#
-		outfile.write('[Fermi]\n')
-		outfile.write('    '	+	'eFermi= '	+	str(0.0)	+	'\n')
-		outfile.write('    '	+	'Tkelvin= '	+	str(300.0)	+	'\n')
+		outfile.write('[Kubo]\n')
+		outfile.write('    '	+	'hw= '				+	str(hw)	+	'\n')
+		outfile.write('    '	+	'eFermi= '			+	str(eFermi)	+	'\n')
+		outfile.write('    '	+	'Tkelvin= '			+	str(Tkelvin)	+	'\n')
+		outfile.write('    '	+	'eta_smearing= '	+	str(eta_smearing)	+	'\n')
 
 
 		print('wrote '+file_path+'input.txt')
 
+
+
+def write_postw90_input(w90_dir, seed_name, val_bands, mp_grid, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0):
+	pw90_job 	=	postw90_job(w90_dir, seed_name, val_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing)
+	pw90_job.write_win_file()
+	#pw90_job.run()
 #
 #----------------------BODY------------------------------------------------------------------------------------------------
 
@@ -262,7 +271,7 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 
 
 
-def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_kpt='F', do_gauge_trafo='T', plot_bands='F'):
+def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid ,hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0, plot_bands='F'):
 	target_dir_name	= 'w90files'
 	target_path		= root_dir+'/'+target_dir_name
 
@@ -322,7 +331,8 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 	phi.append(phi_y)
 	phi.append(phi_z)
 
-	onsite	= onsite	#* au_to_eV
+	onsite	= onsite	* au_to_eV
+	phi 	= np.array(phi)	      * au_to_eV
 	print('hoppings (phi='+str(phi_para)+'):	')
 	print(phi)
 	#get the lists
@@ -337,7 +347,11 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid, use_interp_
 	write_hr_file(	target_path+'/'+seed_name,	nAt, nrpts, thopp )
 	write_r_file(	target_path+'/'+seed_name, 	nAt,		rhopp )
 
-	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name, use_interp_kpt, do_gauge_trafo, plot_bands)
+	# now write the input files for postw90 & mepInterp
+	write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
+
+
+	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name, hw,eFermi, Tkelvin,eta_smearing, plot_bands)
 
 
 def test():

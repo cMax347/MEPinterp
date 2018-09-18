@@ -10,12 +10,15 @@ import matplotlib.pyplot as plt
 
 class Phi_probe:
 
-	def __init__(self,n_phi, val_bands, mp_grid,	use_interp_kpt='F', do_gauge_trafo='T' ):
+	def __init__(self,n_phi, val_bands, mp_grid, hw, eFermi, Tkelvin, eta_smearing ):
 		self.n_phi 			= n_phi
 		self.val_bands		= val_bands
 		self.mp_grid		= mp_grid
-		self.use_interp_kpt	= use_interp_kpt
-		self.do_gauge_trafo	= do_gauge_trafo
+		self.hw				= hw 
+		self.eFermi			= eFermi 
+		self.Tkelvin		= Tkelvin 
+		self.eta_smearing	= eta_smearing 
+
 		#derived attributes
 		self.root_dir	= os.getcwd()+'/'+datetime.date.today().strftime("%d%B%Y")+'_mp'+str(self.mp_grid[0])+str(self.mp_grid[1])+str(self.mp_grid[2])
 		
@@ -57,8 +60,10 @@ class Phi_probe:
 									phi_pi, 						#give  phi_rel*pi to calculation
 									self.val_bands, 
 									self.mp_grid, 
-									self.use_interp_kpt, 
-									self.do_gauge_trafo
+									self.hw,
+									self.eFermi,
+									self.Tkelvin,
+									self.eta_smearing
 								)
 			#run calc 
 			worker.run(mpi_np=mpi_np)
@@ -194,8 +199,8 @@ class Phi_probe:
 
 
 
-def unit_test(n_phi, val_bands, mp_grid,mpi_np=1,	use_interp_kpt='F', do_gauge_trafo='T', plot_bands=False ):
-	myTest	= Phi_probe(n_phi, val_bands, mp_grid, use_interp_kpt, do_gauge_trafo)
+def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=False ):
+	myTest	= Phi_probe(n_phi, val_bands, mp_grid, hw, eFermi, Tkelvin, eta_smearing)
 	#
 	myTest.iterate_phi(plot_bands=plot_bands, mpi_np=mpi_np)
 	myTest.print_results_container()
@@ -206,14 +211,14 @@ def unit_test(n_phi, val_bands, mp_grid,mpi_np=1,	use_interp_kpt='F', do_gauge_t
 	finally:
 		print('')
 		print('')
-		print('all done by')
+		print('all done')
 
 
 
 
 
 
-unit_test(n_phi=11, val_bands=2, mp_grid=[128,128,128], mpi_np=4, plot_bands=True	)
+unit_test(n_phi=11, val_bands=2, mp_grid=[128,128,128], mpi_np=4, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=True	)
 
 
 

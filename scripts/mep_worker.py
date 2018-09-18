@@ -7,6 +7,7 @@ from shutil 			import 	copy
 from tb_input_writer 	import 	write_souza_tb_input
 from plot_bandStruct 	import	plot_bandstruct
 from fortran_io			import 	read_mep_file
+from fortran_io			import	read_tens_file
 
 
 
@@ -17,14 +18,16 @@ class MEP_worker:
 
 
 	#constructor
-	def __init__(self, root_dir, work_dir, phi, val_bands, mp_grid, use_interp_kpt='F', do_gauge_trafo='T'	):
+	def __init__(self, root_dir, work_dir, phi, val_bands, mp_grid,  hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0	):
 		self.root_dir		= root_dir
 		self.work_dir		= work_dir
 		self.phi			= phi
 		self.val_bands 		= val_bands 
 		self.mp_grid		= mp_grid
-		self.use_interp_kpt = use_interp_kpt
-		self.do_gauge_trafo	= do_gauge_trafo
+		self.hw				= hw	
+		self.eFermi			= eFermi
+		self.Tkelvin		= Tkelvin
+		self.eta_smearing	= eta_smearing		
 		#
 		self.success		= False
 		self.band_dir		= self.work_dir+'/bands'
@@ -41,7 +44,7 @@ class MEP_worker:
 			sys.exit('could not makedirs '+str(self.work_dir)	)
 
 		#prepare files in working directory
-		write_souza_tb_input(self.work_dir, self.phi, self.val_bands, self.mp_grid, self.use_interp_kpt, self.do_gauge_trafo, 'F' )
+		write_souza_tb_input(self.work_dir, self.phi, self.val_bands, self.mp_grid, self.hw, self.eFermi, self.Tkelvin, self.eta_smearing, plot_bands='F' )
 		copy(self.root_dir+'/../mepInterp',	self.work_dir)
 		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)
 
@@ -94,22 +97,37 @@ class MEP_worker:
 
 	def get_mep_tens(self):
 		#TOTAL
-		mep_file_path	= self.work_dir+'/mep/mep_tens.dat'
+		mep_file_path	= self.work_dir+'/out/mep/mep_tens.dat'
 		mep_tens		= read_mep_file(mep_file_path)
 		#CHERN-SIMONS
-		mep_file_path	= self.work_dir+'/mep/mep_cs.dat'
+		mep_file_path	= self.work_dir+'/out/mep/mep_cs.dat'
 		mep_cs			= read_mep_file(mep_file_path)
 		#LOCAL
-		mep_file_path	= self.work_dir+'/mep/mep_lc.dat'
-		mep_lc		= read_mep_file(mep_file_path)
+		mep_file_path	= self.work_dir+'/out/mep/mep_lc.dat'
+		mep_lc			= read_mep_file(mep_file_path)
 		#ITINERANT
-		mep_file_path	= self.work_dir+'/mep/mep_ic.dat'
-		mep_ic		= read_mep_file(mep_file_path)
-
-
+		mep_file_path	= self.work_dir+'/out/mep/mep_ic.dat'
+		mep_ic			= read_mep_file(mep_file_path)
+		#
+		#
 		return mep_tens, mep_cs, mep_lc, mep_ic
 
+	def get_ahc_tens(self):
+		ahc_file_path	= self.work_dir+'out/ahc/ahc_tens.dat'
+		ahc_tens		= read_tens_file(ahc_file_path,					'ahc')
+		return	ahc_tens
 
+	def get_opt_tens(self):
+		#	symmetric contribution
+		Ssymm_file_path	=	self.work_dir+'out/opt/opt_Ssymm.dat'
+		Ssymm_tens		=	read_tens_file(Ssymm_file_path,				'optS')
+		#
+		#	a symmetric contribution
+		Asymm_file_path	=	self.work_dir+'out/opt/opt_Asymm.dat'
+		Asymm_tens		=	read_tens_file(Asymm_file_path,				'optA')
+		#
+		#
+		return Ssymm_tens, Asymm_tens
 
 
 	def plot_bands(self):
@@ -118,7 +136,7 @@ class MEP_worker:
 			os.mkdir(self.band_dir)
 		except OSError:
 			print('could not make directory "'+self.band_dir+'" ')
-		write_souza_tb_input(self.band_dir, self.phi, self.val_bands, self.mp_grid, self.use_interp_kpt, self.do_gauge_trafo, 'T' )
+		write_souza_tb_input(self.band_dir, self.phi, self.val_bands, self.mp_grid, 'T' )
 		#
 		#copy exectubales to target 
 		copy(self.work_dir+'/mepInterp', 	self.band_dir)
