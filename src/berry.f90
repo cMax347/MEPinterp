@@ -128,7 +128,7 @@ contains
 						!hw, vol, e_fermi, T_kelvin, i_eta_smr , en_k, A_ka, opt_symm, opt_asym
 						call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 	tempS, tempA)
 						kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
-						kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempA
+						kubo_opt_a_loc	=	kubo_opt_a_loc	+	tempA
 						!
 						n_ki_loc = n_ki_loc + 1
 					end if
