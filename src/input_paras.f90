@@ -98,7 +98,7 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Kubo%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
 				call CFG_add_get(my_cfg,	"Kubo%eta_smearing"				,	eta					,	"smearing for optical conductivty"	)
 				!
-				i_eta_smr	=	cmplx(0.0_dp,	eta	)
+				i_eta_smr	=	cmplx(0.0_dp,	eta	,dp)
 				!
 				!
 				write(*,*)					"**********************init_parameters********************************************"
