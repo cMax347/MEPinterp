@@ -12,17 +12,21 @@ module berry
 								valence_bands, 									&
 								seed_name,										&
 								kubo_tol,										&
-								eFermi, T_kelvin, unit_vol
+								hw, eFermi, T_kelvin, i_eta_smr, 				&
+								unit_vol
 	use file_io,		only:	mpi_read_tb_basis,								&
 								write_mep_tensors,								&
-								write_ahc_tensor
+								write_ahc_tensor,								&
+								write_opt_tensors
 	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
 								get_rel_kpt,									&
 								normalize_k_int
 	use wann_interp,	only:	get_wann_interp
 	!
 	use mep_niu,		only:	mep_niu_CS,	mep_niu_IC, mep_niu_LC
-	use kubo_ahc,		only:	kubo_ahc_tens
+	use kubo,			only:	kubo_ahc_tens,									&
+								kubo_opt_tens
+		
 	implicit none
 
 
@@ -32,8 +36,6 @@ module berry
 	!
 	save
 	integer									::		num_kpts
-
-
 contains
 
 
@@ -60,6 +62,13 @@ contains
 												mep_tens_lc_glob(	3,3),				&
 												mep_tens_cs_glob(	3,3),				&
 												kubo_ahc_glob(		3,3)						
+												!
+		complex(dp)							::	kubo_opt_s_loc(		3,3),				&
+												kubo_opt_a_loc(		3,3),				&												
+												kubo_opt_s_glob(	3,3),				&
+												kubo_opt_a_glob(	3,3),				&
+												tempS(3,3), tempA(3,3)
+												!
 		integer								::	kix, kiy, kiz, ki, 						&
 												mp_grid(3), n_ki_loc, n_ki_glob
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
@@ -67,14 +76,6 @@ contains
 												V_ka(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
 		!
-		mep_tens_ic_loc		=	0.0_dp
-		mep_tens_lc_loc		=	0.0_dp
-		mep_tens_cs_loc		=	0.0_dp
-		kubo_ahc_loc		=	0.0_dp
-		mep_tens_ic_glob	=	0.0_dp
-		mep_tens_lc_glob	=	0.0_dp
-		mep_tens_cs_glob	=	0.0_dp
-		kubo_ahc_glob		=	0.0_dp
 		!
 		!	k-space
 		mp_grid				=	get_mp_grid()
@@ -86,8 +87,23 @@ contains
 		call mpi_read_tb_basis(	seed_name, R_vect,		 	H_tb, r_tb					)
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
 		!
+		!	MagnetoElectric Polarizability
+		mep_tens_ic_loc		=	0.0_dp
+		mep_tens_lc_loc		=	0.0_dp
+		mep_tens_cs_loc		=	0.0_dp
+		mep_tens_ic_glob	=	0.0_dp
+		mep_tens_lc_glob	=	0.0_dp
+		mep_tens_cs_glob	=	0.0_dp
+		! 	Anomalous Hall Conducitivity
+		kubo_ahc_loc		=	0.0_dp
+		kubo_ahc_glob		=	0.0_dp
+		!	Optical Conductivity
+		kubo_opt_a_loc		=	0.0_dp
+		kubo_opt_s_loc		=	0.0_dp
+		kubo_opt_a_glob		=	0.0_dp
+		kubo_opt_s_glob		=	0.0_dp
 		!
-		if(allocated(r_tb))		write(*,'(a,i3,a)')		"[#",mpi_id,"; berry_worker]: will use position operator"	
+		!	
 		write(*,'(a,i3,a,i4,a)')		"[#",mpi_id,"; berry_worker]: I start interpolating now (nValence=",valence_bands,")."
 		do kiz = 1, mp_grid(3)
 			do kiy = 1, mp_grid(2)
@@ -101,13 +117,18 @@ contains
 						call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
 						!
 						!MEP
-						mep_tens_ic_loc	=	mep_tens_ic_loc + mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
-						mep_tens_lc_loc	=	mep_tens_lc_loc + mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
-						mep_tens_cs_loc =	mep_tens_cs_loc + mep_niu_CS(A_ka, Om_kab)		!	chern simons	(geometrical)
+						mep_tens_ic_loc	=	mep_tens_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
+						mep_tens_lc_loc	=	mep_tens_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
+						mep_tens_cs_loc =	mep_tens_cs_loc + 	mep_niu_CS(A_ka, Om_kab)		!	chern simons	(geometrical)
 						!
 						!AHC
-						kubo_ahc_loc	=	kubo_ahc_loc	+ kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin, unit_vol)
+						kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin, unit_vol)
 						!
+						!OPT
+						!hw, vol, e_fermi, T_kelvin, i_eta_smr , en_k, A_ka, opt_symm, opt_asym
+						call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 	tempS, tempA)
+						kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
+						kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempA
 						!
 						n_ki_loc = n_ki_loc + 1
 					end if
@@ -125,6 +146,9 @@ contains
 		call MPI_REDUCE(	mep_tens_lc_loc,	mep_tens_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_REDUCE(	mep_tens_cs_loc,	mep_tens_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_REDUCE(	kubo_ahc_loc,		kubo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+		call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+		call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+
 		!
 		!write some files
 		if(mpi_id == mpi_root_id) 	then
@@ -141,7 +165,8 @@ contains
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; berry_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
 			call write_ahc_tensor(kubo_ahc_glob)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; berry_worker]: calculated AHC tensor on ",n_ki_glob," kpts"
-
+			call write_opt_tensors(kubo_opt_s_glob, kubo_opt_a_glob)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; berry_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
 		end if
 		!
 		!
@@ -160,7 +185,7 @@ contains
 	!
 	!
 !HELPERS
-	pure subroutine kspace_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
+	subroutine kspace_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
 		complex(dp),	allocatable, intent(inout)	::		H_tb(:,:,:), r_tb(:,:,:,:),					& 
 															V_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp),		allocatable, intent(inout)	::		en_k(:)
@@ -172,6 +197,7 @@ contains
 		if(	allocated(r_tb)	)	then	
 			allocate(	A_ka(	  3,		size(r_tb,2),	size(r_tb,3)	)	)
 			allocate(	Om_kab(	3,	3,		size(r_tb,2),	size(r_tb,3)	)	)
+			write(*,'(a,i3,a)')		"[#",mpi_id,"; berry_worker]: will use position operator"	
 		end if
 		!
 		return
