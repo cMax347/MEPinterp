@@ -24,7 +24,7 @@ module input_paras
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
-												hw, eFermi, T_kelvin
+												hw, eFermi, T_kelvin, i_eta_smr
 
 
 
@@ -34,15 +34,16 @@ module input_paras
 	
 	integer						::	valence_bands
 	character(len=3)			:: 	seed_name
-	character(len=4)			::	out_dir	="out/"
-	character(len=4)			::	mep_out_dir ="mep/"	
-	character(len=4)			::	ahc_out_dir	="ahc/"
-	character(len=5)			::	opt_out_dir ="opt/"				
 	character(len=9)			::	w90_dir	="w90files/"
 	character(len=4)			::	raw_dir ="raw/"
+	character(len=4)			::	out_dir	="out/"
+	character(len=9)			::	mep_out_dir	
+	character(len=9)			::	ahc_out_dir
+	character(len=9)			::	opt_out_dir				
 	logical						::	plot_bands
 	real(dp)					::	a_latt(3,3), a0, unit_vol
 	real(dp)					::	hw, eFermi, T_kelvin
+	complex(dp)					::	i_eta_smr
 	real(dp),		parameter	::	kubo_tol		= 1e-3_dp
 
 
@@ -56,10 +57,13 @@ module input_paras
 !public
 	logical function init_parameters()
 		type(CFG_t) 			:: 	my_cfg
-		real(dp)				::	a1(3), a2(3), a3(3)
+		real(dp)				::	a1(3), a2(3), a3(3), eta
 		integer					::	mp_grid(3)
 		logical					::	input_exist
 		!
+		mep_out_dir =out_dir//"/mep/"	
+		ahc_out_dir	=out_dir//"/ahc/"
+		opt_out_dir =out_dir//"/opt/"	
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
 			inquire(file="./input.txt",exist=input_exist)
@@ -81,17 +85,21 @@ module input_paras
 				a_latt(2,1:3)	= a2(1:3)
 				a_latt(3,1:3)	= a3(1:3)
 				a_latt			=	a0 * a_latt
+				!
+				!
 				![wannInterp]
 				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
 				call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files"			)
 				![mep]
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
 				![Fermi]
-				call CFG_add_get(my_cfg,	"Fermi%hw"						,	hw					,	"energy of incoming light"			)
-				call CFG_add_get(my_cfg,	"Fermi%eFermi"					,	eFermi				,	"set the Fermi energy"				)
-				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
-
-
+				call CFG_add_get(my_cfg,	"Kubo%hw"						,	hw					,	"energy of incoming light"			)
+				call CFG_add_get(my_cfg,	"Kubo%eFermi"					,	eFermi				,	"set the Fermi energy"				)
+				call CFG_add_get(my_cfg,	"Kubo%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
+				call CFG_add_get(my_cfg,	"Kubo%eta_smearing"				,	eta					,	"smearing for optical conductivty"	)
+				!
+				i_eta_smr	=	cmplx(0.0_dp,	eta	)
+				!
 				!
 				write(*,*)					"**********************init_parameters********************************************"
 				write(*,*)					"parallelization with ",mpi_nProcs," MPI threads"
@@ -107,10 +115,21 @@ module input_paras
 				write(*,*)					"	seed_name=",seed_name
 				write(*,*)					"[mep]"
 				write(*,'(a,i4)')			"	val bands=",valence_bands
-			
+				write(*,*)					"[Kubo]"
+				write(*,*)					"	hw=",hw
+				write(*,*)					"	eFermi=",eFermi
+				write(*,*)					"	T_kelvin=",T_kelvin
+				write(*,*)					"	eta=",eta
+				write(*,*)					"	i_eta_smr=",i_eta_smr
+				!
 				!make the output folder
 				call my_mkdir(out_dir)
-				call my_mkdir(raw_dir)				
+				call my_mkdir(raw_dir)
+				if(.not. plot_bands) then
+					call my_mkdir(mep_out_dir)
+					call my_mkdir(ahc_out_dir)
+					call my_mkdir(opt_out_dir)					
+				end if				
 				write(*,*)					"---------------------------------------------------------------------------"
 			else
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
@@ -130,6 +149,7 @@ module input_paras
 			call MPI_BCAST(		hw				,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_BCAST(		i_eta_smr		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			!
 			!UNIT CELL VOLUME
 			a1			=	a_latt(1,:)
