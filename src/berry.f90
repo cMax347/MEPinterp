@@ -159,7 +159,10 @@ contains
 			call normalize_k_int(mep_tens_lc_glob)
 			call normalize_k_int(mep_tens_cs_glob)
 			!
-			kubo_ahc_glob	=	kubo_ahc_glob	/	real(n_ki_glob,dp)
+			kubo_ahc_glob	=	kubo_ahc_glob		/	real(n_ki_glob,dp)
+			kubo_opt_s_glob	=	kubo_opt_s_glob		/	real(n_ki_glob,dp)			
+			kubo_opt_a_glob	=	kubo_opt_a_glob		/	real(n_ki_glob,dp)
+
 			!
 			call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; berry_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
