@@ -33,8 +33,6 @@ contains
 				cs_scal	= cs_scal +	 0.5_dp  *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	om_vect(:)	)			)
 			end do
 			!
-			!if( abs(imag(cs_scal))>1e-3_dp ) stop	'[mep_niu_CS]: ERROR found imaginary contributions'
-			!	the CS is diagonal
 			do i = 1, 3
 				cs_tens(i,i)	= real(cs_scal,dp)
 			end do
