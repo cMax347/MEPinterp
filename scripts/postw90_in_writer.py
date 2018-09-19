@@ -23,6 +23,14 @@ class postw90_job:
 			outfile.write('berry_task = ahc, kubo'														)
 			outfile.write('berry_kmesh = '+str(self.mp_grid[0])+' '+str(self.mp_grid[1])+' '+str(self.mp_grid[2])		)
 
+			outfile.write('fermi_energy = '+str(self.eFermi))
+
+
+			#todo:		-	temperature	(is this via min max value of fermi energy?)
+			#			-	fermi smearing for optical conductivity
+			#		look how these smearings are implemented in w90
+
+
 
 			#
 			outfile.write('kubo_freq_max = '+str(self.hw))

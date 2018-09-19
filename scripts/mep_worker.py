@@ -6,8 +6,7 @@ import numpy as np
 from shutil 			import 	copy
 from tb_input_writer 	import 	write_souza_tb_input
 from plot_bandStruct 	import	plot_bandstruct
-from fortran_io			import 	read_mep_file
-from fortran_io			import	read_tens_file
+from fortran_io			import	read_real_tens_file
 
 
 
@@ -98,33 +97,33 @@ class MEP_worker:
 	def get_mep_tens(self):
 		#TOTAL
 		mep_file_path	= self.work_dir+'/out/mep/mep_tens.dat'
-		mep_tens		= read_mep_file(mep_file_path)
+		mep_tens		= read_real_tens_file(mep_file_path,					'mep')
 		#CHERN-SIMONS
 		mep_file_path	= self.work_dir+'/out/mep/mep_cs.dat'
-		mep_cs			= read_mep_file(mep_file_path)
+		mep_cs			= read_real_tens_file(mep_file_path,					'mep')
 		#LOCAL
 		mep_file_path	= self.work_dir+'/out/mep/mep_lc.dat'
-		mep_lc			= read_mep_file(mep_file_path)
+		mep_lc			= read_real_tens_file(mep_file_path,					'mep')
 		#ITINERANT
 		mep_file_path	= self.work_dir+'/out/mep/mep_ic.dat'
-		mep_ic			= read_mep_file(mep_file_path)
+		mep_ic			= read_real_tens_file(mep_file_path,					'mep')
 		#
 		#
 		return mep_tens, mep_cs, mep_lc, mep_ic
 
 	def get_ahc_tens(self):
 		ahc_file_path	= self.work_dir+'out/ahc/ahc_tens.dat'
-		ahc_tens		= read_tens_file(ahc_file_path,					'ahc')
+		ahc_tens		= read_real_tens_file(ahc_file_path,					'ahc')
 		return	ahc_tens
 
 	def get_opt_tens(self):
 		#	symmetric contribution
 		Ssymm_file_path	=	self.work_dir+'out/opt/opt_Ssymm.dat'
-		Ssymm_tens		=	read_tens_file(Ssymm_file_path,				'optS')
+		Ssymm_tens		=	read_real_tens_file(Ssymm_file_path,				'optS')
 		#
 		#	a symmetric contribution
 		Asymm_file_path	=	self.work_dir+'out/opt/opt_Asymm.dat'
-		Asymm_tens		=	read_tens_file(Asymm_file_path,				'optA')
+		Asymm_tens		=	read_real_tens_file(Asymm_file_path,				'optA')
 		#
 		#
 		return Ssymm_tens, Asymm_tens

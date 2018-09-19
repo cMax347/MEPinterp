@@ -5,7 +5,7 @@ from mep_worker import MEP_worker
 import matplotlib.pyplot as plt
 
 
-from fortran_io			import 	read_mep_file
+from fortran_io			import 	read_real_tens_file
 
 
 
@@ -55,16 +55,16 @@ class Phi_probe:
 			phi_pi	 = 	phi
 			
 			mep_file_path	= work_dir+'/mep/mep_tens.dat'
-			mep_tens		= read_mep_file(mep_file_path)
+			mep_tens		= read_real_tens_file(mep_file_path,			'mep')
 			#CHERN-SIMONS
 			mep_file_path	= work_dir+'/mep/mep_cs.dat'
-			mep_cs			= read_mep_file(mep_file_path)
+			mep_cs			= read_real_tens_file(mep_file_path,			'mep')
 			#LOCAL
 			mep_file_path	= work_dir+'/mep/mep_lc.dat'
-			mep_lc		= read_mep_file(mep_file_path)
+			mep_lc		= read_real_tens_file(mep_file_path,				'mep')
 			#ITINERANT
 			mep_file_path	= work_dir+'/mep/mep_ic.dat'
-			mep_ic		= read_mep_file(mep_file_path)
+			mep_ic		= read_real_tens_file(mep_file_path,				'mep')
 
 			#only record if the container is not empty (i.e. the file was found and had good behaviour)
 			if len(mep_tens) is 3:
