@@ -154,3 +154,176 @@ contains
 
 
 end module mep_niu
+
+
+
+
+
+
+!!privat old:
+!	subroutine	getF2(nZero,ki, Velo ,En, F2)
+!		!
+!		!	F^(2)_ij = + Re \sum_{n/=0,m/=0} \eps_{j,k,l} * (V^k_nm V^l_m0 V^i_mn) / ( (E0-En)**2 (E0-Em) )
+!		!
+!		integer,		intent(in)		:: nZero, ki
+!		complex(dp),	intent(in)		:: Velo(:,:,:,:)  
+!		real(dp),		intent(in)		:: En(:,:)			!
+!		real(dp),		intent(out)		:: F2(3,3)
+!		complex(dp)						:: Vtmp
+!		real(dp)						:: eDiff, eDiff1, eDiff2
+!		integer							:: i, j, k, l, n,m, nSize
+!		!
+!		nSize	=	size(Velo,3)
+!		F2		=	0.0_dp
+!		!loop bands
+!		do n = 1, nSize
+!			if( n/=nZero ) then
+!				do m = 1, nSize
+!					if(  m/=nZero) then
+!						!
+!						!
+!						!ENERGIES
+!						eDiff1		= 	( 	En(nZero,ki) - En(n,ki)		)**2 
+!						eDiff2		=  	( 	En(nZero,ki) - En(m,ki)		)
+!						eDiff		= 	eDiff1 * eDiff2
+!						!degenerate energy warning
+!						if( abs(eDiff) < machineP )  then
+!							write(*,*)	"[addF2]: WARNING for k point = ",ki
+!							write(*,'(a,i3,a,i3,a,i3,a,e14.6)') "[addF2]: WARNING degenerate bands n0=",nZero,"n=",n," m=",m," eDiff=",eDiff
+!							write(*,'(a,i3,a,i3,a,e14.6)')	"[addF2]: ( E(",nZero,")-E(",n,") )**2=", eDiff1
+!							write(*,'(a,i3,a,i3,a,e14.6)')	"[addF2]: ( E(",nZero,")-E(",m,") )   =", eDiff2
+!							write(*,*)	"[addF2]: E(nZero=",nZero,")=",En(nZero,ki)
+!							write(*,*)	"[addF2]: E(n=",n,")=",En(n,ki)
+!							write(*,*)	"[addF2]: E(m=",m,")=",En(m,ki)
+!						end if		
+!						!
+!						!loop matrix indices
+!						do j = 1, 3
+!							do i = 1, 3
+!								!
+!								!loop levi civita
+!								do k = 1, 3
+!									do l = 1, 3				
+!										!VELOCITIES
+!										Vtmp		= Velo(k,n,m,ki) * Velo(l,m,nZero,ki) * Velo(i,nZero,n,ki) 
+!										!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF2]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
+!										!MATRIX
+!										F2(i,j) 	= F2(i,j) +   real(my_Levi_Civita(j,k,l),dp) *  dreal( Vtmp )  / eDiff	
+!										!F2(i,j) 	= F2(i,j) +   my_Levi_Civita(j,k,l) *  dreal( Vtmp )  / eDiff	
+!									end do
+!								end do
+!								!
+!							end do
+!						end do
+!						!
+!					end if
+!				end do
+!			end if
+!		end do
+!		!
+!		!
+!		return
+!	end subroutine
+!
+!
+!
+!
+!	subroutine	getF3(prefactF3, nZero,ki, Velo ,En, F3)	
+!		!
+!		!	F^(2)_ij = +- Re \sum_{n/=0} \eps_{j,k,l}  * (v^k_0 V^l_nZero V^i_0n) / ( (E0-En)**3  )
+!		!
+!		integer,		intent(in)		:: nZero, ki
+!		complex(dp),	intent(in)		:: Velo(:,:,:,:)  
+!		real(dp),		intent(in)		:: prefactF3, En(:,:)			
+!		real(dp),		intent(out)		:: F3(3,3)
+!		complex(dp)						:: Vtmp
+!		real(dp)						:: eDiff
+!		integer							:: i, j, k, l, n, nSize
+!		!
+!		nSize 	=	size(Velo,3)
+!		F3		=	0.0_dp
+!		!loop bands
+!		do n = 1, nSize
+!			if( n/=nZero ) then
+!				!ENERGIES
+!				eDiff		= ( 	En(nZero,ki) - En(n,ki)	 )**3 
+!				!degenerate energy warning
+!				if( abs(eDiff) < machineP ) write(*,*) "[addF3]: WARNING degenerate bands n0=",nZero,"n=",n," eDiff=",eDiff
+!				!
+!				!loop matrix indices
+!				do j = 1, 3
+!					do i = 1, 3
+!						!
+!						!loop levi civita
+!						do k = 1, 3
+!							do l = 1,3				
+!								!VELOCITIES
+!								Vtmp		= Velo(k,nZero,nZero,ki) * Velo(l,n,nZero,ki) * Velo(i,nZero,n,ki) 
+!								!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF3]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
+!								!
+!								!MATRIX
+!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(my_Levi_Civita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
+!								!F3(i,j) 	= F3(i,j) + prefactF3 * my_Levi_Civita(j,k,l) *	 dreal( Vtmp ) / eDiff
+!							end do								!
+!						end do
+!						!
+!					end do
+!				end do
+!				!
+!			end if
+!		end do
+!		!
+!		!
+!		return
+!	end subroutine
+!
+!
+!
+!	subroutine	getF3essin(prefactF3, nZero,ki, Velo ,En, F3)	
+!		!
+!		!	F^(2)_ij = +- Re \sum_{n/=0} \eps_{j,k,l}  * (v^k_0 V^l_nZero V^i_0n) / ( (E0-En)**3  )
+!		!
+!		integer,		intent(in)		:: nZero, ki
+!		complex(dp),	intent(in)		:: Velo(:,:,:,:)  
+!		real(dp),		intent(in)		:: prefactF3, En(:,:)			
+!		real(dp),		intent(out)		:: F3(3,3)
+!		complex(dp)						:: Vtmp
+!		real(dp)						:: eDiff
+!		integer							:: i, j, k, l, n, nSize
+!		!
+!		nSize 	=	size(Velo,3)
+!		F3		=	0.0_dp
+!		!loop bands
+!		do n = 1, nSize
+!			if( n/=nZero ) then
+!				!ENERGIES
+!				eDiff		= ( 	En(nZero,ki) - En(n,ki)	 )**3 
+!				!degenerate energy warning
+!				if( abs(eDiff) < machineP ) write(*,*) "[addF3]: WARNING degenerate bands n0=",nZero,"n=",n," eDiff=",eDiff
+!				!
+!				!loop matrix indices
+!				do j = 1, 3
+!					do i = 1, 3
+!						!
+!						!loop levi civita
+!						do k = 1, 3
+!							do l = 1,3				
+!								!VELOCITIES
+!								Vtmp		= Velo(i,nZero,n,ki)  * Velo(k,n,nZero,ki) * Velo(l,nZero,nZero,ki)
+!								!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF3]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
+!								!
+!								!MATRIX
+!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(my_Levi_Civita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
+!								!F3(i,j) 	= F3(i,j) + prefactF3 * my_Levi_Civita(j,k,l) *	 dreal( Vtmp ) / eDiff
+!							end do								!
+!						end do
+!						!
+!					end do
+!				end do
+!				!
+!			end if
+!		end do
+!		!
+!		!
+!		return
+!	end subroutine
