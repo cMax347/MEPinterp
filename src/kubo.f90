@@ -58,8 +58,8 @@ contains
 		opt_aherm	=	get_anti_herm(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
 		!
 		!
-		opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * imag(	opt_aherm	)		!	(12.14)		
-		opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * imag(	opt_herm	)		!	(12.15)
+		opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * aimag(	opt_aherm	)		!	(12.14)		
+		opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * aimag(	opt_herm	)		!	(12.15)
 		!
 		return
 	end subroutine
