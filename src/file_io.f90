@@ -349,7 +349,7 @@ module file_io
 			write(255,*)	info_string
 			write(255,*)	'begin '//id_string
 			do row = 1, 3
-				write(255,'(200(a,f12.6,a,f12.6,a))')		(		' (',real(tens(row,clm),dp), ' + i *',imag(tens(row,clm)),') ', clm=1,3)
+				write(255,'(200(a,f12.6,a,f12.6,a))')		(		' ',real(tens(row,clm),dp), ' ',imag(tens(row,clm)),' ', clm=1,3)
 			end do
 			write(255,*)	'end '//id_string
 		close(255)
