@@ -50,8 +50,7 @@ contains
 		real(dp)							::	F3(3,3)
 		integer								::	n0, n, neglected, tot, 		&
 												i, j, k, l
-		complex(dp)							::	velo_nom
-		real(dp) 							::	en_denom
+		real(dp) 							::	pre_fact, velo_nom, en_denom
 		!
 		neglected	= 0
 		tot 		= 0
@@ -71,9 +70,12 @@ contains
 			 				do i = 1, 3
 			 					do l = 1, 3
 			 						do k = 1, 3
-			 							velo_nom	=	velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)
-			 							!		
-			 							F3(i,j)	= F3(i,j) + real(my_Levi_Civita(j,k,l),dp)  * real(	velo_nom	,dp )	/	en_denom	
+			 							pre_fact	=	real(			my_Levi_Civita(j,k,l)						,dp)	
+			 							!
+			 							velo_nom	=	real(		velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)		, dp)
+			 							!	
+			 							!	
+			 							F3(i,j)		= 	F3(i,j) 	+	pre_fact   * velo_nom	/	en_denom	
 			 							
 			 						end do
 			 					end do
@@ -105,8 +107,7 @@ contains
 		integer								::	n0, m, n, 		&
 												i, j, k, l,		&
 												neglected, tot
-		complex(dp)							::	velo_nom
-		real(dp) 							::	en_denom
+		real(dp) 							::	pre_fact, velo_nom, en_denom
 		!
 		neglected	= 0
 		tot 		= 0
@@ -127,9 +128,12 @@ contains
 				 				do i = 1, 3
 				 					do l = 1, 3
 				 						do k = 1, 3
-				 							velo_nom	=	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)
+				 							pre_fact	= 	- real(my_Levi_Civita(j,k,l),dp)
 				 							!
-				 							F2(i,j)	= F2(i,j) - real(my_Levi_Civita(j,k,l),dp) * real(	velo_nom 	,dp )	/	en_denom	
+				 							velo_nom	=	real(		velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)	, dp)
+				 							!
+				 							!
+				 							F2(i,j)		= 	F2(i,j)		+	pre_fact  * velo_nom	/	en_denom	
 				 						end do
 				 					end do
 				 				end do
