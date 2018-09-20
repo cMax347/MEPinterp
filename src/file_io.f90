@@ -20,6 +20,7 @@ module file_io
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
 													write_mep_tensors,					&
+													write_kubo_mep_tensors,				&
 													write_ahc_tensor,					&
 													write_opt_tensors
 
@@ -270,6 +271,48 @@ module file_io
 		!
 		mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
 		call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
+		!-----------------------------------------------------------------------------------
+		!
+		return
+	end subroutine
+
+
+	subroutine write_kubo_mep_tensors(kubo_mep_ic, kubo_mep_lc, kubo_mep_cs)
+		real(dp),			intent(in)		::	kubo_mep_ic(3,3), kubo_mep_lc(3,3), kubo_mep_cs(3,3)
+		real(dp)							::	kubo_mep_tens(3,3)
+		character(len=20)					::	fname
+		character(len=90)					::	info_string
+		character(len=7)					::	id_string
+		!
+		call my_mkdir(mep_out_dir)
+		id_string	=	'KUBOmep'
+		!-------------------------------------itinerant contribution MEP tensor-------------
+		fname		= 	'kubo_mep_ic.dat'
+		info_string	= 	'# itinerant contribution of KUBO mep tensor (with fermi-dirac statistic)'
+		!
+		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_ic,	info_string,	id_string )
+		!
+		!
+		!-------------------------------------local contribution MEP tensor-----------------
+		fname		= 	'kubo_mep_lc.dat'
+		info_string	= 	'# local contribution of KUBO mep tensor (with fermi-dirac statistic)'
+		!
+		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_lc,	info_string,	id_string )
+		!
+		!
+		!-------------------------------------Chern-Simons term MEP tensor------------------
+		fname		= 	'kubo_mep_cs.dat'
+		info_string	= 	'# Chern-Simons term of KUBO mep tensor (with fermi-dirac statistic)'
+		!
+		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_cs,	info_string,	id_string )
+		!
+		!
+		!-------------------------------------total MEP tensor------------------------------
+		fname		= 	'kubo_mep_tens.dat'
+		info_string	= 	'# total KUBO mep tensor (with fermi-dirac statistic) (mep_tot= mep_ic+mep_lc+mep_cs)'
+		!
+		kubo_mep_tens	= 	kubo_mep_ic +	kubo_mep_lc	+	kubo_mep_cs
+		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_tens, info_string,	id_string )
 		!-----------------------------------------------------------------------------------
 		!
 		return
