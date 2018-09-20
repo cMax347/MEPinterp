@@ -54,16 +54,16 @@ class Phi_probe:
 			work_dir =	self.root_dir+'/phi'+str(phi)		
 			phi_pi	 = 	phi
 			
-			mep_file_path	= work_dir+'/mep/mep_tens.dat'
+			mep_file_path	= work_dir+'/out/mep/mep_tens.dat'
 			mep_tens		= read_real_tens_file(mep_file_path,			'mep')
 			#CHERN-SIMONS
-			mep_file_path	= work_dir+'/mep/mep_cs.dat'
+			mep_file_path	= work_dir+'/out/mep/mep_cs.dat'
 			mep_cs			= read_real_tens_file(mep_file_path,			'mep')
 			#LOCAL
-			mep_file_path	= work_dir+'/mep/mep_lc.dat'
+			mep_file_path	= work_dir+'/out/mep/mep_lc.dat'
 			mep_lc		= read_real_tens_file(mep_file_path,				'mep')
 			#ITINERANT
-			mep_file_path	= work_dir+'/mep/mep_ic.dat'
+			mep_file_path	= work_dir+'/out/mep/mep_ic.dat'
 			mep_ic		= read_real_tens_file(mep_file_path,				'mep')
 
 			#only record if the container is not empty (i.e. the file was found and had good behaviour)
