@@ -16,6 +16,7 @@ module core
 								unit_vol
 	use file_io,		only:	mpi_read_tb_basis,								&
 								write_mep_tensors,								&
+								write_kubo_mep_tensors,							&
 								write_ahc_tensor,								&
 								write_opt_tensors
 	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
@@ -231,11 +232,9 @@ contains
 			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
 			if(	n_ki_glob	/=	num_kpts	) stop "[core_worker]:	ERROR n_ki_glob is not equal to the given mp_grid"
 			!
-			avg_N_el_glob	=	avg_N_el_glob	/	real(n_ki_glob,dp)
-			write(*,*)	""
-
 			!
-			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
+			!	NORMALIZE INTEGRATION
+			avg_N_el_glob	=	avg_N_el_glob	/	real(n_ki_glob,dp)
 			call normalize_k_int(mep_tens_ic_glob)
 			call normalize_k_int(mep_tens_lc_glob)
 			call normalize_k_int(mep_tens_cs_glob)
@@ -246,12 +245,17 @@ contains
 			kubo_opt_a_glob	=	kubo_opt_a_glob		/	real(n_ki_glob,dp)
 			!
 			!
+			!	WRITE FILES
 			call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
+			call write_kubo_mep_tensors(kubo_mep_ic_glob, kubo_mep_lc_glob, kubo_mep_cs_glob)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
 			call write_ahc_tensor(kubo_ahc_glob)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC tensor on ",n_ki_glob," kpts"
 			call write_opt_tensors(kubo_opt_s_glob, kubo_opt_a_glob)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
+			write(*,*)	""
+			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
 		end if
 		!
 		return

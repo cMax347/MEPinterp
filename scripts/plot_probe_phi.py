@@ -1,7 +1,7 @@
 import numpy as np
 import datetime
+import sys
 import os
-from mep_worker import MEP_worker 
 import matplotlib.pyplot as plt
 
 
@@ -13,29 +13,18 @@ from fortran_io			import 	read_real_tens_file
 
 class Phi_probe:
 
-	def __init__(self,n_phi, val_bands, mp_grid ):
-		self.n_phi 			= n_phi
-		self.val_bands		= val_bands
-		self.mp_grid		= mp_grid
+	def __init__(self, root_dir):
 		#derived attributes
-		self.root_dir	= os.getcwd()+'/'+datetime.date.today().strftime("%d%B%Y")+'_mp'+str(self.mp_grid[0])+str(self.mp_grid[1])+str(self.mp_grid[2])
-		
+		self.root_dir	= root_dir
+		self.plot_dir	= self.root_dir+'/plots'
 	
-		self.plot_dir	= self.root_dir+'/mep_tot_plots'
-	
-
-
-
 
 	def __del__(self):
 		print('plotted Phi probing, by\n\n')
 
 
-
 	def print_results_container(self):
 		print('results =',self.phi_tot_data)
-
-
 
 
 	def read_phi(self):
@@ -44,53 +33,45 @@ class Phi_probe:
 		self.phi_lc_data = []
 		self.phi_ic_data = []
 		#
-		for dirName, subdirList, fileList in os.walk(self.root_dir):
-			print("SUBDIRLIST="+str(subdirList))
-			if 'phi' in dirName and not 'bands' in dirName:
-				print('Found directory: %s' % dirName)
-				print("associated phi= "+dirName.split("phi")[1])
-
-		for phi  in np.linspace(0.0, 2.0, num = self.n_phi):		#iterate over relative phi (phi_rel = phi / np.pi)
-			work_dir =	self.root_dir+'/phi'+str(phi)		
-			phi_pi	 = 	phi
-			
-			mep_file_path	= work_dir+'/out/mep/mep_tens.dat'
-			mep_tens		= read_real_tens_file(mep_file_path,			'mep')
-			#CHERN-SIMONS
-			mep_file_path	= work_dir+'/out/mep/mep_cs.dat'
-			mep_cs			= read_real_tens_file(mep_file_path,			'mep')
-			#LOCAL
-			mep_file_path	= work_dir+'/out/mep/mep_lc.dat'
-			mep_lc		= read_real_tens_file(mep_file_path,				'mep')
-			#ITINERANT
-			mep_file_path	= work_dir+'/out/mep/mep_ic.dat'
-			mep_ic		= read_real_tens_file(mep_file_path,				'mep')
-
-			#only record if the container is not empty (i.e. the file was found and had good behaviour)
-			if len(mep_tens) is 3:
-				self.phi_tot_data.append(		[phi, mep_tens	]			)
-			else:
-				print("skip mep_tens for phi="+str(phi))
-				print("len(mep_tens)="+str(len(mep_tens)))
-			if len(mep_cs) is 3:
-				self.phi_cs_data.append(		[phi, mep_cs	]			)
-			if len(mep_lc) is 3:
-				self.phi_lc_data.append(		[phi, mep_lc	]			)
-			if len(mep_ic) is 3:
-				self.phi_ic_data.append(		[phi, mep_ic	]			)
+		for entry in os.scandir(self.root_dir):
+			if entry.is_dir and 'plots' not in entry.path:
+				#
+				#
+				work_dir	=	entry.path
+				phi 		=	work_dir.split("phi")[1]	
+				print("found subdir ="+str(entry.path)+' assoc. phi='+phi)
+				#
+				#
+				mep_file_path	= work_dir+'/out/mep/mep_tens.dat'
+				mep_tens		= read_real_tens_file(mep_file_path,			'mep')
+				#CHERN-SIMONS
+				mep_file_path	= work_dir+'/out/mep/mep_cs.dat'
+				mep_cs			= read_real_tens_file(mep_file_path,			'mep')
+				#LOCAL
+				mep_file_path	= work_dir+'/out/mep/mep_lc.dat'
+				mep_lc		= read_real_tens_file(mep_file_path,				'mep')
+				#ITINERANT
+				mep_file_path	= work_dir+'/out/mep/mep_ic.dat'
+				mep_ic		= read_real_tens_file(mep_file_path,				'mep')
+				#
+				#
+				#only record if the container is not empty (i.e. the file was found and had good behaviour)
+				if len(mep_tens) is 3:
+					self.phi_tot_data.append(		[phi, mep_tens	]			)
+				else:
+					print("skip mep_tens for phi="+str(phi))
+					print("len(mep_tens)="+str(len(mep_tens)))
+				if len(mep_cs) is 3:
+					self.phi_cs_data.append(		[phi, mep_cs	]			)
+				if len(mep_lc) is 3:
+					self.phi_lc_data.append(		[phi, mep_lc	]			)
+				if len(mep_ic) is 3:
+					self.phi_ic_data.append(		[phi, mep_ic	]			)
 		#			
 		self.phi_tot_data 	= 	sorted(self.phi_tot_data)
 		self.phi_cs_data	=	sorted(self.phi_cs_data)
 		self.phi_lc_data	=	sorted(self.phi_lc_data)
 		self.phi_ic_data	=	sorted(self.phi_ic_data)
-
-
-
-
-	
-
-
-
 
 
 
@@ -194,6 +175,11 @@ class Phi_probe:
 				
 
 	
+#**************************************************************************************************************************************
+#**************************************************************************************************************************************
+#**************************************************************************************************************************************
+#**************************************************************************************************************************************
+#**************************************************************************************************************************************
 
 
 
@@ -201,9 +187,8 @@ class Phi_probe:
 
 
 
-
-def unit_test(n_phi, val_bands, mp_grid):
-	myTest	= Phi_probe(n_phi, val_bands, mp_grid)
+def plot_data(root_dir):
+	myTest	= Phi_probe(root_dir)
 	#
 	myTest.read_phi()
 	myTest.print_results_container()
@@ -215,8 +200,15 @@ def unit_test(n_phi, val_bands, mp_grid):
 
 
 
+if len(sys.argv) <	2:
+	print("please pass a folder to plot")
+else:
+	root_dir	=	sys.argv[1]
+	plot_data(root_dir)
 
-unit_test(n_phi=11, val_bands=2, mp_grid=[128,128,128]	)
+
+
+
 
 
 

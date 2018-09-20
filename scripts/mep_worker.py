@@ -32,7 +32,7 @@ class MEP_worker:
 		self.band_dir		= self.work_dir+'/bands'
 		#
 		#
-		print('************new calculation****************')
+		print('************new calculation****************[   '+str(datetime.datetime.now())+'  ]')
 		print('phi='+str(phi))
 		print('mp_grid='+str(mp_grid))
 		#make new folder

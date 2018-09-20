@@ -6,7 +6,7 @@ module kubo
 	!
 	!
 	use constants,		only:	dp, i_dp, pi_dp
-	use statistics,		only:	fermi_dirac
+	use statistics,		only:	fd_stat
 	implicit none
 
 
@@ -34,7 +34,7 @@ contains
 		o_ahc	=	0.0_dp
 		!
 		do n = 1, size(en_k)
-			o_ahc	=	o_ahc	-	real(Om_kab(:,:,n,n),dp)		*	fermi_dirac(en_k(n),	eFermi, 	T_kelvin) /	unit_vol
+			o_ahc	=	o_ahc	-	real(Om_kab(:,:,n,n),dp)		*	fd_stat(en_k(n),	eFermi, 	T_kelvin) /	unit_vol
 		end do
 		!
 		!
@@ -99,7 +99,7 @@ contains
 		do m = 1, size(A_ka,3)
 			do n = 1, size(A_ka,2)
 				!
-				f_mn	=	fermi_dirac(	en_k(m)		,e_fermi,T_kelvin)		-		fermi_dirac(	en_k(n)		,e_fermi,T_kelvin)
+				f_mn	=	fd_stat(	en_k(m)		,e_fermi,T_kelvin)		-		fd_stat(	en_k(n)		,e_fermi,T_kelvin)
 				dE_mn	=					en_k(m)								-						en_k(n) 
 				!
 				do b = 1, 3
@@ -135,7 +135,7 @@ contains
 		do m = 1, size(A_ka,3)
 			do n = 1, size(A_ka,2)
 				!
-				f_mn	=		fermi_dirac(	en_k(m)		,e_fermi,T_kelvin)		-		fermi_dirac(	en_k(n)		,e_fermi,T_kelvin)
+				f_mn	=		fd_stat(	en_k(m)		,e_fermi,T_kelvin)		-		fd_stat(	en_k(n)		,e_fermi,T_kelvin)
 				dE_mn	=		real(		(		en_k(m)-en_k(n)		)		/	(	en_k(m)-en_k(n)-hw-i_eta_smr	)		,dp)
 				!
 				do b = 1, 3
