@@ -241,6 +241,10 @@ contains
 			call normalize_k_int(mep_tens_lc_glob)
 			call normalize_k_int(mep_tens_cs_glob)
 			!
+			call normalize_k_int(kubo_mep_ic_glob)
+			call normalize_k_int(kubo_mep_lc_glob)
+			call normalize_k_int(kubo_mep_cs_glob)
+			!
 			!
 			kubo_ahc_glob	=	kubo_ahc_glob		/	real(n_ki_glob,dp)
 			kubo_opt_s_glob	=	kubo_opt_s_glob		/	real(n_ki_glob,dp)			
