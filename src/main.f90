@@ -3,7 +3,7 @@ program MEPinterp
 	use constants,				only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,			only:		init_parameters,	&
 											plot_bands
-	use berry,					only:		berry_worker
+	use core,					only:		core_worker
 	use band_calc,				only:		band_worker
 	implicit none
 	!
