@@ -110,7 +110,7 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 						nn_list[at][nn]	= int_to_dim_string(b_dim)
 
 
-				print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+nn_list[at][nn]+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][at]))
+				#print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+nn_list[at][nn]+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][at]))
 				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][at]), +np.imag(phi[b_dim][at])		]	)
 				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], nn+1, at+1, np.real(phi[b_dim][at]), -np.imag(phi[b_dim][at])	]	)
 
@@ -333,8 +333,8 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid ,hw=0.0,eFer
 
 	onsite	= onsite	* au_to_eV
 	phi 	= np.array(phi)	      * au_to_eV
-	print('hoppings (phi='+str(phi_para)+'):	')
-	print(phi)
+	#print('hoppings (phi='+str(phi_para)+'):	')
+	#print(phi)
 	#get the lists
 	nrpts, thopp, R_nn_list = get_hopp_list(nAt, rel_atom_pos, onsite, phi)
 	rhopp	= get_pos_list(nAt, rel_atom_pos, a_latt, R_nn_list)
