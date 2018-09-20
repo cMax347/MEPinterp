@@ -19,7 +19,7 @@ program MEPinterp
 		if(	plot_bands	) then
 			call band_worker()
 		else
-			call berry_worker()			
+			call core_worker()			
 		end if
 	else
 		write(*,*)	'[#',mpi_id,': main]: input file not found, by'
