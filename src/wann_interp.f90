@@ -200,9 +200,6 @@ module wann_interp
 					if(	n/=	m)	then
 						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
 						!
-						!do a = 1, 3
-						!	V_k(a,n,m)	= V_k(a,n,m)	-	i_dp	*	eDiff	*	A_ka(a,n,m)
-						!end do
 						V_k(:,n,m)	= V_k(:,n,m)	- i_dp	* 	eDiff	* 	A_ka(:,n,m)
 					end if
 				end do
@@ -244,8 +241,6 @@ module wann_interp
 	end subroutine
 
 
-
-
 	pure subroutine conn_gaugeTrafo(D_ka, A_ka)
 		!	PRB 74, 195118 (2006)	EQ.(25)
 		!
@@ -256,9 +251,6 @@ module wann_interp
 		complex(dp),		intent(inout)	::	A_ka(:,:,:)
 		!
 		!
-		!do a = 1, 3
-		!	A_ka(a,:,:)	=	A_ka(a,:,:)		+	i_dp	*	D_ka(a,:,:)
-		!end do
 		A_ka	=	A_ka	+ i_dp	*	D_ka
 		!
 		return
@@ -276,11 +268,9 @@ module wann_interp
 		!
 		do b = 1, 3
 			do a = 1, 3
-				!call matrix_comm( D_ka(a,:,:), 	A_ka(b,:,:),		mat_comm(:,:)	)
 				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			matrix_comm(	D_ka(a,:,:), 	A_ka(b,:,:)		)
 				!
 				!
-				!call matrix_comm( ,		mat_comm(:,:)	)
 				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			matrix_comm(	D_ka(b,:,:), 	A_ka(a,:,:)		)
 				!
 				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:))
@@ -290,19 +280,6 @@ module wann_interp
 		!
 		return 
 	end subroutine
-
-	
-
-
-
-
-
-
-
-
-
-
-
 
 
 
