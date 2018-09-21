@@ -62,40 +62,33 @@ contains
 		do n0 = 1, size(velo,2)
 			!
 			fermi_dirac	= fd_stat(en(n0), eFermi, T_kelvin)
-			if(	abs(fermi_dirac)	> 1e-10_dp	) then
-				!
-				!MIXING
-				do n = 1, size(velo,2)
-				 	if( n/= n0 )	then
-				 		en_denom	=	(	en(n0) - en(n)	)**3
-				 		en_term		=	fermi_dirac	/	en_denom		
-				 		tot			= 	tot + 1
-				 		if(abs(en_term) > kubo_tol) then 
-				 			!
-							!TRIPLE PRODUCT			 		
-				 			do j = 1, 3
-				 				do i = 1, 3
-				 					do l = 1, 3
-				 						do k = 1, 3
-				 							pre_fact	= 	real(my_Levi_Civita(j,k,l),dp)  
-				 							!
-				 							velo_nom	=	real(		velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)		, dp)
-				 							!		
-				 							!
-				 							F3(i,j)		= 	F3(i,j) 	+  		pre_fact * 	velo_nom  * en_term		
-				 						end do
-				 					end do
-				 				end do
-				 			end do
-				 		else
-				 			neglected	= neglected	+1
-				 			write(*,*)	'[kubo_mep_LC]: found intimate bands ',n0,' & ',n,' with fermi/dE**3=',	en_term
-				 		end if
-				 	end if
-				 	!
-				 	!
-				end do
-			end if
+			!
+			!MIXING
+			do n = 1, size(velo,2)
+			 	if( n/= n0 )	then
+			 		en_denom	=	(	en(n0) - en(n)	)**3
+			 		en_term		=	fermi_dirac	/	en_denom		
+			 		tot			= 	tot + 1
+			 		!
+					!TRIPLE PRODUCT			 		
+			 		do j = 1, 3
+			 			do i = 1, 3
+			 				do l = 1, 3
+			 					do k = 1, 3
+			 						pre_fact	= 	real(my_Levi_Civita(j,k,l),dp)  
+			 						!
+			 						velo_nom	=	real(		velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)		, dp)
+			 						!		
+			 						!
+			 						F3(i,j)		= 	F3(i,j) 	+  		pre_fact * 	velo_nom  * en_term		
+			 					end do
+			 				end do
+			 			end do
+			 		end do
+			 	end if
+			 	!
+			 	!
+			end do
 		end do
 		!
 		return
@@ -121,42 +114,40 @@ contains
 		do n0 = 1, size(velo,2)
 			!
 			fermi_dirac	= fd_stat(en(n0), eFermi, T_kelvin)
-			if(	abs(fermi_dirac)	> 1e-10_dp	) then
-				!
-				!MIXING
-				do m = 1, size(velo,2)
-					do n = 1, size(velo,2)
-					 	if( n/= n0 .and. m/=n0 )	then
-					 		en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
-					 		en_term		=	fermi_dirac		/ 	en_denom
-					 		tot 		= 	tot + 1
-					 		if( abs(en_term) > kubo_tol) then
-					 			!
-					 			!TRIPLE PRODUCT
-					 			do j = 1, 3
-					 				do i = 1, 3
-					 					do l = 1, 3
-					 						do k = 1, 3
-					 							pre_fact	=	- real(my_Levi_Civita(j,k,l),dp) 
-					 							!
-					 							velo_nom	=	real(	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)		, dp)
-					 							!
-					 							!
-					 							F2(i,j)		= 	F2(i,j)		+	pre_fact  * velo_nom	* en_term
-					 						end do
-					 					end do
-					 				end do
-					 			end do
-					 		else
-					 			neglected	= neglected	+1
-					 			write(*,*)	'[kubo_mep_IC]: found intimate bands ',n0,' & ',n,' ',m,' with fermi / (dE**2 dE)=',	en_term
-					 		end if
-					 	end if
-					 	!
-					 	!
-					end do
+			!
+			!MIXING
+			do m = 1, size(velo,2)
+				do n = 1, size(velo,2)
+				 	if( n/= n0 .and. m/=n0 )	then
+				 		en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
+				 		en_term		=	fermi_dirac		/ 	en_denom
+				 		tot 		= 	tot + 1
+				 		if( abs(en_term) > kubo_tol) then
+				 			!
+				 			!TRIPLE PRODUCT
+				 			do j = 1, 3
+				 				do i = 1, 3
+				 					do l = 1, 3
+				 						do k = 1, 3
+				 							pre_fact	=	- real(my_Levi_Civita(j,k,l),dp) 
+				 							!
+				 							velo_nom	=	real(	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)		, dp)
+				 							!
+				 							!
+				 							F2(i,j)		= 	F2(i,j)		+	pre_fact  * velo_nom	* en_term
+				 						end do
+				 					end do
+				 				end do
+				 			end do
+				 		else
+				 			neglected	= neglected	+1
+				 			write(*,*)	'[kubo_mep_IC]: found intimate bands ',n0,' & ',n,' ',m,' with fermi / (dE**2 dE)=',	en_term
+				 		end if
+				 	end if
+				 	!
+				 	!
 				end do
-			end if
+			end do
 		end do
 		!
 		return
