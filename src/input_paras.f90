@@ -41,10 +41,10 @@ module input_paras
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir				
 	logical						::	plot_bands
-	real(dp)					::	a_latt(3,3), a0, unit_vol
-	real(dp)					::	hw, eFermi, T_kelvin
+	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
+									kubo_tol,						&
+									hw, eFermi, T_kelvin			
 	complex(dp)					::	i_eta_smr
-	real(dp),		parameter	::	kubo_tol		= 1e-5_dp
 
 
 
@@ -93,6 +93,7 @@ module input_paras
 				![mep]
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
 				![Fermi]
+				call CFG_add_get(my_cfg,	"Kubo%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO"		)
 				call CFG_add_get(my_cfg,	"Kubo%hw"						,	hw					,	"energy of incoming light"			)
 				call CFG_add_get(my_cfg,	"Kubo%eFermi"					,	eFermi				,	"set the Fermi energy"				)
 				call CFG_add_get(my_cfg,	"Kubo%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
@@ -116,6 +117,7 @@ module input_paras
 				write(*,*)					"[mep]"
 				write(*,'(a,i4)')			"	val bands=",valence_bands
 				write(*,*)					"[Kubo]"
+				write(*,*)					"	kuboTol=",kubo_tol
 				write(*,*)					"	hw=",hw
 				write(*,*)					"	eFermi=",eFermi
 				write(*,*)					"	T_kelvin=",T_kelvin
@@ -145,7 +147,8 @@ module input_paras
 			call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-			![FERMI]
+			![KUBO]
+			call MPI_BCAST(		kubo_tol		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)	
 			call MPI_BCAST(		hw				,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)

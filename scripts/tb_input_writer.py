@@ -216,7 +216,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 
 
 
-def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  plot_bands='F'):
+def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name, kubo_tol=1e-3, hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  plot_bands='F'):
 	with open(file_path+'input.txt','w') as outfile:
 		outfile.write('# input file for TB model from New J Physics 12, 053032 (2010)'+'\n')
 		outfile.write('# generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
@@ -249,9 +249,10 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		#
 		#
 		outfile.write('[Kubo]\n')
-		outfile.write('    '	+	'hw= '				+	str(hw)	+	'\n')
-		outfile.write('    '	+	'eFermi= '			+	str(eFermi)	+	'\n')
-		outfile.write('    '	+	'Tkelvin= '			+	str(Tkelvin)	+	'\n')
+		outfile.write('    '	+	'kuboTol= '			+	str(kubo_tol)		+	'\n')
+		outfile.write('    '	+	'hw= '				+	str(hw)				+	'\n')
+		outfile.write('    '	+	'eFermi= '			+	str(eFermi)			+	'\n')
+		outfile.write('    '	+	'Tkelvin= '			+	str(Tkelvin)		+	'\n')
 		outfile.write('    '	+	'eta_smearing= '	+	str(eta_smearing)	+	'\n')
 
 
@@ -271,7 +272,7 @@ def write_postw90_input(w90_dir, seed_name, val_bands, mp_grid, hw=0.0, eFermi=0
 
 
 
-def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid ,hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0, plot_bands='F'):
+def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands='F'):
 	target_dir_name	= 'w90files'
 	target_path		= root_dir+'/'+target_dir_name
 
@@ -351,7 +352,7 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid ,hw=0.0,eFer
 	write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
 
 
-	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name, hw,eFermi, Tkelvin,eta_smearing, plot_bands)
+	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,kubo_tol, hw,eFermi, Tkelvin,eta_smearing, plot_bands)
 
 
 def test():

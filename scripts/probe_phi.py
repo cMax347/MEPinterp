@@ -10,10 +10,11 @@ import matplotlib.pyplot as plt
 
 class Phi_probe:
 
-	def __init__(self,n_phi, val_bands, mp_grid, hw, eFermi, Tkelvin, eta_smearing ):
+	def __init__(self,n_phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing ):
 		self.n_phi 			= n_phi
 		self.val_bands		= val_bands
 		self.mp_grid		= mp_grid
+		self.kubo_tol		= kubo_tol
 		self.hw				= hw 
 		self.eFermi			= eFermi 
 		self.Tkelvin		= Tkelvin 
@@ -60,6 +61,7 @@ class Phi_probe:
 									phi_pi, 						#give  phi_rel*pi to calculation
 									self.val_bands, 
 									self.mp_grid, 
+									self.kubo_tol,
 									self.hw,
 									self.eFermi,
 									self.Tkelvin,
@@ -199,8 +201,8 @@ class Phi_probe:
 
 
 
-def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=False ):
-	myTest	= Phi_probe(n_phi, val_bands, mp_grid, hw, eFermi, Tkelvin, eta_smearing)
+def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=False ):
+	myTest	= Phi_probe(n_phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing)
 	#
 	myTest.iterate_phi(plot_bands=plot_bands, mpi_np=mpi_np)
 	myTest.print_results_container()
@@ -218,7 +220,7 @@ def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, hw=0.0, eFermi=0.0, Tkelvin=0.
 
 
 
-unit_test(n_phi=11, val_bands=2, mp_grid=[128,128,128], mpi_np=4, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=True	)
+unit_test(n_phi=11, val_bands=2, mp_grid=[128,128,128], mpi_np=4,kubo_tol=1e-5, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=True	)
 
 
 

@@ -59,6 +59,7 @@ contains
 		integer,		intent(in)		::	input_grid(3)
 		mp_grid	=	input_grid
 		write(*,*) '[set_mp_grid]: mp_grid set to ', mp_grid
+		!						TODO USE MPI_ID HERE AS WELL, ORE REMOVE MESSAGE, ELSE DOES NOT MAKE MUCH SENSE
 		return
 	end subroutine
 
