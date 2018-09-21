@@ -113,6 +113,7 @@ class conv_data:
 				plt.savefig(self.plot_dir+'/mep_'+self.dim_string[a]+self.dim_string[b]+'_k_conv.pdf')
 				#
 				print("saved MEP plot")
+				plt.close()
 	#***************************************************************************************************************************************************
 
 	def plot_ahc(self, tick_label_size=12,  show_tot_nK=True):
@@ -134,6 +135,8 @@ class conv_data:
 				fig, ax  = plt.subplots(1,1) 
 				plt.semilogx(nK_plot, ahc_ab,	'+-',	color='black', label="AHC" )
 				#aesthetics
+				#plt.xticks(np.array([nK_plot]))
+
 				plt.tick_params(axis='both', which='both',left=True,right=True, direction='in',labelsize=tick_label_size)
 				plt.ylabel(r'$\rho$_'+self.dim_string[a]+self.dim_string[b]+' (arb.unit TODO)')
 				if show_tot_nK:
@@ -146,6 +149,7 @@ class conv_data:
 				plt.savefig(self.plot_dir+'/ahc_'+self.dim_string[a]+self.dim_string[b]+'_k_conv.pdf')
 				#
 				print("saved AHC plot")
+				plt.close()
 
 	#***************************************************************************************************************************************************
 
@@ -193,6 +197,7 @@ class conv_data:
 				plt.savefig(self.plot_dir+'/opt_'+self.dim_string[a]+self.dim_string[b]+'_k_conv.pdf')
 				#
 				print("saved OPT plot")
+				plt.close()
 
 
 
