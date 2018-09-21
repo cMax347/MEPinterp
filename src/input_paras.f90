@@ -107,7 +107,7 @@ module input_paras
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
 				write(*,*)					"[methods]"
 				write(*,*)					"	plot_bands=",plot_bands
-				write(*,*)					"[unitCell]"
+				write(*,*)					"[unitCell] # a_0 (Bohr radii)	"
 				write(*,*)					"	a1=",a1(1:3)
 				write(*,*)					"	a2=",a2(1:3)
 				write(*,*)					"	a3=",a3(1:3)
@@ -116,13 +116,14 @@ module input_paras
 				write(*,*)					"	seed_name=",seed_name
 				write(*,*)					"[mep]"
 				write(*,'(a,i4)')			"	val bands=",valence_bands
-				write(*,*)					"[Kubo]"
+				write(*,*)					"[Kubo] # E_h (Hartree)"
 				write(*,*)					"	kuboTol=",kubo_tol
 				write(*,*)					"	hw=",hw
 				write(*,*)					"	eFermi=",eFermi
 				write(*,*)					"	T_kelvin=",T_kelvin
 				write(*,*)					"	eta=",eta
 				write(*,*)					"	i_eta_smr=",i_eta_smr
+				write(*,*)					"*********************************************************************************"		
 				!
 				!make the output folder
 				call my_mkdir(out_dir)
@@ -131,8 +132,7 @@ module input_paras
 					call my_mkdir(mep_out_dir)
 					call my_mkdir(ahc_out_dir)
 					call my_mkdir(opt_out_dir)					
-				end if
-				write(*,*)					"*********************************************************************************"				
+				end if			
 			else
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
 			end if
