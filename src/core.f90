@@ -104,8 +104,9 @@ contains
 		!
 		!
 		write(*,*)''
-		call MPI_BARRIER(MPI_COMM_WORLD, ierr)	
-		write(*,'(a,i3,a,i4,a)')		"[#",mpi_id,"; core_worker]: I start interpolating now (nValence=",valence_bands,")...."
+		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+		write(*,'(a,i3,a,a,a,i4,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
+											"]:  I start interpolating now (nValence=",valence_bands,")...."
 		!
 		do kiz = 1, mp_grid(3)
 			do kiy = 1, mp_grid(2)
@@ -150,10 +151,17 @@ contains
 				end do
 			end do
 		end do
-		write(*,'(a,i3,a,i8,a)')					"[#",mpi_id,"; core_worker]: ...finished interpolating ",n_ki_loc," kpts"
+		write(*,'(a,i3,a,a,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
+													"]: ...finished interpolating ",n_ki_loc," kpts"
 		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		write(*,'(a,i3,a,f4.2)', advance="no")		"[#",mpi_id,"; core_worker]: avg el count ",sum_N_el_loc/real(n_ki_loc,dp)
-		write(*,'(a,f4.2,a,f4.2,a)')					"	(min: ",min_n_el,"; max: ",max_n_el,")"
+		write(*,'(a,i3,a,f4.2,a,f4.2,a,f4.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
+																					sum_N_el_loc/real(n_ki_loc,dp),		&
+																				"	(min: ", 							&
+																					min_n_el,							&
+																				";   max: ", 							&
+																					max_n_el,							&
+																				")"
+		!write(*,'(a,f4.2,a,f4.2,a)')					"	(min: ",min_n_el,"; max: ",max_n_el,")"
 		!
 		!
 		!	sum over mpi threads & write output files

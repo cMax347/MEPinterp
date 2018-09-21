@@ -171,8 +171,6 @@ module file_io
 		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
 		write(mpi_unit)	e_bands(:)
 		close(mpi_unit) 
-		!write(*,'(a,i3,a)', advance="no")		"[#",mpi_id," ;write_en_binary]: prepare bands, wrote binary file "
-		!write(*,'(a,a,i4,a)')		trim(filename), " with ",size(e_bands), " entries"
 		!
 		return
 	end subroutine
@@ -613,8 +611,6 @@ module file_io
 				!read next line
 				read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
 				!
-!				write(*,'(a,i3,a,i3,a,i3,a,i3)',advance="no") "[#",mpi_id,";read_hr_file]: raw input: ",int3(1)," ",int3(2)," ",int3(3)
-!				write(*,'(a,i1,a,i1,a,f8.2,a,f8.2)')" m/n=",m," ",n," ",real2(1)," ",real2(2)
 				!get Wigner Seitz vector
 				if( wf==1 .and. sc==1 ) then
 					idx = 1
@@ -640,8 +636,8 @@ module file_io
 		!convert to a.u
 		H_mat	= H_mat / aUtoEv
 		!
-		write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,";read_hr_file]: success (input interpretation: nWfs="
-		write(*,'(i6,a,i6,a)')				f_nwfs, ";	nrpts=",size(R_vect,2),")!"
+		write(*,'(a,i3,a,i6,a,i6,a)')	"[#",mpi_id,";read_hr_file]: success (input interpretation: nWfs=",		&
+												f_nwfs, ";	nrpts=",size(R_vect,2),")!"
 		return
 	end subroutine
 
@@ -682,8 +678,7 @@ module file_io
 		!convert angstom to (au)
 		r_mat	= r_mat	/ aUtoAngstrm
 		!
-		write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,";read_r_file]: success (input interpretation: nWfs="
-		write(*,'(i6,a)')				f_nwfs, ";)"
+		write(*,'(a,i3,a,i6,a)')	"[#",mpi_id,";read_r_file]: success (input interpretation: nWfs=",f_nwfs, ";)"				
 		!
 		return
 	end subroutine

@@ -26,34 +26,35 @@ contains
 												V_ka(:,:,:)
 		!
 		if( read_kptsgen_pl_file(rel_kpts)	) then
+			!
+			!	get k-space
 			recip_latt	= get_recip_latt()
 			num_kpts	= size(rel_kpts,2)
 			k_per_mpi	= 0
 			!
 			!	get the data
 			call mpi_read_tb_basis(seed_name, R_vect, H_tb, r_tb)
+			call k_space_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
 			!
-			allocate(	en_k(						size(H_tb,2)	)	)
-			allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
-			if(	allocated(r_tb)	)	then	
-				allocate(	A_ka(	3,		size(r_tb,2),	size(r_tb,3)	)	)
-				allocate(	Om_kab(	3,3,	size(r_tb,2),	size(r_tb,3)	)	)
-				!write(*,'(a,i3,a)')		"[#",mpi_id,"; mep_interp]: will use position operator"
-			end if
 			!
 			!	do the work
+			call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+			write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
 				call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_kab )
 				call write_en_binary(ki,en_k)
 				k_per_mpi	= k_per_mpi + 1
 			end do
-			write(*,'(a,i10,a,i10,a)')	'[band_worker]:	interpolated ',k_per_mpi,' of ',num_kpts,' kpts'
+			write(*,'(a,i3,a,a,a,i10,a,i10,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),				&
+													']:	...finished, interpolated ',k_per_mpi,' of ',num_kpts,' kpts'
 			!
 			!
 			!	write the results
 			call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-			write(*,*) 'beyond the barrier'
-			if(mpi_id == mpi_root_id)	call write_en_global(rel_kpts)
+			if(mpi_id == mpi_root_id)	then
+				call write_en_global(rel_kpts)
+				write(*,*)'---------------------------------------------------------------------------------------------'
+			end if
 		else
 			stop 'for bandstructure calculations a kpts file has to be provided'
 		end if
@@ -62,6 +63,20 @@ contains
 	end subroutine
 
 
-
+	subroutine k_space_allocator( H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
+		real(dp),		allocatable			::	en_k(:)
+		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
+												A_ka(:,:,:), Om_kab(:,:,:,:),			&
+												V_ka(:,:,:)
+		!
+		allocate(	en_k(						size(H_tb,2)	)	)
+		allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
+		if(	allocated(r_tb)	)	then	
+			allocate(	A_ka(	3,		size(r_tb,2),	size(r_tb,3)	)	)
+			allocate(	Om_kab(	3,3,	size(r_tb,2),	size(r_tb,3)	)	)
+		end if
+		!
+		return
+	end subroutine
 
 end module

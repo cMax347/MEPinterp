@@ -122,27 +122,22 @@ contains
 				 		en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
 				 		en_term		=	fermi_dirac		/ 	en_denom
 				 		tot 		= 	tot + 1
-				 		if( abs(en_term) > kubo_tol) then
-				 			!
-				 			!TRIPLE PRODUCT
-				 			do j = 1, 3
-				 				do i = 1, 3
-				 					do l = 1, 3
-				 						do k = 1, 3
-				 							pre_fact	=	- real(my_Levi_Civita(j,k,l),dp) 
-				 							!
-				 							velo_nom	=	real(	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)		, dp)
-				 							!
-				 							!
-				 							F2(i,j)		= 	F2(i,j)		+	pre_fact  * velo_nom	* en_term
-				 						end do
+				 		!
+				 		!TRIPLE PRODUCT
+				 		do j = 1, 3
+				 			do i = 1, 3
+				 				do l = 1, 3
+				 					do k = 1, 3
+				 						pre_fact	=	- real(my_Levi_Civita(j,k,l),dp) 
+				 						!
+				 						velo_nom	=	real(	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)		, dp)
+				 						!
+				 						!
+				 						F2(i,j)		= 	F2(i,j)		+	pre_fact  * velo_nom	* en_term
 				 					end do
 				 				end do
 				 			end do
-				 		else
-				 			neglected	= neglected	+1
-				 			write(*,*)	'[kubo_mep_IC]: found intimate bands ',n0,' & ',n,' ',m,' with fermi / (dE**2 dE)=',	en_term
-				 		end if
+				 		end do
 				 	end if
 				 	!
 				 	!
