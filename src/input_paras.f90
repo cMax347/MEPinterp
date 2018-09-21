@@ -101,7 +101,7 @@ module input_paras
 				i_eta_smr	=	cmplx(0.0_dp,	eta	,dp)
 				!
 				!
-				write(*,*)					"**********************init_parameters********************************************"
+				write(*,*)					"**********************init_parameter interpretation******************************"
 				write(*,*)					"parallelization with ",mpi_nProcs," MPI threads"
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
 				write(*,*)					"[methods]"
@@ -129,7 +129,8 @@ module input_paras
 					call my_mkdir(mep_out_dir)
 					call my_mkdir(ahc_out_dir)
 					call my_mkdir(opt_out_dir)					
-				end if				
+				end if
+				write(*,*)					"*********************************************************************************"				
 			else
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
 			end if
