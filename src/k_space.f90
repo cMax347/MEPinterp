@@ -97,14 +97,13 @@ contains
 		!
 		! BZ volume
 		bz_vol	=	dot_product(		crossP( b1(:), b2(:))	, b3(:)		)
-		write(*,'(a,f8.3)') 	'[set_recip_latt]: the 1st Brillouin zone volume is' 
-		write(*,*)				'	', 'bz_vol=', bz_vol
+		write(*,'(a,f6.3,a)') 	'[set_recip_latt]: the 1st Brillouin zone volume is	 bz_vol=',bz_vol,'	(1/a_0)^3'
 		!
 		!	CPY TO TARGET 
 		recip_latt(1,:)	=	b1(:)
 		recip_latt(2,:)	=	b2(:)
 		recip_latt(3,:)	=	b3(:)
-		write(*,*) 				'[set_recip_latt]: recip_latt set to '
+		write(*,*) 				'[set_recip_latt]: recip_latt set to (1/a_0) '
 		write(*,*)				'	',	recip_latt(1,:)
 		write(*,*)				'	',	recip_latt(2,:)
 		write(*,*)				'	',	recip_latt(3,:)
