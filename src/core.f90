@@ -123,9 +123,9 @@ contains
 						kubo_mep_ic_loc	=	kubo_mep_ic_loc +	kubo_mep_IC(eFermi, T_kelvin, V_ka, en_k, ic_skipped)
 						kubo_mep_lc_loc	=	kubo_mep_lc_loc +	kubo_mep_LC(eFermi, T_kelvin, V_ka, en_k, lc_skipped)
 						kubo_mep_cs_loc	=	kubo_mep_cs_loc +	kubo_mep_CS(eFermi, T_kelvin, en_k, A_ka, Om_kab)
-						if(ic_skipped+ lc_skipped > 0) then
-							write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: WARNNING KUBO_MEP skipped ",ic_skipped+lc_skipped," data points"
-						end if
+						!if(ic_skipped+ lc_skipped > 0) then
+						!	write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: WARNNING KUBO_MEP skipped ",ic_skipped+lc_skipped," data points"
+						!end if
 						!
 						!
 						!	AHC
