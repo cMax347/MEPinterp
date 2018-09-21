@@ -130,7 +130,6 @@ module input_paras
 					call my_mkdir(ahc_out_dir)
 					call my_mkdir(opt_out_dir)					
 				end if				
-				write(*,*)					"---------------------------------------------------------------------------"
 			else
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
 			end if
@@ -163,6 +162,8 @@ module input_paras
 		end if
 		!
 		init_parameters	=	input_exist
+		!
+		write(*,*)					"---------------------------------------------------------------------------"
 		!
 		return 
 	end function
