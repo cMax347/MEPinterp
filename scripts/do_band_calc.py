@@ -8,7 +8,7 @@ from plot_bandStruct	import	plot_bandstruct
 
 
 
-def do_band_calc(phi, val_bands):
+def do_band_calc(phi, val_bands=1):
 	#create working directory
 	root_dir	= os.getcwd()
 	band_dir	= root_dir+'/bands'
@@ -71,6 +71,6 @@ def do_band_calc(phi, val_bands):
 
 
 
-do_band_calc(phi=0.0,val_bands=2)
+do_band_calc(phi=0.0)
 
 
