@@ -95,14 +95,18 @@ contains
 		n_ki_loc			= 	0
 		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
 		recip_latt			=	get_recip_latt()
+		write(*,*)''
 		!
 		!	get		TB	BASIS
 		call mpi_read_tb_basis(	seed_name, R_vect,		 	H_tb, r_tb					)
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
 		!
 		!
-		!	
-		write(*,'(a,i3,a,i4,a)')		"[#",mpi_id,"; core_worker]: I start interpolating now (nValence=",valence_bands,")."
+		!
+		write(*,*)''
+		call MPI_BARRIER(MPI_COMM_WORLD, ierr)	
+		write(*,'(a,i3,a,i4,a)')		"[#",mpi_id,"; core_worker]: I start interpolating now (nValence=",valence_bands,")...."
+		!
 		do kiz = 1, mp_grid(3)
 			do kiy = 1, mp_grid(2)
 				do kix = 1, mp_grid(1)
@@ -146,9 +150,10 @@ contains
 				end do
 			end do
 		end do
-		write(*,'(a,i3,a,i8,a)')					"[#",mpi_id,"; core_worker]: finished interpolating ",n_ki_loc," kpts"
-		write(*,'(a,i3,a,f4.2)', advance="no")		"[#",mpi_id,"; core_worker]: avg electron count 	",sum_N_el_loc/real(n_ki_loc,dp)
-		write(*,'(a,f4.2,a,f4.2)')					"(min: ",min_n_el,"; 	max: ",max_n_el," )"
+		write(*,'(a,i3,a,i8,a)')					"[#",mpi_id,"; core_worker]: ...finished interpolating ",n_ki_loc," kpts"
+		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+		write(*,'(a,i3,a,f4.2)', advance="no")		"[#",mpi_id,"; core_worker]: avg el count ",sum_N_el_loc/real(n_ki_loc,dp)
+		write(*,'(a,f4.2,a,f4.2,a)')					"	(min: ",min_n_el,"; max: ",max_n_el,")"
 		!
 		!
 		!	sum over mpi threads & write output files
@@ -240,26 +245,26 @@ contains
 			call normalize_k_int(mep_tens_ic_glob)
 			call normalize_k_int(mep_tens_lc_glob)
 			call normalize_k_int(mep_tens_cs_glob)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
 			!
 			call normalize_k_int(kubo_mep_ic_glob)
 			call normalize_k_int(kubo_mep_lc_glob)
 			call normalize_k_int(kubo_mep_cs_glob)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated  KUBO MEP tensor on ",n_ki_glob," kpts"
 			!
 			!
 			kubo_ahc_glob	=	kubo_ahc_glob		/	real(n_ki_glob,dp)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC tensor on ",n_ki_glob," kpts"
 			kubo_opt_s_glob	=	kubo_opt_s_glob		/	real(n_ki_glob,dp)			
 			kubo_opt_a_glob	=	kubo_opt_a_glob		/	real(n_ki_glob,dp)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
 			!
 			!
 			!	WRITE FILES
 			call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
 			call write_kubo_mep_tensors(kubo_mep_ic_glob, kubo_mep_lc_glob, kubo_mep_cs_glob)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
 			call write_ahc_tensor(kubo_ahc_glob)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC tensor on ",n_ki_glob," kpts"
 			call write_opt_tensors(kubo_opt_s_glob, kubo_opt_a_glob)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
 			write(*,*)	""
 			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
 		end if
@@ -298,7 +303,7 @@ contains
 		if(	allocated(r_tb)	)	then	
 			allocate(	A_ka(	  3,		size(r_tb,2),	size(r_tb,3)	)	)
 			allocate(	Om_kab(	3,	3,		size(r_tb,2),	size(r_tb,3)	)	)
-			write(*,'(a,i3,a)')		"[#",mpi_id,"; berry_worker]: will use position operator"	
+			write(*,'(a,i3,a)')		"[#",mpi_id,"; core_worker]: will use position operator"	
 		end if
 		!
 		return
