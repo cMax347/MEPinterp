@@ -44,7 +44,7 @@ module input_paras
 	real(dp)					::	a_latt(3,3), a0, unit_vol
 	real(dp)					::	hw, eFermi, T_kelvin
 	complex(dp)					::	i_eta_smr
-	real(dp),		parameter	::	kubo_tol		= 1e-3_dp
+	real(dp),		parameter	::	kubo_tol		= 1e-5_dp
 
 
 
