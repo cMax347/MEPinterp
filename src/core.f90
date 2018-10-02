@@ -28,6 +28,7 @@ module core
 	use kubo,			only:	kubo_ahc_tens,									&
 								kubo_opt_tens
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
+	use gyro,			only:	get_gyro_D
 
 	implicit none
 
@@ -64,7 +65,10 @@ contains
 												!
 		complex(dp)							::	tempS(3,3), 	tempA(3,3),				&
 												kubo_opt_s_loc(		3,3),				&
-												kubo_opt_a_loc(		3,3)																								
+												kubo_opt_a_loc(		3,3),				&
+												gyro_D_loc(			3,3),				&
+												gyro_Dw_loc(		3,3),				&																								
+												gyro_C_loc(			3,3)																								
 												!
 		integer								::	kix, kiy, kiz, ki, 						&
 												mp_grid(3), n_ki_loc, 					&
@@ -74,7 +78,9 @@ contains
 												V_ka(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
 		!
-		!	init
+		!----------------------------------------------------------------------------------------------------------------------------------
+		!	INIT
+		!----------------------------------------------------------------------------------------------------------------------------------
 		N_el_k				=	0.0_dp
 		sum_N_el_loc		=	0.0_dp
 		max_n_el			=	0.0_dp
@@ -88,16 +94,23 @@ contains
 		kubo_ahc_loc		=	0.0_dp
 		kubo_opt_a_loc		=	0.0_dp
 		kubo_opt_s_loc		=	0.0_dp
+		gyro_D_loc			=	0.0_dp
+		gyro_Dw_loc			=	0.0_dp
+		gyro_C_loc			=	0.0_dp
 		!
 		!
+		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get 	k-space
+		!----------------------------------------------------------------------------------------------------------------------------------
 		mp_grid				=	get_mp_grid()
 		n_ki_loc			= 	0
 		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
 		recip_latt			=	get_recip_latt()
 		write(*,*)''
 		!
+		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get		TB	BASIS
+		!----------------------------------------------------------------------------------------------------------------------------------
 		call mpi_read_tb_basis(	seed_name, R_vect,		 	H_tb, r_tb					)
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
 		!
@@ -108,6 +121,9 @@ contains
 		write(*,'(a,i3,a,a,a,i4,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
 											"]:  I start interpolating now (nValence=",valence_bands,")...."
 		!
+		!----------------------------------------------------------------------------------------------------------------------------------
+		!	loop	k-space
+		!----------------------------------------------------------------------------------------------------------------------------------
 		do kiz = 1, mp_grid(3)
 			do kiy = 1, mp_grid(2)
 				do kix = 1, mp_grid(1)
@@ -115,34 +131,54 @@ contains
 					!
 					ki	=	get_rel_kpt(kix, kiy, kiz, kpt)
 					if( mpi_ki_selector(ki, num_kpts)	) then
-						!
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!----------------------------------------------------------------------------------------------------------------------------------
 						!	INTERPOLATE
+						!----------------------------------------------------------------------------------------------------------------------------------
 						call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
 						!
+						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
+						!----------------------------------------------------------------------------------------------------------------------------------
 						mep_tens_ic_loc	=	mep_tens_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
 						mep_tens_lc_loc	=	mep_tens_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
-						mep_tens_cs_loc =	mep_tens_cs_loc + 	mep_niu_CS(A_ka, Om_kab)		!	chern simons	(geometrical)
+						mep_tens_cs_loc =	mep_tens_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
 						!
+						!----------------------------------------------------------------------------------------------------------------------------------
 						!	KUBO MEP (MEP with fermi_dirac)
+						!----------------------------------------------------------------------------------------------------------------------------------
 						kubo_mep_ic_loc	=	kubo_mep_ic_loc +	kubo_mep_IC(eFermi, T_kelvin, V_ka, en_k, ic_skipped)
 						kubo_mep_lc_loc	=	kubo_mep_lc_loc +	kubo_mep_LC(eFermi, T_kelvin, V_ka, en_k, lc_skipped)
 						kubo_mep_cs_loc	=	kubo_mep_cs_loc +	kubo_mep_CS(eFermi, T_kelvin, en_k, A_ka, Om_kab)
-						!if(ic_skipped+ lc_skipped > 0) then
-						!	write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: WARNNING KUBO_MEP skipped ",ic_skipped+lc_skipped," data points"
-						!end if
 						!
-						!
+						!----------------------------------------------------------------------------------------------------------------------------------
 						!	AHC
+						!----------------------------------------------------------------------------------------------------------------------------------
 						kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin, unit_vol)
 						!
+						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPT
+						!----------------------------------------------------------------------------------------------------------------------------------
 						call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
 						kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
 						kubo_opt_a_loc	=	kubo_opt_a_loc	+	tempA
 						!
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	GYRO
+						!----------------------------------------------------------------------------------------------------------------------------------
+						gyro_C_loc		=	gyro_C_loc		+	get_gyro_C(en_k, V_ka, eFermi, T_kelvin)
+						gyro_D_loc		=	gyro_D_loc		+ 	get_gyro_D(en_k, V_ka, Om_kab, eFermi, T_kelvin)
+						gyro_Dw_loc		=	gyro_Dw_loc		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
+						!
+						!----------------------------------------------------------------------------------------------------------------------------------
 						!	COUNT ELECTRONS
-						call count_electrons(en_k, eFermi, T_kelvin,		N_el_k, sum_N_el_loc, min_n_el, max_n_el)
+						!----------------------------------------------------------------------------------------------------------------------------------
+						call fd_count_el(en_k, eFermi, T_kelvin,		N_el_k, sum_N_el_loc, min_n_el, max_n_el)
+						!
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!----------------------------------------------------------------------------------------------------------------------------------
 						!
 						n_ki_loc = n_ki_loc + 1
 					end if
@@ -151,31 +187,29 @@ contains
 				end do
 			end do
 		end do
-		write(*,'(a,i3,a,a,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
-													"]: ...finished interpolating ",n_ki_loc," kpts"
-		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		write(*,'(a,i3,a,f4.2,a,f4.2,a,f4.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
-																					sum_N_el_loc/real(n_ki_loc,dp),		&
-																				"	(min: ", 							&
-																					min_n_el,							&
-																				";   max: ", 							&
-																					max_n_el,							&
-																				")"
-		!write(*,'(a,f4.2,a,f4.2,a)')					"	(min: ",min_n_el,"; max: ",max_n_el,")"
 		!
 		!
-		!	sum over mpi threads & write output files
+		!----------------------------------------------------------------------------------------------------------------------------------
+		!	PRINT INFO
+		!----------------------------------------------------------------------------------------------------------------------------------
+		call print_core_info(n_ki_loc, sum_N_el_loc, min_n_el, max_n_el)
 		!
+		!----------------------------------------------------------------------------------------------------------------------------------
+		!	REDUCE MPI & WRITE FILES
+		!----------------------------------------------------------------------------------------------------------------------------------
 		call sumK_and_print(			n_ki_loc, sum_N_el_loc,															&
 										mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,								&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
 										kubo_ahc_loc,																	&
-										kubo_opt_s_loc, kubo_opt_a_loc													&
+										kubo_opt_s_loc, kubo_opt_a_loc,													&
+										gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
 							)
 		!
+		!----------------------------------------------------------------------------------------------------------------------------------
+		!----------------------------------------------------------------------------------------------------------------------------------
+		!----------------------------------------------------------------------------------------------------------------------------------	
 		return
 	end subroutine
-
 
 
 
@@ -192,7 +226,8 @@ contains
 									mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,									&	
 									kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,									&									
 									kubo_ahc_loc,																		&
-									kubo_opt_s_loc, kubo_opt_a_loc														&
+									kubo_opt_s_loc, kubo_opt_a_loc,														&
+									gyro_C_loc, gyro_D_loc, gyro_Dw_loc													&
 							)
 		!		local:		sum of k-points	 over local( within single mpi) thread
 		!		global:		sum of k-points over whole mesh
@@ -202,7 +237,8 @@ contains
 												mep_tens_ic_loc(3,3), mep_tens_lc_loc(3,3), mep_tens_cs_loc(3,3),		&
 												kubo_mep_ic_loc(3,3), kubo_mep_lc_loc(3,3), kubo_mep_cs_loc(3,3),		&
 												kubo_ahc_loc(3,3)														
-		complex(dp),		intent(in)		::	kubo_opt_s_loc(3,3), kubo_opt_a_loc(3,3)
+		complex(dp),		intent(in)		::	kubo_opt_s_loc(3,3), kubo_opt_a_loc(3,3),								&
+												gyro_C_loc(3,3), gyro_D_loc(3,3), gyro_Dw_loc(3,3)		
 		!								---------------------------------------------------------------
 		integer								::	n_ki_glob
 		!								---------------------------------------------------------------
@@ -210,8 +246,8 @@ contains
 												mep_tens_ic_glob(3,3), mep_tens_lc_glob(3,3), mep_tens_cs_glob(3,3),	&
 												kubo_mep_ic_glob(3,3), kubo_mep_lc_glob(3,3), kubo_mep_cs_glob(3,3),	&
 												kubo_ahc_glob(3,3)
-		complex(dp)							::	kubo_opt_s_glob(3,3), kubo_opt_a_glob(3,3)
-		
+		complex(dp)							::	kubo_opt_s_glob(3,3), kubo_opt_a_glob(3,3),								&
+												gyro_C_glob(3,3), gyro_D_glob(3,3), gyro_Dw_glob(3,3)		
 		!								---------------------------------------------------------------
 		avg_N_el_glob		=	0.0_dp								
 		!	
@@ -223,7 +259,11 @@ contains
 		kubo_mep_cs_glob	=	0.0_dp	
 		kubo_ahc_glob		=	0.0_dp
 		kubo_opt_a_glob		=	0.0_dp
-		kubo_opt_s_glob		=	0.0_dp	
+		kubo_opt_s_glob		=	0.0_dp
+		gyro_C_glob			=	0.0_dp
+		gyro_D_glob			=	0.0_dp
+		gyro_Dw_glob		=	0.0_dp
+
 		!
 		!
 		!sum mep over global kpts
@@ -239,8 +279,11 @@ contains
 		call MPI_REDUCE(	kubo_mep_cs_loc,	kubo_mep_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		!
 		call MPI_REDUCE(	kubo_ahc_loc,		kubo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
-		call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+		call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+		call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+		!
+
+
 		!
 		!write tensors to files
 		if(mpi_id == mpi_root_id) 	then
@@ -284,7 +327,7 @@ contains
 
 
 
-	pure subroutine count_electrons(en_k, eFermi, T_kelvin, el_count, sum_loc, n_el_min, n_el_max)
+	pure subroutine fd_count_el(en_k, eFermi, T_kelvin, el_count, sum_loc, n_el_min, n_el_max)
 		real(dp),		intent(in)					::		en_k(:), eFermi, T_kelvin
 		real(dp),		intent(out)					::		el_count
 		real(dp),		intent(inout)				::		sum_loc, n_el_min, n_el_max
@@ -324,15 +367,39 @@ contains
 		!
 		mpi_ki_selector = .false.
 		!
-		loop_todos: do ki_todo = mpi_id +1, num_kpts, mpi_nProcs
-			if(	ki_request == ki_todo) then
-				mpi_ki_selector = .true.
-				exit loop_todos
-			end if
-		end do loop_todos
+		if(		mpi_nProcs == 1		) then
+			mpi_ki_selector	=	.true.
+		else
+			loop_todos: do ki_todo = mpi_id +1, num_kpts, mpi_nProcs
+				if(	ki_request == ki_todo) then
+					mpi_ki_selector = .true.
+					exit loop_todos
+				end if
+			end do loop_todos
+		end if
 		!
 		return
 	end function
+
+
+	subroutine print_core_info(n_ki_loc, sum_N_el_loc, min_n_el, max_n_el)
+		integer,		intent(in)		::	n_ki_loc
+		real(dp),		intent(in)		::	sum_N_el_loc, min_n_el, max_n_el
+		!
+		write(*,'(a,i3,a,a,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
+													"]: ...finished interpolating ",n_ki_loc," kpts"
+		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+		write(*,'(a,i3,a,f4.2,a,f4.2,a,f4.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
+																					sum_N_el_loc/real(n_ki_loc,dp),		&
+																				"	(min: ", 							&
+																					min_n_el,							&
+																				";   max: ", 							&
+																					max_n_el,							&
+																				")"
+		!
+		return
+	end subroutine
+
 
 
 
