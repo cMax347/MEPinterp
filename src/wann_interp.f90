@@ -105,7 +105,7 @@ module wann_interp
 																	R_frac(:,:), kpt_rel(3)	
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
-		real(dp)												::	r_vect(3), kpt_abs(3), ft_angle
+		real(dp)												::	R_abs(3), kpt_abs(3), ft_angle
 		complex(dp)												::	ft_phase
 		logical													::	use_pos_op, do_en_grad
 		integer    												::	sc, a, b 
@@ -123,8 +123,8 @@ module wann_interp
 		!
 		!sum real space cells
 		do sc = 1, size(R_frac,2)
-			r_vect(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-			ft_angle	=	dot_product(kpt_abs(1:3),	r_vect(1:3))
+			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
+			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
 			ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
 			!
 			!
@@ -134,7 +134,7 @@ module wann_interp
 			do a = 1, 3
 				!OPTIONAL energy gradients
 				if( do_en_grad)		then
-					H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * r_vect(a) * H_real(:,:,sc)
+					H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * R_abs(a) * H_real(:,:,sc)
 				end if
 				!OPTIONAL position operator
 				if( use_pos_op )	then
@@ -142,8 +142,8 @@ module wann_interp
 					A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)
 					!curvature
 					do b = 1, 3
-						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * r_vect(a) * r_real(b,:,:,sc)
-						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * r_vect(b) * r_real(a,:,:,sc)
+						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * R_abs(a) * r_real(b,:,:,sc)
+						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * R_abs(b) * r_real(a,:,:,sc)
 					end do
 				end if 
 			end do
@@ -224,7 +224,10 @@ module wann_interp
 		do m = 1, size(D_ka,3)
 			do n = 1, size(D_ka,2)
 				if(	n/=	m )	then
+					!
+					!
 					eDiff_mn	=	e_k(m)	- e_k(n)
+					!
 					if(abs(eDiff_mn) < 	kubo_tol	)	then
 						eDiff_mn	= sign(kubo_tol,eDiff_mn)
 						write(*,'(a)',advance="no")	'[;get_gauge_covar_deriv]: '
