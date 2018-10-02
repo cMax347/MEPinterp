@@ -8,6 +8,7 @@ module file_io
 													mep_out_dir,						&
 													ahc_out_dir,						&
 													opt_out_dir,						&
+													gyro_out_dir,						&
 													raw_dir, 							&
 													a_latt, 							&
 													plot_bands										
@@ -22,7 +23,8 @@ module file_io
 													write_mep_tensors,					&
 													write_kubo_mep_tensors,				&
 													write_ahc_tensor,					&
-													write_opt_tensors
+													write_opt_tensors,					&
+													write_gyro_tensors
 
 
 
@@ -355,6 +357,36 @@ module file_io
 		!
 		return
 	end subroutine	
+
+
+	subroutine write_gyro_tensors(C_tens, D_tens, Dw_tens)
+		complex(dp),	intent(in)		::	C_tens(3,3),	D_tens(3,3), Dw_tens(3,3)
+		character(len=13)					::	fname
+		character(len=50)					::	info_string
+		character(len=6)					::	id_string
+		!
+		fname		=	'gyro_C.dat'
+		info_string	=	'# the C tensor from arXiv:1710.03204v2'
+		id_string	=	'gyroC'
+		call	write_tens_file(gyro_out_dir,	fname,	C_tens,	info_string,	id_string)
+		!
+		fname		=	'gyro_D.dat'
+		info_string	=	'# the D tensor from arXiv:1710.03204v2'
+		id_string	=	'gyroD'
+		call	write_tens_file(gyro_out_dir,	fname,	D_tens,	info_string,	id_string)
+		!
+		fname		=	'gyro_Dw.dat'
+		info_string	=	'# the Dw tensor from arXiv:1710.03204v2'
+		id_string	=	'gyroDw'
+		call	write_tens_file(gyro_out_dir,	fname,	Dw_tens,	info_string,	id_string)
+
+		return
+	end subroutine
+
+
+
+
+
 
 
 

@@ -18,7 +18,8 @@ module input_paras
 												!dirs
 												w90_dir, 															&
 												raw_dir,															&
-												out_dir,	mep_out_dir, ahc_out_dir, 	opt_out_dir,				&
+												out_dir,															&
+												mep_out_dir, ahc_out_dir, 	opt_out_dir,	gyro_out_dir,			&
 												!jobs
 												plot_bands,															&
 												!vars
@@ -39,7 +40,8 @@ module input_paras
 	character(len=4)			::	out_dir	="out/"
 	character(len=9)			::	mep_out_dir	
 	character(len=9)			::	ahc_out_dir
-	character(len=9)			::	opt_out_dir				
+	character(len=9)			::	opt_out_dir
+	character(len=10)			::	gyro_out_dir	
 	logical						::	plot_bands
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol,						&
@@ -61,9 +63,10 @@ module input_paras
 		integer					::	mp_grid(3)
 		logical					::	input_exist
 		!
-		mep_out_dir =out_dir//"/mep/"	
-		ahc_out_dir	=out_dir//"/ahc/"
-		opt_out_dir =out_dir//"/opt/"	
+		mep_out_dir 	=	out_dir//"/mep/"	
+		ahc_out_dir		=	out_dir//"/ahc/"
+		opt_out_dir 	=	out_dir//"/opt/"	
+		gyro_out_dir	=	out_dir//"/gyro/"
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
 			inquire(file="./input.txt",exist=input_exist)
@@ -131,7 +134,8 @@ module input_paras
 				if(.not. plot_bands) then
 					call my_mkdir(mep_out_dir)
 					call my_mkdir(ahc_out_dir)
-					call my_mkdir(opt_out_dir)					
+					call my_mkdir(opt_out_dir)
+					call my_mkdir(gyro_out_dir)					
 				end if	
 			else
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"

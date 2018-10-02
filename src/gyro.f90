@@ -13,7 +13,7 @@ module gyro
 
 	implicit none
 
-	public 	::	get_gyro_D, get_gyro_C
+	public 	::	get_gyro_D, get_gyro_Dw, get_gyro_C, get_gyro_K
 	private
 
 
@@ -80,7 +80,7 @@ contains
 		real(dp),		intent(in)			::		en(:), e_fermi, T_kelvin
 		complex(dp),	intent(in)			::		v_a(:,:,:)
 		complex(dp)							::		C_ab(3,3)
-		integer								::		n, a, b
+		integer								::		n, b
 		!
 		C_ab	=	0.0_dp
 		!

@@ -14,21 +14,24 @@ module core
 								kubo_tol,										&
 								hw, eFermi, T_kelvin, i_eta_smr, 				&
 								unit_vol
-	use file_io,		only:	mpi_read_tb_basis,								&
-								write_mep_tensors,								&
-								write_kubo_mep_tensors,							&
-								write_ahc_tensor,								&
-								write_opt_tensors
+	!
 	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
 								get_rel_kpt,									&
 								normalize_k_int
 	use wann_interp,	only:	get_wann_interp
 	!
 	use mep_niu,		only:	mep_niu_CS,	mep_niu_IC, mep_niu_LC
-	use kubo,			only:	kubo_ahc_tens,									&
-								kubo_opt_tens
+	use kubo,			only:	kubo_ahc_tens, kubo_opt_tens
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
-	use gyro,			only:	get_gyro_D
+	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
+	!
+	use file_io,		only:	mpi_read_tb_basis,								&
+								write_mep_tensors,								&
+								write_kubo_mep_tensors,							&
+								write_ahc_tensor,								&
+								write_opt_tensors,								&
+								write_gyro_tensors
+
 
 	implicit none
 
@@ -263,7 +266,6 @@ contains
 		gyro_C_glob			=	0.0_dp
 		gyro_D_glob			=	0.0_dp
 		gyro_Dw_glob		=	0.0_dp
-
 		!
 		!
 		!sum mep over global kpts
@@ -282,8 +284,10 @@ contains
 		call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		!
-
-
+		call MPI_REDUCE(	gyro_C_loc,			gyro_C_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+		call MPI_REDUCE(	gyro_D_loc,			gyro_D_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+		call MPI_REDUCE(	gyro_Dw_loc,		gyro_Dw_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+		!
 		!
 		!write tensors to files
 		if(mpi_id == mpi_root_id) 	then
@@ -310,12 +314,17 @@ contains
 			kubo_opt_a_glob	=	kubo_opt_a_glob		/	real(n_ki_glob,dp)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
 			!
+			call normalize_k_int(gyro_C_glob)
+			call normalize_k_int(gyro_D_glob)			
+			call normalize_k_int(gyro_Dw_glob)			
+
 			!
 			!	WRITE FILES
 			call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
 			call write_kubo_mep_tensors(kubo_mep_ic_glob, kubo_mep_lc_glob, kubo_mep_cs_glob)
 			call write_ahc_tensor(kubo_ahc_glob)
 			call write_opt_tensors(kubo_opt_s_glob, kubo_opt_a_glob)
+			call write_gyro_tensors( gyro_C_glob, gyro_D_glob, gyro_Dw_glob)
 			write(*,*)	""
 			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
 		end if
