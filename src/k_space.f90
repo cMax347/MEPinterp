@@ -13,8 +13,10 @@ module k_space
 	save
 
 	interface normalize_k_int
-		module procedure d_matrix_normalize_k_int
 		module procedure d_scalar_normalize_k_int
+		module procedure z_scalar_normalize_k_int
+		module procedure d_matrix_normalize_k_int
+		module procedure z_matrix_normalize_k_int
 	end interface normalize_k_int
 
 
@@ -30,6 +32,17 @@ contains
 !			INTERFACE:		normalize_k_int
 !
 !-----------------------------------------------------------------------------------
+	subroutine z_matrix_normalize_k_int(mat)
+		complex(dp),	intent(inout)	::	mat(:,:)
+		integer							:: 	n_k
+		!
+		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+		mat		=	mat		* bz_vol	/ real(n_k,dp)
+		!
+		return
+	end subroutine
+	
+
 
 	subroutine d_matrix_normalize_k_int(mat)
 		real(dp),	intent(inout)	::	mat(:,:)
@@ -48,6 +61,16 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
 		
+		!
+		return
+	end subroutine
+
+	subroutine z_scalar_normalize_k_int(scalar)
+		complex(dp),	intent(inout)	::	scalar
+		integer							::	n_k
+		!
+		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
 		!
 		return
 	end subroutine
