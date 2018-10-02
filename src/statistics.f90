@@ -3,7 +3,8 @@ module statistics
 
 	implicit none
 
-	public				::	fd_stat, fd_get_N_el
+	public					::			fd_stat,		fd_stat_deriv, 			&
+										fd_get_N_el
 	private
 
 contains
@@ -33,6 +34,30 @@ contains
 			fd_get_N_el	=	fd_get_N_el	+	fd_stat(en_k(n),e_fermi, T_kelvin)
 		end do
 		!
+		return
+	end function
+
+
+
+	real(dp) pure function fd_stat_deriv(e_band, e_fermi, T_kelvin)
+		real(dp), 		intent(in)			::	e_band, e_fermi, T_kelvin
+		real(dp)							::	T_smear, x
+		!
+		!	w90git:
+		!if (abs (x) .le.36.0) then
+        ! 	utility_w0gauss = 1.00_dp / (2.00_dp + exp ( - x) + exp ( + x) )
+        !  	! in order to avoid problems for large values of x in the e
+       	!else
+        !	utility_w0gauss = 0.0_dp
+       	!endif
+       	!
+       	!
+       	T_smear			=	kBoltz_Eh_K		*	T_kelvin
+       	x				=	(e_band	- e_fermi) / T_smear
+       	!
+       	!
+       	fd_stat_deriv	=	1.00_dp 	/ 		(	2.00_dp + exp( x ) + exp( -x ) 			)
+
 		return
 	end function	
 
