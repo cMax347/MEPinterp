@@ -76,7 +76,9 @@ contains
 			 							!	
 			 							!	
 			 							F3(i,j)		= 	F3(i,j) 	+	pre_fact   * velo_nom	/	en_denom	
-			 							
+			 							!
+			 							!	OLD VERSION:
+			 							!	Vtmp		= Velo(k,nZero,nZero,ki) * Velo(l,n,nZero,ki) * Velo(i,nZero,n,ki) 
 			 						end do
 			 					end do
 			 				end do
@@ -134,6 +136,9 @@ contains
 				 							!
 				 							!
 				 							F2(i,j)		= 	F2(i,j)		+	pre_fact  * velo_nom	/	en_denom	
+				 							!
+				 							!	OLD
+				 							!	Vtmp		= Velo(k,n,m,ki) * Velo(l,m,nZero,ki) * Velo(i,nZero,n,ki) 
 				 						end do
 				 					end do
 				 				end do
