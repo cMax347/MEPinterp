@@ -1,6 +1,6 @@
 program MEPinterp
 !
-#ifdef INTEL_COMPILER
+#ifdef __INTEL_COMPILER
 	use ifport !needed for time 
 #endif
 	use mpi
