@@ -21,7 +21,7 @@ module core
 	use wann_interp,	only:	get_wann_interp
 	!
 	use mep_niu,		only:	mep_niu_CS,	mep_niu_IC, mep_niu_LC
-	use kubo,			only:	kubo_ahc_tens, kubo_opt_tens
+	use kubo,			only:	kubo_ahc_tens, velo_ahc_tens, kubo_opt_tens
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
 	!
@@ -62,6 +62,7 @@ contains
 												mep_tens_lc_loc(	3,3),				&
 												mep_tens_cs_loc(	3,3),				&
 												kubo_ahc_loc(		3,3),				&
+												velo_ahc_loc(		3,3),				&
 												kubo_mep_ic_loc(	3,3),				&
 												kubo_mep_lc_loc(	3,3),				&
 												kubo_mep_cs_loc(	3,3)
@@ -159,6 +160,7 @@ contains
 						!	AHC
 						!----------------------------------------------------------------------------------------------------------------------------------
 						kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin, unit_vol)
+						velo_ahc_loc	=	velo_ahc_loc	+	velo_ahc_tens(en_k, V_ka,	eFermi, T_kelvin, unit_vol)
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPT
@@ -203,7 +205,7 @@ contains
 		call sumK_and_print(			n_ki_loc, sum_N_el_loc,															&
 										mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,								&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
-										kubo_ahc_loc,																	&
+										kubo_ahc_loc, velo_ahc_loc,														&
 										kubo_opt_s_loc, kubo_opt_a_loc,													&
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
 							)
@@ -228,7 +230,7 @@ contains
 	subroutine sumK_and_print(		n_ki_loc, sum_N_el_loc,																&
 									mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,									&	
 									kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,									&									
-									kubo_ahc_loc,																		&
+									kubo_ahc_loc, velo_ahc_loc,															&
 									kubo_opt_s_loc, kubo_opt_a_loc,														&
 									gyro_C_loc, gyro_D_loc, gyro_Dw_loc													&
 							)
@@ -239,7 +241,7 @@ contains
 		real(dp),			intent(in)		::	sum_N_el_loc,															&
 												mep_tens_ic_loc(3,3), mep_tens_lc_loc(3,3), mep_tens_cs_loc(3,3),		&
 												kubo_mep_ic_loc(3,3), kubo_mep_lc_loc(3,3), kubo_mep_cs_loc(3,3),		&
-												kubo_ahc_loc(3,3)														
+												kubo_ahc_loc(3,3), velo_ahc_loc(3,3)														
 		complex(dp),		intent(in)		::	kubo_opt_s_loc(3,3), kubo_opt_a_loc(3,3),								&
 												gyro_C_loc(3,3), gyro_D_loc(3,3), gyro_Dw_loc(3,3)		
 		!								---------------------------------------------------------------
@@ -248,7 +250,7 @@ contains
 		real(dp)							::	avg_N_el_glob,															&
 												mep_tens_ic_glob(3,3), mep_tens_lc_glob(3,3), mep_tens_cs_glob(3,3),	&
 												kubo_mep_ic_glob(3,3), kubo_mep_lc_glob(3,3), kubo_mep_cs_glob(3,3),	&
-												kubo_ahc_glob(3,3)
+												kubo_ahc_glob(3,3), velo_ahc_glob(3,3)
 		complex(dp)							::	kubo_opt_s_glob(3,3), kubo_opt_a_glob(3,3),								&
 												gyro_C_glob(3,3), gyro_D_glob(3,3), gyro_Dw_glob(3,3)		
 		!								---------------------------------------------------------------
@@ -261,6 +263,7 @@ contains
 		kubo_mep_lc_glob	=	0.0_dp
 		kubo_mep_cs_glob	=	0.0_dp	
 		kubo_ahc_glob		=	0.0_dp
+		velo_ahc_glob		=	0.0_dp
 		kubo_opt_a_glob		=	0.0_dp
 		kubo_opt_s_glob		=	0.0_dp
 		gyro_C_glob			=	0.0_dp
@@ -281,6 +284,8 @@ contains
 		call MPI_REDUCE(	kubo_mep_cs_loc,	kubo_mep_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		!
 		call MPI_REDUCE(	kubo_ahc_loc,		kubo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+		call MPI_REDUCE(	velo_ahc_loc,		velo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)		
+		!
 		call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
 		!
@@ -310,6 +315,10 @@ contains
 			!
 			kubo_ahc_glob	=	kubo_ahc_glob		/	real(n_ki_glob,dp)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC tensor on ",n_ki_glob," kpts"
+			!			!
+			velo_ahc_glob	=	velo_ahc_glob		/	real(n_ki_glob,dp)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC (via velo) tensor on ",n_ki_glob," kpts"
+			!
 			kubo_opt_s_glob	=	kubo_opt_s_glob		/	real(n_ki_glob,dp)			
 			kubo_opt_a_glob	=	kubo_opt_a_glob		/	real(n_ki_glob,dp)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
@@ -322,7 +331,7 @@ contains
 			!	WRITE FILES
 			call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
 			call write_kubo_mep_tensors(kubo_mep_ic_glob, kubo_mep_lc_glob, kubo_mep_cs_glob)
-			call write_ahc_tensor(kubo_ahc_glob)
+			call write_ahc_tensor(kubo_ahc_glob, velo_ahc_glob)
 			call write_opt_tensors(kubo_opt_s_glob, kubo_opt_a_glob)
 			call write_gyro_tensors( gyro_C_glob, gyro_D_glob, gyro_Dw_glob)
 			write(*,*)	""

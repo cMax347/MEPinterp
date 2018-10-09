@@ -319,11 +319,11 @@ module file_io
 	end subroutine
 
 
-	subroutine write_ahc_tensor(ahc_tens)
-		real(dp),		intent(in)		::	ahc_tens(3,3)
+	subroutine write_ahc_tensor(ahc_tens, velo_ahc_tens)
+		real(dp),		intent(in)		::	ahc_tens(3,3), velo_ahc_tens(3,3)
 		character(len=12)					::	fname
-		character(len=50)					::	info_string
-		character(len=3)					::	id_string
+		character(len=70)					::	info_string
+		character(len=7)					::	id_string
 		!
 		call my_mkdir(ahc_out_dir)
 		!
@@ -332,6 +332,14 @@ module file_io
 		id_string	=	'ahc'
 		!
 		call	write_tens_file(ahc_out_dir,	fname,	ahc_tens,	info_string,	id_string)
+		!
+		!
+		fname		=	'ahc_velo.dat'
+		info_string	=	'# anomalous Hall conductivity tensor (via velocity kubo)'
+		id_string	=	'ahcVELO'
+		!
+		call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
+		!
 		!
 		return
 	end subroutine

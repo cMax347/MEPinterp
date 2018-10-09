@@ -12,6 +12,7 @@ module kubo
 
 	private
 	public			::			kubo_ahc_tens,		&
+								velo_ahc_tens,		&
 								kubo_opt_tens	
 
 
@@ -41,6 +42,38 @@ contains
 		return
 	end function
 
+	pure function velo_ahc_tens(en_k, v_kab, eFermi, T_kelvin, unit_vol) result( o_ahc)
+		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin, unit_vol
+		complex(dp), 	intent(in)		::	v_kab(:,:,:)
+		real(dp)						::	o_ahc(3,3), en_denom	
+		real(dp)						::	Om_ab(3,3)
+		integer							::	n, l, j
+		!
+		o_ahc	=	0.0_dp
+		!
+		do n = 1, size(en_k)
+			Om_ab	= 	0.0_dp
+			!
+			!	get curvature of band n
+			do l = 1, size(en_k)
+				en_denom	= en_k(n)-en_k(l)	
+				!
+				!
+				if(		(l /= n) .and.	abs(en_denom) > 1e-6_dp 		)  then
+					do j = 1, 3
+						Om_ab(:,j)	= Om_ab(:,j) 	-2.0_dp * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/	( 	en_denom	)**2 		
+					end do
+				end if
+				!
+			end do
+			!
+			!
+			o_ahc	=	o_ahc	+ 	Om_ab 	*		fd_stat(en_k(n),	eFermi, T_kelvin)	/	unit_vol
+		end do
+		!
+		!
+		return
+	end function
 
 
 
