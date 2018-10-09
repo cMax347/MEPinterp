@@ -3,7 +3,9 @@ program MEPinterp
 #ifdef __INTEL_COMPILER
 	use ifport !needed for time 
 #endif
+#ifdef USE_MPI	
 	use mpi
+#endif
 	use constants,				only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,			only:		init_parameters,	&
 											plot_bands
@@ -13,11 +15,16 @@ program MEPinterp
 	!
 	!
 	!MPI INIT
-	mpi_root_id = 0
+	mpi_root_id = 	0
+	mpi_id		=	0
+	mpi_nProcs	=	1
+
+#ifdef USE_MPI
 	call MPI_INIT( ierr )
     call MPI_COMM_RANK (MPI_COMM_WORLD, 	mpi_id			, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, 	mpi_nProcs		, ierr)
 	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,': mepInterp/',cTIME(time()),']:	welcome to mepInterp'
+#endif
 	!
 	!
     !BODY
@@ -33,9 +40,13 @@ program MEPinterp
 	!
 	!
 	!FINALIZE
+#ifdef USE_MPI
 	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
 	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,': mepInterp/',cTIME(time()),']:	all done, by by'
+#ifdef USE_MPI	
 	call MPI_FINALIZE(ierr)
+#endif	
 	!
 	!
 	stop

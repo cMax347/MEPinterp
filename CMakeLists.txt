@@ -21,17 +21,21 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/archive)
 #for LINUX use intel compiler with performance options
 if (UNIX AND NOT APPLE)
   message("detected unix will assume intel compiler")
-  #add_compile_options(INTEL_COMPILER)
   set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -openmp")
   set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -openmp")
+  add_definitions(-DUSE_MPI)
     #do something
 endif (UNIX AND NOT APPLE)
 
 #for APPLE use a debugging flag scheme
 if (APPLE)
-  message("will use MAC compiler options, search for Lapack and MPI library")
+  message("will use MAC compiler options (requires Lapack)")
   find_package(LAPACK REQUIRED)
-  find_package(MPI REQUIRED)
+  find_package(MPI)
+  if (MPI_FOUND)
+    add_definitions(-DUSE_MPI)
+    message("found MPI lib, will build parallel exe")
+  endif(MPI_FOUND)
 
   set(CMAKE_Fortran_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
   set(COVERAGE_LINK_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")

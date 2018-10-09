@@ -3,7 +3,9 @@ module band_calc
 #ifdef __INTEL_COMPILER
 	use ifport !needed for time 
 #endif
+#ifdef USE_MPI
 	use mpi
+#endif
 	use constants,		only:			dp, mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,	only:			seed_name, a_latt
 	use k_space,		only:			get_recip_latt										
@@ -42,7 +44,9 @@ contains
 			!
 			!
 			!	do the work
+#ifdef USE_MPI
 			call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
 			write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
 				call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_kab )
@@ -54,7 +58,9 @@ contains
 			!
 			!
 			!	write the results
+#ifdef USE_MPI
 			call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif			
 			if(mpi_id == mpi_root_id)	then
 				call write_en_global(rel_kpts)
 				write(*,*)'---------------------------------------------------------------------------------------------'

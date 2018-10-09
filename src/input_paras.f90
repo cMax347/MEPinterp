@@ -1,6 +1,8 @@
 module input_paras
 	use m_config
+#ifdef USE_MPI
 	use mpi
+#endif
 	use matrix_math,				only:		crossP
 	use constants,					only:		dp, fp_acc, pi_dp,			&
 												mpi_id, mpi_root_id, mpi_nProcs, ierr
@@ -146,9 +148,14 @@ module input_paras
 		end if
 		!
 		!
+#ifdef USE_MPI
 		call MPI_BCAST(			input_exist		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+#endif
+		!
+		!
 		if( input_exist) then
-			!ROOT BCAST
+#ifdef USE_MPI
+						!ROOT BCAST
 			call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
@@ -160,6 +167,7 @@ module input_paras
 			call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_BCAST(		i_eta_smr		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+#endif
 			!
 			!UNIT CELL VOLUME
 			a1			=	a_latt(1,:)

@@ -6,7 +6,9 @@ module core
 #ifdef __INTEL_COMPILER
 	use ifport !needed for time 
 #endif
+#ifdef USE_MPI
 	use mpi
+#endif
 	use matrix_math,	only:	my_Levi_Civita
 	use constants,		only:	dp, aUtoAngstrm, auToTesla,						&			
 								mpi_root_id, mpi_id, mpi_nProcs, ierr			
@@ -124,7 +126,9 @@ contains
 		!
 		!
 		write(*,*)''
+#ifdef USE_MPI
 		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
 		write(*,'(a,i3,a,a,a,i4,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
 											"]:  I start interpolating now (nValence=",valence_bands,")...."
 		!
@@ -275,6 +279,10 @@ contains
 		!
 		!
 		!sum mep over global kpts
+#ifdef USE_MPI		
+		!
+		!	***********				PARALLEL SUM OVER NODES				******************************************************
+		!
 		call MPI_REDUCE(	n_ki_loc,				n_ki_glob,			1,		MPI_INTEGER,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_REDUCE(	sum_N_el_loc,		avg_N_el_glob,			1,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		!
@@ -295,6 +303,31 @@ contains
 		call MPI_REDUCE(	gyro_C_loc,			gyro_C_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_REDUCE(	gyro_D_loc,			gyro_D_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_REDUCE(	gyro_Dw_loc,		gyro_Dw_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+#else
+		!
+		!	***********				SERIAL CPY TO TARGET				******************************************************
+		!
+		n_ki_glob			=	n_ki_loc
+		avg_N_el_glob		=	sum_N_el_loc
+		!
+		mep_tens_ic_glob 	=	mep_tens_ic_loc
+		mep_tens_lc_glob 	=	mep_tens_lc_loc
+		mep_tens_cs_glob 	=	mep_tens_cs_loc	
+		!
+		kubo_mep_ic_glob	=	kubo_mep_ic_loc
+		kubo_mep_lc_glob	=	kubo_mep_lc_loc
+		kubo_mep_cs_glob	=	kubo_mep_cs_loc					
+		!
+		kubo_ahc_glob		=	kubo_ahc_loc		
+		velo_ahc_glob		=	velo_ahc_loc
+		!
+		kubo_opt_s_glob		=	kubo_opt_s_loc		
+		kubo_opt_a_glob		=	kubo_opt_a_loc
+		!
+		gyro_C_glob			=	gyro_C_loc
+		gyro_D_glob			=	gyro_D_loc
+		gyro_Dw_glob		=	gyro_Dw_loc		
+#endif		
 		!
 		!
 		!write tensors to files
@@ -409,7 +442,10 @@ contains
 		!
 		write(*,'(a,i3,a,a,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
 													"]: ...finished interpolating ",n_ki_loc," kpts"
+#ifdef USE_MPI
 		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif		
+
 		write(*,'(a,i3,a,f4.2,a,f4.2,a,f4.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
 																					sum_N_el_loc/real(n_ki_loc,dp),		&
 																				"	(min: ", 							&
