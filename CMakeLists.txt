@@ -21,8 +21,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/archive)
 #for LINUX use intel compiler with performance options
 if (UNIX AND NOT APPLE)
   message("detected unix will assume intel compiler")
-  set(CMAKE_Fortran_FLAGS "-mkl -O3 -openmp")
-  set(COVERAGE_LINK_FLAGS "-mkl -O3 -openmp")
+  add_compile_options(INTEL_COMPILER)
+  set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -openmp")
+  set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -openmp")
     #do something
 endif (UNIX AND NOT APPLE)
 
@@ -32,8 +33,8 @@ if (APPLE)
   find_package(LAPACK REQUIRED)
   find_package(MPI REQUIRED)
 
-  set(CMAKE_Fortran_FLAGS "-Og -O0 -llapack -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-  set(COVERAGE_LINK_FLAGS "-Og -O0 -llapack -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  set(CMAKE_Fortran_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  set(COVERAGE_LINK_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
 endif (APPLE)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
@@ -41,6 +42,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 #	ToDo's:
 #
 #	1) debug and release build
+#	2) parallel and serial build
 #	2) INTEL compiler matching
 #
 

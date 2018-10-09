@@ -1,4 +1,8 @@
 module band_calc
+
+#ifdef INTEL_COMPILER
+	use ifport !needed for time 
+#endif
 	use mpi
 	use constants,		only:			dp, mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,	only:			seed_name, a_latt

@@ -1,4 +1,8 @@
 program MEPinterp
+!
+#ifdef INTEL_COMPILER
+	use ifport !needed for time 
+#endif
 	use mpi
 	use constants,				only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,			only:		init_parameters,	&

@@ -3,6 +3,9 @@ module core
 	!	to the polariztion induced by a perturbive magnetic field
 	! 	see Niu PRL 112, 166601 (2014)
 	!use omp_lib
+#ifdef INTEL_COMPILER
+	use ifport !needed for time 
+#endif
 	use mpi
 	use matrix_math,	only:	my_Levi_Civita
 	use constants,		only:	dp, aUtoAngstrm, auToTesla,						&			
