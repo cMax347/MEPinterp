@@ -37,7 +37,9 @@ contains
 		integer							:: 	n_k
 		!
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-		mat		=	mat		* bz_vol	/ real(n_k,dp)
+		!
+		!
+		if(n_k > 0	)		mat		=	mat		* bz_vol	/ real(n_k,dp)
 		!
 		return
 	end subroutine
@@ -49,7 +51,9 @@ contains
 		integer						:: 	n_k
 		!
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-		mat		=	mat		* bz_vol	/ real(n_k,dp)
+		!
+		!
+		if(n_k > 0	)		mat		=	mat		* bz_vol	/ real(n_k,dp)
 		!
 		return
 	end subroutine
@@ -59,7 +63,9 @@ contains
 		integer						::	n_k
 		!
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
+		!
+		!
+		if(n_k > 0	)		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
 		
 		!
 		return
@@ -70,7 +76,9 @@ contains
 		integer							::	n_k
 		!
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
+		!
+		!
+		if(n_k > 0	)		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
 		!
 		return
 	end subroutine
