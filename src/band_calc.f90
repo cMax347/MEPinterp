@@ -30,6 +30,7 @@ contains
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_kab(:,:,:,:),				&
 												V_ka(:,:,:)
+		logical								::	do_gauge_trafo
 		!
 		if( read_kptsgen_pl_file(rel_kpts)	) then
 			!
@@ -48,8 +49,12 @@ contains
 			call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 #endif
 			write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
+			!
+			!
+			do_gauge_trafo	= .false. !eigenvalues are gauge independent
+			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
-				call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_kab )
+				call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_kab )
 				call write_en_binary(ki,en_k)
 				k_per_mpi	= k_per_mpi + 1
 			end do

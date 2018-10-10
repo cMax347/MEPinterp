@@ -13,7 +13,8 @@ module core
 	use constants,		only:	dp, aUtoAngstrm, auToTesla,						&			
 								mpi_root_id, mpi_id, mpi_nProcs, ierr			
 	use statistics,		only:	fd_get_N_el
-	use input_paras,	only:	a_latt, 										&
+	use input_paras,	only:	do_gauge_trafo,									&
+								a_latt, 										&
 								valence_bands, 									&
 								seed_name,										&
 								kubo_tol,										&
@@ -147,7 +148,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	INTERPOLATE
 						!----------------------------------------------------------------------------------------------------------------------------------
-						call get_wann_interp(H_tb, r_tb, a_latt, recip_latt, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
+						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP

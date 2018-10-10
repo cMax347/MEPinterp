@@ -20,12 +20,12 @@ seed_name		= 'wf1'
 #
 #----------------------FUNCTIONS-------------------------------------------------------------------------------------------
 
-def convert_phase_to_complex(phi):
+def convert_phase_to_complex(angles):
 	#computes e^{i*phi}
 	tmp = []
-	for angle in phi:
+	for angle in angles:
 		tmp.append(	np.exp(	1j * np.pi * angle)		)
-
+		#tmp.append(		2.0*np.cos(np.pi*angle)			)
 	return tmp
 
 
@@ -111,10 +111,10 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 
 
 				#print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+nn_list[at][nn]+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][at]))
-				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][at]), +np.imag(phi[b_dim][at])		]	)
-				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], nn+1, at+1, np.real(phi[b_dim][at]), -np.imag(phi[b_dim][at])	]	)
+				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], at+1, nn+1, -np.real(phi[b_dim][at]), +np.imag(phi[b_dim][at])		]	)
+				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], nn+1, at+1, -np.real(phi[b_dim][at]), -np.imag(phi[b_dim][at])		]	)
 
-
+				
 
 	#for at,nn in enumerate(nn_list):
 	#	print('at='+str(at)+' nn='+str(nn)	)
@@ -216,7 +216,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 
 
 
-def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name, kubo_tol=1e-3, hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  plot_bands='F'):
+def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name, kubo_tol=1e-3, hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  plot_bands='F', do_gauge_trafo='T'):
 	with open(file_path+'input.txt','w') as outfile:
 		outfile.write('# input file for TB model from New J Physics 12, 053032 (2010)'+'\n')
 		outfile.write('# generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
@@ -237,6 +237,7 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		#
 		#
 		outfile.write('[wannInterp]\n')
+		outfile.write('    '	+	'doGaugeTrafo= '	+	str(do_gauge_trafo)		+	'\n')
 		outfile.write('    '	+	'mp_grid= '			+	str(mp_grid[0]) +' '+str(mp_grid[1])+' '+str(mp_grid[2])		+	'\n')
 		outfile.write('    '	+	'seed_name= '		+	seed_name			+	'\n')
 		#outfile.write('    '	+	'use_interp_kpt= '	+	use_interp_kpt		+	'\n')
@@ -272,7 +273,7 @@ def write_postw90_input(w90_dir, seed_name, val_bands, mp_grid, hw=0.0, eFermi=0
 
 
 
-def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands='F'):
+def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands='F', do_gauge_trafo='T'):
 	target_dir_name	= 'w90files'
 	target_path		= root_dir+'/'+target_dir_name
 
@@ -352,7 +353,7 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1
 	write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
 
 
-	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,kubo_tol, hw,eFermi, Tkelvin,eta_smearing, plot_bands)
+	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,kubo_tol, hw,eFermi, Tkelvin,eta_smearing, plot_bands, do_gauge_trafo)
 
 
 def test():

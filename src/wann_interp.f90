@@ -35,7 +35,8 @@ module wann_interp
 
 
 !public:
-	subroutine get_wann_interp(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_kab  )
+	subroutine get_wann_interp(do_gauge_trafo, H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_kab  )
+		logical,						intent(in)				::	do_gauge_trafo
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	& 
@@ -44,42 +45,26 @@ module wann_interp
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		
-		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:),  D_ka(:,:,:)
-
+		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
 		!
 		!
-		allocate(	U_k(			size(H_real,1),size(H_real,2)	)			)		
-		if(	allocated(V_ka)	)	then				
-			allocate(	H_ka(	3,size(H_real,1),size(H_real,2)	 )		)
-			!
-			!
-			if(	allocated(r_real)	) 	allocate(		D_ka(		3,	size(r_real,2),	size(r_real,3)	))
-		end if
+								allocate(	U_k(			size(H_real,1),		size(H_real,2)		)		)		
+		if(	allocated(V_ka)	)	allocate(	H_ka(	3	,	size(H_real,1),		size(H_real,2)	 	)		)
 		!
 		!
 		!ft onto k-space (W)-gauge
 		call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
+		!
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
 		!
+		!rotate back to (H)-gauge
+		if( allocated(V_ka)	.and. do_gauge_trafo	)			call gauge_trafo(e_k, U_k, H_ka, A_ka, Om_kab)
+		if(	allocated(V_ka)							)			call get_velo(e_k, H_ka, A_ka, 	V_ka)
 		!
-		if(	allocated(V_ka)	)	then
-			!do 	(W) -> (Hbar)
-			call rotate_gauge(U_k, H_ka, 	A_ka, Om_kab )
-			!
-			!Velos (Hbar)->(H)
-			call velo_gaugeTrafo(e_k, H_ka, A_ka, 	V_ka)
-
-
-			!conn/curv	 (Hbar) -> (H)
-			if( allocated(r_real) )	then
-				call get_gauge_covar_deriv(e_k, H_ka, D_ka)
-				!
-				call conn_gaugeTrafo(D_ka, A_ka)
-				call curv_gaugeTrafo(D_ka, A_ka, Om_kab)
-			end if
-		end if
 		!
+		!
+		if( .not. do_gauge_trafo	)	write(*,*)	"[get_wann_interp]: WARNING, Wannier gauge (W) selected!"
 		return
 	end subroutine
 
@@ -159,6 +144,32 @@ module wann_interp
 
 
 !gauge TRAFOs
+	subroutine gauge_trafo(e_k, U_k, H_ka, A_ka, Om_kab)
+		!	see PRB 74, 195118 (2006) EQ. 21 - 31
+		real(dp),						intent(in)		::	e_k(:) 
+		complex(dp),					intent(in)		::	U_k(:,:)
+		complex(dp),					intent(inout)	::	H_ka(:,:,:)
+		complex(dp),	allocatable, 	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		complex(dp),	allocatable						::	D_ka(:,:,:) 
+		!
+		!do 	(W) -> (Hbar)
+		call rotate_gauge(U_k, H_ka, 	A_ka, Om_kab )
+		!
+		!
+		!conn/curv	 (Hbar) -> (H)
+		if( allocated(A_ka) )	then
+			allocate(		D_ka(	3,	size(H_ka,2),	size(H_ka,3))				)
+			!
+			!
+			call get_gauge_covar_deriv(e_k, H_ka, D_ka)
+			!
+			call conn_gaugeTrafo(D_ka, A_ka)
+			call curv_gaugeTrafo(D_ka, A_ka, Om_kab)
+		end if
+		!
+		!
+	end subroutine
+
 	subroutine rotate_gauge(U_k, H_ka, A_ka, Om_kab)
 		!	PRB 74, 195118 (2006)	EQ.(21)
 		complex(dp),					intent(in)		::	U_k(:,:)
@@ -180,12 +191,12 @@ module wann_interp
 	end subroutine	
 
 
-	pure subroutine velo_gaugeTrafo(e_k, H_ka, A_ka, V_k)
+	pure subroutine get_velo(e_k, H_ka, A_ka, V_k)
 		!	calc the (H)-gauge velocity matrix
 		!
 		!	PRB 74, 195118 (2006) EQ.(31)
 		real(dp),						intent(in)		::		e_k(:)
-		complex(dp),					intent(inout)	::		H_ka(:,:,:)
+		complex(dp),					intent(in)		::		H_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
 		complex(dp),					intent(out)		::		V_k(:,:,:)
 		complex(dp)										::		eDiff

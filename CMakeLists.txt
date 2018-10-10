@@ -16,8 +16,11 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/archive)
 
 
+message(" found fortran mpi compiler id ${MPI_Fortran_COMPILER}")
 
-
+if ("${MPI_Fortran_COMPILER_ID}" STREQUAL "GNU")
+  message("found GNU MPI compiler")
+endif()
 #for LINUX use intel compiler with performance options
 if (UNIX AND NOT APPLE)
   message("detected unix will assume intel compiler")
@@ -40,6 +43,18 @@ if (APPLE)
   set(CMAKE_Fortran_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
   set(COVERAGE_LINK_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
 endif (APPLE)
+
+
+if (WIN32)
+  message("detected Windows operating system. You are on your own")
+  find_package(LAPACK REQUIRED)
+  find_package(MPI)
+  if (MPI_FOUND)
+    add_definitions(-DUSE_MPI)
+    message("found MPI lib, will build parallel exe")
+  endif(MPI_FOUND)
+
+endif (WIN32)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 

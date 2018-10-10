@@ -31,7 +31,7 @@ class conv_run:
 		os.mkdir(self.root_dir)
 
 
-	def add_jobs(self, phi, val_bands, mp_dens_per_dim, kubo_tol, hw, eFermi, Tkelvin, eta_smearing):
+	def add_jobs(self, phi, val_bands, mp_dens_per_dim, kubo_tol, hw, eFermi, Tkelvin, eta_smearing, do_gauge_trafo='T'):
 		for n_mp in mp_dens_per_dim:
 			nK 		=	n_mp**3
 			mp_grid	=	[n_mp, n_mp, n_mp]
@@ -39,7 +39,7 @@ class conv_run:
 			work_dir= self.root_dir+'/nK'+str(nK)
 			self.work_dirs.append(work_dir)
 
-			job = MEP_worker(self.root_dir, work_dir, phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing	)
+			job = MEP_worker(self.root_dir, work_dir, phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing, do_gauge_trafo	)
 			self.jobs.append( 	job	)
 
 
@@ -65,6 +65,8 @@ eFermi			=	-3.0
 Tkelvin			=	300.0	
 eta_smearing	=	0.3
 
+do_gauge_trafo	=	'T'
+
 val_bands		=	2
 mp_dens			=	[1, 2, 4, 6, 8, 12, 16]#, 32, 48, 64, 80, 128,256,512]
 phi_lst			=	[0.0] 	#,1.0,2.0]
@@ -74,7 +76,7 @@ n_mpi_procs		=	4
 for phi in phi_lst:
 	cluster_calc 	= 	conv_run(root_dir+'_phi'+str(phi))
 	#
-	cluster_calc.add_jobs(phi,	val_bands,	mp_dens, kubo_tol, hw, eFermi, Tkelvin, eta_smearing)
+	cluster_calc.add_jobs(phi,	val_bands,	mp_dens, kubo_tol, hw, eFermi, Tkelvin, eta_smearing, do_gauge_trafo)
 	cluster_calc.run_jobs(mpi_np=n_mpi_procs)
 
 

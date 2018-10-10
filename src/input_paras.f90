@@ -24,6 +24,7 @@ module input_paras
 												mep_out_dir, ahc_out_dir, 	opt_out_dir,	gyro_out_dir,			&
 												!jobs
 												plot_bands,															&
+												do_gauge_trafo,														&
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
@@ -44,7 +45,7 @@ module input_paras
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir
 	character(len=10)			::	gyro_out_dir	
-	logical						::	plot_bands
+	logical						::	plot_bands, do_gauge_trafo
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol,						&
 									hw, eFermi, T_kelvin			
@@ -93,6 +94,7 @@ module input_paras
 				!
 				!
 				![wannInterp]
+				call CFG_add_get(my_cfg,	"wannInterp%doGaugeTrafo"		,	do_gauge_trafo		,	"switch (W)->(H) gauge trafo"		)
 				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
 				call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files"			)
 				![mep]
@@ -122,6 +124,7 @@ module input_paras
 				write(*,*)					"[mep]"
 				write(*,'(a,i4)')			"	val bands=",valence_bands
 				write(*,*)					"[Kubo] # E_h (Hartree)"
+				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
 				write(*,*)					"	kuboTol=",kubo_tol
 				write(*,*)					"	hw=",hw
 				write(*,*)					"	eFermi=",eFermi
@@ -157,6 +160,7 @@ module input_paras
 #ifdef USE_MPI
 						!ROOT BCAST
 			call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)

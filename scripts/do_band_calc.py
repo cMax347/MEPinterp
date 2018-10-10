@@ -50,7 +50,7 @@ def do_band_calc(phi, val_bands=1):
 
 
 	write_souza_tb_input(band_dir, phi, val_bands, mp_grid, kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=300.0, eta_smearing=3.0, plot_bands='T' )
-	os.system('./kptsgen.pl -l cub -k "Gamma 100 X 100 M 100 Gamma 100 R"')
+	os.system('./kptsgen.pl -l cub -k "Gamma 1000 X 1000 M 1000 Gamma 1000 R"')
 	print('generated k-space path list')
 	os.system('mpirun -np 4 ./mepInterp > mepBANDS.out')
 	print('calculation done, now try plotting')
