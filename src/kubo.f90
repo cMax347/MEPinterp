@@ -112,8 +112,10 @@ contains
 		real(dp),		intent(in)	::	eps		!	energy
 		complex(dp),	intent(in)	::	smr		!	smearing factor
 		!
-		delta_broad		=	real(	1.0_dp/( eps - smr )			)			/	pi_dp
-		!
+		if(abs(eps-smr) > 1e-6_dp)	then
+			delta_broad		=	aimag(	1.0_dp/ ( eps - smr )			)			/	pi_dp
+		else
+			delta_broad		= 	aimag(1.0_dp / (1e-6_dp)	)	/	pi_dp		!
 		return
 	end function
 
