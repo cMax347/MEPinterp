@@ -115,7 +115,7 @@ contains
 		if(abs(eps-smr) > 1e-6_dp)	then
 			delta_broad		=	aimag(	1.0_dp/ ( eps - smr )			)			/	pi_dp
 		else
-			delta_broad		= 	aimag(1.0_dp / (1e-6_dp)	)	/	pi_dp		!
+			delta_broad		= 	aimag(1.0_dp / (1e-6_dp*i_dp)	)	/	pi_dp		!
 		return
 	end function
 
