@@ -15,6 +15,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/archive)
 
+message("")
+message("")
+message("")
+
 
 #
 #
@@ -49,11 +53,11 @@ elseif ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_LESS "16.0.0.20161018")
     set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -openmp")
     set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -openmp")
-    message("detected older intel compiler")
+    message("detected older intel compiler (openmp)")
   else()
     set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -qopenmp")
     set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -qopenmp")
-    message("detected newer intel compiler")
+    message("detected newer intel compiler (qopenmp)")
   endif()
 #
 #-------------------------------------------------------------------------------------
