@@ -16,6 +16,9 @@ contains
 		!
 		T_smear			=	kBoltz_Eh_K		*	T_kelvin
 		!
+		if(T_smear < 1e-6_dp ) T_smear = 1e-6_dp
+
+		!
 		fd_stat		 	= 	1.0_dp	/	(		1.0_dp	+	exp(	(e_band	- e_fermi)	/	(T_smear))				)
 		!
 		return
