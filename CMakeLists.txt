@@ -54,8 +54,8 @@ elseif ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     #set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -openmp")
     #set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -openmp")
 
-    set(CMAKE_Fortran_FLAGS "-mkl -fpp -O0 -g -traceback -check all -CB -check uninit -check-uninit -ftrapuv -debug all -openmp")
-    set(COVERAGE_LINK_FLAGS "-mkl -fpp -O0 -g -traceback -check all -CB -check uninit -check-uninit -ftrapuv -debug all -openmp")
+    set(CMAKE_Fortran_FLAGS "-mkl -fpp -O0 -g -traceback -check all -CB -check uninit -ftrapuv -debug all -openmp")
+    set(COVERAGE_LINK_FLAGS "-mkl -fpp -O0 -g -traceback -check all -CB -check uninit -ftrapuv -debug all -openmp")
 
 
 
