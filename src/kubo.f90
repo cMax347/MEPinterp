@@ -116,6 +116,7 @@ contains
 			delta_broad		=	aimag(	1.0_dp/ ( eps - smr )			)			/	pi_dp
 		else
 			delta_broad		= 	aimag(1.0_dp / (1e-6_dp*i_dp)	)	/	pi_dp		!
+		end if
 		return
 	end function
 
@@ -148,7 +149,7 @@ contains
 		!
 		!
 		pre_fact	=	-	pi_dp / unit_vol
-		opt_herm	=	cmplx(pre_fact,dp)	* opt_herm
+		opt_herm	=	cmplx(pre_fact,0.0_dp, dp)	* opt_herm
 		!
 		return
 	end function
