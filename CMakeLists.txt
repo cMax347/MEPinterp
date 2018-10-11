@@ -16,54 +16,70 @@ set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/modules)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/archive)
 
 
-message(" found fortran mpi compiler id ${MPI_Fortran_COMPILER}")
-
-if ("${MPI_Fortran_COMPILER_ID}" STREQUAL "GNU")
-  message("found GNU MPI compiler")
-endif()
-#for LINUX use intel compiler with performance options
-if (UNIX AND NOT APPLE)
-  message("detected unix will assume intel compiler")
-  set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -openmp")
-  set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -openmp")
-  add_definitions(-DUSE_MPI)
-    #do something
-endif (UNIX AND NOT APPLE)
-
-#for APPLE use a debugging flag scheme
-if (APPLE)
-  message("will use MAC compiler options (requires Lapack)")
+#
+#
+#-------------------------------------------------------------------------------------
+#       GNU COMPILER (gfortran, mpifort)
+#----------------------------------------------------------------------------------
+#
+if ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
+  message("will use GNU compiler flags")
+  #
+  #
   find_package(LAPACK REQUIRED)
   find_package(MPI)
   if (MPI_FOUND)
-    add_definitions(-DUSE_MPI)
-    message("found MPI lib, will build parallel exe")
+    add_definitions(-DUSE_MPI)    #preprocessor flag USE_MPI
+    message("found MPI lib, set USE_MPI preprocessor macro")
   endif(MPI_FOUND)
-
+  #
   set(CMAKE_Fortran_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
   set(COVERAGE_LINK_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-endif (APPLE)
+#
+#-------------------------------------------------------------------------------------
+#       INTEL COMPILER (mpiifort)
+#----------------------------------------------------------------------------------
+#
+elseif ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
+  message("will use Intel compiler flags (assuming mpiifort)")
+  add_definitions(-DUSE_MPI)
+  message("INTEL compiler: set USE_MPI preprocessor macro")
 
-
-if (WIN32)
-  message("detected Windows operating system. You are on your own")
+  message("intel compiler version: ${CMAKE_Fortran_COMPILER_VERSION}")
+  if(CMAKE_Fortran_COMPILER_VERSION VERSION_LESS "16.0.0.20161018")
+    set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -openmp")
+    set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -openmp")
+    message("detected older intel compiler")
+  else()
+    set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -qopenmp")
+    set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -qopenmp")
+    message("detected newer intel compiler")
+  endif()
+#
+#-------------------------------------------------------------------------------------
+#       other compilers
+#----------------------------------------------------------------------------------
+#
+else ()
+  message("unsupported compiler ID: ${CMAKE_Fortran_COMPILER_ID}, good luck!")
   find_package(LAPACK REQUIRED)
-  find_package(MPI)
-  if (MPI_FOUND)
-    add_definitions(-DUSE_MPI)
-    message("found MPI lib, will build parallel exe")
+    if (MPI_FOUND)
+    add_definitions(-DUSE_MPI)    #preprocessor flag USE_MPI
+    message("found MPI lib, set USE_MPI preprocessor macro")
   endif(MPI_FOUND)
+endif()
 
-endif (WIN32)
+
+
+
+
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 
 #	ToDo's:
 #
 #	1) debug and release build
-#	2) parallel and serial build
-#	2) INTEL compiler matching
-#
+#	2) parallel and serial build#
 
 
 #GET THE thirdparty libraries
