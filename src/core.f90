@@ -304,6 +304,8 @@ contains
 		call MPI_REDUCE(	gyro_C_loc,			gyro_C_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_REDUCE(	gyro_D_loc,			gyro_D_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 		call MPI_REDUCE(	gyro_Dw_loc,		gyro_Dw_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+
+		if(mpi_id == mpi_root_id)	write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: collected tensors from",mpi_nProcs," mpi-threads"
 #else
 		!
 		!	***********				SERIAL CPY TO TARGET				******************************************************
@@ -328,13 +330,14 @@ contains
 		gyro_C_glob			=	gyro_C_loc
 		gyro_D_glob			=	gyro_D_loc
 		gyro_Dw_glob		=	gyro_Dw_loc		
+		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: copied tensors to target containers...."
 #endif		
 		!
 		!
 		!write tensors to files
 		if(mpi_id == mpi_root_id) 	then
 			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
-			if(	n_ki_glob	/=	num_kpts	) stop "[core_worker]:	ERROR n_ki_glob is not equal to the given mp_grid"
+			if(	n_ki_glob	/=	num_kpts .or. n_ki_glob <= 0	) stop "[core_worker]:	ERROR n_ki_glob is not equal to the given mp_grid"
 			!
 			!
 			!	NORMALIZE INTEGRATION
@@ -446,14 +449,16 @@ contains
 #ifdef USE_MPI
 		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 #endif		
-
-		write(*,'(a,i3,a,f4.2,a,f4.2,a,f4.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
-																					sum_N_el_loc/real(n_ki_loc,dp),		&
-																				"	(min: ", 							&
-																					min_n_el,							&
-																				";   max: ", 							&
-																					max_n_el,							&
-																				")"
+		if(n_ki_loc > 0)	then
+			write(*,'(a,i3,a,f4.2,a,f4.2,a,f4.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
+																						sum_N_el_loc/real(n_ki_loc,dp),		&
+																					"	(min: ", 							&
+																						min_n_el,							&
+																					";   max: ", 							&
+																						max_n_el,							&
+																					")"
+		end if
+		!
 		!
 		return
 	end subroutine
