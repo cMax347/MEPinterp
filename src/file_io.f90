@@ -1,5 +1,5 @@
 module file_io
-	use matrix_math,					only:		is_equal_vect	
+	use matrix_math,					only:		is_equal_vect, is_herm_mat	
 	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv, &
 													mpi_id, mpi_root_id, mpi_nProcs
 	use input_paras,					only:		my_mkdir,							&												
@@ -11,6 +11,7 @@ module file_io
 													gyro_out_dir,						&
 													raw_dir, 							&
 													a_latt, 							&
+													debug_mode,							&
 													plot_bands										
 
 	implicit none
@@ -46,60 +47,6 @@ module file_io
 
 
 !public read
-	subroutine mpi_read_tb_basis(seed_name, R_vect, H_mat, r_mat)		!ead_tb_basis(seed_name, H_real, r_exist, r_mat)
-		!	reads the following files:
-		!		'_tb.dat' file			(optional)
-		!		if not available
-		!			'_hr.dat' file 		(mandatory)
-		!			' _r.dat' file		(optional) 
-		!
-		character(len=*),	 			intent(in) 		::	seed_name
-		real(dp),		allocatable,	intent(inout)	::	R_vect(:,:)
-		complex(dp),	allocatable, 	intent(inout)	::	H_mat(:,:,:), r_mat(:,:,:,:)
-		logical											::	tb_exist, hr_exist, r_exist
-		!
-		r_exist = .false.
-		tb_exist= .false.
-		hr_exist= .false.
-		!
-		!inquire(file=)
-		inquire(file=w90_dir//seed_name//'_tb.dat',	exist=tb_exist)
-		if(tb_exist) then
-			call read_tb_file(w90_dir//seed_name, R_vect, H_mat, r_mat)
-			r_exist	= .true.
-		else
-			!
-			!
-			!	HAMILTONIAN
-			inquire(file=w90_dir//seed_name//'_hr.dat', exist=hr_exist)
-			if( .not. hr_exist)		stop '[mpi_read_tb_basis]:	ERROR could not read the real space Hamiltonian'
-			call read_hr_file(w90_dir//seed_name, R_vect, H_mat)
-			!
-			!
-			!	POSITION
-			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
-			if(  r_exist )	call read_r_file(w90_dir//seed_name, R_vect, r_mat)
-			!
-			!
-		end if
-		!
-		!	DEBUG
-		if(	size(H_mat,1) /=	size(H_mat,2)	)	stop '[mpi_read_tb_basis]:	H_mat is not symmetric'
-		if( r_exist	)	then
-			if(size(r_mat,1)/=	3			)	stop '[mpi_read_tb_basis]:	r_mat does not live in 3D'				
-			if(size(r_mat,2) /= size(H_mat,1))	stop '[mpi_read_tb_basis]:	r_mat and H_mat have different size in first dim'
-			if(size(r_mat,3) /= size(H_mat,2))	stop '[mpi_read_tb_basis]:	r_mat and H_mat have different size in second dim'
-			if(size(r_mat,4) /= size(H_mat,3))	stop '[mpi_read_tb_basis]:	r_mat and H_mat live on different real supercell grid'
-		end if
-		!
-		num_bands=size(H_mat,1)
-		!
-		!
-		return
-	end subroutine
-
-
-
 	logical function read_kptsgen_pl_file(kpt_latt)
 		!reads the kpt file generatred by kptsgen.pl
 		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
@@ -724,6 +671,92 @@ module file_io
 	end subroutine
 
 
+
+!private helpers
+		subroutine mpi_read_tb_basis(seed_name, R_vect, H_mat, r_mat)		!ead_tb_basis(seed_name, H_real, r_exist, r_mat)
+		!	reads the following files:
+		!		'_tb.dat' file			(optional)
+		!		if not available
+		!			'_hr.dat' file 		(mandatory)
+		!			' _r.dat' file		(optional) 
+		!
+		character(len=*),	 			intent(in) 		::	seed_name
+		real(dp),		allocatable,	intent(inout)	::	R_vect(:,:)
+		complex(dp),	allocatable, 	intent(inout)	::	H_mat(:,:,:), r_mat(:,:,:,:)
+		logical											::	tb_exist, hr_exist, r_exist, hermitian
+		integer											::	sc
+		!
+		r_exist = .false.
+		tb_exist= .false.
+		hr_exist= .false.
+		!
+		!inquire(file=)
+		inquire(file=w90_dir//seed_name//'_tb.dat',	exist=tb_exist)
+		if(tb_exist) then
+			call read_tb_file(w90_dir//seed_name, R_vect, H_mat, r_mat)
+			r_exist	= .true.
+		else
+			!
+			!
+			!	HAMILTONIAN
+			inquire(file=w90_dir//seed_name//'_hr.dat', exist=hr_exist)
+			if( .not. hr_exist)		stop '[read_tb_basis]:	ERROR could not read the real space Hamiltonian'
+			call read_hr_file(w90_dir//seed_name, R_vect, H_mat)
+			!
+			!
+			!	POSITION
+			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
+			if(  r_exist )	call read_r_file(w90_dir//seed_name, R_vect, r_mat)
+			!
+			!
+		end if
+		!
+		hermitian =		(size(H_mat,1) == size(H_mat,2)	)
+		if(	.not. hermitian	)	stop '[read_tb_basis]:	H_mat is not symmetric'
+		if( r_exist	)	then
+			if(size(r_mat,1)/=	3			)	stop '[read_tb_basis]:	r_mat does not live in 3D'				
+			if(size(r_mat,2) /= size(H_mat,1))	stop '[read_tb_basis]:	r_mat and H_mat have different basis in first dim'
+			if(size(r_mat,3) /= size(H_mat,2))	stop '[read_tb_basis]:	r_mat and H_mat have different basis in second dim'
+			if(size(r_mat,4) /= size(H_mat,3))	stop '[read_tb_basis]:	r_mat and H_mat live on different real-space (cell) grid'
+		end if
+		!
+		num_bands=size(H_mat,1)
+		!
+		!
+		if(debug_mode)	then
+			write(*,*)	'[read_tb_basis/DEBUG-MODE]:----start debuging real space basis---------'
+			do sc = 1, size(R_vect,2)
+				if( .not.	 is_herm_mat(	H_mat(  :,:,sc))) then
+				 	stop '[read_tb_basis/DEBUG-MODE]: ERROR real space Hamiltonian is not herm'
+				 	hermitian	=	.false.
+				end if
+				if( .not.	is_herm_mat(	r_mat(1,:,:,sc))) then 
+					stop '[read_tb_basis/DEBUG-MODE]: ERROR real space x-position op. not herm'
+					hermitian	=	.false.
+				end if
+				!
+
+				if( .not.	is_herm_mat(	r_mat(2,:,:,sc))) then 
+					stop '[read_tb_basis/DEBUG-MODE]: ERROR real space y-position op. not herm'
+					hermitian	=	.false.
+				end if
+				!
+
+				if( .not.	is_herm_mat(	r_mat(3,:,:,sc))) then 
+					stop '[read_tb_basis/DEBUG-MODE]: ERROR real space z-position op. not herm'
+					hermitian	=	.false.
+				end if
+			end do
+			if(hermitian)	then
+				write(*,*)	"[read_tb_basis/DEBUG-MODE]: SUCCESS real space basis is hermitian"
+			else
+				stop '[read_tb_basis/DEBUG-MODE]: ERROR real space basis IS NOT hermitian'
+			end if
+			write(*,*)	'[read_tb_basis/DEBUG-MODE]:----finished debuging real space basis---------'
+		end if
+		!
+		return
+	end subroutine
 
 
 

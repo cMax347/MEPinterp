@@ -9,6 +9,7 @@ module matrix_math
                                             is_equal_vect,                          &
                                             is_equal_mat,                           &
                                             is_herm_mat,                            &
+                                            is_skew_herm_mat,                       &
                                             convert_tens_to_vect,                   &
                                             blas_matmul,                            &
                                             matrix_comm                                         
@@ -42,6 +43,10 @@ module matrix_math
     interface is_herm_mat
         module procedure    z_is_herm_mat
     end interface is_herm_mat
+
+    interface is_skew_herm_mat
+        module procedure    z_is_skew_herm_mat
+    end interface is_skew_herm_mat 
 
     interface matrix_comm
         module procedure    d_matrix_comm
@@ -301,9 +306,9 @@ module matrix_math
     end function
 
     logical pure function z_is_equal_mat(acc, A, B)
-        real(dp),       intent(in)      ::  acc
-        complex(dp),    intent(in)      ::  A(:,:), B(:,:)
-        real(dp)                        ::  delta
+        real(8),       intent(in)      ::  acc
+        complex(8),    intent(in)      ::  A(:,:), B(:,:)
+        real(8)                        ::  delta
         integer                         ::  n, m
         !
         z_is_equal_mat  =   (   size(A,1) == size(B,1) .and. size(A,2) == size(B,2) )
@@ -336,8 +341,35 @@ module matrix_math
                 do n = 1, size(H,1)
                     !
                     !
-                    if(  n/=m       .and.       abs( H(n,m) - conjg(H(m,n)) ) >   1e-10_dp   ) then
+                    if(  n/=m       .and.       abs( H(n,m) - conjg(H(m,n)) ) >   1e-8_dp   ) then
                         z_is_herm_mat   = .false.
+                        !write(*,*)  '[z_is_herm_mat]: herm. criterion violated by ', abs( H(n,m) - conjg(H(m,n)) )
+                        exit columns
+                    end if
+                    !
+                    !
+                end do
+            end do columns 
+        end if
+        !
+        return
+    end function
+!----------------------------------------------------------------------------------------------------------------------
+!
+!
+    logical pure function z_is_skew_herm_mat(H)
+        complex(dp),    intent(in)      ::      H(:,:)
+        integer                         ::      n, m
+        !
+        z_is_skew_herm_mat   =       ( size(H,1) == size(H,2)  )
+        !
+        if(z_is_skew_herm_mat)   then      
+            columns: do m = 1, size(H,2)
+                do n = 1, size(H,1)
+                    !
+                    !
+                    if(  n/=m       .and.       abs( H(n,m) + conjg(H(m,n)) ) >   1e-10_dp   ) then
+                        z_is_skew_herm_mat   = .false.
                         exit columns
                     end if
                     !
