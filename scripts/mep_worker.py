@@ -17,7 +17,7 @@ class MEP_worker:
 
 
 	#constructor
-	def __init__(self, root_dir, work_dir, phi, val_bands, mp_grid, kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, do_gauge_trafo='T'	):
+	def __init__(self, root_dir, work_dir, phi, val_bands, mp_grid, kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, debug_mode='F', do_gauge_trafo='T'	):
 		self.root_dir		= root_dir
 		self.work_dir		= work_dir
 		self.phi			= phi
@@ -29,6 +29,7 @@ class MEP_worker:
 		self.Tkelvin		= Tkelvin
 		self.eta_smearing	= eta_smearing
 		self.plot_bands		= 'F'	
+		self.debug_mode		= debug_mode
 		self.do_gauge_trafo	= do_gauge_trafo	
 		#
 		self.success		= False
@@ -46,7 +47,10 @@ class MEP_worker:
 			sys.exit('could not makedirs '+str(self.work_dir)	)
 
 		#prepare files in working directory
-		write_souza_tb_input(self.work_dir, self.phi, self.val_bands, self.mp_grid, self.kubo_tol, self.hw, self.eFermi, self.Tkelvin, self.eta_smearing, self.plot_bands, self.do_gauge_trafo )
+		write_souza_tb_input(		self.work_dir, self.phi, self.val_bands, self.mp_grid, 					
+									self.kubo_tol, self.hw, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
+									self.plot_bands, self.debug_mode, self.do_gauge_trafo					 
+							)
 		copy(self.root_dir+'/../mepInterp',	self.work_dir)
 		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)
 

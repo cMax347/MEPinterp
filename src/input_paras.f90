@@ -24,6 +24,7 @@ module input_paras
 												mep_out_dir, ahc_out_dir, 	opt_out_dir,	gyro_out_dir,			&
 												!jobs
 												plot_bands,															&
+												debug_mode,															&
 												do_gauge_trafo,														&
 												!vars
 												seed_name,	valence_bands,											&
@@ -45,7 +46,7 @@ module input_paras
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir
 	character(len=10)			::	gyro_out_dir	
-	logical						::	plot_bands, do_gauge_trafo
+	logical						::	plot_bands, do_gauge_trafo, debug_mode
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol,						&
 									hw, eFermi, T_kelvin			
@@ -80,6 +81,7 @@ module input_paras
 				!
 				![methods]
 				call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"	)
+				call CFG_add_get(my_cfg,	"jobs%debug_mode"				,	debug_mode			,	"switch aditional debug tests in code")
 				!READ SCALARS
 				![unitCell]
 				call CFG_add_get(my_cfg,	"unitCell%a1"      				,	a1(1:3)  	  		,	"a_x lattice vector"				)
@@ -114,6 +116,7 @@ module input_paras
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
 				write(*,*)					"[methods]"
 				write(*,*)					"	plot_bands=",plot_bands
+				write(*,*)					"	debug_mode=",debug_mode		
 				write(*,*)					"[unitCell] # a_0 (Bohr radii)	"
 				write(*,*)					"	a1=",a1(1:3)
 				write(*,*)					"	a2=",a2(1:3)
@@ -160,7 +163,9 @@ module input_paras
 #ifdef USE_MPI
 						!ROOT BCAST
 			call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+			!
 			call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)

@@ -8,6 +8,7 @@ module matrix_math
                                             uni_gauge_trafo,                        &
                                             is_equal_vect,                          &
                                             is_equal_mat,                           &
+                                            is_herm_mat,                            &
                                             convert_tens_to_vect,                   &
                                             blas_matmul,                            &
                                             matrix_comm                                         
@@ -37,6 +38,10 @@ module matrix_math
         module procedure    d_blas_matmul
         module procedure    z_blas_matmul  
     end interface blas_matmul
+
+    interface is_herm_mat
+        module procedure    z_is_herm_mat
+    end interface is_herm_mat
 
     interface matrix_comm
         module procedure    d_matrix_comm
@@ -313,6 +318,32 @@ module matrix_math
                     if(.not. z_is_equal_mat)    exit loop_out
                 end do
             end do loop_out
+        end if
+        !
+        return
+    end function
+!----------------------------------------------------------------------------------------------------------------------
+!
+!
+    logical pure function z_is_herm_mat(H)
+        complex(dp),    intent(in)      ::      H(:,:)
+        integer                         ::      n, m
+        !
+        z_is_herm_mat   =       ( size(H,1) == size(H,2)  )
+        !
+        if(z_is_herm_mat)   then      
+            columns: do m = 1, size(H,2)
+                do n = 1, size(H,1)
+                    !
+                    !
+                    if(  n/=m       .and.       abs( H(n,m) - conjg(H(m,n)) ) >   1e-10_dp   ) then
+                        z_is_herm_mat   = .false.
+                        exit columns
+                    end if
+                    !
+                    !
+                end do
+            end do columns 
         end if
         !
         return

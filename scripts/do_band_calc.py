@@ -49,7 +49,7 @@ def do_band_calc(phi, val_bands=1):
 	#write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands='F'):
 
 
-	write_souza_tb_input(band_dir, phi, val_bands, mp_grid, kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=300.0, eta_smearing=3.0, plot_bands='T' )
+	write_souza_tb_input(band_dir, phi, val_bands, mp_grid, kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=300.0, eta_smearing=3.0, plot_bands='T', debug_mode='T' )
 	os.system('./kptsgen.pl -l cub -k "Gamma 1000 X 1000 M 1000 Gamma 1000 R"')
 	print('generated k-space path list')
 	os.system('mpirun -np 4 ./mepInterp > mepBANDS.out')

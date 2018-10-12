@@ -533,7 +533,7 @@ module file_io
 		unit_cell(2,1:3) 	= real3
 		read(mpi_unit,*)	 real3
 		unit_cell(3,1:3)	= real3
-		unit_cell = unit_cell / aUtoAngstrm
+		unit_cell			= unit_cell / aUtoAngstrm
 		!
 		!overwrite the lattice read in from input
 		a_latt	= unit_cell

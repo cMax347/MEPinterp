@@ -171,12 +171,12 @@ contains
 		do m = 1, size(A_ka,3)
 			do n = 1, size(A_ka,2)
 				!
-				f_mn	=		fd_stat(	en_k(m)		,e_fermi,T_kelvin)		-		fd_stat(	en_k(n)		,e_fermi,T_kelvin)
-				dE_mn	=		real(		(		en_k(m)-en_k(n)		)		/	(	en_k(m)-en_k(n)-hw-i_eta_smr	)		,dp)
+				f_mn	=		fd_stat(	en_k(m)		,e_fermi,T_kelvin)		-		fd_stat(	en_k(n)	 ,e_fermi, T_kelvin)
+				dE_mn	=				en_k(m) - en_k(n)	
 				!
 				do b = 1, 3
 					do a = 1,3 
-						opt_aherm(a,b)	=	opt_aherm(a,b)	+	f_mn * 	dE_mn *			A_ka(a,n,m) * A_ka(b,m,n)		
+						opt_aherm(a,b)	=	opt_aherm(a,b)	+	f_mn * 	real(		dE_mn / (dE_mn - hw - i_eta_smr)	,dp	) *			A_ka(a,n,m) * A_ka(b,m,n)		
 					end do
 				end do
 				!

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 class Phi_probe:
 
-	def __init__(self,n_phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing, do_gauge_trafo='T' ):
+	def __init__(self,n_phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ):
 		self.n_phi 			= n_phi
 		self.val_bands		= val_bands
 		self.mp_grid		= mp_grid
@@ -18,7 +18,8 @@ class Phi_probe:
 		self.hw				= hw 
 		self.eFermi			= eFermi 
 		self.Tkelvin		= Tkelvin 
-		self.eta_smearing	= eta_smearing 
+		self.eta_smearing	= eta_smearing
+		self.debug_mode		= debug_mode 
 		self.do_gauge_trafo	= do_gauge_trafo
 
 		#derived attributes
@@ -67,6 +68,7 @@ class Phi_probe:
 									self.eFermi,
 									self.Tkelvin,
 									self.eta_smearing,
+									self.debug_mode,
 									self.do_gauge_trafo
 								)
 			#run calc 
@@ -203,8 +205,8 @@ class Phi_probe:
 
 
 
-def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=False , do_gauge_trafo=True):
-	myTest	= Phi_probe(n_phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing, do_gauge_trafo)
+def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=False, debug_mode=True, do_gauge_trafo=True):
+	myTest	= Phi_probe(n_phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo)
 	#
 	myTest.iterate_phi(plot_bands=plot_bands, mpi_np=mpi_np)
 	myTest.print_results_container()
@@ -222,7 +224,7 @@ def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, kubo_tol=1e-3, hw=0.0, eFermi=
 
 
 
-unit_test(n_phi=11, val_bands=2, mp_grid=[64,64,64], mpi_np=4,kubo_tol=1e-5, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=True, do_gauge_trafo=False	)
+unit_test(n_phi=11, val_bands=2, mp_grid=[32,32,32], mpi_np=4,kubo_tol=1e-5, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=True, debug_mode=True, do_gauge_trafo=False	)
 
 
 
