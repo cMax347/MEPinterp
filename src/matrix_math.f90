@@ -330,21 +330,26 @@ module matrix_math
 !----------------------------------------------------------------------------------------------------------------------
 !
 !
-    logical pure function z_is_herm_mat(H)
+    logical function z_is_herm_mat(H, max_err)
         complex(dp),    intent(in)      ::      H(:,:)
+        real(dp),       intent(out)     ::      max_err
+        real(dp)                        ::      dH_nm
         integer                         ::      n, m
         !
+        max_err         =       0.0_dp
         z_is_herm_mat   =       ( size(H,1) == size(H,2)  )
         !
         if(z_is_herm_mat)   then      
             columns: do m = 1, size(H,2)
                 do n = 1, size(H,1)
                     !
+                    dH_nm   =  abs( H(n,m) - conjg(H(m,n)) )  
                     !
-                    if(  n/=m       .and.       abs( H(n,m) - conjg(H(m,n)) ) >   1e-8_dp   ) then
+                    if(  n/=m       .and.  dH_nm     >   1e-6_dp   ) then
                         z_is_herm_mat   = .false.
                         !write(*,*)  '[z_is_herm_mat]: herm. criterion violated by ', abs( H(n,m) - conjg(H(m,n)) )
-                        exit columns
+                        !exit columns
+                        if(dH_nm > max_err)     max_err =   dH_nm
                     end if
                     !
                     !
@@ -357,20 +362,25 @@ module matrix_math
 !----------------------------------------------------------------------------------------------------------------------
 !
 !
-    logical pure function z_is_skew_herm_mat(H)
+    logical function z_is_skew_herm_mat(H, max_err)
         complex(dp),    intent(in)      ::      H(:,:)
+        real(dp),       intent(out)     ::      max_err
+        real(dp)                        ::      dH_nm
         integer                         ::      n, m
         !
-        z_is_skew_herm_mat   =       ( size(H,1) == size(H,2)  )
+        max_err              =      0.0_dp
+        z_is_skew_herm_mat   =      ( size(H,1) == size(H,2)  )
         !
         if(z_is_skew_herm_mat)   then      
             columns: do m = 1, size(H,2)
                 do n = 1, size(H,1)
                     !
+                    dH_nm   =   abs( H(n,m) + conjg(H(m,n)) )
                     !
-                    if(  n/=m       .and.       abs( H(n,m) + conjg(H(m,n)) ) >   1e-10_dp   ) then
+                    if(  n/=m       .and.   dH_nm     >   1e-6_dp   ) then
                         z_is_skew_herm_mat   = .false.
-                        exit columns
+                        !exit columns
+                        if(dH_nm > max_err)     max_err =   dH_nm
                     end if
                     !
                     !
