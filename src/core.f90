@@ -31,7 +31,7 @@ module core
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
 	!
-	use file_io,		only:	mpi_read_tb_basis,								&
+	use file_io,		only:	read_tb_basis,									&
 								write_mep_tensors,								&
 								write_kubo_mep_tensors,							&
 								write_ahc_tensor,								&

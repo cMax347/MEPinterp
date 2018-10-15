@@ -10,7 +10,7 @@ module band_calc
 	use input_paras,	only:			seed_name, a_latt
 	use k_space,		only:			get_recip_latt										
 	use file_io,		only:			read_kptsgen_pl_file,							&
-										mpi_read_tb_basis,								&
+										read_tb_basis,									&
 										write_en_binary, 								&
 										write_en_global
 	use wann_interp,	only:			get_wann_interp									

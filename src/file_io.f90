@@ -17,7 +17,7 @@ module file_io
 	implicit none
 
 	private
-	public									::		mpi_read_tb_basis,					& 
+	public									::		read_tb_basis,						& 
 													read_kptsgen_pl_file,				&
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
@@ -673,7 +673,7 @@ module file_io
 
 
 !private helpers
-		subroutine mpi_read_tb_basis(seed_name, R_vect, H_mat, r_mat)		!ead_tb_basis(seed_name, H_real, r_exist, r_mat)
+		subroutine read_tb_basis(seed_name, R_vect, H_mat, r_mat)		!ead_tb_basis(seed_name, H_real, r_exist, r_mat)
 		!	reads the following files:
 		!		'_tb.dat' file			(optional)
 		!		if not available
