@@ -73,11 +73,11 @@ module input_paras
 		gyro_out_dir	=	out_dir//"/gyro/"
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
-			inquire(file="./input.txt",exist=input_exist)
+			inquire(file="./input.cfg",exist=input_exist)
 			!
 			if( input_exist)	then		
 				!OPEN FILE
-				call CFG_read_file(my_cfg,"./input.txt")
+				call CFG_read_file(my_cfg,"./input.cfg")
 				!
 				![methods]
 				call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"	)
