@@ -1,6 +1,6 @@
 program test_file_io
 	use constants, 		only:						dp,	fp_acc	
-	use file_io,		only:						mpi_read_tb_basis,					& 
+	use file_io,		only:						read_tb_basis,					& 
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
 													write_mep_tensors

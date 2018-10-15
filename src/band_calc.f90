@@ -40,7 +40,7 @@ contains
 			k_per_mpi	= 0
 			!
 			!	get the data
-			call mpi_read_tb_basis(seed_name, R_vect, H_tb, r_tb)
+			call read_tb_basis(seed_name, R_vect, H_tb, r_tb)
 			call k_space_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
 			!
 			!
