@@ -25,6 +25,7 @@ module input_paras
 												mep_out_dir, ahc_out_dir, 	opt_out_dir,	gyro_out_dir,			&
 												!jobs
 												plot_bands,															&
+												use_mpi,															&
 												debug_mode,															&
 												do_gauge_trafo,														&
 												!vars
@@ -48,7 +49,7 @@ module input_paras
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir
 	character(len=10)			::	gyro_out_dir	
-	logical						::	plot_bands, do_gauge_trafo, debug_mode
+	logical						::	plot_bands, do_gauge_trafo, debug_mode, use_mpi
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol,						&
 									hw, eFermi, T_kelvin			
@@ -68,6 +69,13 @@ module input_paras
 		real(dp)				::	a1(3), a2(3), a3(3), eta
 		integer					::	mp_grid(3)
 		logical					::	input_exist
+		!
+		use_mpi	= .false.
+#ifdef USE_MPI
+		use_mpi = .true.
+#endif
+		if(use_mpi)		write(*,*)	'[#',mpi_id,';init_parameters]:	will use mpi'
+
 		!
 		velo_out_dir	=	out_dir//"/velo/"
 		mep_out_dir 	=	out_dir//"/mep/"	
@@ -158,29 +166,29 @@ module input_paras
 		end if
 		!
 		!
-#ifdef USE_MPI
-		call MPI_BCAST(			input_exist		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-#endif
+		if(use_mpi) then
+			call MPI_BCAST(		input_exist		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+		endif
 		!
 		!
 		if( input_exist) then
-#ifdef USE_MPI
-						!ROOT BCAST
-			call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-			call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-			!
-			call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-			call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-			call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-			![KUBO]
-			call MPI_BCAST(		kubo_tol		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)	
-			call MPI_BCAST(		hw				,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-			call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_BCAST(		i_eta_smr		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-#endif
+			if(use_mpi) then
+				!ROOT BCAST
+				call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				!
+				call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				![KUBO]
+				call MPI_BCAST(		kubo_tol		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)	
+				call MPI_BCAST(		hw				,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		i_eta_smr		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+			end if
 			!
 			!UNIT CELL VOLUME
 			a1			=	a_latt(1,:)
