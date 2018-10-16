@@ -13,7 +13,8 @@ module core
 	use constants,		only:	dp, aUtoAngstrm, auToTesla,						&			
 								mpi_root_id, mpi_id, mpi_nProcs, ierr			
 	use statistics,		only:	fd_get_N_el
-	use input_paras,	only:	do_gauge_trafo,									&
+	use input_paras,	only:	use_mpi,										&
+								do_gauge_trafo,									&
 								a_latt, 										&
 								valence_bands, 									&
 								seed_name,										&
@@ -88,6 +89,13 @@ contains
 												V_ka(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
 		!
+		if(mpi_id==mpi_root_id)	then
+			write(*,*)	"*"
+			write(*,*)	"*"
+			write(*,*)	"***^^^^	-	FULL INTERPOLATION MODE	-	^^^^***"
+			write(*,*)	"*"
+			write(*,*)	"*"
+		end if
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	INIT
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -127,9 +135,7 @@ contains
 		!
 		!
 		write(*,*)''
-#ifdef USE_MPI
-		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
+		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		write(*,'(a,i3,a,a,a,i4,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
 											"]:  I start interpolating now (nValence=",valence_bands,")...."
 		!
@@ -280,58 +286,59 @@ contains
 		!
 		!
 		!sum mep over global kpts
-#ifdef USE_MPI		
-		!
-		!	***********				PARALLEL SUM OVER NODES				******************************************************
-		!
-		call MPI_REDUCE(	n_ki_loc,				n_ki_glob,			1,		MPI_INTEGER,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	sum_N_el_loc,		avg_N_el_glob,			1,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		!
-		call MPI_REDUCE(	mep_tens_ic_loc,	mep_tens_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	mep_tens_lc_loc,	mep_tens_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	mep_tens_cs_loc,	mep_tens_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		!
-		call MPI_REDUCE(	kubo_mep_ic_loc,	kubo_mep_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	kubo_mep_lc_loc,	kubo_mep_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	kubo_mep_cs_loc,	kubo_mep_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		!
-		call MPI_REDUCE(	kubo_ahc_loc,		kubo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	velo_ahc_loc,		velo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)		
-		!
-		call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
-		call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
-		!
-		call MPI_REDUCE(	gyro_C_loc,			gyro_C_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	gyro_D_loc,			gyro_D_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-		call MPI_REDUCE(	gyro_Dw_loc,		gyro_Dw_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-
-		if(mpi_id == mpi_root_id)	write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: collected tensors from",mpi_nProcs," mpi-threads"
-#else
-		!
-		!	***********				SERIAL CPY TO TARGET				******************************************************
-		!
-		n_ki_glob			=	n_ki_loc
-		avg_N_el_glob		=	sum_N_el_loc
-		!
-		mep_tens_ic_glob 	=	mep_tens_ic_loc
-		mep_tens_lc_glob 	=	mep_tens_lc_loc
-		mep_tens_cs_glob 	=	mep_tens_cs_loc	
-		!
-		kubo_mep_ic_glob	=	kubo_mep_ic_loc
-		kubo_mep_lc_glob	=	kubo_mep_lc_loc
-		kubo_mep_cs_glob	=	kubo_mep_cs_loc					
-		!
-		kubo_ahc_glob		=	kubo_ahc_loc		
-		velo_ahc_glob		=	velo_ahc_loc
-		!
-		kubo_opt_s_glob		=	kubo_opt_s_loc		
-		kubo_opt_a_glob		=	kubo_opt_a_loc
-		!
-		gyro_C_glob			=	gyro_C_loc
-		gyro_D_glob			=	gyro_D_loc
-		gyro_Dw_glob		=	gyro_Dw_loc		
-		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: copied tensors to target containers...."
-#endif		
+		if(use_mpi) then
+			!
+			!	***********				PARALLEL SUM OVER NODES				******************************************************
+			!
+			call MPI_REDUCE(	n_ki_loc,				n_ki_glob,			1,		MPI_INTEGER,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	sum_N_el_loc,		avg_N_el_glob,			1,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			!
+			call MPI_REDUCE(	mep_tens_ic_loc,	mep_tens_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	mep_tens_lc_loc,	mep_tens_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	mep_tens_cs_loc,	mep_tens_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			!
+			call MPI_REDUCE(	kubo_mep_ic_loc,	kubo_mep_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	kubo_mep_lc_loc,	kubo_mep_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	kubo_mep_cs_loc,	kubo_mep_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			!
+			call MPI_REDUCE(	kubo_ahc_loc,		kubo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	velo_ahc_loc,		velo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)		
+			!
+			call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+			call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+			!
+			call MPI_REDUCE(	gyro_C_loc,			gyro_C_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	gyro_D_loc,			gyro_D_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	gyro_Dw_loc,		gyro_Dw_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			!
+			!
+			if(mpi_id == mpi_root_id)	write(*,'(a,i3,a,i8,a)') "[#",mpi_id,"; core_worker]: collected tensors from",mpi_nProcs," mpi-threads"
+		else
+			!
+			!	***********				SERIAL CPY TO TARGET				******************************************************
+			!
+			n_ki_glob			=	n_ki_loc
+			avg_N_el_glob		=	sum_N_el_loc
+			!
+			mep_tens_ic_glob 	=	mep_tens_ic_loc
+			mep_tens_lc_glob 	=	mep_tens_lc_loc
+			mep_tens_cs_glob 	=	mep_tens_cs_loc	
+			!
+			kubo_mep_ic_glob	=	kubo_mep_ic_loc
+			kubo_mep_lc_glob	=	kubo_mep_lc_loc
+			kubo_mep_cs_glob	=	kubo_mep_cs_loc					
+			!
+			kubo_ahc_glob		=	kubo_ahc_loc		
+			velo_ahc_glob		=	velo_ahc_loc
+			!
+			kubo_opt_s_glob		=	kubo_opt_s_loc		
+			kubo_opt_a_glob		=	kubo_opt_a_loc
+			!
+			gyro_C_glob			=	gyro_C_loc
+			gyro_D_glob			=	gyro_D_loc
+			gyro_Dw_glob		=	gyro_Dw_loc		
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: SERIAL-MODE copied tensors to target containers...."
+		end if		
 		!
 		!
 		!write tensors to files
@@ -443,12 +450,21 @@ contains
 	subroutine print_core_info(n_ki_loc, sum_N_el_loc, min_n_el, max_n_el)
 		integer,		intent(in)		::	n_ki_loc
 		real(dp),		intent(in)		::	sum_N_el_loc, min_n_el, max_n_el
+		character(len=60)				::	gauge_label
+		!
+		if(do_gauge_trafo)	then
+			write(gauge_label,*)		'in the (H) Hamiltonian gauge'
+		else
+			write(gauge_label,*)		'in the (W) Wannier gauge (no gauge trafo performed!)'
+		end if
+		!
 		!
 		write(*,'(a,i3,a,a,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
-													"]: ...finished interpolating ",n_ki_loc," kpts"
-#ifdef USE_MPI
-		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif		
+													"]: ...finished interpolating ",n_ki_loc," kpts "//gauge_label
+		!
+		if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+		!
+		!
 		if(n_ki_loc > 0)	then
 			write(*,'(a,i3,a,f4.2,a,f4.2,a,f4.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
 																						sum_N_el_loc/real(n_ki_loc,dp),		&
