@@ -29,7 +29,7 @@ contains
 		integer								::	num_kpts, ki, k_per_mpi
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_kab(:,:,:,:),				&
-												V_ka(:,:,:)
+												V_ka(:,:,:)					!DO NOT ALLOCATE, ONLY THE POINTER IS NEEDED
 		logical								::	do_gauge_trafo
 		!
 		if(mpi_id==mpi_root_id)	then
@@ -49,7 +49,7 @@ contains
 			!
 			!	get the data
 			call read_tb_basis(seed_name, R_vect, H_tb, r_tb)
-			call k_space_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
+			call k_space_allocator(H_tb, r_tb, en_k, A_ka, Om_kab)
 			!
 			!
 			!	do the work
@@ -85,14 +85,12 @@ contains
 	end subroutine
 
 
-	subroutine k_space_allocator( H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
+	subroutine k_space_allocator( H_tb, r_tb, en_k, A_ka, Om_kab)
 		real(dp),		allocatable			::	en_k(:)
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
-												A_ka(:,:,:), Om_kab(:,:,:,:),			&
-												V_ka(:,:,:)
+												A_ka(:,:,:), Om_kab(:,:,:,:)									
 		!
 		allocate(	en_k(						size(H_tb,2)	)	)
-		!allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
 		if(	allocated(r_tb)	)	then	
 			allocate(	A_ka(	3,		size(r_tb,2),	size(r_tb,3)	)	)
 			allocate(	Om_kab(	3,3,	size(r_tb,2),	size(r_tb,3)	)	)
