@@ -21,6 +21,7 @@ module input_paras
 												w90_dir, 															&
 												raw_dir,															&
 												out_dir,															&
+												velo_out_dir,														&
 												mep_out_dir, ahc_out_dir, 	opt_out_dir,	gyro_out_dir,			&
 												!jobs
 												plot_bands,															&
@@ -42,6 +43,7 @@ module input_paras
 	character(len=9)			::	w90_dir	="w90files/"
 	character(len=4)			::	raw_dir ="raw/"
 	character(len=4)			::	out_dir	="out/"
+	character(len=10)			:: 	velo_out_dir
 	character(len=9)			::	mep_out_dir	
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir
@@ -67,6 +69,7 @@ module input_paras
 		integer					::	mp_grid(3)
 		logical					::	input_exist
 		!
+		velo_out_dir	=	out_dir//"/velo/"
 		mep_out_dir 	=	out_dir//"/mep/"	
 		ahc_out_dir		=	out_dir//"/ahc/"
 		opt_out_dir 	=	out_dir//"/opt/"	
@@ -143,7 +146,8 @@ module input_paras
 					call my_mkdir(mep_out_dir)
 					call my_mkdir(ahc_out_dir)
 					call my_mkdir(opt_out_dir)
-					call my_mkdir(gyro_out_dir)					
+					call my_mkdir(gyro_out_dir)		
+					call my_mkdir(velo_out_dir)			
 				end if	
 			else
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"

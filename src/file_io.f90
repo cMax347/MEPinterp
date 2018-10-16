@@ -5,6 +5,7 @@ module file_io
 	use input_paras,					only:		my_mkdir,							&												
 													w90_dir, 							&
 													out_dir,							& 
+													velo_out_dir,						&
 													mep_out_dir,						&
 													ahc_out_dir,						&
 													opt_out_dir,						&
@@ -19,8 +20,11 @@ module file_io
 	private
 	public									::		read_tb_basis,						& 
 													read_kptsgen_pl_file,				&
+													!-----------------------------------!
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
+													write_velo,							&
+													!-----------------------------------!
 													write_mep_tensors,					&
 													write_kubo_mep_tensors,				&
 													write_ahc_tensor,					&
@@ -46,67 +50,20 @@ module file_io
 
 
 
-!public read
-	logical function read_kptsgen_pl_file(kpt_latt)
-		!reads the kpt file generatred by kptsgen.pl
-		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
-		character(len=50)										::	filename 
-		integer													::	mpi_unit, num_kpts, kpt
-		real(dp)												::	raw_kpt(3), tmp
-		!
-		filename = 'kpts'
-		inquire(file=filename, exist= read_kptsgen_pl_file)
-		if(read_kptsgen_pl_file ) then
-			!
-			mpi_unit	= mpi_id + 4*mpi_nProcs
-			open(unit=mpi_unit, file=filename, form='formatted', action='read', access='stream', status='old')
-			read(mpi_unit,*) num_kpts, raw_kpt(1)
-			!
-			allocate(	kpt_latt(3,num_kpts)	)
-			!
-			do kpt = 1, num_kpts
-				read(mpi_unit,*) raw_kpt(1:3), tmp
-				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
-			end do
-			close(mpi_unit)
-			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
-		end if 
-
-		!
-		return 
-	end function
-
-
-	subroutine read_en_binary(qi_idx, e_bands)
-		integer,		intent(in)		::	qi_idx
-		real(dp),		intent(out)		::	e_bands(:)
-		character(len=24)				::	filepath
-		integer							::	mpi_unit
-		logical							::	exists
-		!
-		mpi_unit	= 200 + mpi_id + 5 * mpi_nProcs
-		!
-		write(filepath, format) raw_dir//'enK.',qi_idx
-		inquire(file = filepath, exist=exists)
-		if(exists)	then 
-			open(unit=mpi_unit, file = filepath, form='unformatted', action='read', access='stream',	status='old'	)
-			read(mpi_unit)	e_bands(:)
-			close(mpi_unit)
-			!write(*,*)	'[read_en_binary]: read ',size(e_bands),' real values from "',trim(filepath),'"'
-		else
-			e_bands	=	0.0_dp
-			write(*,*)	"[read_en_binary]: WARNING could not read ",	filepath,". Does not exist"
-		end if
-		!
-		return
-	end subroutine
-	
 
 
 
 
 
-!public write:
+
+
+!--------------------------------------------------------------------------------------------------------------------------------		
+!--------------------------------------------------------------------------------------------------------------------------------		
+!--------------------------------------------------------------------------------------------------------------------------------		
+!			WRITE DATA
+!--------------------------------------------------------------------------------------------------------------------------------		
+!
+!
 	subroutine write_en_binary(qi_idx, e_bands)
 		integer,		intent(in)		::	qi_idx
 		real(dp),		intent(in)		::	e_bands(:)
@@ -181,7 +138,55 @@ module file_io
 
 
 
+	subroutine write_velo(kpt_idx, fname, info_string, V_ka)
+		integer,			intent(in)		::	kpt_idx
+		character(len=*), 	intent(in)		::	fname
+		character(len=*), 	intent(in)		::	info_string
+		complex(dp),		intent(in)		::	V_ka(:,:,:)
+		integer								::	mpi_unit, x, n, m 
+		character(len=40)					::	fpath
+		!
+		write(fpath,format) velo_out_dir //	trim(fname)//".", kpt_idx 
+		!
+		mpi_unit	=	300 + mpi_id + 8 * mpi_nProcs
+		call my_mkdir(out_dir)
+		!
+		open(unit=mpi_unit, file=fpath, form='formatted', action='write', access='stream', status='replace')
+		write(mpi_unit,*)	trim(info_string)
+		write(mpi_unit,*)	'# x |	 n		|	m 	|	real(V^x_nm)  |		imag(Vx_nm)'
+		write(mpi_unit,*)	'#-----------------------------------------------------------------------'
+		!
+		do x = 1, 3
+			do m = 1, size(V_ka,3)
+				do n = 1, size(V_ka,2)
+					write(mpi_unit,'(a,i1,a,i3,a,i3,a,f16.8,a,f16.8)')	"	",x,"		",n,"		",m,"		",	&
+																				real(V_ka(x,n,m),dp),"	",aimag(V_ka(x,n,m))
+				end do 
+			end do
+			write(mpi_unit,*)	"#----------------------------------------------------------------------"
+		end do
+		close(mpi_unit)
+		!
+		write(*,'(a,i3,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
+		!
+		return
+	end subroutine
 
+
+
+
+
+
+
+
+
+!--------------------------------------------------------------------------------------------------------------------------------		
+!--------------------------------------------------------------------------------------------------------------------------------		
+!--------------------------------------------------------------------------------------------------------------------------------		
+!			WRITE RESPONSE TENSORS:
+!--------------------------------------------------------------------------------------------------------------------------------		
+!
+!
 	subroutine write_mep_tensors(mep_ic, mep_lc, mep_cs)
 		real(dp),			intent(in)		::	mep_ic(3,3), mep_lc(3,3), mep_cs(3,3)
 		real(dp)							::	mep_tens(3,3)
@@ -339,14 +344,7 @@ module file_io
 	end subroutine
 
 
-
-
-
-
-
-
-!private write
-
+	!private write helpers
 
 	subroutine d_write_tens_file(dir, fname,tens, info_string, id_string)
 		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
@@ -388,6 +386,9 @@ module file_io
 	end subroutine
 
 
+!--------------------------------------------------------------------------------------------------------------------------------		
+!--------------------------------------------------------------------------------------------------------------------------------		
+!--------------------------------------------------------------------------------------------------------------------------------		
 
 
 
@@ -409,8 +410,68 @@ module file_io
 
 
 
+!--------------------------------------------------------------------------------------------------------------------------------		
+!--------------------------------------------------------------------------------------------------------------------------------		
+!--------------------------------------------------------------------------------------------------------------------------------		
+!			READ BASIS SET:
+!--------------------------------------------------------------------------------------------------------------------------------		
+!
+!
+	logical function read_kptsgen_pl_file(kpt_latt)
+		!reads the kpt file generatred by kptsgen.pl
+		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
+		character(len=50)										::	filename 
+		integer													::	mpi_unit, num_kpts, kpt
+		real(dp)												::	raw_kpt(3), tmp
+		!
+		filename = 'kpts'
+		inquire(file=filename, exist= read_kptsgen_pl_file)
+		if(read_kptsgen_pl_file ) then
+			!
+			mpi_unit	= mpi_id + 4*mpi_nProcs
+			open(unit=mpi_unit, file=filename, form='formatted', action='read', access='stream', status='old')
+			read(mpi_unit,*) num_kpts, raw_kpt(1)
+			!
+			allocate(	kpt_latt(3,num_kpts)	)
+			!
+			do kpt = 1, num_kpts
+				read(mpi_unit,*) raw_kpt(1:3), tmp
+				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
+			end do
+			close(mpi_unit)
+			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
+		end if 
 
-!private read:	
+		!
+		return 
+	end function
+
+
+	subroutine read_en_binary(qi_idx, e_bands)
+		integer,		intent(in)		::	qi_idx
+		real(dp),		intent(out)		::	e_bands(:)
+		character(len=24)				::	filepath
+		integer							::	mpi_unit
+		logical							::	exists
+		!
+		mpi_unit	= 200 + mpi_id + 5 * mpi_nProcs
+		!
+		write(filepath, format) raw_dir//'enK.',qi_idx
+		inquire(file = filepath, exist=exists)
+		if(exists)	then 
+			open(unit=mpi_unit, file = filepath, form='unformatted', action='read', access='stream',	status='old'	)
+			read(mpi_unit)	e_bands(:)
+			close(mpi_unit)
+			!write(*,*)	'[read_en_binary]: read ',size(e_bands),' real values from "',trim(filepath),'"'
+		else
+			e_bands	=	0.0_dp
+			write(*,*)	"[read_en_binary]: WARNING could not read ",	filepath,". Does not exist"
+		end if
+		!
+		return
+	end subroutine
+	
+
 	logical function read_geninterp_kpt_file(seed_name, kpt_latt)
 		character(len=*),					intent(in)			::	seed_name
 		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
@@ -456,7 +517,6 @@ module file_io
 		read_geninterp_kpt_file = found_file .and. is_frac
 		return
 	end function
-
 
 
 
@@ -728,7 +788,7 @@ module file_io
 			write(*,*)	'[read_tb_basis/DEBUG-MODE]:----start debuging real space basis---------'
 			do sc = 1, size(R_vect,2)
 				if( .not.	 is_herm_mat(	H_mat(  :,:,sc),max_err)) then
-				 	write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space Hamiltonian is not herm, largest error: ', max_err
+				 	write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space Hamiltonian is not herm in sc= ',sc,'; largest error: ', max_err
 				 	hermitian	=	.false.
 				 	stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis"
 				end if

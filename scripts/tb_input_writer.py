@@ -113,6 +113,10 @@ def get_hopp_list(nAt, rel_atom_pos, onsite, phi):
 				#print('at='+str(at+1)+' nn='+str(nn+1)+' b_nn('+nn_list[at][nn]+')='+str(b_nn)+' R_nn='+str(R_nn)+' phi='+str(phi[b_dim][at]))
 				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], at+1, nn+1, np.real(phi[b_dim][at]), +np.imag(phi[b_dim][at])		]	)
 				thopp.append(	[		R_nn[0], R_nn[1], R_nn[2], nn+1, at+1, np.real(phi[b_dim][at]), -np.imag(phi[b_dim][at])		]	)
+				#
+				if not (R_nn[0]==0 and R_nn[1]==0 and R_nn[2]==0):
+					thopp.append(	[		-R_nn[0], -R_nn[1], -R_nn[2], at+1, nn+1, np.real(phi[b_dim][at]), +np.imag(phi[b_dim][at])		]	)
+					thopp.append(	[		-R_nn[0], -R_nn[1], -R_nn[2], nn+1, at+1, np.real(phi[b_dim][at]), -np.imag(phi[b_dim][at])		]	)
 
 				
 
@@ -217,7 +221,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 
 
 def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name, kubo_tol=1e-3, hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  plot_bands='F',	debug_mode='F', do_gauge_trafo='T'):
-	with open(file_path+'input.txt','w') as outfile:
+	with open(file_path+'input.cfg','w') as outfile:
 		outfile.write('# input file for TB model from New J Physics 12, 053032 (2010)'+'\n')
 		outfile.write('# generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
 		outfile.write('\n')
@@ -258,7 +262,7 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		outfile.write('    '	+	'eta_smearing= '	+	str(eta_smearing)	+	'\n')
 
 
-		print('wrote '+file_path+'input.txt')
+		print('wrote '+file_path+'input.cfg')
 
 
 

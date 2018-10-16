@@ -85,16 +85,17 @@ contains
 		!		eq. (12.14) & (12.15)
 		real(dp),		intent(in)		::	hw, vol, e_fermi, T_kelvin, en_k(:) 
 		complex(dp),	intent(in)		::	i_eta_smr
-		complex(dp),	intent(in)		::	A_ka(:,:,:)
+		complex(dp), allocatable,	intent(in)		::	A_ka(:,:,:)
 		complex(dp), 	intent(out)		::	opt_symm(3,3), 	opt_asymm(3,3)
 		complex(dp)						::	opt_herm(3,3),	opt_aherm(3,3)
 		!
-		opt_herm	=	get_hermitian(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
-		opt_aherm	=	get_anti_herm(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
-		!
-		!
-		opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * aimag(	opt_aherm	)		!	(12.14)		
-		opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * aimag(	opt_herm	)		!	(12.15)
+		if(allocated(A_ka)) then
+			opt_herm	=	get_hermitian(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+			opt_aherm	=	get_anti_herm(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+			!
+			opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * aimag(	opt_aherm	)		!	(12.14)		
+			opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * aimag(	opt_herm	)		!	(12.15)
+		end if
 		!
 		return
 	end subroutine

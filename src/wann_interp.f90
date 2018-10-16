@@ -21,7 +21,7 @@ module wann_interp
 									is_herm_mat,			&
 									is_skew_herm_mat		
 	use input_paras,	only:		kubo_tol, debug_mode
-
+	use file_IO,		only:		write_velo
 
 
 
@@ -39,10 +39,14 @@ module wann_interp
 
 
 !public:
-	subroutine get_wann_interp(do_gauge_trafo, H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, 	e_k, V_ka, A_ka, Om_kab  )
+	subroutine get_wann_interp(		do_gauge_trafo, H_real, r_real, 					&
+									a_latt, recip_latt, R_frac, kpt_idx, kpt_rel, 		&
+									e_k, V_ka, A_ka, Om_kab								&
+							)
 		logical,						intent(in)				::	do_gauge_trafo
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
+		integer,						intent(in)				::	kpt_idx
 		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	& 
 																	R_frac(:,:), kpt_rel(3)	
 		real(dp),						intent(out)				::	e_k(:)
@@ -69,13 +73,53 @@ module wann_interp
 		!
 		!
 		!	DEBUG
-		if(debug_mode)	call check_H_gauge_herm(kpt_rel, H_ka, A_ka, Om_kab, V_ka)
+		if(debug_mode)	then
+			call check_H_gauge_herm(kpt_rel, H_ka, A_ka, Om_kab, V_ka)
+			call debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
+		end if
 		!
 		return
 	end subroutine
 
 
-
+	subroutine debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
+		integer,						intent(in)		::	kpt_idx
+		real(dp),						intent(in)		::	e_k(:)
+		complex(dp),					intent(in)		::	H_ka(:,:,:), V_ka(:,:,:)
+		complex(dp), 	allocatable, 	intent(in)		::	A_ka(:,:,:)
+		complex(dp),	allocatable						::	Vtemp(:,:,:)
+		character(len=10)								::	fname
+		character(len=120)								::	info_string
+		integer											::	n, m
+		!
+		!
+		if(allocated(A_ka))	 then
+			write(fname,*)		"velo_Aka"
+			write(info_string,*)	"#	Berry Connection contribution to velocities: V_ka(n,m) =  - i (E_m - E_n) A_ka(n,m)"
+			!
+			allocate(		Vtemp(3, size(A_ka,2), size(A_ka,3))			)
+			!
+			Vtemp	= cmplx(0.0_dp, 0.0_dp,dp)
+			do n = 1, size(A_ka,2)
+				do m = 1, size(A_ka,3)
+					Vtemp(:,n,m)	=	-i_dp	* cmplx( e_k(m)	- e_k(n), 0.0_dp, dp) *	A_ka(:,n,m)
+				end do
+			end do
+			call write_velo(kpt_idx, fname, info_string, Vtemp)
+			!
+			!
+			write(fname,*)		"velo_Vka"
+			write(info_string,*)	"#	(H)-gauge velo velocity: V_ka(n,m) =  H_ka(n,m)  - i (E_m - E_n) A_ka(n,m)"
+			call write_velo(kpt_idx, fname, info_string, V_ka)
+		end if
+		!
+		write(fname,*)		"velo_Hka"
+		write(info_string,*)	"#	Hamiltonian contribution to velocities: V_ka =  H_ka"
+		call write_velo(kpt_idx, fname, info_string, H_ka)
+		!
+		!
+		return
+	end subroutine
 
 
 
@@ -110,7 +154,17 @@ module wann_interp
 						H_k		= 0.0_dp
 		if(do_en_grad)	H_ka	= 0.0_dp
 		if(use_pos_op)	A_ka	= 0.0_dp
-		if(use_pos_op)	Om_kab	= 0.0_dp			
+		if(use_pos_op)	Om_kab	= 0.0_dp	
+		!
+		!	test 
+		ft_phase	=	cmplx(0.0_dp, 0.0_dp, dp)
+		do sc = 1, size(R_frac,2)
+			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
+			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
+			ft_phase	=	ft_phase	+	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
+		end do
+		if(	aimag(ft_phase)	> 1e-6_dp	) write(*,*)	"[FT_R_to_k]: Warning sum[ imag(ft_phase) ] =",aimag(ft_phase)," /=0"
+
 		!
 		!sum real space cells
 		do sc = 1, size(R_frac,2)
@@ -318,26 +372,28 @@ module wann_interp
 
 
 
-!DEBUG
+!DEBUG helpers
 	logical function curv_is_herm( Om_kab, max_err)
-		complex(dp),		intent(in)		::	Om_kab(:,:,:,:)
+		complex(dp), allocatable,	intent(in)		::	Om_kab(:,:,:,:)
 		real(dp),			intent(out)		::	max_err
 		integer								::	a, b
 		!
 		!
-		if(size(Om_kab,3) == size(Om_kab,4) )	then
-			curv_is_herm	=	.true.
-			do a = 1, 3
-				do b = 1, 3
-					if(.not. is_herm_mat(Om_kab(b,a,:,:),max_err)) 	then
-						curv_is_herm = .false.
-						!write(*,*)	"[conn_curv_is_herm/DEBUG-MODE]: Om_k,a=",b,",b=",a," is not hermitian"
-					end if
+		if(allocated(Om_kab))then 
+			if( size(Om_kab,3) == size(Om_kab,4) )	then
+				curv_is_herm	=	.true.
+				do a = 1, 3
+					do b = 1, 3
+						if(.not. is_herm_mat(Om_kab(b,a,:,:),max_err)) 	then
+							curv_is_herm = .false.
+							!write(*,*)	"[conn_curv_is_herm/DEBUG-MODE]: Om_k,a=",b,",b=",a," is not hermitian"
+						end if
+					end do
 				end do
-			end do
-		else
-			curv_is_herm	= .false.
-			stop " [curv_is_herm/DEBUG-MODE]: k-space matrices life on different basis sets"
+			else
+				curv_is_herm	= .false.
+				stop " [curv_is_herm/DEBUG-MODE]: k-space matrices life on different basis sets"
+			end if
 		end if
 		!
 		return
@@ -370,12 +426,14 @@ module wann_interp
 
 
 	subroutine check_W_gauge_herm(kpt_rel, H_k, H_ka, A_ka, Om_kab)
-		real(dp),			intent(in)			::		kpt_rel(3)
-		real(dp)								::	max_err	
-		complex(dp),		intent(in)			::		H_k(:,:), H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:) 
-		character(len=30)					::	k_string
+		real(dp),						intent(in)		::		kpt_rel(3)
+		complex(dp),					intent(in)		::		H_k(:,:), H_ka(:,:,:)
+		complex(dp),	allocatable, 	intent(in)		::		A_ka(:,:,:), Om_kab(:,:,:,:) 
+		real(dp)										::		max_err	
+		character(len=30)								::		k_string
 		!
 		write(k_string,'(a,f6.2,a,f6.2,a,f6.2,a)')	'( ',kpt_rel(1),', ',kpt_rel(2),', ',kpt_rel(3),')'
+		!
 		!
 		if(	.not. is_herm_mat(H_k,	max_err) ) then
 			write(*,'(a,f16.7,a,200(f6.2))')	"[check_w_gauge_herm/DEBUG-MODE]:	WARNING (W)-gauge H_k IS NOT hermitian(max_err=",&
@@ -387,14 +445,19 @@ module wann_interp
 																				max_err,") at rel. kpt="//k_string
 		end if
 		!
-		if( .not. velo_is_herm( A_ka,	max_err)	) 	then
-			write(*,*)						"[check_w_gauge_herm/DEBUG-MODE]:	WARNING (W)-gauge A_ka IS NOT hermitian(max_err=",&
-																				max_err,") at rel. kpt= "//k_string
+		!
+		if(allocated(A_ka)) then
+			if( .not. velo_is_herm( A_ka,	max_err)	) 	then
+				write(*,*)						"[check_w_gauge_herm/DEBUG-MODE]:	WARNING (W)-gauge A_ka IS NOT hermitian(max_err=",&
+																					max_err,") at rel. kpt= "//k_string
+			end if
 		end if
 		!
-		if( .not. curv_is_herm( Om_kab,	max_err)	)	then
-			write(*,*)						"[check_w_gauge_herm/DEBUG-MODE]:	WARNING (W)-gauge OM_kab IS NOT hermitian(max_err=",&
-																				max_err,") at rel. kpt= "//k_string
+		if(allocated(Om_kab))	then
+			if( .not. curv_is_herm( Om_kab,	max_err)	)	then
+				write(*,*)						"[check_w_gauge_herm/DEBUG-MODE]:	WARNING (W)-gauge OM_kab IS NOT hermitian(max_err=",&
+																					max_err,") at rel. kpt= "//k_string
+			end if
 		end if
 		!
 		!
@@ -403,15 +466,19 @@ module wann_interp
 
 
 	subroutine check_Hbar_gauge_herm(A_ka, Om_kab)
-		complex(dp),	intent(in)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		complex(dp), allocatable,	intent(in)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp)							::	max_err
 		!
-		if( .not. velo_is_herm(A_ka,max_err))	then
-			write(*,'(a,f16.7)')	'[gauge_trafo/DEBUG-MODE]: WARNING	(Hbar)-gauge A_ka IS NOT hermitian, max_err=',max_err	
+		if(allocated(A_ka)) then
+			if( .not. velo_is_herm(A_ka,max_err))	then
+				write(*,'(a,f16.7)')	'[gauge_trafo/DEBUG-MODE]: WARNING	(Hbar)-gauge A_ka IS NOT hermitian, max_err=',max_err	
+			end if
 		end if
 		!
-		if( .not. curv_is_herm(Om_kab,max_err) )	then
-			write(*,'(a,f16.7)')	'[gauge_trafo/DEBUG-MODE]: WARNING	(Hbar)-gauge Om_kab IS NOT hermitian, max_err=',max_err				
+		if(allocated(Om_kab))	then
+			if( .not. curv_is_herm(Om_kab,max_err) )	then
+				write(*,'(a,f16.7)')	'[gauge_trafo/DEBUG-MODE]: WARNING	(Hbar)-gauge Om_kab IS NOT hermitian, max_err=',max_err				
+			end if
 		end if
 		!
 		!
@@ -420,25 +487,28 @@ module wann_interp
 
 
 	subroutine check_H_gauge_herm(kpt_rel, H_ka, A_ka, Om_kab, V_ka)
-		real(dp),		intent(in)			::	kpt_rel(3)
-		complex(dp),	intent(in)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:),	&
-												V_ka(:,:,:)
-		real(dp)							::	max_err
-		character(len=30)					::	k_string
+		real(dp),						intent(in)			::	kpt_rel(3)
+		complex(dp),					intent(in)			::	H_ka(:,:,:), 	V_ka(:,:,:)
+		complex(dp),	allocatable,	intent(in)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		real(dp)											::	max_err
+		character(len=30)									::	k_string
 		!
 		write(k_string,'(a,f6.2,a,f6.2,a,f6.2,a)')	'( ',kpt_rel(1),', ',kpt_rel(2),', ',kpt_rel(3),')'
 
 
-
-		if(.not. velo_is_herm(A_ka, max_err)	)	then
-			write(*,'(a,f16.7)')	"[get_wann_interp/DEBUG-MODE]:	WARNING (H)-gauge A_ka IS NOT hermitian at rel. kpt= "//	&
-																							k_string//"max_err=", max_err
+		if(allocated(A_ka)) then
+			if(.not. velo_is_herm(A_ka, max_err)	)	then
+				write(*,'(a,f16.7)')	"[get_wann_interp/DEBUG-MODE]:	WARNING (H)-gauge A_ka IS NOT hermitian at rel. kpt= "//	&
+																								k_string//"max_err=", max_err
+			end if
 		end if
 		!
 		!
-		if(	.not. curv_is_herm( Om_kab, max_err)	) 	then
-			write(*,'(a,f16.7)')	"[get_wann_interp/DEBUG-MODE]:	WARNING (H)-gauge Om_kab ARE NOT hermitian at rel. kpt= "//		&
-																							k_string//"max_err=", max_err
+		if(allocated(Om_kab)) then
+			if(	.not. curv_is_herm( Om_kab, max_err)	) 	then
+				write(*,'(a,f16.7)')	"[get_wann_interp/DEBUG-MODE]:	WARNING (H)-gauge Om_kab ARE NOT hermitian at rel. kpt= "//		&
+																								k_string//"max_err=", max_err
+			end if
 		end if
 			!
 		if(.not. velo_is_herm(H_ka, max_err)	)	then

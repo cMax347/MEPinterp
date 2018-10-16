@@ -54,7 +54,10 @@ contains
 			do_gauge_trafo	= .false. !eigenvalues are gauge independent
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
-				call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, rel_kpts(:,ki), 	en_k, V_ka, A_ka, Om_kab )
+				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 						&
+										a_latt, recip_latt, R_vect, ki, rel_kpts(:,ki),		& 
+										en_k, V_ka, A_ka, Om_kab							&
+									)
 				call write_en_binary(ki,en_k)
 				k_per_mpi	= k_per_mpi + 1
 			end do

@@ -44,24 +44,27 @@ contains
 
 
 	pure function get_gyro_D(en, v_a, om_cab, e_fermi, T_kelvin) result(D_ab)
-		real(dp),		intent(in)			::		en(:), e_fermi, T_kelvin
-		complex(dp),	intent(in)			::		v_a(:,:,:),	om_cab(:,:,:,:)
-		complex(dp)							::		om_ca(3)
-		complex(dp)							::		D_ab(3,3)
-		integer								::		n, b
+		real(dp),						intent(in)			::		en(:), e_fermi, T_kelvin
+		complex(dp),					intent(in)			::		v_a(:,:,:)	
+		complex(dp),	allocatable,	intent(in)			::		Om_cab(:,:,:,:)
+		complex(dp)											::		om_ca(3)
+		complex(dp)											::		D_ab(3,3)
+		integer												::		n, b
 		!
 		D_ab	=	0.0_dp
 		!
-		do n =1 , size(om_cab,	4)
-			call	convert_tens_to_vect(om_cab(:,:,n,n), om_ca(:)	)	
-			!
-			!
-			do b = 1, 3
-				D_ab(:,b)	=	D_ab(:,b)	+	v_a(:,n,n) * om_ca(b) 		* fd_stat_deriv(en(n), e_fermi, T_kelvin)		
+		if(allocated(Om_kab)) then
+			do n =1 , size(om_cab,	4)
+				call	convert_tens_to_vect(om_cab(:,:,n,n), om_ca(:)	)	
+				!
+				!
+				do b = 1, 3
+					D_ab(:,b)	=	D_ab(:,b)	+	v_a(:,n,n) * om_ca(b) 		* fd_stat_deriv(en(n), e_fermi, T_kelvin)		
+				end do
+				!
+				!
 			end do
-			!
-			!
-		end do
+		end if
 		!
 		return
 	end function

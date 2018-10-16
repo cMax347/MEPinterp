@@ -15,7 +15,7 @@ class postw90_job:
 
 
 	def write_win_file(self ):
-		with open(self.w90_dir+'/'+self.seedname+'.txt','w') as outfile:
+		with open(self.w90_dir+'/'+self.seedname+'.win','w') as outfile:
 			outfile.write('# input file for postw90 calculation '+'generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
 			outfile.write('\n')
 			#
