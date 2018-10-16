@@ -355,6 +355,8 @@ module matrix_math
                     !
                 end do
             end do columns 
+        else
+            write(*,*)  '[z_is_herm_mat]: WARNING  matrix is non symmetric...'
         end if
         !
         return
