@@ -148,7 +148,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	INTERPOLATE
 						!----------------------------------------------------------------------------------------------------------------------------------
-						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
+						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
@@ -173,16 +173,20 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPT
 						!----------------------------------------------------------------------------------------------------------------------------------
-						call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
-						kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
-						kubo_opt_a_loc	=	kubo_opt_a_loc	+	tempA
+						if(allocated(A_ka)) then
+							call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
+							kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
+							kubo_opt_a_loc	=	kubo_opt_a_loc	+	tempA
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	GYRO
 						!----------------------------------------------------------------------------------------------------------------------------------
-						gyro_C_loc		=	gyro_C_loc		+	get_gyro_C(en_k, V_ka, eFermi, T_kelvin)
-						gyro_D_loc		=	gyro_D_loc		+ 	get_gyro_D(en_k, V_ka, Om_kab, eFermi, T_kelvin)
-						gyro_Dw_loc		=	gyro_Dw_loc		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
+						if(allocated(Om_kab)) then
+							gyro_C_loc		=	gyro_C_loc		+	get_gyro_C(en_k, V_ka, eFermi, T_kelvin)
+							gyro_D_loc		=	gyro_D_loc		+ 	get_gyro_D(en_k, V_ka, Om_kab, eFermi, T_kelvin)
+							gyro_Dw_loc		=	gyro_Dw_loc		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	COUNT ELECTRONS
