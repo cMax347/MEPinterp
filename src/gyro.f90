@@ -43,10 +43,10 @@ contains
 
 
 
-	pure function get_gyro_D(en, v_a, om_cab, e_fermi, T_kelvin) result(D_ab)
+	pure function get_gyro_D(en, v_a, om_kab, e_fermi, T_kelvin) result(D_ab)
 		real(dp),						intent(in)			::		en(:), e_fermi, T_kelvin
 		complex(dp),					intent(in)			::		v_a(:,:,:)	
-		complex(dp),	allocatable,	intent(in)			::		Om_cab(:,:,:,:)
+		complex(dp),	allocatable,	intent(in)			::		Om_kab(:,:,:,:)
 		complex(dp)											::		om_ca(3)
 		complex(dp)											::		D_ab(3,3)
 		integer												::		n, b
@@ -54,8 +54,8 @@ contains
 		D_ab	=	0.0_dp
 		!
 		if(allocated(Om_kab)) then
-			do n =1 , size(om_cab,	4)
-				call	convert_tens_to_vect(om_cab(:,:,n,n), om_ca(:)	)	
+			do n =1 , size(om_kab,	4)
+				call	convert_tens_to_vect(om_kab(:,:,n,n), om_ca(:)	)	
 				!
 				!
 				do b = 1, 3
