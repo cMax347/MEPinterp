@@ -7,7 +7,7 @@ module band_calc
 	use mpi
 #endif
 	use constants,		only:			dp, mpi_root_id, mpi_id, mpi_nProcs, ierr
-	use input_paras,	only:			seed_name, a_latt
+	use input_paras,	only:			use_mpi, seed_name, a_latt
 	use k_space,		only:			get_recip_latt										
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										read_tb_basis,									&
@@ -32,6 +32,14 @@ contains
 												V_ka(:,:,:)
 		logical								::	do_gauge_trafo
 		!
+		if(mpi_id==mpi_root_id)	then
+			write(*,*)	"*"
+			write(*,*)	"*"
+			write(*,*)	"***^^^^	-	BANDSTRUCTURE MODE	-	^^^^***"
+			write(*,*)	"*"
+			write(*,*)	"*"
+		end if
+		!
 		if( read_kptsgen_pl_file(rel_kpts)	) then
 			!
 			!	get k-space
@@ -45,9 +53,7 @@ contains
 			!
 			!
 			!	do the work
-#ifdef USE_MPI
-			call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
+			if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 			write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
 			!
 			!
@@ -66,9 +72,7 @@ contains
 			!
 			!
 			!	write the results
-#ifdef USE_MPI
-			call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif			
+			if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 			if(mpi_id == mpi_root_id)	then
 				call write_en_global(rel_kpts)
 				write(*,*)'---------------------------------------------------------------------------------------------'
@@ -88,7 +92,7 @@ contains
 												V_ka(:,:,:)
 		!
 		allocate(	en_k(						size(H_tb,2)	)	)
-		allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
+		!allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
 		if(	allocated(r_tb)	)	then	
 			allocate(	A_ka(	3,		size(r_tb,2),	size(r_tb,3)	)	)
 			allocate(	Om_kab(	3,3,	size(r_tb,2),	size(r_tb,3)	)	)
