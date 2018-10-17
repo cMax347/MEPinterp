@@ -125,6 +125,7 @@ module file_io
 			call read_en_binary(qi_idx, ek_bands)
 			!
 			do band = 1, size(ek_bands,1)
+				write(mpi_unit,'(i7,a)',advance="no")	qi_idx,'	'
 				write(mpi_unit,'(200(f16.8))',advance="no")	(kpt_latt(x,qi_idx), x=1,size(kpt_latt,1)	)
 				write(mpi_unit, '(a,f18.8)')			'	',ek_bands(band)
 			end do
