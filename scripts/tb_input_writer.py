@@ -41,7 +41,7 @@ def write_postw90_input(w90_dir, seed_name, val_bands, mp_grid, hw=0.0, eFermi=0
 def write_hr_file(seed_name, nAt, nrpts, thopp):
 	whitespace = '\t'
 
-	#thopp = sorted(thopp)
+	thopp = sorted(thopp)
 	with open(seed_name+'_hr.dat','w') as outfile:
 		#HEADER
 		outfile.write('# my _hr file created with inpgenTBwann.py on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
