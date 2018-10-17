@@ -35,8 +35,8 @@ def sort_energies(en_data):
 	en_plot = []
 	k_old	= []
 	for idx, en_val	in enumerate(en_data):
-		kpt = en_val[0:3]
-		en 	= en_val[3]
+		kpt = en_val[1:4]
+		en 	= en_val[4]
 
 		#init k_old & append first value
 		if idx == 0:
@@ -62,7 +62,7 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 
 	kpt_data 	= np.genfromtxt(kpt_file, skip_header=1, usecols= (0,1,2)	)
 
-	en_data		= np.genfromtxt(en_file, skip_header=3, usecols=(0,1,2,3)	)
+	en_data		= np.genfromtxt(en_file, skip_header=3, usecols=(0,1,2,3,4)	)
 
 
 	print('found '+str(len(kpt_data))+' kpts')	
@@ -82,8 +82,9 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 	#sort energies by kpt and band index
 	en_plot = sort_energies(en_data)
 
+	print('raw en_plot:',en_plot)
 	
-	nBands = int(		len(en_plot)*len(en_plot[0])	/	len(k_plot)			)
+	nBands =	len(en_plot[0])
 	print('detected nBands='+str(nBands))
 
 
@@ -142,7 +143,7 @@ def unit_test():
 
 
 
-
+unit_test()
 
 
 
