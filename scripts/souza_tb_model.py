@@ -19,7 +19,14 @@ at7 = 6
 at8 = 7
 #******************************************
 
-
+#
+#
+#
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#		HOPPINGS
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 def convert_phase_to_complex(angles):
@@ -220,11 +227,167 @@ def get_z_hopp(hopping):
 
 
 
+def get_souza_Ham(onsite, hopping):
+	#
+	nWfs	=	8
+	nrpts	=	7
+	print('nWfs= '+str(nWfs))
+	print('nrpts= '+str(nrpts))
+	#
+	#	SET NEAREST NEIGHBOURS
+	R_nn_lst	=	[]
+	#	0
+	R_nn_lst.append(	[ 0,0,0]		)	# Home unit cell
+	#	x
+	R_nn_lst.append(	[-1,0,0]		)	# - X
+	R_nn_lst.append(	[+1,0,0]		)	# + X
+	#	x
+	R_nn_lst.append(	[0,-1,0]		)	# - Y
+	R_nn_lst.append(	[0,+1,0]		)	# + Y
+	#	z
+	R_nn_lst.append(	[0,0,-1]		)	# - Z
+	R_nn_lst.append(	[0,0,+1]		)	# + Z
+	#
+	#
+	#	ONSITE ENERGIES
+	en_0	= []
+	for at, en in enumerate(onsite):
+		en_0.append(		[	0, 0, 0,			at+1, at+1,			en,	.0]			)
+	
+	#	HOPPING
+	tHopp_X		=	get_x_hopp(hopping)
+	tHopp_Y 	=	get_y_hopp(hopping)
+	tHopp_Z		=	get_z_hopp(hopping)
+	#
+	#	COLLECT
+	tHopp	=	en_0	+	tHopp_X
+	tHopp	=	tHopp	+	tHopp_Y
+	tHopp	=	tHopp	+	tHopp_Z
+	#
+	#
+	#	TEST IF ALL HOPPINGS WERE COLLECTED 
+	exp_non_zero_hopp	=	8 + 3 * 24
+	if int(len(tHopp)) != exp_non_zero_hopp: 			# 8 onsite energies, 24 hoppings per spatial dimension
+		print("WARNING tHopp contains: "+str(len(tHopp))+" non zero values, expected 80")
+	else:
+		print("SUCCESS tHopp has "+str(exp_non_zero_hopp) +	" non zero entries (as expected) ")
+	#
+	#
+	#	FILL REST WITH ZERO
+	#
+	# creat list with already added elements
+	tHopp_exist = []
+	exist_cnt	= 0
+	for t in tHopp:
+		tHopp_exist.append(	[	int(t[0]),int(t[1]),int(t[2]),int(t[3]),int(t[4])	]	 )
+		exist_cnt	= exist_cnt + 1
+	if exist_cnt != 80:
+		print("WARNING the tHopp_exist list is wrong")
+	#
+	#only if not in already added list append value
+	zero_cnt = 0
+	match_cnt = 0
+	t_matches = []
+	for R_nn in R_nn_lst:
+		for m in range(nWfs):
+			for n in range(nWfs):
+				if [ int(R_nn[0]), int(R_nn[1]), int(R_nn[2]), int(m+1), int(n+1)] in tHopp_exist:
+					t_matches.append([ int(R_nn[0]), int(R_nn[1]), int(R_nn[2]), int(m+1), int(n+1)])
+					match_cnt = match_cnt + 1				
+				else:			
+					zero_cnt	= zero_cnt + 1
+					tHopp.append(		[ R_nn[0], R_nn[1], R_nn[2], m+1, n+1, 0.0, 0.0	]		)
+	
+
+	if int(zero_cnt) != int(nrpts*nWfs**2-exp_non_zero_hopp):
+		print("WARNING detected wrong zero count, got "+str(zero_cnt)+" expected "+str(nrpts*nWfs**2-exp_non_zero_hopp))
+		print("WARNING counted "+str(match_cnt)+" matches expected 80")
+		#print("t_matches:")
+		#for match in t_matches:
+		#	print(str(match)+"	interpreted as non zero")
+	else:
+		print('SUCCESS added '+str(zero_cnt)+" zeros (as expected) to the hopping matrix")
+		print('SUCCESS tHopp has '+str(int(len(tHopp)))+' entries (as expected)'			)
+
+	if int(len(tHopp)) != nWfs**2 * nrpts:
+		print("WARNING tHopp has "+str(int(len(tHopp)))+" entries. expected "+str(nWfs**2 * nrpts))
+
+
+	return nWfs, nrpts, R_nn_lst, tHopp
+
+#
+#
+#
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#		GET POSITION OPERATOR
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def get_at_pos(a_latt, rel_atom_pos):
+	rel_vec = np.array(rel_atom_pos)
+	pos =  a_latt.dot(rel_vec)
+	#
+	cmplx_pos = np.zeros(6)
+	cmplx_pos[0]	= pos[0]
+	cmplx_pos[2]	= pos[1]
+	cmplx_pos[4]	= pos[2]
+
+	return cmplx_pos
+
+
+def get_souza_Pos(R_nn_list):
+	nAt				= 8
+	rel_atom_pos 	= np.array(
+					[	[.0,.0,.0],
+						[.5,.0,.0],
+						[.5,.5,.0],
+						[.0,.5,.0],
+						[.0,.0,.5],
+						[.5,.0,.5],
+						[.5,.5,.5],
+						[.0,.5,.5]
+					])
+	#	lattice setup
+	ax 				= np.zeros(3)
+	ay 				= np.zeros(3)
+	az 				= np.zeros(3)
+	ax[0]			= 2.0
+	ay[1]			= 2.0
+	az[2]			= 2.0
+	a0				= 1.0
+	a_latt 			= np.array(
+					[
+						[ax[0], ax[1], ax[2]],
+						[ay[0],	ay[1], ay[2]],
+						[az[0], az[1], az[2]],
+					])
+	a_latt			= a_latt * au_to_angtrom
+	#
+	rHopp	=	[]
+	for R_nn in R_nn_list:
+		for m in range(nAt):
+			for n in range(nAt):
+				if abs(np.linalg.norm(R_nn)) < 1e-9 and m==n:
+					at_pos = get_at_pos(a_latt, rel_atom_pos[m])
+				else:
+					at_pos = np.zeros(6)
+				rHopp.append(	[		R_nn[0],R_nn[1],R_nn[2], m+1, n+1, at_pos[0], at_pos[1], at_pos[2], at_pos[3], at_pos[4], at_pos[5]			]		)
+	#
+	return rHopp
 
 
 
 
 
+#
+#
+#
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#		PUBLIC FUNCTION
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -247,134 +410,45 @@ def get_souza_tb(phi_para):
 		print("[get_souza_tb]:	hopping energy array has wrong size")
 		stop
 	#
-	print('')
-	print('')
-	print('')
+	print('*')
+	print('*')
+	print('*')
 	print(' ~~~~~~~~~~~~~~ CUBIC TIGHT BINDING MODEL - NON INVERSION SYMMETRIC ~~~~~~~~~~~~~~~~~~~~')
 	print('*')
 	print('*')
 	print('*')
 	#
-	#	SET MODEL PARAS
-	nWfs	=	8
-	nrpts	=	7
 	#
-	#
-	#	INIT CONTAINERS
-	R_hopp	=	[]
-	#	0
-	R_hopp.append(	[ 0,0,0]		)	# Home unit cell
-	#	x
-	R_hopp.append(	[-1,0,0]		)	# - X
-	R_hopp.append(	[+1,0,0]		)	# + X
-	#	x
-	R_hopp.append(	[0,-1,0]		)	# - Y
-	R_hopp.append(	[0,+1,0]		)	# + Y
-	#	z
-	R_hopp.append(	[0,0,-1]		)	# - Z
-	R_hopp.append(	[0,0,+1]		)	# + Z
-	#
-
-	#
-	#	ONSITE ENERGIES
-	en_0	= []
-	for at, en in enumerate(onsite):
-		en_0.append(		[	0, 0, 0,			at+1, at+1,			en,	.0]			)
-	
-	#	HOPPING
-	tHopp_X		=	get_x_hopp(hopping)
-	tHopp_Y 	=	get_y_hopp(hopping)
-	tHopp_Z		=	get_z_hopp(hopping)
-	#
-	#	COLLECT
-	tHopp	=	np.concatenate(		(en_0,		tHopp_X),		axis=0)
-	tHopp	=	np.concatenate(		(tHopp,		tHopp_Y),		axis=0)
-	tHopp	=	np.concatenate(		(tHopp,		tHopp_Z),		axis=0)
-	#
-	#
-	#	TEST IF ALL HOPPINGS WERE COLLECTED 
-	exp_non_zero_hopp	=	8 + 3 * 24
-	if int(tHopp.size/7) is not exp_non_zero_hopp: 			# 8 onsite energies, 24 hoppings per spatial dimension
-		print("tHopp contains: "+str(tHopp.size/7)+" non zero values, expected 80")
-	else:
-		print("tHopp has "+str(exp_non_zero_hopp) +	" non zero entries")
-	#
-	#
-	#	FILL REST WITH ZERO
-	#
-	# creat list with already added elements
-	tHopp_exist = []
-	exist_cnt	= 0
-	for t in tHopp:
-		tHopp_exist.append(	[	int(t[0]),int(t[1]),int(t[2]),int(t[3]),int(t[4])	]	 )
-		exist_cnt	= exist_cnt + 1
-	if exist_cnt is not 80:
-		print("the tHopp_exist list is wrong")
-	#
-	#only if not in already added list append value
-	zero_cnt = 0
-	match_cnt = 0
-	t_matches = []
-	for R_nn in R_hopp:
-		for m in range(nWfs):
-			for n in range(nWfs):
-				if [ int(R_nn[0]), int(R_nn[1]), int(R_nn[2]), int(m+1), int(n+1)] in tHopp_exist:
-					t_matches.append([ int(R_nn[0]), int(R_nn[1]), int(R_nn[2]), int(m+1), int(n+1)])
-					match_cnt = match_cnt + 1				
-				else:			
-					zero_cnt	= zero_cnt + 1
-
-				#	zero_hopp	= np.array(	 [	[  R_nn[0], R_nn[1], R_nn[2], m+1, n+1, 0.0, 0.0 ]	 ]	)
-				#	tHopp		= np.concatenate(	(tHopp, zero_hopp),		axis=0)	
-					
-									#tHopp = np.append( tHopp, np.array([  [R_nn[0], R_nn[1], R_nn[2], m+1, n+1, 0.0, 0.0]			])	)
-	#				#tHopp.append(		[ R_nn[0], R_nn[1], R_nn[2], m+1, n+1, 0.0, 0.0	]		)
-	
-
-	if zero_cnt is not  nrpts*nWfs**2-exp_non_zero_hopp:
-		print("detected wrong zero count, got "+str(zero_cnt)+" expected "+str(nrpts*nWfs**2-exp_non_zero_hopp))
-		print("counted "+str(match_cnt)+" matches expected 80")
-		print("t_matches:")
-		for match in t_matches:
-			print(str(match)+"	interpreted as non zero")
-	else:
-		print('added '+str(zero_cnt)+" zeros to the hopping matrix")
-
-	if tHopp.size is not 7*nWfs**2 * nrpts:
-		print("WARNING tHopp.size="+str(tHopp.size/7)+" expected "+str(nWfs**2 * nrpts))
-
+	#	HAMILTONIAN
+	nWfs, nrpts, R_nn_lst, tHopp =	get_souza_Ham(onsite, hopping)
 	#
 	#	POSITION
+	rHopp    		=	get_souza_Pos(R_nn_lst)
+
+	print(' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
 
+	return nWfs, nrpts, tHopp, rHopp
 
-	return nWfs, nrpts, tHopp, R_hopp
-
-
+#
+#
+#
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#		TEST FUNCTION FOR DEBUGING ETC.
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#
-#
-#
-#
-#
 
 #
-#
-def test():
-	nWfs, nrpts, tHopp, R_hopp 	=	get_souza_tb(0.0)
+def test():	
 	#
-	#print('tHopp:')
-	#for t in tHopp:
-	#	print(" "+str(int(t[0]))+ " "+str(int(t[1]))+ " "+str(int(t[2]))+" 		"+str(int(t[3]))+" "+str(int(t[4]))+" 		"+str(t[5])+	" "+str(t[6])	)
+	nWfs, nrpts, tHopp, rHopp 	=	get_souza_tb( 0.0)
+
+	for t in tHopp:
+		print(t)
 	#
-	print('nWfs= '+str(nWfs))
-	print('nrpts= '+str(nrpts))
-	print('R_hopp= '+str(R_hopp))
 
 
 
 
-test()
+#test()
