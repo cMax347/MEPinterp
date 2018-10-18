@@ -760,7 +760,10 @@ module file_io
 			!
 			!	HAMILTONIAN
 			inquire(file=w90_dir//seed_name//'_hr.dat', exist=hr_exist)
-			if( .not. hr_exist)		stop '[read_tb_basis]:	ERROR could not read the real space Hamiltonian'
+			if( .not. hr_exist)		then
+				write(*,*)	'[read_tb_basis]: "'//w90_dir//seed_name//'_hr.dat'//'" does not exist'
+				stop '[read_tb_basis]:	ERROR could not read the real space Hamiltonian'
+			end if
 			call read_hr_file(w90_dir//seed_name, R_vect, H_mat)
 			!
 			!
