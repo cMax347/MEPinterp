@@ -89,12 +89,22 @@ contains
 		complex(dp), 	intent(out)		::	opt_symm(3,3), 	opt_asymm(3,3)
 		complex(dp)						::	opt_herm(3,3),	opt_aherm(3,3)
 		!
-		if(allocated(A_ka)) then
-			opt_herm	=	get_hermitian(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
-			opt_aherm	=	get_anti_herm(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
-			!
-			opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * aimag(	opt_aherm	)		!	(12.14)		
-			opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * aimag(	opt_herm	)		!	(12.15)
+		opt_symm	= 	0.0_dp
+		opt_asymm	=	0.0_dp
+		!
+		if(			abs(hw)				< 1e-3_dp	&	!)	'[kubo_opt_tens]:	WARNING hw is very small: ',hw 
+			.or.	abs(i_eta_smr)		< 1e-3_dp	&	!)	'[kubo_opt_tens]:	WARNING i_eta_smr is very small: ', i_eta_smr
+			.or.	abs(T_kelvin)		< 1e-3_dp	&
+		)then
+			write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
+		else
+			if(allocated(A_ka)) then
+				opt_herm	=	get_hermitian(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+				opt_aherm	=	get_anti_herm(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+				!
+				opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * aimag(	opt_aherm	)		!	(12.14)		
+				opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * aimag(	opt_herm	)		!	(12.15)
+			end if
 		end if
 		!
 		return
