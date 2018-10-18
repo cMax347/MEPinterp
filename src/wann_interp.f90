@@ -322,10 +322,10 @@ module wann_interp
 					write(*,'(a,i1,a,f16.7)')	"[get_gauge_covar_deriv/DEBUG-MODE]:	WARNING D_(k,a=",a,&
 																						") is not skew hermitian, max_err=", max_err
 				
-					if( .not. is_herm_mat(D_ka(a,:,:),max_err))	then
-						write(*,'(a,i1,a,f16.7)')	"[get_gauge_covar_deriv/DEBUG-MODE]:	WARNING D_(k,a=",a,&
-																						") is neither hermitian, max_err=", max_err
-					end if
+					!if( .not. is_herm_mat(D_ka(a,:,:),max_err))	then
+					!	write(*,'(a,i1,a,f16.7)')	"[get_gauge_covar_deriv/DEBUG-MODE]:	WARNING D_(k,a=",a,&
+					!																	") is neither hermitian, max_err=", max_err
+					!end if
 				end if
 			end do
 		end if
