@@ -15,6 +15,11 @@ module core
 	use statistics,		only:	fd_get_N_el
 	use input_paras,	only:	use_mpi,										&
 								do_gauge_trafo,									&
+								do_mep,											&
+								do_kubo,										&
+								do_ahc,											&
+								do_opt,											&
+								do_gyro,										&
 								a_latt, 										&
 								valence_bands, 									&
 								seed_name,										&
@@ -159,36 +164,46 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
 						!----------------------------------------------------------------------------------------------------------------------------------
-						mep_tens_ic_loc	=	mep_tens_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
-						mep_tens_lc_loc	=	mep_tens_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
-						mep_tens_cs_loc =	mep_tens_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
+						if(do_mep) then
+							mep_tens_ic_loc	=	mep_tens_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
+							mep_tens_lc_loc	=	mep_tens_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
+							mep_tens_cs_loc =	mep_tens_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	KUBO MEP (MEP with fermi_dirac)
 						!----------------------------------------------------------------------------------------------------------------------------------
-						kubo_mep_ic_loc	=	kubo_mep_ic_loc +	kubo_mep_IC(eFermi, T_kelvin, V_ka, en_k, ic_skipped)
-						kubo_mep_lc_loc	=	kubo_mep_lc_loc +	kubo_mep_LC(eFermi, T_kelvin, V_ka, en_k, lc_skipped)
-						kubo_mep_cs_loc	=	kubo_mep_cs_loc +	kubo_mep_CS(eFermi, T_kelvin, en_k, A_ka, Om_kab)
+						if(do_kubo) then
+							kubo_mep_ic_loc	=	kubo_mep_ic_loc +	kubo_mep_IC(eFermi, T_kelvin, V_ka, en_k, ic_skipped)
+							kubo_mep_lc_loc	=	kubo_mep_lc_loc +	kubo_mep_LC(eFermi, T_kelvin, V_ka, en_k, lc_skipped)
+							kubo_mep_cs_loc	=	kubo_mep_cs_loc +	kubo_mep_CS(eFermi, T_kelvin, en_k, A_ka, Om_kab)
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	AHC
 						!----------------------------------------------------------------------------------------------------------------------------------
-						kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin, unit_vol)
-						velo_ahc_loc	=	velo_ahc_loc	+	velo_ahc_tens(en_k, V_ka,	eFermi, T_kelvin, unit_vol)
+						if(do_ahc) then
+							kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin, unit_vol)
+							velo_ahc_loc	=	velo_ahc_loc	+	velo_ahc_tens(en_k, V_ka,	eFermi, T_kelvin, unit_vol)
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPT
 						!----------------------------------------------------------------------------------------------------------------------------------
 						call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
-						kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
-						kubo_opt_a_loc	=	kubo_opt_a_loc	+	tempA
+						if(do_opt) then
+							kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
+							kubo_opt_a_loc	=	kubo_opt_a_loc	+	tempA
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	GYRO
 						!----------------------------------------------------------------------------------------------------------------------------------
-						gyro_C_loc		=	gyro_C_loc		+	get_gyro_C(en_k, V_ka, eFermi, T_kelvin)
-						gyro_D_loc		=	gyro_D_loc		+ 	get_gyro_D(en_k, V_ka, Om_kab, eFermi, T_kelvin)
-						gyro_Dw_loc		=	gyro_Dw_loc		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
+						if(do_gyro) then
+							gyro_C_loc		=	gyro_C_loc		+	get_gyro_C(en_k, V_ka, eFermi, T_kelvin)
+							gyro_D_loc		=	gyro_D_loc		+ 	get_gyro_D(en_k, V_ka, Om_kab, eFermi, T_kelvin)
+							gyro_Dw_loc		=	gyro_Dw_loc		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	COUNT ELECTRONS
@@ -293,23 +308,33 @@ contains
 			call MPI_REDUCE(	n_ki_loc,				n_ki_glob,			1,		MPI_INTEGER,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 			call MPI_REDUCE(	sum_N_el_loc,		avg_N_el_glob,			1,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 			!
-			call MPI_REDUCE(	mep_tens_ic_loc,	mep_tens_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_REDUCE(	mep_tens_lc_loc,	mep_tens_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_REDUCE(	mep_tens_cs_loc,	mep_tens_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			if(do_mep) then
+				call MPI_REDUCE(	mep_tens_ic_loc,	mep_tens_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_REDUCE(	mep_tens_lc_loc,	mep_tens_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_REDUCE(	mep_tens_cs_loc,	mep_tens_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			end if
 			!
-			call MPI_REDUCE(	kubo_mep_ic_loc,	kubo_mep_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_REDUCE(	kubo_mep_lc_loc,	kubo_mep_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_REDUCE(	kubo_mep_cs_loc,	kubo_mep_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			if(do_kubo) then
+				call MPI_REDUCE(	kubo_mep_ic_loc,	kubo_mep_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_REDUCE(	kubo_mep_lc_loc,	kubo_mep_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_REDUCE(	kubo_mep_cs_loc,	kubo_mep_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			end if
 			!
-			call MPI_REDUCE(	kubo_ahc_loc,		kubo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_REDUCE(	velo_ahc_loc,		velo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)		
+			if(do_ahc) then
+				call MPI_REDUCE(	kubo_ahc_loc,		kubo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_REDUCE(	velo_ahc_loc,		velo_ahc_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)		
+			end if
 			!
-			call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
-			call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+			if(do_opt) then
+				call MPI_REDUCE(	kubo_opt_s_loc,		kubo_opt_s_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_REDUCE(	kubo_opt_a_loc,		kubo_opt_a_glob,		9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD,	ierr)
+			end if
 			!
-			call MPI_REDUCE(	gyro_C_loc,			gyro_C_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_REDUCE(	gyro_D_loc,			gyro_D_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_REDUCE(	gyro_Dw_loc,		gyro_Dw_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			if(do_gyro) then
+				call MPI_REDUCE(	gyro_C_loc,			gyro_C_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_REDUCE(	gyro_D_loc,			gyro_D_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_REDUCE(	gyro_Dw_loc,		gyro_Dw_glob,			9,	MPI_DOUBLE_COMPLEX,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			end if
 			!
 			!
 			if(mpi_id == mpi_root_id)	write(*,'(a,i3,a,i8,a)') "[#",mpi_id,"; core_worker]: collected tensors from",mpi_nProcs," mpi-threads"
@@ -347,40 +372,54 @@ contains
 			if(	n_ki_glob	/=	num_kpts .or. n_ki_glob <= 0	) stop "[core_worker]:	ERROR n_ki_glob is not equal to the given mp_grid"
 			!
 			!
-			!	NORMALIZE INTEGRATION
+			!	NORMALIZE INTEGRATION & WRITE FILE
 			avg_N_el_glob	=	avg_N_el_glob	/	real(n_ki_glob,dp)
-			call normalize_k_int(mep_tens_ic_glob)
-			call normalize_k_int(mep_tens_lc_glob)
-			call normalize_k_int(mep_tens_cs_glob)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
-			!
-			call normalize_k_int(kubo_mep_ic_glob)
-			call normalize_k_int(kubo_mep_lc_glob)
-			call normalize_k_int(kubo_mep_cs_glob)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated  KUBO MEP tensor on ",n_ki_glob," kpts"
 			!
 			!
-			kubo_ahc_glob	=	kubo_ahc_glob		/	real(n_ki_glob,dp)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC tensor on ",n_ki_glob," kpts"
-			!			!
-			velo_ahc_glob	=	velo_ahc_glob		/	real(n_ki_glob,dp)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC (via velo) tensor on ",n_ki_glob," kpts"
+			if(do_mep) then
+				call normalize_k_int(mep_tens_ic_glob)
+				call normalize_k_int(mep_tens_lc_glob)
+				call normalize_k_int(mep_tens_cs_glob)
+				call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
+				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
+			end if
 			!
-			kubo_opt_s_glob	=	kubo_opt_s_glob		/	real(n_ki_glob,dp)			
-			kubo_opt_a_glob	=	kubo_opt_a_glob		/	real(n_ki_glob,dp)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
 			!
-			call normalize_k_int(gyro_C_glob)
-			call normalize_k_int(gyro_D_glob)			
-			call normalize_k_int(gyro_Dw_glob)			
-
+			if(do_kubo) then
+				call normalize_k_int(kubo_mep_ic_glob)
+				call normalize_k_int(kubo_mep_lc_glob)
+				call normalize_k_int(kubo_mep_cs_glob)
+				call write_kubo_mep_tensors(kubo_mep_ic_glob, kubo_mep_lc_glob, kubo_mep_cs_glob)
+				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated  KUBO MEP tensor on ",n_ki_glob," kpts"
+			end if
 			!
-			!	WRITE FILES
-			call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
-			call write_kubo_mep_tensors(kubo_mep_ic_glob, kubo_mep_lc_glob, kubo_mep_cs_glob)
-			call write_ahc_tensor(kubo_ahc_glob, velo_ahc_glob)
-			call write_opt_tensors(kubo_opt_s_glob, kubo_opt_a_glob)
-			call write_gyro_tensors( gyro_C_glob, gyro_D_glob, gyro_Dw_glob)
+			!
+			if(do_ahc) then
+				kubo_ahc_glob	=	kubo_ahc_glob		/	real(n_ki_glob,dp)
+				velo_ahc_glob	=	velo_ahc_glob		/	real(n_ki_glob,dp)
+				call write_ahc_tensor(kubo_ahc_glob, velo_ahc_glob)
+				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC tensor on ",n_ki_glob," kpts"
+				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated AHC (via velo) tensor on ",n_ki_glob," kpts"
+			end if
+			!
+			!
+			if(do_opt) then
+				kubo_opt_s_glob	=	kubo_opt_s_glob		/	real(n_ki_glob,dp)			
+				kubo_opt_a_glob	=	kubo_opt_a_glob		/	real(n_ki_glob,dp)
+				call write_opt_tensors(kubo_opt_s_glob, kubo_opt_a_glob)			
+				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
+			end if
+			!
+			!
+			if(do_gyro) then
+				call normalize_k_int(gyro_C_glob)
+				call normalize_k_int(gyro_D_glob)			
+				call normalize_k_int(gyro_Dw_glob)			
+				call write_gyro_tensors( gyro_C_glob, gyro_D_glob, gyro_Dw_glob)
+				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated GYRO tensors on ",n_ki_glob," kpts"
+			end if
+			!
+			!
 			write(*,*)	""
 			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
 		end if

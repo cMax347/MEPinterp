@@ -28,6 +28,7 @@ module input_paras
 												use_mpi,															&
 												debug_mode,															&
 												do_gauge_trafo,														&
+												do_mep, do_ahc, do_kubo, do_opt, do_gyro,							&
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
@@ -49,7 +50,9 @@ module input_paras
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir
 	character(len=10)			::	gyro_out_dir	
-	logical						::	plot_bands, do_gauge_trafo, debug_mode, use_mpi
+	logical						::	plot_bands, do_gauge_trafo, 	&
+									debug_mode,	use_mpi,			&
+									do_mep, do_ahc, do_kubo, do_opt, do_gyro
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol,						&
 									hw, eFermi, T_kelvin			
@@ -93,7 +96,14 @@ module input_paras
 				![methods]
 				call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"	)
 				call CFG_add_get(my_cfg,	"jobs%debug_mode"				,	debug_mode			,	"switch aditional debug tests in code")
-				!READ SCALARS
+				call CFG_add_get(my_cfg,	"jobs%do_mep"					,	do_mep				,	"switch response tensor calc")
+				call CFG_add_get(my_cfg,	"jobs%do_kubo"					,	do_kubo				,	"switch response tensor calc")
+				call CFG_add_get(my_cfg,	"jobs%do_ahc"					,	do_ahc				,	"switch response tensor calc")
+				call CFG_add_get(my_cfg,	"jobs%do_opt"					,	do_opt				,	"switch response tensor calc")
+				call CFG_add_get(my_cfg,	"jobs%do_gyro"					,	do_gyro				,	"switch response tensor calc")
+
+
+
 				![unitCell]
 				call CFG_add_get(my_cfg,	"unitCell%a1"      				,	a1(1:3)  	  		,	"a_x lattice vector"				)
 				call CFG_add_get(my_cfg,	"unitCell%a2"      				,	a2(1:3)  	  		,	"a_y lattice vector"				)
@@ -110,6 +120,7 @@ module input_paras
 				call CFG_add_get(my_cfg,	"wannInterp%doGaugeTrafo"		,	do_gauge_trafo		,	"switch (W)->(H) gauge trafo"		)
 				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
 				call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files"			)
+				!
 				![mep]
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
 				![Fermi]
@@ -151,14 +162,15 @@ module input_paras
 				call my_mkdir(out_dir)
 				call my_mkdir(raw_dir)
 				if(.not. plot_bands) then
-					call my_mkdir(mep_out_dir)
-					call my_mkdir(ahc_out_dir)
-					call my_mkdir(opt_out_dir)
-					call my_mkdir(gyro_out_dir)		
-					call my_mkdir(velo_out_dir)			
+					if( do_mep .or. do_kubo		)	call my_mkdir(mep_out_dir)
+					if(			do_ahc			)	call my_mkdir(ahc_out_dir)
+					if(			do_opt			)	call my_mkdir(opt_out_dir)
+					if(			do_gyro			)	call my_mkdir(gyro_out_dir)		
+					if(		  debug_mode		)	call my_mkdir(velo_out_dir)			
 				end if	
 			else
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
+				stop "please provide a input.cfg file"
 			end if
 			write(*,*)	"--------------------------------------------------------------------------------------------------------"
 			write(*,*)	""
@@ -177,6 +189,11 @@ module input_paras
 				call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		do_mep 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		do_kubo 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		do_ahc 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		do_opt 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		do_gyro 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				!
 				call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)

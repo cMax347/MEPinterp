@@ -109,6 +109,11 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		outfile.write('[jobs]\n')
 		outfile.write('    '	+	'plot_bands='		+	str(plot_bands)			+	'\n')
 		outfile.write('    '	+	'debug_mode='		+	str(debug_mode)			+	'\n')		
+		outfile.write('    '	+	'do_mep='			+	str(True)				+	'\n')		
+		outfile.write('    '	+	'do_kubo='			+	str(True)				+	'\n')		
+		outfile.write('    '	+	'do_ahc='			+	str(True)				+	'\n')		
+		outfile.write('    '	+	'do_opt='			+	str(True)				+	'\n')		
+		outfile.write('    '	+	'do_gyro='			+	str(True)				+	'\n')		
 		outfile.write('\n')
 		#
 		#
