@@ -190,8 +190,8 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPT
 						!----------------------------------------------------------------------------------------------------------------------------------
-						call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
 						if(do_opt) then
+							call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
 							kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
 							kubo_opt_a_loc	=	kubo_opt_a_loc	+	tempA
 						end if
