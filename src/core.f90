@@ -115,6 +115,7 @@ contains
 		kubo_mep_lc_loc		=	0.0_dp
 		kubo_mep_cs_loc		=	0.0_dp
 		kubo_ahc_loc		=	0.0_dp
+		velo_ahc_loc		=	0.0_dp
 		kubo_opt_a_loc		=	0.0_dp
 		kubo_opt_s_loc		=	0.0_dp
 		gyro_D_loc			=	0.0_dp
