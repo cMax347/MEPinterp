@@ -80,11 +80,11 @@ module input_paras
 		if(use_mpi)		write(*,*)	'[#',mpi_id,';init_parameters]:	will use mpi'
 
 		!
-		velo_out_dir	=	out_dir//"/velo/"
-		mep_out_dir 	=	out_dir//"/mep/"	
-		ahc_out_dir		=	out_dir//"/ahc/"
-		opt_out_dir 	=	out_dir//"/opt/"	
-		gyro_out_dir	=	out_dir//"/gyro/"
+		velo_out_dir	=	out_dir//"velo/"
+		mep_out_dir 	=	out_dir//"mep/"	
+		ahc_out_dir		=	out_dir//"ahc/"
+		opt_out_dir 	=	out_dir//"opt/"	
+		gyro_out_dir	=	out_dir//"gyro/"
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
 			inquire(file="./input.cfg",exist=input_exist)
@@ -231,14 +231,14 @@ module input_paras
 
 	subroutine my_mkdir(dir)
 		character(len=*)			::	dir
-		logical						::	dir_exists
-		character(len=8)		::	mkdir="mkdir ./"	!to use with system(mkdir//$dir_path) 	
+		!logical						::	dir_exists
+		character(len=11)		::	mkdir="mkdir -p ./"	!to use with system(mkdir//$dir_path) 	
 		!
-		inquire(file=dir, exist=dir_exists)
-		if( .not. dir_exists )	then
+		!inquire(directory=dir, exist=dir_exists)
+		!if( .not. dir_exists )	then
 			call system(mkdir//dir)
-			write(*,'(a,i3,a,a)')	"[#",mpi_id,"; init_parameters]: created directory ",dir
-		end if
+			write(*,'(a,i3,a,a)')	"[#",mpi_id,"; init_parameters]: (fake) created directory ",dir
+		!end if
 		!
 		return
 	end subroutine

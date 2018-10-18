@@ -2,8 +2,7 @@ module file_io
 	use matrix_math,					only:		is_equal_vect, is_herm_mat	
 	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv, &
 													mpi_id, mpi_root_id, mpi_nProcs
-	use input_paras,					only:		my_mkdir,							&												
-													w90_dir, 							&
+	use input_paras,					only:		w90_dir, 							&
 													out_dir,							& 
 													velo_out_dir,						&
 													mep_out_dir,						&
@@ -72,7 +71,6 @@ module file_io
 		!
 		mpi_unit	=	100 + mpi_id + 6 * mpi_nProcs
 		!
-		call my_mkdir(raw_dir)
 		write(filename, format) raw_dir//'enK.',qi_idx
 		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
 		write(mpi_unit)	e_bands(:)
@@ -113,10 +111,8 @@ module file_io
 		!
 		allocate(	ek_bands(num_bands)		)
 		!
-		call my_mkdir(out_dir)
-		
 		mpi_unit	= 200 + mpi_id + 7 * mpi_nProcs
-
+		!
 		open(unit=mpi_unit, file=out_dir//'eBands.dat', form='formatted', action='write', access='stream', status='replace')
 		write(mpi_unit,*)	'# energies interpolated by MEPinterp program'
 		write(mpi_unit,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
@@ -150,7 +146,6 @@ module file_io
 		write(fpath,format) velo_out_dir //	trim(fname)//".", kpt_idx 
 		!
 		mpi_unit	=	300 + mpi_id + 8 * mpi_nProcs
-		call my_mkdir(out_dir)
 		!
 		open(unit=mpi_unit, file=fpath, form='formatted', action='write', access='stream', status='replace')
 		write(mpi_unit,*)	trim(info_string)
@@ -195,7 +190,6 @@ module file_io
 		character(len=50)					::	info_string
 		character(len=3)					::	id_string
 		!
-		call my_mkdir(mep_out_dir)
 		id_string	=	'mep'
 		!-------------------------------------itinerant contribution MEP tensor-------------
 		fname		= 	'mep_ic.dat'
@@ -237,7 +231,6 @@ module file_io
 		character(len=90)					::	info_string
 		character(len=7)					::	id_string
 		!
-		call my_mkdir(mep_out_dir)
 		id_string	=	'KUBOmep'
 		!-------------------------------------itinerant contribution MEP tensor-------------
 		fname		= 	'kubo_mep_ic.dat'
@@ -278,7 +271,6 @@ module file_io
 		character(len=70)					::	info_string
 		character(len=7)					::	id_string
 		!
-		call my_mkdir(ahc_out_dir)
 		!
 		fname		=	'ahc_tens.dat'
 		info_string	=	'# anomalous Hall conductivity tensor'
@@ -304,7 +296,6 @@ module file_io
 		character(len=50)					::	info_string
 		character(len=4)					::	id_string
 		!
-		call my_mkdir(opt_out_dir)
 		!
 		fname		=	'opt_Ssymm.dat'
 		info_string	=	'# symmetric optical conductivity tensor'
