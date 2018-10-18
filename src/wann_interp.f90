@@ -298,19 +298,20 @@ module wann_interp
 		!
 		do m = 1, size(D_ka,3)
 			do n = 1, size(D_ka,2)
-				if(	n/=	m )	then
+				if(	n >	m )	then
 					!
 					!
 					eDiff_mn	=	e_k(m)	- e_k(n)
 					!
-					if(abs(eDiff_mn) < 	kubo_tol	)	then
-						eDiff_mn	= sign(kubo_tol,eDiff_mn)
+					if(abs(eDiff_mn) > 	kubo_tol	)	then
+						D_ka(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff_mn
+						D_ka(1:3,m,n)	=	H_ka(1:3,m,n) /	( - eDiff_mn	)
+					else
 						write(*,'(a)',advance="no")	'[;get_gauge_covar_deriv]: '
 						write(*,'(a,i6,a,i6)')		'WARNING degenerate bands detetected n=',n,' m=',m
 					end if
 					!
 					!
-					D_ka(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff_mn
 				end if
 			end do
 		end do
