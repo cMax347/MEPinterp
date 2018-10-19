@@ -74,7 +74,7 @@ module wann_interp
 		!	DEBUG
 		if(debug_mode)	then
 			call check_H_gauge_herm(kpt_rel, H_ka, A_ka, Om_kab, V_ka)
-			if(allocated(V_ka))	call debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
+			if(allocated(V_ka)	.and. kpt_idx <= 4096)	call debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
 		end if
 		!
 		return
