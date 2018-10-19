@@ -28,6 +28,7 @@ module input_paras
 												use_mpi,															&
 												debug_mode,															&
 												do_gauge_trafo,														&
+												do_write_velo,														&
 												do_mep, do_ahc, do_kubo, do_opt, do_gyro,							&
 												!vars
 												seed_name,	valence_bands,											&
@@ -51,6 +52,7 @@ module input_paras
 	character(len=9)			::	opt_out_dir
 	character(len=10)			::	gyro_out_dir	
 	logical						::	plot_bands, do_gauge_trafo, 	&
+									do_write_velo,					&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_gyro
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
@@ -80,11 +82,11 @@ module input_paras
 		if(use_mpi)		write(*,*)	'[#',mpi_id,';init_parameters]:	will use mpi'
 
 		!
-		velo_out_dir	=	out_dir//"velo/"
-		mep_out_dir 	=	out_dir//"mep/"	
-		ahc_out_dir		=	out_dir//"ahc/"
-		opt_out_dir 	=	out_dir//"opt/"	
-		gyro_out_dir	=	out_dir//"gyro/"
+		velo_out_dir	=	out_dir//"/velo/"
+		mep_out_dir 	=	out_dir//"/mep/"	
+		ahc_out_dir		=	out_dir//"/ahc/"
+		opt_out_dir 	=	out_dir//"/opt/"	
+		gyro_out_dir	=	out_dir//"/gyro/"
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
 			inquire(file="./input.cfg",exist=input_exist)
@@ -96,6 +98,7 @@ module input_paras
 				![methods]
 				call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"	)
 				call CFG_add_get(my_cfg,	"jobs%debug_mode"				,	debug_mode			,	"switch aditional debug tests in code")
+				call CFG_add_get(my_cfg,	"jobs%do_write_velo"			,	do_write_velo		,	"write formatted velocity files at each kpt")
 				call CFG_add_get(my_cfg,	"jobs%do_mep"					,	do_mep				,	"switch response tensor calc")
 				call CFG_add_get(my_cfg,	"jobs%do_kubo"					,	do_kubo				,	"switch response tensor calc")
 				call CFG_add_get(my_cfg,	"jobs%do_ahc"					,	do_ahc				,	"switch response tensor calc")
@@ -138,7 +141,8 @@ module input_paras
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
 				write(*,*)					"[methods]"
 				write(*,*)					"	plot_bands=",plot_bands
-				write(*,*)					"	debug_mode=",debug_mode		
+				write(*,*)					"	debug_mode=",debug_mode	
+				write(*,*)					"	do_write_velo=",do_write_velo	
 				write(*,*)					"[unitCell] # a_0 (Bohr radii)	"
 				write(*,*)					"	a1=",a1(1:3)
 				write(*,*)					"	a2=",a2(1:3)
@@ -189,6 +193,7 @@ module input_paras
 				call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		do_write_velo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_mep 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_kubo 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_ahc 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)

@@ -99,7 +99,11 @@ def write_r_file(seed_name, nAt, rhopp ):
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name, kubo_tol=1e-3, hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  plot_bands='F',	debug_mode='F', do_gauge_trafo='T'):
+def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,			
+							kubo_tol=1e-3, hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  	 
+							plot_bands='F',	debug_mode='F', do_gauge_trafo='T', do_write_velo='F',									
+							do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'		
+						):
 	with open(file_path+'input.cfg','w') as outfile:
 		outfile.write('# input file for TB model from New J Physics 12, 053032 (2010)'+'\n')
 		outfile.write('# generated on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
@@ -109,11 +113,12 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 		outfile.write('[jobs]\n')
 		outfile.write('    '	+	'plot_bands='		+	str(plot_bands)			+	'\n')
 		outfile.write('    '	+	'debug_mode='		+	str(debug_mode)			+	'\n')		
-		outfile.write('    '	+	'do_mep='			+	str(True)				+	'\n')		
-		outfile.write('    '	+	'do_kubo='			+	str(True)				+	'\n')		
-		outfile.write('    '	+	'do_ahc='			+	str(True)				+	'\n')		
-		outfile.write('    '	+	'do_opt='			+	str(True)				+	'\n')		
-		outfile.write('    '	+	'do_gyro='			+	str(True)				+	'\n')		
+		outfile.write('    '	+	'do_write_velo='	+	str(do_write_velo)		+	'\n')		
+		outfile.write('    '	+	'do_mep='			+	str(do_mep)				+	'\n')		
+		outfile.write('    '	+	'do_kubo='			+	str(do_kubo)			+	'\n')		
+		outfile.write('    '	+	'do_ahc='			+	str(do_ahc)				+	'\n')		
+		outfile.write('    '	+	'do_opt='			+	str(do_opt)				+	'\n')		
+		outfile.write('    '	+	'do_gyro='			+	str(do_gyro)			+	'\n')		
 		outfile.write('\n')
 		#
 		#
@@ -161,7 +166,12 @@ def write_mepInterp_input(file_path,valence_bands, ax, ay, az, a0, mp_grid, seed
 #		PUBLIC FUNCTION
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands='F', debug_mode='F' ,do_gauge_trafo='T'):
+def write_souza_tb_input(	root_dir, phi_para, valence_bands, mp_grid ,						
+ 							kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 	
+ 							plot_bands='F', debug_mode='F' ,do_gauge_trafo='T',	
+ 							do_write_velo='F',				
+ 							do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'		
+ 						):
 	target_dir_name	= 'w90files'
 	target_path		= root_dir+'/'+target_dir_name
 	#
@@ -186,7 +196,12 @@ def write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1
 	az[2]			= 2.0
 	a0				= 1.0
 	#	write mepInterp
-	write_mepInterp_input( root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,kubo_tol, hw,eFermi, Tkelvin,eta_smearing, plot_bands, debug_mode, do_gauge_trafo)
+	write_mepInterp_input(	 root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,	
+							kubo_tol, hw,eFermi, Tkelvin,eta_smearing, 							
+							plot_bands, debug_mode, do_gauge_trafo,	
+							do_write_velo,							
+							do_mep, do_kubo, do_ahc, do_opt, do_gyro							
+						)
 
 
 
@@ -220,6 +235,6 @@ def test():
 
 
 #uncomment next line to generate some test input
-test()
+#test()
 
 

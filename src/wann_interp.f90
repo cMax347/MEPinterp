@@ -17,10 +17,10 @@ module wann_interp
 	use matrix_math,	only:		zheevd_wrapper, 		&
 									matrix_comm,			& 
 									uni_gauge_trafo,		&
-
 									is_herm_mat,			&
 									is_skew_herm_mat		
-	use input_paras,	only:		kubo_tol, debug_mode
+	use input_paras,	only:		kubo_tol, debug_mode,	&
+									do_write_velo
 	use file_IO,		only:		write_velo
 
 
@@ -74,7 +74,7 @@ module wann_interp
 		!	DEBUG
 		if(debug_mode)	then
 			call check_H_gauge_herm(kpt_rel, H_ka, A_ka, Om_kab, V_ka)
-			if(allocated(V_ka)	.and. kpt_idx <= 4096)	call debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
+			if(allocated(V_ka)	.and. do_write_velo)	call debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
 		end if
 		!
 		return

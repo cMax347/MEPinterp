@@ -90,11 +90,11 @@ def get_x_hopp(hopping):
 	#			X-HOPPINGS
 	#
 	#	atom 1 - 2 		Rx
-	tHopp.append(	[-1, 0, 0,			1,	2,			np.real(hopping[x][at2])	, 	np.imag(hopping[x][at2])	])
+	tHopp.append(	[-1, 0, 0,			1,	2,			np.real(hopping[x][at2])	, - np.imag(hopping[x][at2])	])
 	tHopp.append(	[ 0, 0, 0,			2,	1,			np.real(hopping[x][at1])	,	np.imag(hopping[x][at1])	])
 	tHopp.append(	[+1, 0, 0,			1,	2,			np.real(hopping[x][at2])	, 	np.imag(hopping[x][at2])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			2,	1,			np.real(hopping[x][at2])	, - np.imag(hopping[x][at2])	])
+	tHopp.append(	[-1, 0, 0,			2,	1,			np.real(hopping[x][at2])	, + np.imag(hopping[x][at2])	])
 	tHopp.append(	[ 0, 0, 0,			1,	2,			np.real(hopping[x][at1])	, - np.imag(hopping[x][at1])	])
 	tHopp.append(	[+1, 0, 0,			2,	1,			np.real(hopping[x][at2])	, - np.imag(hopping[x][at2])	])
 	#

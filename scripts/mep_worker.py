@@ -17,20 +17,32 @@ class MEP_worker:
 
 
 	#constructor
-	def __init__(self, root_dir, work_dir, phi, val_bands, mp_grid, kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, debug_mode='F', do_gauge_trafo='T'	):
-		self.root_dir		= root_dir
-		self.work_dir		= work_dir
-		self.phi			= phi
-		self.val_bands 		= val_bands 
-		self.mp_grid		= mp_grid
-		self.kubo_tol		= kubo_tol
-		self.hw				= hw	
-		self.eFermi			= eFermi
-		self.Tkelvin		= Tkelvin
-		self.eta_smearing	= eta_smearing
-		self.plot_bands		= 'F'	
-		self.debug_mode		= debug_mode
-		self.do_gauge_trafo	= do_gauge_trafo	
+	def __init__(		self, root_dir, work_dir, phi, val_bands, mp_grid, 
+						kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 
+						debug_mode='F', do_gauge_trafo='T',	
+						do_write_velo='F',
+						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
+						):
+		self.root_dir		=	root_dir
+		self.work_dir		=	work_dir
+		self.phi			=	phi
+		self.val_bands 		=	val_bands 
+		self.mp_grid		=	mp_grid
+		self.kubo_tol		=	kubo_tol
+		self.hw				=	hw	
+		self.eFermi			=	eFermi
+		self.Tkelvin		=	Tkelvin
+		self.eta_smearing	=	eta_smearing
+		self.plot_bands		=	'F'	
+		self.debug_mode		=	debug_mode
+		self.do_gauge_trafo	=	do_gauge_trafo
+		self.do_write_velo	=	do_write_velo
+		self.do_mep			=	do_mep
+		self.do_kubo		=	do_kubo
+		self.do_ahc			=	do_ahc
+		self.do_opt			=	do_opt
+		self.do_gyro		=	do_gyro
+		#
 		#
 		self.success		= False
 		self.band_dir		= self.work_dir+'/bands'
@@ -49,7 +61,9 @@ class MEP_worker:
 		#prepare files in working directory
 		write_souza_tb_input(		self.work_dir, self.phi, self.val_bands, self.mp_grid, 					
 									self.kubo_tol, self.hw, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
-									self.plot_bands, self.debug_mode, self.do_gauge_trafo					 
+									self.plot_bands, self.debug_mode, self.do_gauge_trafo,
+									self.do_write_velo,
+									self.do_mep, self.do_kubo, self.do_ahc, self.do_opt, self.do_gyro			 
 							)
 		copy(self.root_dir+'/../mepInterp',	self.work_dir)
 		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)

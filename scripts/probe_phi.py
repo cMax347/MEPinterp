@@ -10,17 +10,27 @@ import matplotlib.pyplot as plt
 
 class Phi_probe:
 
-	def __init__(self,n_phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ):
-		self.n_phi 			= n_phi
-		self.val_bands		= val_bands
-		self.mp_grid		= mp_grid
-		self.kubo_tol		= kubo_tol
-		self.hw				= hw 
-		self.eFermi			= eFermi 
-		self.Tkelvin		= Tkelvin 
-		self.eta_smearing	= eta_smearing
-		self.debug_mode		= debug_mode 
-		self.do_gauge_trafo	= do_gauge_trafo
+	def __init__(		self,n_phi, val_bands, mp_grid, kubo_tol, 	
+						hw, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
+						do_write_velo='F',
+						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
+						):
+		self.n_phi 			= 	n_phi
+		self.val_bands		= 	val_bands
+		self.mp_grid		= 	mp_grid
+		self.kubo_tol		= 	kubo_tol
+		self.hw				= 	hw 
+		self.eFermi			= 	eFermi 
+		self.Tkelvin		= 	Tkelvin 
+		self.eta_smearing	= 	eta_smearing
+		self.debug_mode		= 	debug_mode 
+		self.do_gauge_trafo	= 	do_gauge_trafo
+		self.do_write_velo	=	do_write_velo
+		self.do_mep			=	do_mep
+		self.do_kubo		=	do_kubo
+		self.do_ahc			=	do_ahc
+		self.do_opt			=	do_opt
+		self.do_gyro		=	do_gyro
 
 		#derived attributes
 		self.root_dir	= os.getcwd()+'/'+datetime.date.today().strftime("%d%B%Y")+'_mp'+str(self.mp_grid[0])+str(self.mp_grid[1])+str(self.mp_grid[2])
@@ -69,7 +79,13 @@ class Phi_probe:
 									self.Tkelvin,
 									self.eta_smearing,
 									self.debug_mode,
-									self.do_gauge_trafo
+									self.do_gauge_trafo,
+									self.do_write_velo,
+									self.do_mep,
+									self.do_kubo,
+									self.do_ahc,
+									self.do_opt,
+									self.do_gyro
 								)
 			#run calc 
 			worker.run(mpi_np=mpi_np)
@@ -205,8 +221,23 @@ class Phi_probe:
 
 
 
-def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=False, debug_mode=True, do_gauge_trafo=True):
-	myTest	= Phi_probe(n_phi, val_bands, mp_grid, kubo_tol, hw, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo)
+def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, 
+					kubo_tol=1e-3, hw=0.001, eFermi=0.0, Tkelvin=11.0, eta_smearing=0.2, 
+					plot_bands		=	False, 
+					debug_mode		=	True, 
+					do_gauge_trafo	=	True,
+					do_write_velo	=	False,
+					do_mep			=	'T', 
+					do_kubo			=	'F', 
+					do_ahc			=	'F', 
+					do_opt			=	'F', 
+					do_gyro			=	'F'	
+				):
+	myTest	= Phi_probe(	n_phi, val_bands, mp_grid, 
+							kubo_tol, hw, eFermi, Tkelvin, eta_smearing,
+							debug_mode, do_gauge_trafo, do_write_velo,
+							do_mep, do_kubo, do_ahc, do_opt, do_gyro	
+						)
 	#
 	myTest.iterate_phi(plot_bands=plot_bands, mpi_np=mpi_np)
 	myTest.print_results_container()
@@ -224,7 +255,21 @@ def unit_test(n_phi, val_bands, mp_grid,mpi_np=1, kubo_tol=1e-3, hw=0.0, eFermi=
 
 
 
-unit_test(n_phi=11, val_bands=2, mp_grid=[32,32,32], mpi_np=4,kubo_tol=1e-5, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands=True, debug_mode=True, do_gauge_trafo=False	)
+probe_phi(		n_phi			= 11				, 
+				val_bands		= 2					, 
+				mp_grid			= [16,16,16]		, 
+				mpi_np			= 4					,
+				kubo_tol=1e-5, hw=0.0, eFermi=0.0, Tkelvin=10.0, eta_smearing=0.1, 
+				plot_bands		= True				, 
+				debug_mode		= True				, 
+				do_gauge_trafo	= False				,	
+				do_write_velo	= False				,
+				do_mep			= 'T'				, 
+				do_kubo			= 'F'				, 
+				do_ahc			= 'F'				, 
+				do_opt			= 'F'				, 
+				do_gyro			= 'F'
+			)
 
 
 
