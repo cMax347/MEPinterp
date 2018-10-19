@@ -272,10 +272,11 @@ module wann_interp
 		if( allocated(A_ka)	) then
 			do m = 1, size(V_k,3)
 				do n = 1, size(V_k,2)
-					if(	n/=	m)	then
+					if(	n >	m )	then
 						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
 						!
 						V_k(:,n,m)	= V_k(:,n,m)	- i_dp	* 	eDiff	* 	A_ka(:,n,m)
+						V_k(:,m,n)	= V_k(:,m,n)	+ i_dp	*	eDiff	*	A_ka(:,m,n)
 					end if
 				end do
 			end do
