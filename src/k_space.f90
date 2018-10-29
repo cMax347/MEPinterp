@@ -134,11 +134,10 @@ contains
 		recip_latt(1,:)	=	b1(:)
 		recip_latt(2,:)	=	b2(:)
 		recip_latt(3,:)	=	b3(:)
-		write(*,*) 				'[set_recip_latt]: recip_latt set to (1/a_0) '
-		write(*,*)				'	',	recip_latt(1,:)
-		write(*,*)				'	',	recip_latt(2,:)
-		write(*,*)				'	',	recip_latt(3,:)
-
+		!write(*,*) 				'[set_recip_latt]: recip_latt set to (1/a_0) '
+		!write(*,*)				'	',	recip_latt(1,:)
+		!write(*,*)				'	',	recip_latt(2,:)
+		!write(*,*)				'	',	recip_latt(3,:)
 		!
 		return
 	end subroutine
