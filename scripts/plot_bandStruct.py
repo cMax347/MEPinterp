@@ -82,7 +82,7 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 	#sort energies by kpt and band index
 	en_plot = sort_energies(en_data)
 
-	print('raw en_plot:',en_plot)
+	
 	
 	nBands =	len(en_plot[0])
 	print('detected nBands='+str(nBands))

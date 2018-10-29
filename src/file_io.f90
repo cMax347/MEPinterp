@@ -802,7 +802,7 @@ module file_io
 			if( .not.	 is_herm_mat(	H_mat(  :,:,sc),max_err)) then
 			 	write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space Hamiltonian is not herm in sc= ',sc,'; largest error: ', max_err
 			 	hermitian	=	.false.
-			 	stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis"
+			 	stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (Hamiltonian)"
 			end if
 			!
 			!
@@ -811,25 +811,25 @@ module file_io
 				!			X	- POSITION																											!
 				!																																	!
 				if( .not.	is_herm_mat(	r_mat(1,:,:,sc),max_err)) then 																			!
-					write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space x-position op. not herm, largest error: ', max_err						!
+					write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space x-position op. not herm, largest error: ', max_err,' sc =',sc			!
 					hermitian	=	.false.																											!	
-					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis"															!	
+					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (x-pos op)"															!	
 				end if																																!		
 				!																																	!
 				!			Y	- POSITION																											!
 				!																																	!
 				if( .not.	is_herm_mat(	r_mat(2,:,:,sc),max_err)) then 																			!
-				write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space y-position op. not herm, largest error: ', max_err							!
+				write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space y-position op. not herm, largest error: ', max_err	,' sc =',sc							!
 					hermitian	=	.false.																											!
-					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis"															!				
+					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (y-pos op)"															!				
 				end if
 				!
 				!			Z	- POSITION
 				!
 				if( .not.	is_herm_mat(	r_mat(3,:,:,sc),max_err)) then 
-					write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space z-position op. not herm, largest error: ', max_err
+					write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space z-position op. not herm, largest error: ', max_err,' sc =',sc	
 					hermitian	=	.false.
-					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis"
+					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (z-pos op)"
 				end if
 				!------------------------------------------------------------------------------------------------------------------------------------
 			end if
