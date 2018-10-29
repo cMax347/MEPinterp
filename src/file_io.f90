@@ -48,14 +48,6 @@ module file_io
 
 
 
-
-
-
-
-
-
-
-
 !--------------------------------------------------------------------------------------------------------------------------------		
 !--------------------------------------------------------------------------------------------------------------------------------		
 !--------------------------------------------------------------------------------------------------------------------------------		
@@ -791,7 +783,7 @@ module file_io
 		logical												::		hermitian
 		real(dp)											::		max_err
 		!
-		write(*,*)	'[read_tb_basis/DEBUG-MODE]:----start debuging real space basis---------'
+		!write(*,*)	'[read_tb_basis/DEBUG-MODE]:----start debuging real space basis---------'
 		n_cells	=	size(R_vect,2)
 		!
 		hermitian = size(H_mat,1) == size(H_mat,2)
@@ -843,7 +835,7 @@ module file_io
 		end if
 		!
 		!
-		write(*,*)	'[read_tb_basis/DEBUG-MODE]:----finished debuging real space basis---------'
+		!write(*,*)	'[read_tb_basis/DEBUG-MODE]:----finished debuging real space basis---------'
 		!
 		return
 	end subroutine
