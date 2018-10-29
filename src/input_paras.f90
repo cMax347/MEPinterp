@@ -79,7 +79,7 @@ module input_paras
 #ifdef USE_MPI
 		use_mpi = .true.
 #endif
-		if(use_mpi)		write(*,*)	'[#',mpi_id,';init_parameters]:	will use mpi'
+		if(use_mpi)		write(*,'(a,i3,a)')		'[#',mpi_id,';init_parameters]:	will use mpi'
 
 		!
 		velo_out_dir	=	out_dir//"/velo/"
