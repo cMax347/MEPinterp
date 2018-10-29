@@ -336,7 +336,7 @@ module matrix_math
         real(dp)                        ::      dH_nm
         integer                         ::      n, m
         !
-        max_err         =       0.0_dp
+        max_err         =       -1.0_dp
         z_is_herm_mat   =       ( size(H,1) == size(H,2)  )
         !
         if(z_is_herm_mat)   then      
@@ -370,7 +370,7 @@ module matrix_math
         real(dp)                        ::      dH_nm
         integer                         ::      n, m
         !
-        max_err              =      0.0_dp
+        max_err              =      -1.0_dp
         z_is_skew_herm_mat   =      ( size(H,1) == size(H,2)  )
         !
         if(z_is_skew_herm_mat)   then      
