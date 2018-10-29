@@ -525,7 +525,8 @@ module matrix_math
         alpha   =  1.0_dp   
         beta    = 0.0_dp
         !
-        call dgemm(transa, transb, m, n, k, alpha, A(1,1), lda, B(1,1), ldb, beta, C(1,1), ldc)
+        !call dgemm(transa, transb, m, n, k, alpha, A(1,1), lda, B(1,1), ldb, beta, C(1,1), ldc)
+        C = matmul(A,B)
     end function
 
 
@@ -555,8 +556,8 @@ module matrix_math
         alpha   = cmplx(   1.0_dp   ,   0.0_dp  ,   dp)
         beta    = cmplx(   0.0_dp   ,   0.0_dp  ,   dp)
         !
-        call zgemm(transa, transb, m, n, k, alpha,   A(1,1)    , lda,  B(1,1)    , ldb, beta,    C(1,1)      , ldc)
-        !C = matmul(A,B)
+        !call zgemm(transa, transb, m, n, k, alpha,   A(1,1)    , lda,  B(1,1)    , ldb, beta,    C(1,1)      , ldc)
+        C = matmul(A,B)
     end function
 
 
