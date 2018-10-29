@@ -94,12 +94,10 @@ contains
 												V_ka(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
 		!
+		if(use_mpi) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		if(mpi_id==mpi_root_id)	then
 			write(*,*)	"*"
-			write(*,*)	"*"
-			write(*,*)	"***^^^^	-	FULL INTERPOLATION MODE	-	^^^^***"
-			write(*,*)	"*"
-			write(*,*)	"*"
+			write(*,*)	"----------------------GET REAL SPACE BASIS---------------------------"
 		end if
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	INIT
@@ -130,7 +128,6 @@ contains
 		n_ki_loc			= 	0
 		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
 		recip_latt			=	get_recip_latt()
-		write(*,*)''
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get		TB	BASIS
@@ -140,7 +137,28 @@ contains
 		!
 		!
 		!
-		write(*,*)''
+		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+		!
+		if(mpi_id == mpi_root_id) then
+			write(*,*)	"*"
+			write(*,*)	"----------------------------------------------------------------"
+			write(*,*)	"----------------------------------------------------------------"
+			write(*,*)	"----------------------------------------------------------------"
+			write(*,*)	"*"
+			write(*,*)	"*"
+			if(do_gauge_trafo)	then
+					write(*,*)	"***^^^^	-	FULL INTERPOLATION MODE	-	^^^^***"
+			else
+					write(*,*)	"***^^^^	-	WANNIER GAUGE MODE 	-	^^^^***"
+			end if
+			write(*,*)	"*"
+			write(*,*)	"*"
+			write(*,*)	"----------------------------------------------------------------"
+			write(*,*)	"----------------------------------------------------------------"
+			write(*,*)	"----------------------------------------------------------------"
+		end if
+		!
+		!
 		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		write(*,'(a,i3,a,a,a,i4,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
 											"]:  I start interpolating now (nValence=",valence_bands,")...."
@@ -369,7 +387,8 @@ contains
 		!
 		!write tensors to files
 		if(mpi_id == mpi_root_id) 	then
-			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
+			write(*,*)	"*"
+			write(*,*)	"------------------OUTPUT----------------------------------------------"
 			if(	n_ki_glob	/=	num_kpts .or. n_ki_glob <= 0	) stop "[core_worker]:	ERROR n_ki_glob is not equal to the given mp_grid"
 			!
 			!
@@ -421,8 +440,8 @@ contains
 			end if
 			!
 			!
-			write(*,*)	""
-			write(*,*)	"--------------------------------------------------------------------------------------------------------"	
+			write(*,*)	"*"
+			write(*,*)	"----------------------------------------------------------------"
 		end if
 		!
 		return

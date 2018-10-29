@@ -79,8 +79,9 @@ module input_paras
 #ifdef USE_MPI
 		use_mpi = .true.
 #endif
-		if(use_mpi)		write(*,'(a,i3,a)')		'[#',mpi_id,';init_parameters]:	will use mpi'
-
+		if( 	.not. use_mpi 		.and.		 mpi_id	/= 0			)	then
+			 write(*,'(a,i3,a)')		'[#',mpi_id,';init_parameters]:	hello, I am an unexpected MPI thread !!!1!1!!!1!!1 '
+		end if
 		!
 		velo_out_dir	=	out_dir//"/velo/"
 		mep_out_dir 	=	out_dir//"/mep/"	
@@ -136,6 +137,7 @@ module input_paras
 				i_eta_smr	=	cmplx(0.0_dp,	eta	,dp)
 				!
 				!
+				write(*,*)					""
 				write(*,*)					"**********************init_parameter interpretation******************************"
 				write(*,*)					"parallelization with ",mpi_nProcs," MPI threads"
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
@@ -163,6 +165,9 @@ module input_paras
 				write(*,*)					"*********************************************************************************"		
 				!
 				!make the output folder
+				write(*,*)	"*"
+				write(*,*)	"----------------------MAKE TARGET DIRECTORIES-------------------------"
+				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: start target mkdir..."
 				call my_mkdir(out_dir)
 				call my_mkdir(raw_dir)
 				if(.not. plot_bands) then
@@ -172,12 +177,14 @@ module input_paras
 					if(			do_gyro			)	call my_mkdir(gyro_out_dir)		
 					if(		  debug_mode		)	call my_mkdir(velo_out_dir)			
 				end if	
+				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: ... directories created"
 			else
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
 				stop "please provide a input.cfg file"
 			end if
-			write(*,*)	"--------------------------------------------------------------------------------------------------------"
-			write(*,*)	""
+			write(*,*)	"*"
+			write(*,*)	"----------------------K-SPACE SETUP-------------------------"
+			write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: now bcast the input parameters and setup k-space ..."
 			write(*,*)	""
 		end if
 		!
@@ -225,7 +232,11 @@ module input_paras
 		!
 		init_parameters	=	input_exist
 		!
-		write(*,*)					"---------------------------------------------------------------------------"
+		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+		if(mpi_id	== mpi_root_id)		then
+			write(*,*)	""
+			write(*,'(a,i3,a)')	"[#",mpi_id,";init_parameters]: ...input paramaters broadcasted, k-space setup complete!"
+		end if
 		!
 		return 
 	end function

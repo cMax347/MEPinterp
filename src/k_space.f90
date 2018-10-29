@@ -1,5 +1,5 @@
 module k_space
-	use constants, 			only:		dp, pi_dp
+	use constants, 			only:		dp, pi_dp, mpi_id
 	use matrix_math,		only:		crossP
 
 	implicit none
@@ -89,7 +89,7 @@ contains
 	subroutine set_mp_grid(input_grid)
 		integer,		intent(in)		::	input_grid(3)
 		mp_grid	=	input_grid
-		write(*,*) '[set_mp_grid]: mp_grid set to ', mp_grid
+		write(*,'(a,i3,a,(20i5))') 	'[#',mpi_id,';set_mp_grid]: mp_grid set to ', mp_grid
 		!						TODO USE MPI_ID HERE AS WELL, ORE REMOVE MESSAGE, ELSE DOES NOT MAKE MUCH SENSE
 		return
 	end subroutine
@@ -128,7 +128,7 @@ contains
 		!
 		! BZ volume
 		bz_vol	=	dot_product(		crossP( b1(:), b2(:))	, b3(:)		)
-		write(*,'(a,f6.3,a)') 	'[set_recip_latt]: the 1st Brillouin zone volume is	 bz_vol=',bz_vol,'	(1/a_0)^3'
+		write(*,'(a,i3,a,f6.3,a)') 	'[#',mpi_id,';set_recip_latt]: the 1st Brillouin zone volume is	 bz_vol=',bz_vol,'	(1/a_0)^3'
 		!
 		!	CPY TO TARGET 
 		recip_latt(1,:)	=	b1(:)

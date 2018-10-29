@@ -667,8 +667,8 @@ module file_io
 		!convert to a.u
 		H_mat	= H_mat / aUtoEv
 		!
-		write(*,'(a,i3,a,i6,a,i6,a)')	"[#",mpi_id,";read_hr_file]: success (input interpretation: nWfs=",		&
-												f_nwfs, ";	nrpts=",size(R_vect,2),")!"
+		write(*,'(a,i3,a,i5,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_hr_file]: unit=,",mpi_unit,", success (input interpretation: nWfs=",		&
+												f_nwfs, ";	nrpts=",size(R_vect,2),") on unit: "
 		return
 	end subroutine
 
