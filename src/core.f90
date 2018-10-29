@@ -525,7 +525,7 @@ contains
 		!
 		!
 		if(n_ki_loc > 0)	then
-			write(*,'(a,i3,a,f4.2,a,f4.2,a,f4.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
+			write(*,'(a,i3,a,f5.2,a,f5.2,a,f5.2,a)')	"[#",mpi_id,"; core_worker]: avg el count ",						&
 																						sum_N_el_loc/real(n_ki_loc,dp),		&
 																					"	(min: ", 							&
 																						min_n_el,							&
