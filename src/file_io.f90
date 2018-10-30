@@ -1,4 +1,7 @@
 module file_io
+#ifdef __INTEL_COMPILER
+	use ifport !needed for time 
+#endif
 	use matrix_math,					only:		is_equal_vect, is_herm_mat	
 	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv, &
 													mpi_id, mpi_root_id, mpi_nProcs
