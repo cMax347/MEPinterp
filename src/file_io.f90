@@ -79,7 +79,7 @@ module file_io
 
 
 		open(unit=200, file = seed_name//'_geninterp.kpt', form='formatted', action='write',	access='stream', status='replace')
-		write(200,*)	'# fractional kpts created by MEPInterp'
+		write(200,*)	'# fractional kpts created by MEPInterp, written '//cTIME(time())
 		write(200,*)	'frac'
 		write(200,*)	size(kpt_latt,2)
 
@@ -106,7 +106,7 @@ module file_io
 		mpi_unit	= 200 + mpi_id + 7 * mpi_nProcs
 		!
 		open(unit=mpi_unit, file=out_dir//'eBands.dat', form='formatted', action='write', access='stream', status='replace')
-		write(mpi_unit,*)	'# energies interpolated by MEPinterp program'
+		write(mpi_unit,*)	'# energies interpolated by MEPinterp program, written '//cTIME(time())
 		write(mpi_unit,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
 		write(mpi_unit,*)	'# Kpt_idx  K_x (frac)       K_y (frac)        K_z (frac)       Energy (Hartree)  '
 		do qi_idx = 1, size(kpt_latt,2)
@@ -175,8 +175,8 @@ module file_io
 !--------------------------------------------------------------------------------------------------------------------------------		
 !
 !
-	subroutine write_mep_tensors(mep_ic, mep_lc, mep_cs)
-		real(dp),			intent(in)		::	mep_ic(3,3), mep_lc(3,3), mep_cs(3,3)
+	subroutine write_mep_tensors(mep_2014, mep_ic, mep_lc, mep_cs)
+		real(dp),			intent(in)		::	mep_2014(3,3), mep_ic(3,3), mep_lc(3,3), mep_cs(3,3)
 		real(dp)							::	mep_tens(3,3)
 		character(len=12)					::	fname
 		character(len=50)					::	info_string
@@ -184,29 +184,36 @@ module file_io
 		!
 		id_string	=	'mep'
 		!-------------------------------------itinerant contribution MEP tensor-------------
+		fname		= 	'mep_14.dat'
+		info_string	= 	'# 2014 original paper version of mep tensor, written '//cTIME(time())
+		!
+		call	write_tens_file(mep_out_dir,	fname,	mep_2014,	info_string,	id_string )
+		!
+		!
+		!-------------------------------------itinerant contribution MEP tensor-------------
 		fname		= 	'mep_ic.dat'
-		info_string	= 	'# itinerant contribution of mep tensor'
+		info_string	= 	'# itinerant contribution of mep tensor, written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	mep_ic,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------local contribution MEP tensor-----------------
 		fname		= 	'mep_lc.dat'
-		info_string	= 	'# local contribution of mep tensor'
+		info_string	= 	'# local contribution of mep tensor, written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	mep_lc,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------Chern-Simons term MEP tensor------------------
 		fname		= 	'mep_cs.dat'
-		info_string	= 	'# Chern-Simons term of mep tensor'
+		info_string	= 	'# Chern-Simons term of mep tensor, written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	mep_cs,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------total MEP tensor------------------------------
 		fname		= 	'mep_tens.dat'
-		info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)'
+		info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs), written '//cTIME(time())
 		!
 		mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
 		call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
@@ -226,28 +233,28 @@ module file_io
 		id_string	=	'KUBOmep'
 		!-------------------------------------itinerant contribution MEP tensor-------------
 		fname		= 	'kubo_mep_ic.dat'
-		info_string	= 	'# itinerant contribution of KUBO mep tensor (with fermi-dirac statistic)'
+		info_string	= 	'# itinerant contribution of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_ic,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------local contribution MEP tensor-----------------
 		fname		= 	'kubo_mep_lc.dat'
-		info_string	= 	'# local contribution of KUBO mep tensor (with fermi-dirac statistic)'
+		info_string	= 	'# local contribution of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_lc,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------Chern-Simons term MEP tensor------------------
 		fname		= 	'kubo_mep_cs.dat'
-		info_string	= 	'# Chern-Simons term of KUBO mep tensor (with fermi-dirac statistic)'
+		info_string	= 	'# Chern-Simons term of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_cs,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------total MEP tensor------------------------------
 		fname		= 	'kubo_mep_tens.dat'
-		info_string	= 	'# total KUBO mep tensor (with fermi-dirac statistic) (mep_tot= mep_ic+mep_lc+mep_cs)'
+		info_string	= 	'# total KUBO mep tensor (with fermi-dirac statistic) (mep_tot= mep_ic+mep_lc+mep_cs), written '//cTIME(time())
 		!
 		kubo_mep_tens	= 	kubo_mep_ic +	kubo_mep_lc	+	kubo_mep_cs
 		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_tens, info_string,	id_string )
@@ -265,14 +272,14 @@ module file_io
 		!
 		!
 		fname		=	'ahc_tens.dat'
-		info_string	=	'# anomalous Hall conductivity tensor'
+		info_string	=	'# anomalous Hall conductivity tensor, written '//cTIME(time())
 		id_string	=	'ahc'
 		!
 		call	write_tens_file(ahc_out_dir,	fname,	ahc_tens,	info_string,	id_string)
 		!
 		!
 		fname		=	'ahc_velo.dat'
-		info_string	=	'# anomalous Hall conductivity tensor (via velocity kubo)'
+		info_string	=	'# anomalous Hall conductivity tensor (via velocity kubo), written '//cTIME(time())
 		id_string	=	'ahcVELO'
 		!
 		call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
@@ -285,17 +292,17 @@ module file_io
 	subroutine write_opt_tensors(s_symm, a_symm)
 		complex(dp),		intent(in)		::	s_symm(3,3),	a_symm(3,3)
 		character(len=13)					::	fname
-		character(len=50)					::	info_string
+		character(len=70)					::	info_string
 		character(len=4)					::	id_string
 		!
 		!
 		fname		=	'opt_Ssymm.dat'
-		info_string	=	'# symmetric optical conductivity tensor'
+		info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
 		id_string	=	'optS'
 		call 	write_tens_file(opt_out_dir,	fname,	s_symm,	info_string,	id_string)
 		!
 		fname		=	'opt_Asymm.dat'
-		info_string	=	'# asymmetric optical conductivity tensor'
+		info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
 		id_string	=	'optA'
 		call 	write_tens_file(opt_out_dir,	fname,	a_symm,	info_string,	id_string)
 		!
@@ -306,21 +313,21 @@ module file_io
 	subroutine write_gyro_tensors(C_tens, D_tens, Dw_tens)
 		complex(dp),	intent(in)		::	C_tens(3,3),	D_tens(3,3), Dw_tens(3,3)
 		character(len=13)					::	fname
-		character(len=50)					::	info_string
+		character(len=70)					::	info_string
 		character(len=6)					::	id_string
 		!
 		fname		=	'gyro_C.dat'
-		info_string	=	'# the C tensor from arXiv:1710.03204v2'
+		info_string	=	'# the C tensor from arXiv:1710.03204v2, written '//cTIME(time())
 		id_string	=	'gyroC'
 		call	write_tens_file(gyro_out_dir,	fname,	C_tens,	info_string,	id_string)
 		!
 		fname		=	'gyro_D.dat'
-		info_string	=	'# the D tensor from arXiv:1710.03204v2'
+		info_string	=	'# the D tensor from arXiv:1710.03204v2, written '//cTIME(time())
 		id_string	=	'gyroD'
 		call	write_tens_file(gyro_out_dir,	fname,	D_tens,	info_string,	id_string)
 		!
 		fname		=	'gyro_Dw.dat'
-		info_string	=	'# the Dw tensor from arXiv:1710.03204v2'
+		info_string	=	'# the Dw tensor from arXiv:1710.03204v2, written '//cTIME(time())
 		id_string	=	'gyroDw'
 		call	write_tens_file(gyro_out_dir,	fname,	Dw_tens,	info_string,	id_string)
 
@@ -667,7 +674,7 @@ module file_io
 		!convert to a.u
 		H_mat	= H_mat / aUtoEv
 		!
-		write(*,'(a,i3,a,i5,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_hr_file]: unit=,",mpi_unit,", success (input interpretation: nWfs=",		&
+		write(*,'(a,i3,a,i4,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_hr_file]: unit=#",mpi_unit," SUCCESS (input interpretation: nWfs=",		&
 												f_nwfs, ";	nrpts=",size(R_vect,2),") on unit: "
 		return
 	end subroutine

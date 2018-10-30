@@ -33,6 +33,7 @@ module core
 	use wann_interp,	only:	get_wann_interp
 	!
 	use mep_niu,		only:	mep_niu_CS,	mep_niu_IC, mep_niu_LC
+	use mep_niu2014,	only:	mep_niu2014_full
 	use kubo,			only:	kubo_ahc_tens, velo_ahc_tens, kubo_opt_tens
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
@@ -70,6 +71,7 @@ contains
 												sum_N_el_loc, 							&
 												kpt(3),	recip_latt(3,3),				&
 												!local sum targets:
+												mep_2014_loc(		3,3),				&
 												mep_tens_ic_loc(	3,3),	 			&
 												mep_tens_lc_loc(	3,3),				&
 												mep_tens_cs_loc(	3,3),				&
@@ -106,6 +108,7 @@ contains
 		sum_N_el_loc		=	0.0_dp
 		max_n_el			=	0.0_dp
 		min_n_el			=	2.0_dp
+		mep_2014_loc		=	0.0_dp
 		mep_tens_ic_loc		=	0.0_dp
 		mep_tens_lc_loc		=	0.0_dp
 		mep_tens_cs_loc		=	0.0_dp
@@ -187,6 +190,9 @@ contains
 							mep_tens_ic_loc	=	mep_tens_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
 							mep_tens_lc_loc	=	mep_tens_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
 							mep_tens_cs_loc =	mep_tens_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
+							!
+							!
+							mep_2014_loc	=	mep_2014_loc	+	mep_niu2014_full(V_ka, en_k)
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -251,6 +257,7 @@ contains
 		!	REDUCE MPI & WRITE FILES
 		!----------------------------------------------------------------------------------------------------------------------------------
 		call sumK_and_print(			n_ki_loc, sum_N_el_loc,															&
+										mep_2014_loc,																	&
 										mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,								&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
 										kubo_ahc_loc, velo_ahc_loc,														&
@@ -276,6 +283,7 @@ contains
 	!
 !HELPERS
 	subroutine sumK_and_print(		n_ki_loc, sum_N_el_loc,																&
+									mep_2014_loc,																		&		
 									mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,									&	
 									kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,									&									
 									kubo_ahc_loc, velo_ahc_loc,															&
@@ -287,6 +295,7 @@ contains
 		!
 		integer,			intent(in)		::	n_ki_loc 	
 		real(dp),			intent(in)		::	sum_N_el_loc,															&
+												mep_2014_loc(3,3),														&
 												mep_tens_ic_loc(3,3), mep_tens_lc_loc(3,3), mep_tens_cs_loc(3,3),		&
 												kubo_mep_ic_loc(3,3), kubo_mep_lc_loc(3,3), kubo_mep_cs_loc(3,3),		&
 												kubo_ahc_loc(3,3), velo_ahc_loc(3,3)														
@@ -296,6 +305,7 @@ contains
 		integer								::	n_ki_glob
 		!								---------------------------------------------------------------
 		real(dp)							::	avg_N_el_glob,															&
+												mep_2014_glob(3,3),														&
 												mep_tens_ic_glob(3,3), mep_tens_lc_glob(3,3), mep_tens_cs_glob(3,3),	&
 												kubo_mep_ic_glob(3,3), kubo_mep_lc_glob(3,3), kubo_mep_cs_glob(3,3),	&
 												kubo_ahc_glob(3,3), velo_ahc_glob(3,3)
@@ -304,6 +314,7 @@ contains
 		!								---------------------------------------------------------------
 		avg_N_el_glob		=	0.0_dp								
 		!	
+		mep_2014_glob		=	0.0_dp
 		mep_tens_ic_glob	=	0.0_dp
 		mep_tens_lc_glob	=	0.0_dp
 		mep_tens_cs_glob	=	0.0_dp	
@@ -324,10 +335,12 @@ contains
 			!
 			!	***********				PARALLEL SUM OVER NODES				******************************************************
 			!
-			call MPI_REDUCE(	n_ki_loc,				n_ki_glob,			1,		MPI_INTEGER,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			call MPI_REDUCE(	sum_N_el_loc,		avg_N_el_glob,			1,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	n_ki_loc,				n_ki_glob,				1,		MPI_INTEGER,		MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			call MPI_REDUCE(	sum_N_el_loc,			avg_N_el_glob,			1,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
 			!
 			if(do_mep) then
+				call MPI_REDUCE(	mep_2014_loc,		mep_2014_glob,			9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
+				!
 				call MPI_REDUCE(	mep_tens_ic_loc,	mep_tens_ic_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_REDUCE(	mep_tens_lc_loc,	mep_tens_lc_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		, 	mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_REDUCE(	mep_tens_cs_loc,	mep_tens_cs_glob,		9,	MPI_DOUBLE_PRECISION,	MPI_SUM		,	mpi_root_id,	MPI_COMM_WORLD, ierr)
@@ -364,6 +377,8 @@ contains
 			n_ki_glob			=	n_ki_loc
 			avg_N_el_glob		=	sum_N_el_loc
 			!
+			mep_2014_glob		=	mep_2014_loc
+			!
 			mep_tens_ic_glob 	=	mep_tens_ic_loc
 			mep_tens_lc_glob 	=	mep_tens_lc_loc
 			mep_tens_cs_glob 	=	mep_tens_cs_loc	
@@ -397,10 +412,12 @@ contains
 			!
 			!
 			if(do_mep) then
+				call normalize_k_int(mep_2014_glob)
+				!
 				call normalize_k_int(mep_tens_ic_glob)
 				call normalize_k_int(mep_tens_lc_glob)
 				call normalize_k_int(mep_tens_cs_glob)
-				call write_mep_tensors(mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
+				call write_mep_tensors(mep_2014_glob ,mep_tens_ic_glob, mep_tens_lc_glob, mep_tens_cs_glob)
 				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated MEP tensor on ",n_ki_glob," kpts"
 			end if
 			!

@@ -91,40 +91,40 @@ def get_x_hopp(hopping):
 	#			X-HOPPINGS
 	#
 	#	atom 1 - 2 		Rx
-	tHopp.append(	[-1, 0, 0,			2,	1,			np.real(hopping[x][at2])	, 	np.imag(hopping[x][at2])	])
-	tHopp.append(	[ 0, 0, 0,			1,	2,			np.real(hopping[x][at1])	, 	np.imag(hopping[x][at1])	])
-	tHopp.append(	[+1, 0, 0,			2,	1,			np.real(hopping[x][at2])	,   np.imag(hopping[x][at2])	])
+	tHopp.append(	[-1, 0, 0,			2,	1,			np.real(hopping[x][at1])	, -	np.imag(hopping[x][at1])	])
+	tHopp.append(	[ 0, 0, 0,			1,	2,			np.real(hopping[x][at1])	,   np.imag(hopping[x][at1])	])
+	tHopp.append(	[+1, 0, 0,			2,	1,			np.real(hopping[x][at2])	,  np.imag(hopping[x][at2])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			1,	2,			np.real(hopping[x][at2])	, - np.imag(hopping[x][at2])	])
+	tHopp.append(	[-1, 0, 0,			1,	2,			np.real(hopping[x][at1])	, + np.imag(hopping[x][at1])	])
 	tHopp.append(	[ 0, 0, 0,			2,	1,			np.real(hopping[x][at1])	, - np.imag(hopping[x][at1])	])
 	tHopp.append(	[+1, 0, 0,			1,	2,			np.real(hopping[x][at2])	, - np.imag(hopping[x][at2])	])
 	#
 	#	atom 4 - 3		Rx
-	tHopp.append(	[-1, 0, 0,			3,	4,			np.real(hopping[x][at3])	,	np.imag(hopping[x][at3])	])
-	tHopp.append(	[ 0, 0, 0,			4,	3,			np.real(hopping[x][at4])	, 	np.imag(hopping[x][at4])	])
-	tHopp.append(	[+1, 0, 0,			3,	4,			np.real(hopping[x][at3])	,   np.imag(hopping[x][at3])	])
+	tHopp.append(	[-1, 0, 0,			3,	4,			np.real(hopping[x][at4])	, -	np.imag(hopping[x][at4])	])
+	tHopp.append(	[ 0, 0, 0,			4,	3,			np.real(hopping[x][at4])	,   np.imag(hopping[x][at4])	])
+	tHopp.append(	[+1, 0, 0,			3,	4,			np.real(hopping[x][at3])	,  np.imag(hopping[x][at3])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			4,	3,			np.real(hopping[x][at3])	, - np.imag(hopping[x][at3])	])
+	tHopp.append(	[-1, 0, 0,			4,	3,			np.real(hopping[x][at4])	, + np.imag(hopping[x][at4])	])
 	tHopp.append(	[ 0, 0, 0,			3,	4,			np.real(hopping[x][at4])	, - np.imag(hopping[x][at4])	])
 	tHopp.append(	[+1, 0, 0,			4,	3,			np.real(hopping[x][at3])	, - np.imag(hopping[x][at3])	])
 	##
 	##
 	##	atom 5 - 6 		Rx
-	tHopp.append(	[-1, 0, 0,			6,	5,			np.real(hopping[x][at6])	,	np.imag(hopping[x][at6])	])
-	tHopp.append(	[ 0, 0, 0,			5,	6,			np.real(hopping[x][at5])	, 	np.imag(hopping[x][at5])	])
-	tHopp.append(	[+1, 0, 0,			6,	5,			np.real(hopping[x][at6])	,   np.imag(hopping[x][at6])	])
+	tHopp.append(	[-1, 0, 0,			6,	5,			np.real(hopping[x][at5])	, -	np.imag(hopping[x][at5])	])
+	tHopp.append(	[ 0, 0, 0,			5,	6,			np.real(hopping[x][at5])	,   np.imag(hopping[x][at5])	])
+	tHopp.append(	[+1, 0, 0,			6,	5,			np.real(hopping[x][at6])	,  np.imag(hopping[x][at6])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			5,	6,			np.real(hopping[x][at6])	, - np.imag(hopping[x][at6])	])
+	tHopp.append(	[-1, 0, 0,			5,	6,			np.real(hopping[x][at5])	, + np.imag(hopping[x][at5])	])
 	tHopp.append(	[ 0, 0, 0,			6,	5,			np.real(hopping[x][at5])	, - np.imag(hopping[x][at5])	])
 	tHopp.append(	[+1, 0, 0,			5,	6,			np.real(hopping[x][at6])	, - np.imag(hopping[x][at6])	])
 	##
 	##
 	##	atom 8 - 7		Rx
-	tHopp.append(	[-1, 0, 0,			7,	8,			np.real(hopping[x][at7])	,	np.imag(hopping[x][at7])	])
-	tHopp.append(	[ 0, 0, 0,			8,	7,			np.real(hopping[x][at8])	, 	np.imag(hopping[x][at8])	])
-	tHopp.append(	[+1, 0, 0,			7,	8,			np.real(hopping[x][at7])	,   np.imag(hopping[x][at7])	])
+	tHopp.append(	[-1, 0, 0,			7,	8,			np.real(hopping[x][at8])	, -	np.imag(hopping[x][at8])	])
+	tHopp.append(	[ 0, 0, 0,			8,	7,			np.real(hopping[x][at8])	,   np.imag(hopping[x][at8])	])
+	tHopp.append(	[+1, 0, 0,			7,	8,			np.real(hopping[x][at7])	,  np.imag(hopping[x][at7])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			8,	7,			np.real(hopping[x][at7])	, - np.imag(hopping[x][at7])	])
+	tHopp.append(	[-1, 0, 0,			8,	7,			np.real(hopping[x][at8])	, + np.imag(hopping[x][at8])	])
 	tHopp.append(	[ 0, 0, 0,			7,	8,			np.real(hopping[x][at8])	, - np.imag(hopping[x][at8])	])
 	tHopp.append(	[+1, 0, 0,			8,	7,			np.real(hopping[x][at7])	, - np.imag(hopping[x][at7])	])
 	#
@@ -136,41 +136,41 @@ def get_y_hopp(hopping):
 	#			Y-HOPPINGS
 	#
 	#	atom 1 - 4 		Ry
-	tHopp.append(	[0, -1, 0,			4,	1,			np.real(hopping[y][at4])	,	np.imag(hopping[y][at4])	])
+	tHopp.append(	[0, -1, 0,			4,	1,			np.real(hopping[y][at1])	, -	np.imag(hopping[y][at1])	])
 	tHopp.append(	[0,  0, 0,			1,	4,			np.real(hopping[y][at1])	,   np.imag(hopping[y][at1])	])
 	tHopp.append(	[0, +1, 0,			4,	1,			np.real(hopping[y][at4])	,   np.imag(hopping[y][at4])	])
 	#	c.c.:
-	tHopp.append(	[0, -1, 0,			1,	4,			np.real(hopping[y][at4])	, -  np.imag(hopping[y][at4])	])
+	tHopp.append(	[0, -1, 0,			1,	4,			np.real(hopping[y][at1])	, +  np.imag(hopping[y][at1])	])
 	tHopp.append(	[0,  0, 0,			4,	1,			np.real(hopping[y][at1])	, -  np.imag(hopping[y][at1])	])
 	tHopp.append(	[0, +1, 0,			1,	4,			np.real(hopping[y][at4])	, -  np.imag(hopping[y][at4])	])
 	#
 	#
 	#	atom 2 - 3 		Ry
-	tHopp.append(	[0, -1, 0,			3,	2,			np.real(hopping[y][at3])	,	np.imag(hopping[y][at3])	])
-	tHopp.append(	[0,  0, 0,			2,	3,			np.real(hopping[y][at2])	, 	np.imag(hopping[y][at2])	])
-	tHopp.append(	[0, +1, 0,			3,	2,			np.real(hopping[y][at3])	,   np.imag(hopping[y][at3])	])
+	tHopp.append(	[0, -1, 0,			3,	2,			np.real(hopping[y][at2])	, -	np.imag(hopping[y][at2])	])
+	tHopp.append(	[0,  0, 0,			2,	3,			np.real(hopping[y][at2])	,   np.imag(hopping[y][at2])	])
+	tHopp.append(	[0, +1, 0,			3,	2,			np.real(hopping[y][at3])	,  np.imag(hopping[y][at3])	])
 	#	c.c.:
-	tHopp.append(	[0, -1, 0,			2,	3,			np.real(hopping[y][at3])	, - np.imag(hopping[y][at3])	])
+	tHopp.append(	[0, -1, 0,			2,	3,			np.real(hopping[y][at2])	, + np.imag(hopping[y][at2])	])
 	tHopp.append(	[0,  0, 0,			3,	2,			np.real(hopping[y][at2])	, - np.imag(hopping[y][at2])	])
 	tHopp.append(	[0, +1, 0,			2,	3,			np.real(hopping[y][at3])	, - np.imag(hopping[y][at3])	])
 	##
 	##
 	##	atom 5 - 8 		Ry
-	tHopp.append(	[0, -1, 0,			8,	5,			np.real(hopping[y][at8])	,	np.imag(hopping[y][at8])	])
-	tHopp.append(	[0,  0, 0,			5,	8,			np.real(hopping[y][at5])	, 	np.imag(hopping[y][at5])	])
+	tHopp.append(	[0, -1, 0,			8,	5,			np.real(hopping[y][at5])	, -	np.imag(hopping[y][at5])	])
+	tHopp.append(	[0,  0, 0,			5,	8,			np.real(hopping[y][at5])	,   np.imag(hopping[y][at5])	])
 	tHopp.append(	[0, +1, 0,			8,	5,			np.real(hopping[y][at8])	,   np.imag(hopping[y][at8])	])
 	#	c.c.:
-	tHopp.append(	[0, -1, 0,			5,	8,			np.real(hopping[y][at8])	, - np.imag(hopping[y][at8])	])
+	tHopp.append(	[0, -1, 0,			5,	8,			np.real(hopping[y][at5])	, + np.imag(hopping[y][at5])	])
 	tHopp.append(	[0,  0, 0,			8,	5,			np.real(hopping[y][at5])	, - np.imag(hopping[y][at5])	])
 	tHopp.append(	[0, +1, 0,			5,	8,			np.real(hopping[y][at8])	, - np.imag(hopping[y][at8])	])
 	#
 	#
 	#	atom 6 - 7 		Ry
-	tHopp.append(	[0, -1, 0,			7,	6,			np.real(hopping[y][at7])	,	np.imag(hopping[y][at7])	])
-	tHopp.append(	[0,  0, 0,			6,	7,			np.real(hopping[y][at6])	, 	np.imag(hopping[y][at6])	])
+	tHopp.append(	[0, -1, 0,			7,	6,			np.real(hopping[y][at6])	, -	np.imag(hopping[y][at6])	])
+	tHopp.append(	[0,  0, 0,			6,	7,			np.real(hopping[y][at6])	,   np.imag(hopping[y][at6])	])
 	tHopp.append(	[0, +1, 0,			7,	6,			np.real(hopping[y][at7])	,   np.imag(hopping[y][at7])	])
 	#	c.c.:
-	tHopp.append(	[0, -1, 0,			6,	7,			np.real(hopping[y][at7])	, - np.imag(hopping[y][at7])	])
+	tHopp.append(	[0, -1, 0,			6,	7,			np.real(hopping[y][at6])	, + np.imag(hopping[y][at6])	])
 	tHopp.append(	[0,  0, 0,			7,	6,			np.real(hopping[y][at6])	, - np.imag(hopping[y][at6])	])
 	tHopp.append(	[0, +1, 0,			6,	7,			np.real(hopping[y][at7])	, - np.imag(hopping[y][at7])	])
 	#
@@ -184,41 +184,41 @@ def get_z_hopp(hopping):
 	#			Z-HOPPINGS
 	#
 	#	atom 1 - 5 		Rz
-	tHopp.append(	[0, 0, -1,			5,	1,			np.real(hopping[z][at5])	,	np.imag(hopping[z][at5])	])
-	tHopp.append(	[0, 0,  0,			1,	5,			np.real(hopping[z][at1])	,  	np.imag(hopping[z][at1])	])
+	tHopp.append(	[0, 0, -1,			5,	1,			np.real(hopping[z][at1])	, -	np.imag(hopping[z][at1])	])
+	tHopp.append(	[0, 0,  0,			1,	5,			np.real(hopping[z][at1])	,   np.imag(hopping[z][at1])	])
 	tHopp.append(	[0, 0, +1,			5,	1,			np.real(hopping[z][at5])	,   np.imag(hopping[z][at5])	])
 	#	c.c.:
-	tHopp.append(	[0, 0, -1,			1,	5,			np.real(hopping[z][at5])	, - np.imag(hopping[z][at5])	])
+	tHopp.append(	[0, 0, -1,			1,	5,			np.real(hopping[z][at1])	, + np.imag(hopping[z][at1])	])
 	tHopp.append(	[0, 0,  0,			5,	1,			np.real(hopping[z][at1])	, - np.imag(hopping[z][at1])	])
 	tHopp.append(	[0, 0, +1,			1,	5,			np.real(hopping[z][at5])	, - np.imag(hopping[z][at5])	])
 	#
 	#
 	#	atom 2 - 6 		Rz
-	tHopp.append(	[0, 0, -1,			6,	2,			np.real(hopping[z][at6])	,	np.imag(hopping[z][at6])	])
-	tHopp.append(	[0, 0,  0,			2,	6,			np.real(hopping[z][at2])	,  	np.imag(hopping[z][at2])	])
+	tHopp.append(	[0, 0, -1,			6,	2,			np.real(hopping[z][at2])	, -	np.imag(hopping[z][at2])	])
+	tHopp.append(	[0, 0,  0,			2,	6,			np.real(hopping[z][at2])	,   np.imag(hopping[z][at2])	])
 	tHopp.append(	[0, 0, +1,			6,	2,			np.real(hopping[z][at6])	,   np.imag(hopping[z][at6])	])
 	#	c.c.:
-	tHopp.append(	[0, 0, -1,			2,	6,			np.real(hopping[z][at6])	, - np.imag(hopping[z][at6])	])
+	tHopp.append(	[0, 0, -1,			2,	6,			np.real(hopping[z][at2])	, + np.imag(hopping[z][at2])	])
 	tHopp.append(	[0, 0,  0,			6,	2,			np.real(hopping[z][at2])	, - np.imag(hopping[z][at2])	])
 	tHopp.append(	[0, 0, +1,			2,	6,			np.real(hopping[z][at6])	, - np.imag(hopping[z][at6])	])
 	#
 	#
 	#	atom 3 - 7 		Rz
-	tHopp.append(	[0, 0, -1,			7,	3,			np.real(hopping[z][at7])	,	np.imag(hopping[z][at7])	])
-	tHopp.append(	[0, 0,  0,			3,	7,			np.real(hopping[z][at3])	, 	np.imag(hopping[z][at3])	])
+	tHopp.append(	[0, 0, -1,			7,	3,			np.real(hopping[z][at3])	, -	np.imag(hopping[z][at3])	])
+	tHopp.append(	[0, 0,  0,			3,	7,			np.real(hopping[z][at3])	,   np.imag(hopping[z][at3])	])
 	tHopp.append(	[0, 0, +1,			7,	3,			np.real(hopping[z][at7])	,   np.imag(hopping[z][at7])	])
 	#	c.c.:
-	tHopp.append(	[0, 0, -1,			3,	7,			np.real(hopping[z][at7])	, - np.imag(hopping[z][at7])	])
+	tHopp.append(	[0, 0, -1,			3,	7,			np.real(hopping[z][at3])	, + np.imag(hopping[z][at3])	])
 	tHopp.append(	[0, 0,  0,			7,	3,			np.real(hopping[z][at3])	, - np.imag(hopping[z][at3])	])
 	tHopp.append(	[0, 0, +1,			3,	7,			np.real(hopping[z][at7])	, - np.imag(hopping[z][at7])	])
 	#
 	#
 	#	atom 4 - 8 		Rz
-	tHopp.append(	[0, 0, -1,			8,	4,			np.real(hopping[z][at8])	,	np.imag(hopping[z][at8])	])
-	tHopp.append(	[0, 0,  0,			4,	8,			np.real(hopping[z][at4])	, 	np.imag(hopping[z][at4])	])
-	tHopp.append(	[0, 0, +1,			8,	4,			np.real(hopping[z][at8])	, 	np.imag(hopping[z][at8])	])
+	tHopp.append(	[0, 0, -1,			8,	4,			np.real(hopping[z][at4])	, -	np.imag(hopping[z][at4])	])
+	tHopp.append(	[0, 0,  0,			4,	8,			np.real(hopping[z][at4])	,   np.imag(hopping[z][at4])	])
+	tHopp.append(	[0, 0, +1,			8,	4,			np.real(hopping[z][at8])	,   np.imag(hopping[z][at8])	])
 	#	c.c.:
-	tHopp.append(	[0, 0, -1,			4,	8,			np.real(hopping[z][at8])	, - np.imag(hopping[z][at8])	])
+	tHopp.append(	[0, 0, -1,			4,	8,			np.real(hopping[z][at4])	, + np.imag(hopping[z][at4])	])
 	tHopp.append(	[0, 0,  0,			8,	4,			np.real(hopping[z][at4])	, - np.imag(hopping[z][at4])	])
 	tHopp.append(	[0, 0, +1,			4,	8,			np.real(hopping[z][at8])	, - np.imag(hopping[z][at8])	])
 	#
