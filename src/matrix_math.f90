@@ -73,7 +73,6 @@ module matrix_math
         integer,        intent(in)      :: i,j,k
         logical                         :: even, odd
         !
-        my_Levi_Civita  =   0
         !
         even    = (i==1 .and. j==2 .and. k==3) .or. (i==2 .and. j==3 .and. k==1) .or. (i==3 .and. j==1 .and. k==2)
         odd     = (i==3 .and. j==2 .and. k==1) .or. (i==1 .and. j==3 .and. k==2) .or. (i==2 .and. j==1 .and. k==3)
@@ -82,6 +81,8 @@ module matrix_math
                                 my_Levi_Civita  =  1
         else if(odd)    then    
                                 my_Levi_Civita  = -1
+        else 
+                                my_Levi_Civita  =  0
         end if
         !
         return
