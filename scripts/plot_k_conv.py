@@ -42,7 +42,8 @@ class conv_data:
 				self.dir_lst.append(subdir)
 				self.nK_lst.append(nK_new)
 				#
-				self.mep_2014_lst.append(	read_real_tens_file(subdir + '/out/mep/mep_14.dat'			,		'mep')			)
+				#self.mep_2014_lst.append(	0.0)
+				#self.mep_2014_lst.append(	read_real_tens_file(subdir + '/out/mep/mep_14.dat'			,		'mep')			)
 				self.mep_tot_lst.append(	read_real_tens_file(subdir + '/out/mep/mep_tens.dat'		, 		'mep')			)
 				self.mep_cs_lst.append(		read_real_tens_file(subdir + '/out/mep/mep_cs.dat'			, 		'mep')			)
 				self.mep_ic_lst.append(		read_real_tens_file(subdir + '/out/mep/mep_ic.dat'			, 		'mep')			)
@@ -56,9 +57,14 @@ class conv_data:
 
 		#sort by number of kpts used\
 		print("raw nK_lst=" + str(self.nK_lst))
-		zipped	= zip(self.nK_lst, self.mep_2014_lst,self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst)
+		#zipped	= zip(self.nK_lst, self.mep_2014_lst,self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst)
+		zipped	= zip(self.nK_lst, self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst)
+		
+
 		sort 	= sorted(zipped)
-		self.nK_lst, self.mep_2014_lst, self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst	= map(list,zip(*sort))
+		#self.nK_lst, self.mep_2014_lst, self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst	= map(list,zip(*sort))
+		self.nK_lst,  self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst	= map(list,zip(*sort))
+
 		print("sorted nK_lst=" + str(self.nK_lst))
 
 		
@@ -75,9 +81,9 @@ class conv_data:
 		nK_plot	= 	[]
 		for nk in self.nK_lst:
 			if show_tot_nK:
-				nK_plot.append(nk**3)
-			else:
 				nK_plot.append(nk)
+			else:
+				nK_plot.append(int(np.power(float(nk),1./3.)))
 		#
 		for a in range(0,3):
 			for b in range(0,3):
@@ -96,8 +102,8 @@ class conv_data:
 						mep_ic_ab.append(	mep_ic[a][b])	
 					for mep_lc in self.mep_lc_lst:
 						mep_lc_ab.append(	mep_lc[a][b])	
-					for mep_14 in self.mep_2014_lst:
-						mep_14_ab.append(	mep_14[a][b])
+					#for mep_14 in self.mep_2014_lst:
+					#	mep_14_ab.append(	mep_14[a][b])
 				#plot
 				fig, ax  = plt.subplots(1,1) 
 				plt.semilogx(nK_plot, mep_tot_ab, '+-'	,color='black' ,label="tot")
@@ -105,7 +111,7 @@ class conv_data:
 					plt.semilogx(nK_plot, mep_cs_ab,	'--',	color='red',		label="CS"	)					
 					plt.semilogx(nK_plot, mep_lc_ab,	'o-',	color='darkblue',		label="LC"	)
 					plt.semilogx(nK_plot, mep_ic_ab,	'^-',	color='lightblue',		label="IC"	)
-					plt.semilogx(nK_plot, mep_14_ab,	'v-',	color='magenta',	label="2014")
+					#plt.semilogx(nK_plot, mep_14_ab,	'v-',	color='magenta',	label="2014")
 				#aesthetics
 				plt.tick_params(axis='both', which='both',left=True,right=True, direction='in',labelsize=tick_label_size)
 				plt.ylabel(r'$\alpha$_'+self.dim_string[a]+self.dim_string[b]+' (a.u.)')
@@ -218,7 +224,7 @@ class conv_data:
 
 cluster_data	=	conv_data("k_conv_cluster_phi0.0")
 cluster_data.collect_data()
-cluster_data.plot_mep( tick_label_size=12, show_indi_mep=True, show_tot_nK=True)
+cluster_data.plot_mep( tick_label_size=12, show_indi_mep=True, show_tot_nK=False)
 cluster_data.plot_ahc( tick_label_size=12, show_tot_nK=False)
 cluster_data.plot_opt( tick_label_size=12, show_tot_nK=False)
 
