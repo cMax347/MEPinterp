@@ -57,13 +57,11 @@ class conv_data:
 
 		#sort by number of kpts used\
 		print("raw nK_lst=" + str(self.nK_lst))
-		#zipped	= zip(self.nK_lst, self.mep_2014_lst,self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst)
-		zipped	= zip(self.nK_lst, self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst)
+		zipped	= zip(self.nK_lst, self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_lc_lst, self.ahc_lst)
 		
 
 		sort 	= sorted(zipped)
-		#self.nK_lst, self.mep_2014_lst, self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst	= map(list,zip(*sort))
-		self.nK_lst,  self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_cs_lst, self.ahc_lst	= map(list,zip(*sort))
+		self.nK_lst,  self.mep_tot_lst, self.mep_cs_lst, self.mep_ic_lst, self.mep_lc_lst, self.ahc_lst	= map(list,zip(*sort))
 
 		print("sorted nK_lst=" + str(self.nK_lst))
 
@@ -96,21 +94,30 @@ class conv_data:
 					mep_ic_ab	= []
 					mep_lc_ab	= []
 					mep_14_ab	= []
+					mep_py_ab	= []
 					for mep_cs in self.mep_cs_lst:
 						mep_cs_ab.append(	mep_cs[a][b])	
 					for mep_ic in self.mep_ic_lst:
 						mep_ic_ab.append(	mep_ic[a][b])	
 					for mep_lc in self.mep_lc_lst:
 						mep_lc_ab.append(	mep_lc[a][b])	
+
+					for idx, mep_tot in enumerate(self.mep_cs_lst):
+						mep_py_ab.append(	self.mep_lc_lst[idx][a][b] + self.mep_ic_lst[idx][a][b] + self.mep_cs_lst[idx][a][b]	)
+
 					#for mep_14 in self.mep_2014_lst:
 					#	mep_14_ab.append(	mep_14[a][b])
 				#plot
 				fig, ax  = plt.subplots(1,1) 
 				plt.semilogx(nK_plot, mep_tot_ab, '+-'	,color='black' ,label="tot")
 				if show_indi_mep:
-					plt.semilogx(nK_plot, mep_cs_ab,	'--',	color='red',		label="CS"	)					
-					plt.semilogx(nK_plot, mep_lc_ab,	'o-',	color='darkblue',		label="LC"	)
-					plt.semilogx(nK_plot, mep_ic_ab,	'^-',	color='lightblue',		label="IC"	)
+					#plt.semilogx(nK_plot, mep_cs_ab,	'--',	color='red',		label="CS"	)					
+					#plt.semilogx(nK_plot, mep_lc_ab,	'o-',	color='darkblue',		label="LC"	)
+					#plt.semilogx(nK_plot, mep_ic_ab,	'^-',	color='lightblue',		label="IC"	)
+					
+					plt.semilogx(nK_plot, mep_py_ab , '+-', color='orange', label="py sumed")
+					
+
 					#plt.semilogx(nK_plot, mep_14_ab,	'v-',	color='magenta',	label="2014")
 				#aesthetics
 				plt.tick_params(axis='both', which='both',left=True,right=True, direction='in',labelsize=tick_label_size)
