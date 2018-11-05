@@ -92,7 +92,7 @@ class Phi_probe:
 		mep_lc_data		= []
 		mep_ic_data		= []
 		for data in self.phi_tot_data:
-			phi_plot.append(data[0])
+			phi_plot.append(float(data[0]))
 			mep_tot_data.append(data[1])
 		
 		if plot_contributions:
