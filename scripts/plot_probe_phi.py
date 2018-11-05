@@ -153,15 +153,18 @@ class Phi_probe:
 
 				
 				#X-AXIS
-				plt.xlabel(r'$\varphi$',	fontsize=label_size)
+				plt.xlabel(r'$\varphi_{\mathcal{Hopp}}$',	fontsize=label_size)
 				ax.set_xlim([0,2])
-				ax.set_xticks(np.array([0,0.5,1,1.5,2]))
-				ax.set_xticklabels(np.array([r'$0$','',r'$\pi$','',r'$2\pi$']))
+				ax.set_xticks(	np.array([0,1,2])	,	minor=False	)
+				ax.set_xticks(	np.array([0.5,1.5])	,	minor=True	)
+
+				ax.set_xticklabels(np.array([r'$0$',r'$\pi$',r'$2\pi$']))
 				plt.tick_params(axis='x',which='major', direction='in',labelsize=xtick_size)
-				
+				plt.tick_params(axis='x',which='minor', direction='in', labelsize=xtick_size)
+
 				#Y-AXIS
 				plt.ylabel(r'$\alpha_{'+dim_str[i]+dim_str[j]+'}$',	fontsize=label_size)
-				ax.set_ylim([mep_min,mep_max])
+				#ax.set_ylim([mep_min,mep_max])
 				plt.tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 
 				if plot_contributions:
