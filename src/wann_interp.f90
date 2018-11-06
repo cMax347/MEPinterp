@@ -38,11 +38,27 @@ module wann_interp
 
 
 
+
+
+
+
+
+
 !public:
 	subroutine get_wann_interp(		do_gauge_trafo, H_real, r_real, 					&
 									a_latt, recip_latt, R_frac, kpt_idx, kpt_rel, 		&
 									e_k, V_ka, A_ka, Om_kab								&
 							)
+		!
+		!	interpolates the k-space:
+		!			-	H_k	: 		hamiltonian
+		!			-	H_ka:		k-space derivative of Ham 			
+		!			-	A_ka:		Berry conncection (only if r_real given)	
+		!			-	Om_kab:		Berry curvature	
+		!the real space basis (H_real (real space Hamiltonian) and optionally r_real (real space postition operator)	)
+		!
+		!	see 	>>>	PRB 74, 195118 (2006)	<<<			for more details on Wannier interpolation
+		!
 		logical,						intent(in)				::	do_gauge_trafo
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
@@ -81,49 +97,12 @@ module wann_interp
 	end subroutine
 
 
-	subroutine debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
-		integer,						intent(in)		::	kpt_idx
-		real(dp),						intent(in)		::	e_k(:)
-		complex(dp),					intent(in)		::	H_ka(:,:,:), V_ka(:,:,:)
-		complex(dp), 	allocatable, 	intent(in)		::	A_ka(:,:,:)
-		complex(dp),	allocatable						::	Vtemp(:,:,:)
-		character(len=10)								::	fname
-		character(len=120)								::	info_string
-		integer											::	n, m
-		!
-		!
-		if(allocated(A_ka))	 then
-			write(fname,*)		"velo_Aka"
-			write(info_string,*)	"#	Berry Connection contribution to velocities: V_ka(n,m) =  - i (E_m - E_n) A_ka(n,m)"
-			!
-			allocate(		Vtemp(3, size(A_ka,2), size(A_ka,3))			)
-			!
-			Vtemp	= cmplx(0.0_dp, 0.0_dp,dp)
-			do n = 1, size(A_ka,2)
-				do m = 1, size(A_ka,3)
-					Vtemp(:,n,m)	=	-i_dp	* cmplx( e_k(m)	- e_k(n), 0.0_dp, dp) *	A_ka(:,n,m)
-				end do
-			end do
-			call write_velo(kpt_idx, fname, info_string, Vtemp)
-			!
-			!
-			write(fname,*)		"velo_Vka"
-			write(info_string,*)	"#	(H)-gauge velo velocity: V_ka(n,m) =  H_ka(n,m)  - i (E_m - E_n) A_ka(n,m)"
-			call write_velo(kpt_idx, fname, info_string, V_ka)
-		end if
-		!
-		write(fname,*)		"velo_Hka"
-		write(info_string,*)	"#	Hamiltonian contribution to velocities: V_ka =  H_ka"
-		call write_velo(kpt_idx, fname, info_string, H_ka)
-		!
-		!
-		return
-	end subroutine
 
 
 
 
-!private
+
+!private:
 	subroutine FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
@@ -148,22 +127,15 @@ module wann_interp
 		do_en_grad		= allocated(H_ka)
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
 		!
-		!init
+		!get absolute kpt
 		kpt_abs		= 	matmul(	recip_latt	, kpt_rel	)	
+		!
+		!init
 						H_k		= 0.0_dp
 		if(do_en_grad)	H_ka	= 0.0_dp
 		if(use_pos_op)	A_ka	= 0.0_dp
 		if(use_pos_op)	Om_kab	= 0.0_dp	
 		!
-		!	test 
-		ft_phase	=	cmplx(0.0_dp, 0.0_dp, dp)
-		do sc = 1, size(R_frac,2)
-			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
-			ft_phase	=	ft_phase	+	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
-		end do
-		if(	aimag(ft_phase)	> 1e-6_dp	) write(*,*)	"[FT_R_to_k]: Warning sum[ imag(ft_phase) ] =",aimag(ft_phase)," /=0"
-
 		!
 		!sum real space cells
 		do sc = 1, size(R_frac,2)
@@ -197,16 +169,66 @@ module wann_interp
 		end do		
 		!
 		!
-		if(debug_mode) 	call check_W_gauge_herm(kpt_rel, H_k, H_Ka, A_ka, Om_kab)
+		if(debug_mode) 	then
+			call check_ft_phase(a_latt, R_frac, kpt_abs)
+			call check_W_gauge_herm(kpt_rel, H_k, H_Ka, A_ka, Om_kab)
+		end if
 		!
 		return
 	end subroutine
 
 
 
+	pure subroutine get_velo(e_k, H_ka, A_ka, V_k)
+		!	calc the (H)-gauge velocity matrix
+		!
+		!	PRB 74, 195118 (2006) EQ.(31)
+		real(dp),						intent(in)		::		e_k(:)
+		complex(dp),					intent(in)		::		H_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
+		complex(dp),					intent(out)		::		V_k(:,:,:)
+		complex(dp)										::		eDiff
+		integer											::		m, n
+		!
+		V_k		=	H_ka
+		!
+		!
+		if( allocated(A_ka)	) then
+			do m = 1, size(V_k,3)
+				do n = 1, size(V_k,2)
+					if(	n >	m )	then
+						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
+						!
+						V_k(:,n,m)	= V_k(:,n,m)	- i_dp	* 	eDiff	* 	A_ka(:,n,m)
+						V_k(:,m,n)	= V_k(:,m,n)	+ i_dp	*	eDiff	*	A_ka(:,m,n)
+					end if
+				end do
+			end do
+		end if
+		!
+		!
+		return
+	end subroutine
 
 
-!gauge TRAFOs
+
+!
+!
+!
+!
+!
+!
+!
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!
+!						~~~~			GAUGE TRAFO ROUTINES				~~~~~~~~~~~~~~
+!
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!
 	subroutine W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
 		!	see PRB 74, 195118 (2006) EQ. 21 - 31
 		real(dp),						intent(in)		::	e_k(:) 
@@ -255,37 +277,6 @@ module wann_interp
 	end subroutine	
 
 
-	pure subroutine get_velo(e_k, H_ka, A_ka, V_k)
-		!	calc the (H)-gauge velocity matrix
-		!
-		!	PRB 74, 195118 (2006) EQ.(31)
-		real(dp),						intent(in)		::		e_k(:)
-		complex(dp),					intent(in)		::		H_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
-		complex(dp),					intent(out)		::		V_k(:,:,:)
-		complex(dp)										::		eDiff
-		integer											::		m, n
-		!
-		V_k		=	H_ka
-		!
-		!
-		if( allocated(A_ka)	) then
-			do m = 1, size(V_k,3)
-				do n = 1, size(V_k,2)
-					if(	n >	m )	then
-						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
-						!
-						V_k(:,n,m)	= V_k(:,n,m)	- i_dp	* 	eDiff	* 	A_ka(:,n,m)
-						V_k(:,m,n)	= V_k(:,m,n)	+ i_dp	*	eDiff	*	A_ka(:,m,n)
-					end if
-				end do
-			end do
-		end if
-		!
-		!
-		return
-	end subroutine
-
 
 	subroutine get_gauge_covar_deriv(e_k, H_ka,	D_ka )
 		!	PRB 74, 195118 (2006)	EQ.(24)
@@ -333,7 +324,6 @@ module wann_interp
 				!
 			end do
 		end if
-
 		!
 		return
 	end subroutine
@@ -381,7 +371,50 @@ module wann_interp
 
 
 
-!DEBUG helpers
+
+
+
+
+
+
+
+
+!
+!
+!
+!
+!
+!
+!
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!
+!						~~~~			DEBUGGING HELPER ROUTINES				~~~~~~~~~~~~~~
+!
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!
+	subroutine	check_ft_phase(a_latt, R_frac, kpt_abs)
+		real(dp),				intent(in)		::	a_latt(3,3), R_frac(:,:), kpt_abs(3)
+		real(dp)								::	R_abs(3), ft_angle
+		complex(dp)								::	ft_phase	
+		integer									::	sc	
+		!
+		ft_phase		=	cmplx(0.0_dp, 0.0_dp, dp)
+		do sc = 1, size(R_frac,2)
+			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
+			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
+			ft_phase	=	ft_phase	+	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
+		end do
+		if(	aimag(ft_phase)	> 1e-6_dp	) write(*,*)	"[FT_R_to_k/DEBUG-MODE]: WARNING sum[ imag(ft_phase) ] =",aimag(ft_phase)," /=0"
+		ft_phase		=	cmplx(0.0_dp, 0.0_dp, dp)	
+		!
+		return
+	end subroutine
+
+
 	logical function curv_is_herm( Om_kab, max_err)
 		complex(dp), allocatable,	intent(in)		::	Om_kab(:,:,:,:)
 		real(dp),			intent(out)		::	max_err
@@ -548,6 +581,47 @@ module wann_interp
 		if(	conn .and. curv .and. velo ) 	write(*,'(a,i8)')	"[check_H_gauge_herm/DEBUG-MODE]:	"						//	&
 															"SUCCESS (H)-gauge quantities (conn,curv,velo) are hermitian "	//  &
 															" at  #kpt= ", kpt_idx		
+		!
+		return
+	end subroutine
+
+
+
+	subroutine debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
+		integer,						intent(in)		::	kpt_idx
+		real(dp),						intent(in)		::	e_k(:)
+		complex(dp),					intent(in)		::	H_ka(:,:,:), V_ka(:,:,:)
+		complex(dp), 	allocatable, 	intent(in)		::	A_ka(:,:,:)
+		complex(dp),	allocatable						::	Vtemp(:,:,:)
+		character(len=10)								::	fname
+		character(len=120)								::	info_string
+		integer											::	n, m
+		!
+		!
+		if(allocated(A_ka))	 then
+			write(fname,*)		"velo_Aka"
+			write(info_string,*)	"#	Berry Connection contribution to velocities: V_ka(n,m) =  - i (E_m - E_n) A_ka(n,m)"
+			!
+			allocate(		Vtemp(3, size(A_ka,2), size(A_ka,3))			)
+			!
+			Vtemp	= cmplx(0.0_dp, 0.0_dp,dp)
+			do n = 1, size(A_ka,2)
+				do m = 1, size(A_ka,3)
+					Vtemp(:,n,m)	=	-i_dp	* cmplx( e_k(m)	- e_k(n), 0.0_dp, dp) *	A_ka(:,n,m)
+				end do
+			end do
+			call write_velo(kpt_idx, fname, info_string, Vtemp)
+			!
+			!
+			write(fname,*)		"velo_Vka"
+			write(info_string,*)	"#	(H)-gauge velo velocity: V_ka(n,m) =  H_ka(n,m)  - i (E_m - E_n) A_ka(n,m)"
+			call write_velo(kpt_idx, fname, info_string, V_ka)
+		end if
+		!
+		write(fname,*)		"velo_Hka"
+		write(info_string,*)	"#	Hamiltonian contribution to velocities: V_ka =  H_ka"
+		call write_velo(kpt_idx, fname, info_string, H_ka)
+		!
 		!
 		return
 	end subroutine
