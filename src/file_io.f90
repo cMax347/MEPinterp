@@ -184,6 +184,7 @@ module file_io
 		character(len=12)					::	fname
 		character(len=50)					::	info_string
 		character(len=3)					::	id_string
+		integer								::	row
 		!
 		id_string	=	'mep'
 		!-------------------------------------itinerant contribution MEP tensor-------------
@@ -221,6 +222,28 @@ module file_io
 		mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
 		call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
 		!-----------------------------------------------------------------------------------
+
+		!	DEBUG:
+		write(*,*)	"[write_mep_tensors]: mep_ic:"
+		do row = 1, 3
+			write(*,*)	mep_ic(row,:)
+		end do
+		!
+		write(*,*)	"[write_mep_tensors]: mep_lc:"
+		do row = 1, 3
+			write(*,*)	mep_lc(row,:)
+		end do	
+		!
+		write(*,*)	"[write_mep_tensors]: mep_cs:"
+		do row = 1, 3
+			write(*,*)	mep_cs(row,:)
+		end do
+		!
+		write(*,*)	"[write_mep_tensors]: mep_tens:"
+		do row = 1, 3
+			write(*,*)	mep_tens(row,:)
+		end do
+
 		!
 		return
 	end subroutine
@@ -343,16 +366,16 @@ module file_io
 	subroutine d_write_tens_file(dir, fname,tens, info_string, id_string)
 		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
 		real(dp),			intent(in)		::	tens(3,3)
-		integer								::	row, clm		!
+		integer								::	row, clm, w_unit		!
 		!write result to file
-		open(unit=250, file=dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
-			write(250,*)	info_string
-			write(250,*)	'begin '//id_string
+		open(newunit=w_unit, file=dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
+			write(w_unit,*)	info_string
+			write(w_unit,*)	'begin '//id_string
 			do row = 1, 3
-				write(250,'(200(f16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
+				write(w_unit,'(200(f16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
 			end do
-			write(250,*)	'end '//id_string
-		close(250)
+			write(w_unit,*)	'end '//id_string
+		close(w_unit)
 		write(*,'(a,i3,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: success!"
 		!
 		!
