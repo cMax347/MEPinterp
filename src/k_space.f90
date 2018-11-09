@@ -21,7 +21,7 @@ module k_space
 
 
 	integer			::		mp_grid(3)
-	real(dp)		::		recip_latt(3,3), bz_vol
+	real(dp)		::		recip_latt(3,3), bz_vol, unit_vol
 
 contains
 
@@ -30,6 +30,11 @@ contains
 !-----------------------------------------------------------------------------------		
 !
 !			INTERFACE:		normalize_k_int
+!				
+!			Vbz	=	(2pi)^3/ Vcell			
+!
+!
+!			int 	Vcell / (2pi)^3		d^3k  		---->		1 /( N_k)	sum_k
 !
 !-----------------------------------------------------------------------------------
 	subroutine z_matrix_normalize_k_int(mat)
@@ -39,7 +44,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
-		if(n_k > 0	)		mat		=	mat		* bz_vol	/ real(n_k,dp)
+		if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
 		!
 		return
 	end subroutine
@@ -53,7 +58,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
-		if(n_k > 0	)		mat		=	mat		* bz_vol	/ real(n_k,dp)
+		if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
 		!
 		return
 	end subroutine
@@ -65,7 +70,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
-		if(n_k > 0	)		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
+		if(n_k > 0	)		scalar	= 	scalar	 /	(	unit_vol	* real(n_k,dp)	)
 		
 		!
 		return
@@ -78,7 +83,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
-		if(n_k > 0	)		scalar	= 	scalar	* bz_vol	/ real(n_k,dp)
+		if(n_k > 0	)		scalar	= 	scalar	 /	(	unit_vol	* real(n_k,dp)	)
 		!
 		return
 	end subroutine
@@ -110,8 +115,7 @@ contains
 		!	see eq.(2)		PRB, 13, 5188 (1976)
 		!
 		real(dp), intent(in)	::	a_latt(3,3)
-		real(dp)				::	unit_vol,				& 
-									a1(3), a2(3), a3(3),	&
+		real(dp)				::	a1(3), a2(3), a3(3),	&
 									b1(3), b2(3), b3(3)
 		!
 		!
