@@ -17,17 +17,59 @@ class Phi_probe:
 		#derived attributes
 		self.root_dir	= root_dir
 		self.plot_dir	= self.root_dir+'/plots'
+
+		print("~")
+		print("-------------------------------------------------------------------------------")
+		print("-------------------------------------------------------------------------------")
+		print("~")
+		print("^^^^^^^^^^^^^^^	PLOTTING SCRIPT - SOUZA TB	-	RESPONSE OVER HOPPING PHASE	 ^^^^^^^^^^^^^^^")
+		print("-------------------------------------------------------------------------------")
+		print("~")
+		print("will search for data in folder: "	+	self.root_dir	)
+		print("will output to folder: "				+ 	self.plot_dir	)
+		print("~")
+		print("~")
+		print("~")
+		print("~")
+		print("~")
+		print("~")
+		print("~")
+		print("~")
+		print("~")
+		print("~")
+		print("~")
+
 	
 
 	def __del__(self):
+		print("~")
 		print('plotted Phi probing, by\n\n')
+		print("-------------------------------------------------------------------------------")
+		print("-------------------------------------------------------------------------------")
+		print("-------------------------------------------------------------------------------")
 
 
 	def print_results_container(self):
+		print("~")
+		print("~")
+		print("~")
+		print("		COLLECTED DATA SUMMARY	")
+		print("-------------------------------------------------------------------------------")
 		print('results =',self.phi_tot_data)
+		print("~")
+		print("~")
+		print("~")
+
 
 
 	def read_phi(self):
+		print("~")
+		print("~")
+		print("~")
+		print("		TRAVERSE SUBDIRECOTRIES - COLLECT THE DATA	")
+		print("-------------------------------------------------------------------------------")
+		#
+		#
 		self.phi_tot_data = []
 		self.phi_cs_data = []
 		self.phi_lc_data = []
@@ -80,11 +122,24 @@ class Phi_probe:
 
 	
 
-	def plot_mep_over_phi(self, plot_contributions=True, label_size=14, xtick_size=12, ytick_size=12):
-		try:
-			os.mkdir(self.plot_dir)
-		except OSError:
-			print('Could not make directory ',self.plot_dir)
+	def plot_mep_over_phi(self, units='au', scale=1.0, plot_contributions=True, label_size=14, xtick_size=12, ytick_size=12):
+		print("		PLOTS")
+		print("-------------------------------------------------------------------------------")	
+
+		print("~")
+		print("try to create folder where plots should go")
+
+
+		if not os.path.isdir(self.plot_dir):
+			try:
+				os.mkdir(self.plot_dir)
+			except OSError:
+				print('Could not make directory ',self.plot_dir, '	(proably exists already)')
+			finally:
+				print("~")
+		else:
+			print(self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
+		
 
 		phi_plot 		= []
 		mep_tot_data 	= []
@@ -93,17 +148,39 @@ class Phi_probe:
 		mep_ic_data		= []
 		for data in self.phi_tot_data:
 			phi_plot.append(float(data[0]))
-			mep_tot_data.append(data[1])
+			mep_tot_data.append(scale*data[1])
 		
+		print("~")
+		print("fortran output expected to be in atomic units	")
+
+		if units 	== 				'SI':
+			unit_conv	=	2.434135e-4
+			unit_str	=	'[S]'
+		elif units	==			'cgs':
+			unit_conv	=	1.0
+			unit_str	=	'[cgs units - not implemented properly]'
+		else							:
+			unit_conv	=	1.0
+			unit_str	=	'[-]'
+
+
+		print("unit id '"+units+"' was interpreted as "+unit_str+" the scale factor will be "+str(unit_conv))
+		print("")
+		print("~")
+		print("~")
+		print("~")
+
+	
 		if plot_contributions:
+			print("will plot Chern-Simons (CS) and  local & itinerant contributions ( lc & ic)")
 			for data in self.phi_cs_data:
-				mep_cs_data.append(data[1])
+				mep_cs_data.append(scale*data[1])
 			for data in self.phi_lc_data:
-				mep_lc_data.append(data[1])
+				mep_lc_data.append(scale*data[1])
 			for data in self.phi_ic_data:
-				mep_ic_data.append(data[1])
+				mep_ic_data.append(scale*data[1])
 
-
+		print("~")
 		mep_max		= np.amax(mep_tot_data)
 		mep_min 	= np.amin(mep_tot_data)
 		mep_delta 	= (mep_max - mep_min) / 100.0
@@ -163,7 +240,7 @@ class Phi_probe:
 				plt.tick_params(axis='x',which='minor', direction='in', labelsize=xtick_size)
 
 				#Y-AXIS
-				plt.ylabel(r'$\alpha_{'+dim_str[i]+dim_str[j]+'}$',	fontsize=label_size)
+				plt.ylabel(r'$\alpha_{'+dim_str[i]+dim_str[j]+'}$ '+unit_str,	fontsize=label_size)
 				#ax.set_ylim([mep_min,mep_max])
 				plt.tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 
@@ -173,6 +250,7 @@ class Phi_probe:
 				plt.tight_layout()
 				plt.savefig(self.plot_dir+'/mep_'+dim_str[i]+dim_str[j]+'.pdf')
 				plt.close()
+				print('finished processing '+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+self.plot_dir+'/mep_'+dim_str[i]+dim_str[j]+'.pdf')
 
 
 				
@@ -196,7 +274,10 @@ def plot_data(root_dir):
 	myTest.read_phi()
 	myTest.print_results_container()
 	
-	myTest.plot_mep_over_phi(label_size=14, xtick_size=12, ytick_size=12)
+	myTest.plot_mep_over_phi(		scale=1.0,
+									units="SI",
+									plot_contributions=True,
+									label_size=14, xtick_size=12, ytick_size=12)
 
 
 

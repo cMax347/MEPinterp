@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 class Phi_probe:
 
-	def __init__(		self,n_phi, val_bands, mp_grid, kubo_tol, 	
+	def __init__(		self,n_phi, val_bands, mp_grid, gamma_scale, kubo_tol, 	
 						hw, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
 						do_write_velo='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
@@ -18,6 +18,7 @@ class Phi_probe:
 		self.n_phi 			= 	n_phi
 		self.val_bands		= 	val_bands
 		self.mp_grid		= 	mp_grid
+		self.gamma_scale	=	gamma_scale
 		self.kubo_tol		= 	kubo_tol
 		self.hw				= 	hw 
 		self.eFermi			= 	eFermi 
@@ -165,14 +166,14 @@ class Phi_probe:
 				mep_lc_plot		= []
 				mep_ic_plot		= []
 				for mep_tens in mep_tot_data:
-					mep_tot_plot.append(	mep_tens[i][j]	)
+					mep_tot_plot.append(				self.gamma_scale *		mep_tens[i][j]	)
 				if plot_contributions:
 					for mep_cs in mep_cs_data:
-						mep_cs_plot.append(		mep_cs[i][j]	)
+						mep_cs_plot.append(				self.gamma_scale *		mep_cs[i][j]	)
 					for mep_lc in mep_lc_data:
-						mep_lc_plot.append(		mep_lc[i][j]	)
+						mep_lc_plot.append(				self.gamma_scale *		mep_lc[i][j]	)
 					for mep_ic in mep_ic_data:
-						mep_ic_plot.append(		mep_ic[i][j]	)
+						mep_ic_plot.append(				self.gamma_scale *		mep_ic[i][j]	)
 
 
 
@@ -199,11 +200,13 @@ class Phi_probe:
 				
 				#Y-AXIS
 				plt.ylabel(r'$\alpha_{'+dim_str[i]+dim_str[j]+'}$',	fontsize=label_size)
-				ax.set_ylim([mep_min,mep_max])
+				ax.set_ylim([self.gamma_scale *  mep_min,self.gamma_scale *  mep_max])
 				plt.tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 
 				if plot_contributions:
 					plt.legend()
+
+				plt.title('gamma_scale='+str(self.gamma_scale))
 
 				plt.tight_layout()
 				plt.savefig(self.plot_dir+'/mep_'+dim_str[i]+dim_str[j]+'.pdf')
@@ -221,7 +224,7 @@ class Phi_probe:
 
 
 
-def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, 
+def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
 					kubo_tol=1e-3, hw=0.001, eFermi=0.0, Tkelvin=11.0, eta_smearing=0.2, 
 					plot_bands		=	False, 
 					debug_mode		=	True, 
@@ -233,7 +236,7 @@ def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1,
 					do_opt			=	'F', 
 					do_gyro			=	'F'	
 				):
-	myTest	= Phi_probe(	n_phi, val_bands, mp_grid, 
+	myTest	= Phi_probe(	n_phi, val_bands, mp_grid, gamma_scale, 
 							kubo_tol, hw, eFermi, Tkelvin, eta_smearing,
 							debug_mode, do_gauge_trafo, do_write_velo,
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro	
@@ -241,24 +244,25 @@ def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1,
 	#
 	myTest.iterate_phi(plot_bands=plot_bands, mpi_np=mpi_np)
 	myTest.print_results_container()
-	try:
-		myTest.plot_mep_over_phi(label_size=14, xtick_size=12, ytick_size=12)
-	except:
-		print("plotting failed. Please try plotting with plot_probe_phi.py")
-	finally:
-		print('')
-		print('')
-		print('all done')
+	#try:
+	myTest.plot_mep_over_phi(label_size=14, xtick_size=12, ytick_size=12)
+	#except:
+	#	print("plotting failed. Please try plotting with plot_probe_phi.py")
+	#finally:
+	#	print('')
+	#	print('')
+	#	print('all done')
 
 
 
 
 
 
-probe_phi(		n_phi			= 11				, 
+probe_phi(		n_phi			= 21				, 
 				val_bands		= 2					, 
 				mp_grid			= [16,16,16]		, 
 				mpi_np			= 4					,
+				gamma_scale		= 7.7481e-5			,
 				kubo_tol=1e-5, hw=0.0, eFermi=0.0, Tkelvin=10.0, eta_smearing=0.1, 
 				plot_bands		= False				, 
 				debug_mode		= True				, 

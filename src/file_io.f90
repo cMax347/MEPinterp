@@ -182,7 +182,7 @@ module file_io
 		real(dp),			intent(in)		::	mep_2014(3,3), mep_ic(3,3), mep_lc(3,3), mep_cs(3,3)
 		real(dp)							::	mep_tens(3,3)
 		character(len=12)					::	fname
-		character(len=50)					::	info_string
+		character(len=100)					::	info_string
 		character(len=3)					::	id_string
 		integer								::	row
 		!
@@ -196,28 +196,28 @@ module file_io
 		!
 		!-------------------------------------itinerant contribution MEP tensor-------------
 		fname		= 	'mep_ic.dat'
-		info_string	= 	'# itinerant contribution of mep tensor, written '//cTIME(time())
+		info_string	= 	'# itinerant contribution of mep tensor (in atomic units - dimensionless), written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	mep_ic,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------local contribution MEP tensor-----------------
 		fname		= 	'mep_lc.dat'
-		info_string	= 	'# local contribution of mep tensor, written '//cTIME(time())
+		info_string	= 	'# local contribution of mep tensor  (in atomic units - dimensionless), written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	mep_lc,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------Chern-Simons term MEP tensor------------------
 		fname		= 	'mep_cs.dat'
-		info_string	= 	'# Chern-Simons term of mep tensor, written '//cTIME(time())
+		info_string	= 	'# Chern-Simons term of mep tensor  (in atomic units - dimensionless), written '//cTIME(time())
 		!
 		call	write_tens_file(mep_out_dir,	fname,	mep_cs,	info_string,	id_string )
 		!
 		!
 		!-------------------------------------total MEP tensor------------------------------
 		fname		= 	'mep_tens.dat'
-		info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs), written '//cTIME(time())
+		info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)  (in atomic units - dimensionless), written '//cTIME(time())
 		!
 		mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
 		call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
@@ -814,8 +814,27 @@ module file_io
 		complex(dp),	allocatable,	intent(in)			::		H_mat(:,:,:), r_mat(:,:,:,:)
 		integer												::		sc, n_cells
 		logical												::		hermitian
-		real(dp)											::		max_err
+		real(dp)											::		max_err, R_tot(3)
 		!
+		R_tot(:) =	0.0_dp
+		do sc = 1, size(R_vect,2)
+			R_tot(:)	=	R_tot(:)	+	R_vect(:,sc)
+		end do 
+		write(*,*)	'[read_tb_basis/DEBUG-MODE]:	real space cells (input interpretation):'
+		write(*,*)	"	cell	|	Rx 	,	Ry 	, 	Rz	"
+		write(*,*)	"----------------------------------------------"
+		do sc = 1, size(R_vect,2)
+			write(*,'(i3,a,f4.1,a,f4.1,a,f4.1)')	sc,'	|		',	R_vect(1,sc),", ",R_vect(2,sc),', ',R_vect(3,sc)
+		end do
+		write(*,*)	"----------------------------------------------"
+		write(*,'(a,f4.1,a,f4.1,a,f4.1)')	"	sum 	|	",R_tot(1),", ",R_tot(2),', ',R_tot(3)
+		if(norm2(R_tot) > 1e-3_dp	) then
+			write(*,*)	'[read_tb_basis/DEBUG-MODE]:	WARNING if real space cells dont sum zero hermitictiy issues might arise'
+		end if
+
+
+
+
 		!write(*,*)	'[read_tb_basis/DEBUG-MODE]:----start debuging real space basis---------'
 		n_cells	=	size(R_vect,2)
 		!

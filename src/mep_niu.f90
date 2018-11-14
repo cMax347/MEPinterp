@@ -49,8 +49,8 @@ contains
 		real(dp),			intent(in)		::	En(:)
 		real(dp)							::	F3(3,3)
 		integer								::	n0, n, neglected, tot, 		&
-												i, j, k, l
-		real(dp) 							::	pre_fact, velo_nom, en_denom
+												j, k, l
+		real(dp) 							::	pre_fact, velo_nom(3), en_denom
 		!
 		neglected	= 0
 		tot 		= 0
@@ -67,19 +67,16 @@ contains
 			 			!
 						!TRIPLE PRODUCT			 		
 			 			do j = 1, 3
-			 				do i = 1, 3
+			 				do k = 1, 3
 			 					do l = 1, 3
-			 						do k = 1, 3
-			 							pre_fact	=	real(			my_Levi_Civita(j,k,l)						,dp)	
-			 							!
-			 							velo_nom	=	real(		velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)		, dp)
-			 							!	
-			 							!	
-			 							F3(i,j)		= 	F3(i,j) 	+	pre_fact   * velo_nom	/	en_denom	
-			 							!
-			 							!	OLD VERSION:
-			 							!	Vtmp		= Velo(k,nZero,nZero,ki) * Velo(l,n,nZero,ki) * Velo(i,nZero,n,ki) 
-			 						end do
+			 						pre_fact	=	real(			my_Levi_Civita(j,k,l)						,dp)	
+			 						!
+			 						!	
+			 						if(		 abs(pre_fact) 	> 1e-1_dp	) then
+			 							velo_nom(:)	=	real(		velo(:,n0,n) * velo(k,n,n0) * velo(l,n0,n0)		, dp)
+			 							F3(:,j)		= 	F3(:,j) 	+	pre_fact   * velo_nom(:)	/	en_denom	
+			 						end if
+			 						!
 			 					end do
 			 				end do
 			 			end do
@@ -92,10 +89,6 @@ contains
 			end do
 		end do
 		!
-		!if(neglected > 0) then
-		!	write(*,'(a,i3,a,i5)',advance="no")		'[#',mpi_id,':get_F3]: dropped ',neglected
-		!	write(*,'(a,i6,a)')						' of ',tot,' contributions due to degenerate bands'
-		!end if
 		return
 	end function
 
@@ -107,9 +100,9 @@ contains
 		real(dp),			intent(in)		::	En(:)
 		real(dp)							::	F2(3,3)
 		integer								::	n0, m, n, 		&
-												i, j, k, l,		&
+												j, k, l,		&
 												neglected, tot
-		real(dp) 							::	pre_fact, velo_nom, en_denom
+		real(dp) 							::	pre_fact, velo_nom(3), en_denom
 		!
 		neglected	= 0
 		tot 		= 0
@@ -127,19 +120,16 @@ contains
 				 			!
 				 			!TRIPLE PRODUCT
 				 			do j = 1, 3
-				 				do i = 1, 3
+				 				do k = 1, 3
 				 					do l = 1, 3
-				 						do k = 1, 3
-				 							pre_fact	= 	- real(my_Levi_Civita(j,k,l),dp)
-				 							!
-				 							velo_nom	=	real(		velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)	, dp)
-				 							!
-				 							!
-				 							F2(i,j)		= 	F2(i,j)		+	pre_fact  * velo_nom	/	en_denom	
-				 							!
-				 							!	OLD
-				 							!	Vtmp		= Velo(k,n,m,ki) * Velo(l,m,nZero,ki) * Velo(i,nZero,n,ki) 
-				 						end do
+				 						pre_fact	= 	- real(my_Levi_Civita(j,k,l),dp)
+				 						!
+				 						!
+				 						if(		 abs(pre_fact) 	> 1e-1_dp	) then
+											velo_nom(:)	=	real(		velo(:,n0,n) * velo(k,n,m) * velo(l,m,n0)	, dp)
+				 							F2(:,j)		= 	F2(:,j)		+	pre_fact  * velo_nom(:)	/	en_denom	
+				 						end if
+				 						!
 				 					end do
 				 				end do
 				 			end do
@@ -153,10 +143,6 @@ contains
 			end do
 		end do
 		!
-		!if(neglected > 0) then
-		!	write(*,'(a,i3,a,i5)',advance="no")		'[#',mpi_id,':get_F2]: dropped ',neglected
-		!	write(*,'(a,i6,a)')						' of ',tot,' contributions due to degenerate bands'
-		!end if
 		return
 	end function
 
