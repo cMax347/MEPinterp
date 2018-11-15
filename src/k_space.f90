@@ -1,12 +1,15 @@
 module k_space
-	use constants, 			only:		dp, pi_dp, mpi_id
+	use constants, 			only:		dp, pi_dp
+	use mpi_comm,			only:		mpi_id
 	use matrix_math,		only:		crossP
 
 	implicit none
 
 	public						::		set_mp_grid,		get_mp_grid,		&
 										set_recip_latt, 	get_recip_latt,		&
-										get_rel_kpt,		get_bz_vol,			&
+										get_rel_kpt,							&		
+										get_bz_vol,								&
+										kspace_allocator,						&
 										normalize_k_int
 	private	
 
@@ -88,10 +91,39 @@ contains
 		return
 	end subroutine
 
+
+
+!-----------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------
+
+	subroutine kspace_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
+		!	allocate the k-space arrays, depending on what is allocated in real space
+		complex(dp),	allocatable, intent(inout)	::		H_tb(:,:,:), r_tb(:,:,:,:),					& 
+															V_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
+		real(dp),		allocatable, intent(inout)	::		en_k(:)
+		!
+		!allocate k-space
+		allocate(	en_k(						size(H_tb,2)	)	)
+		allocate(	V_ka(	3,	size(H_tb,1),	size(H_tb,2)	)	)
+		!
+		if(	allocated(r_tb)	)	then	
+			allocate(	A_ka(	  3,		size(r_tb,2),	size(r_tb,3)	)	)
+			allocate(	Om_kab(	3,	3,		size(r_tb,2),	size(r_tb,3)	)	)
+			write(*,'(a,i3,a)')		"[#",mpi_id,"; kspace_allocator]: allocated position operator (will use Berry connenction & curv)"	
+		end if
+		!
+		return
+	end subroutine
+
+
+
+
+
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
 
 	subroutine set_mp_grid(input_grid)
+		!	set the monkhorst pack grid
 		integer,		intent(in)		::	input_grid(3)
 		mp_grid	=	input_grid
 		write(*,'(a,i3,a,(20i5))') 	'[#',mpi_id,';set_mp_grid]: mp_grid set to ', mp_grid
