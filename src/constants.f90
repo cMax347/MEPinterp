@@ -7,8 +7,6 @@ module constants
 	integer, 		parameter 	:: 	dp 				= kind(0.d0)
 	real(dp),		parameter	:: 	fp_acc			= 1e-14_dp
 
-	!MPI
-	integer						::	mpi_id, mpi_root_id, mpi_nProcs, ierr
 
 	!MATHEMATICAL
 	real(dp), 		parameter 	::	PI_dp 			= 4 * atan (1.0_dp)
