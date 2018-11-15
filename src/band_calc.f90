@@ -6,7 +6,8 @@ module band_calc
 #ifdef USE_MPI
 	use mpi
 #endif
-	use constants,		only:			dp, mpi_root_id, mpi_id, mpi_nProcs, ierr
+	use constants,		only:			dp
+	use mpi_comm,		only:			mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,	only:			use_mpi, seed_name, a_latt
 	use k_space,		only:			get_recip_latt										
 	use file_io,		only:			read_kptsgen_pl_file,							&
@@ -55,7 +56,7 @@ contains
 			!
 			!	get the data
 			call read_tb_basis(seed_name, R_vect, H_tb, r_tb)
-			call k_space_allocator(H_tb, r_tb, en_k, A_ka, Om_kab)
+			call band_allocator(H_tb, r_tb, en_k, A_ka, Om_kab)
 			!
 			!
 			!	do the work
@@ -91,7 +92,7 @@ contains
 	end subroutine
 
 
-	subroutine k_space_allocator( H_tb, r_tb, en_k, A_ka, Om_kab)
+	subroutine band_allocator( H_tb, r_tb, en_k, A_ka, Om_kab)
 		real(dp),		allocatable			::	en_k(:)
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_kab(:,:,:,:)									
