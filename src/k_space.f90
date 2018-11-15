@@ -19,6 +19,7 @@ module k_space
 		module procedure d_scalar_normalize_k_int
 		module procedure z_scalar_normalize_k_int
 		module procedure d_matrix_normalize_k_int
+		module prodecure d3_tens_noralize_k_int
 		module procedure z_matrix_normalize_k_int
 	end interface normalize_k_int
 
@@ -52,7 +53,17 @@ contains
 		return
 	end subroutine
 	
-
+	subroutine d3_tens_noralize_k_int(tens)	
+		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
+		integer						:: 	n_k
+		!
+		if(allocated(tens)) then
+			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
 
 	subroutine d_matrix_normalize_k_int(mat)
 		real(dp),	allocatable,	intent(inout)	::	mat(:,:)
