@@ -4,8 +4,8 @@ module input_paras
 	use mpi
 #endif
 	use matrix_math,				only:		crossP
-	use constants,					only:		dp, fp_acc, pi_dp,			&
-												mpi_id, mpi_root_id, mpi_nProcs, ierr
+	use constants,					only:		dp, fp_acc, pi_dp
+	use mpi_comm,					only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
 	use k_space,					only:		set_recip_latt, set_mp_grid
 
 
@@ -29,6 +29,7 @@ module input_paras
 												debug_mode,															&
 												do_gauge_trafo,														&
 												do_write_velo,														&
+												do_write_mep_bands,													&
 												do_mep, do_ahc, do_kubo, do_opt, do_gyro,							&
 												!vars
 												seed_name,	valence_bands,											&
@@ -53,6 +54,7 @@ module input_paras
 	character(len=10)			::	gyro_out_dir	
 	logical						::	plot_bands, do_gauge_trafo, 	&
 									do_write_velo,					&
+									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_gyro
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
@@ -127,6 +129,7 @@ module input_paras
 				!
 				![mep]
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
+				call CFG_add_get(my_cfg,	"MEP%do_write_mep_bands"		,	do_write_mep_bands	,	"write mep tensor band resolved"	)
 				![Fermi]
 				call CFG_add_get(my_cfg,	"Kubo%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO"		)
 				call CFG_add_get(my_cfg,	"Kubo%hw"						,	hw					,	"energy of incoming light"			)
@@ -154,6 +157,7 @@ module input_paras
 				write(*,*)					"	seed_name=",seed_name
 				write(*,*)					"[mep]"
 				write(*,'(a,i4)')			"	val bands=",valence_bands
+				write(*,*)					"	do_write_mep_bands=",do_write_mep_bands
 				write(*,*)					"[Kubo] # E_h (Hartree)"
 				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
 				write(*,*)					"	kuboTol=",kubo_tol
