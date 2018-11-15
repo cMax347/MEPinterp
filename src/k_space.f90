@@ -41,13 +41,13 @@ contains
 !
 !-----------------------------------------------------------------------------------
 	subroutine z_matrix_normalize_k_int(mat)
-		complex(dp),	intent(inout)	::	mat(:,:)
+		complex(dp),	allocatable,	intent(inout)	::	mat(:,:)
 		integer							:: 	n_k
 		!
-		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-		!
-		!
-		if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
+		if(allocated(mat))	then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
+		end if
 		!
 		return
 	end subroutine
@@ -55,13 +55,13 @@ contains
 
 
 	subroutine d_matrix_normalize_k_int(mat)
-		real(dp),	intent(inout)	::	mat(:,:)
+		real(dp),	allocatable,	intent(inout)	::	mat(:,:)
 		integer						:: 	n_k
 		!
-		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-		!
-		!
-		if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
+		if(allocated(mat)) then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
+		end if
 		!
 		return
 	end subroutine
