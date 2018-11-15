@@ -4,10 +4,27 @@ module statistics
 	implicit none
 
 	public					::			fd_stat,		fd_stat_deriv, 			&
-										fd_get_N_el
+										fd_get_N_el, fd_count_el
 	private
 
 contains
+
+
+
+	pure subroutine fd_count_el(en_k, eFermi, T_kelvin, el_count, sum_loc, n_el_min, n_el_max)
+		real(dp),		intent(in)					::		en_k(:), eFermi, T_kelvin
+		real(dp),		intent(out)					::		el_count
+		real(dp),		intent(inout)				::		sum_loc, n_el_min, n_el_max
+		!
+		el_count			=	fd_get_N_el(en_k, eFermi, T_kelvin)
+		sum_loc				=	sum_loc		+	el_count
+		!		!
+		if(	el_count	<	n_el_min	)		n_el_min	= 	el_count
+		if( el_count	>	n_el_max	)		n_el_max	=	el_count
+		!
+		return
+	end subroutine
+
 
 
 	real(dp) pure function fd_stat(e_band, e_fermi,	T_kelvin) 
