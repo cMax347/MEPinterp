@@ -3,8 +3,8 @@ module file_io
 	use ifport !needed for time 
 #endif
 	use matrix_math,					only:		is_equal_vect, is_herm_mat	
-	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv, &
-													mpi_id, mpi_root_id, mpi_nProcs
+	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv
+	use mpi_comm,						only:		mpi_id, mpi_root_id, mpi_nProcs
 	use input_paras,					only:		w90_dir, 							&
 													out_dir,							& 
 													velo_out_dir,						&
@@ -27,6 +27,7 @@ module file_io
 													write_en_global,					&
 													write_velo,							&
 													!-----------------------------------!
+													write_mep_bands,					&
 													write_mep_tensors,					&
 													write_kubo_mep_tensors,				&
 													write_ahc_tensor,					&
@@ -177,192 +178,261 @@ module file_io
 !			WRITE RESPONSE TENSORS:
 !--------------------------------------------------------------------------------------------------------------------------------		
 !
-!
-	subroutine write_mep_tensors(mep_2014, mep_ic, mep_lc, mep_cs)
-		real(dp),			intent(in)		::	mep_2014(3,3), mep_ic(3,3), mep_lc(3,3), mep_cs(3,3)
-		real(dp)							::	mep_tens(3,3)
-		character(len=12)					::	fname
-		character(len=100)					::	info_string
-		character(len=3)					::	id_string
-		integer								::	row
+	subroutine write_mep_bands(n_ki_glob, mep_bands)
+		integer,					intent(in)		::	n_ki_glob
+		real(dp),	allocatable, 	intent(inout)	::	mep_bands(:,:,:)
+		!
+		write(*,*)	"WARNING! 	write_mep_bands not implemented yet"
+		!
+		if(allocated(mep_bands)) then
+
+
+		end if
+		!
+		return
+	end subroutine
+
+
+	subroutine write_mep_tensors(n_ki_glob, mep_2014, mep_ic, mep_lc, mep_cs)
+		integer,					intent(in)		::	n_ki_glob
+		real(dp),	allocatable,	intent(in)		::	mep_2014(:,:), mep_ic(:,:), mep_lc(:,:), mep_cs(:,:)
+		real(dp),	allocatable						::	mep_tens(:,:)
+		character(len=12)							::	fname
+		character(len=100)							::	info_string
+		character(len=3)							::	id_string
+		integer										::	row
 		!
 		id_string	=	'mep'
 		!-------------------------------------itinerant contribution MEP tensor-------------
-		fname		= 	'mep_14.dat'
-		info_string	= 	'# 2014 original paper version of mep tensor, written '//cTIME(time())
-		!
-		call	write_tens_file(mep_out_dir,	fname,	mep_2014,	info_string,	id_string )
+		if(allocated(mep_2014)) then
+			fname		= 	'mep_14.dat'
+			info_string	= 	'# 2014 original paper version of mep tensor, written '//cTIME(time())
+			!
+			call	write_tens_file(mep_out_dir,	fname,	mep_2014,	info_string,	id_string )
+		end if
 		!
 		!
 		!-------------------------------------itinerant contribution MEP tensor-------------
-		fname		= 	'mep_ic.dat'
-		info_string	= 	'# itinerant contribution of mep tensor (in atomic units - dimensionless), written '//cTIME(time())
-		!
-		call	write_tens_file(mep_out_dir,	fname,	mep_ic,	info_string,	id_string )
+		if(allocated(mep_ic)) then
+			fname		= 	'mep_ic.dat'
+			info_string	= 	'# itinerant contribution of mep tensor (in atomic units - dimensionless), written '//cTIME(time())
+			!
+			call	write_tens_file(mep_out_dir,	fname,	mep_ic,	info_string,	id_string )
+			!
+			write(*,*)	"[write_mep_tensors]: mep_ic:"
+			do row = 1, 3
+				write(*,*)	mep_ic(row,:)
+			end do
+		end if
 		!
 		!
 		!-------------------------------------local contribution MEP tensor-----------------
-		fname		= 	'mep_lc.dat'
-		info_string	= 	'# local contribution of mep tensor  (in atomic units - dimensionless), written '//cTIME(time())
-		!
-		call	write_tens_file(mep_out_dir,	fname,	mep_lc,	info_string,	id_string )
+		if(allocated(mep_lc)) then
+			fname		= 	'mep_lc.dat'
+			info_string	= 	'# local contribution of mep tensor  (in atomic units - dimensionless), written '//cTIME(time())
+			!
+			call	write_tens_file(mep_out_dir,	fname,	mep_lc,	info_string,	id_string )
+			!
+			write(*,*)	"[write_mep_tensors]: mep_lc:"
+			do row = 1, 3
+				write(*,*)	mep_lc(row,:)
+			end do	
+		end if
 		!
 		!
 		!-------------------------------------Chern-Simons term MEP tensor------------------
-		fname		= 	'mep_cs.dat'
-		info_string	= 	'# Chern-Simons term of mep tensor  (in atomic units - dimensionless), written '//cTIME(time())
-		!
-		call	write_tens_file(mep_out_dir,	fname,	mep_cs,	info_string,	id_string )
+		if(allocated(mep_cs)) then
+			fname		= 	'mep_cs.dat'
+			info_string	= 	'# Chern-Simons term of mep tensor  (in atomic units - dimensionless), written '//cTIME(time())
+			!
+			call	write_tens_file(mep_out_dir,	fname,	mep_cs,	info_string,	id_string )
+			!
+			write(*,*)	"[write_mep_tensors]: mep_cs:"
+			do row = 1, 3
+				write(*,*)	mep_cs(row,:)
+			end do
+		end if
 		!
 		!
 		!-------------------------------------total MEP tensor------------------------------
-		fname		= 	'mep_tens.dat'
-		info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)  (in atomic units - dimensionless), written '//cTIME(time())
-		!
-		mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
-		call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
+		if(allocated(mep_cs) .and. allocated(mep_lc) .and. allocated(mep_ic) ) then
+			fname		= 	'mep_tens.dat'
+			info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)  (in atomic units - dimensionless), written '//cTIME(time())
+			!
+			allocate(	mep_tens(3,3)	)
+			mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
+			call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
+			write(*,*)	"[write_mep_tensors]: mep_tens:"
+			do row = 1, 3
+				write(*,*)	mep_tens(row,:)
+			end do
+		end if
 		!-----------------------------------------------------------------------------------
-
-		!	DEBUG:
-		write(*,*)	"[write_mep_tensors]: mep_ic:"
-		do row = 1, 3
-			write(*,*)	mep_ic(row,:)
-		end do
+		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_mep_tensors]: calculated MEP tensor on ",n_ki_glob," kpts"
 		!
-		write(*,*)	"[write_mep_tensors]: mep_lc:"
-		do row = 1, 3
-			write(*,*)	mep_lc(row,:)
-		end do	
-		!
-		write(*,*)	"[write_mep_tensors]: mep_cs:"
-		do row = 1, 3
-			write(*,*)	mep_cs(row,:)
-		end do
-		!
-		write(*,*)	"[write_mep_tensors]: mep_tens:"
-		do row = 1, 3
-			write(*,*)	mep_tens(row,:)
-		end do
-
 		!
 		return
 	end subroutine
 
 
-	subroutine write_kubo_mep_tensors(kubo_mep_ic, kubo_mep_lc, kubo_mep_cs)
-		real(dp),			intent(in)		::	kubo_mep_ic(3,3), kubo_mep_lc(3,3), kubo_mep_cs(3,3)
-		real(dp)							::	kubo_mep_tens(3,3)
-		character(len=20)					::	fname
-		character(len=90)					::	info_string
-		character(len=7)					::	id_string
+	subroutine write_kubo_mep_tensors(n_ki_glob, kubo_mep_ic, kubo_mep_lc, kubo_mep_cs)
+		integer,					intent(in)		::	n_ki_glob
+		real(dp),		allocatable,		intent(in)		::	kubo_mep_ic(:,:), kubo_mep_lc(:,:), kubo_mep_cs(:,:)
+		real(dp),		allocatable							::	kubo_mep_tens(:,:)
+		character(len=20)									::	fname
+		character(len=90)									::	info_string
+		character(len=7)									::	id_string
+		logical												::	allo_ic, allo_lc, allo_cs
 		!
 		id_string	=	'KUBOmep'
+		allo_ic		=	.false.
+		allo_ic		=	.false.
+		allo_ic		=	.false.		
 		!-------------------------------------itinerant contribution MEP tensor-------------
-		fname		= 	'kubo_mep_ic.dat'
-		info_string	= 	'# itinerant contribution of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
-		!
-		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_ic,	info_string,	id_string )
+		if(allocated(kubo_mep_ic)) then
+			fname		= 	'kubo_mep_ic.dat'
+			info_string	= 	'# itinerant contribution of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
+			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_ic,	info_string,	id_string )
+			allo_ic	=	.true.
+		end if
 		!
 		!
 		!-------------------------------------local contribution MEP tensor-----------------
-		fname		= 	'kubo_mep_lc.dat'
-		info_string	= 	'# local contribution of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
-		!
-		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_lc,	info_string,	id_string )
+		if(allocated(kubo_mep_lc)) then
+			fname		= 	'kubo_mep_lc.dat'
+			info_string	= 	'# local contribution of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
+			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_lc,	info_string,	id_string )
+			allo_lc	=	.true.
+		end if
 		!
 		!
 		!-------------------------------------Chern-Simons term MEP tensor------------------
-		fname		= 	'kubo_mep_cs.dat'
-		info_string	= 	'# Chern-Simons term of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
-		!
-		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_cs,	info_string,	id_string )
+		if(allocated(kubo_mep_cs)) then
+			fname		= 	'kubo_mep_cs.dat'
+			info_string	= 	'# Chern-Simons term of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
+			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_cs,	info_string,	id_string )
+			allo_cs	=	.true.
+		end if
 		!
 		!
 		!-------------------------------------total MEP tensor------------------------------
-		fname		= 	'kubo_mep_tens.dat'
-		info_string	= 	'# total KUBO mep tensor (with fermi-dirac statistic) (mep_tot= mep_ic+mep_lc+mep_cs), written '//cTIME(time())
-		!
-		kubo_mep_tens	= 	kubo_mep_ic +	kubo_mep_lc	+	kubo_mep_cs
-		call	write_tens_file(mep_out_dir,	fname,	kubo_mep_tens, info_string,	id_string )
-		!-----------------------------------------------------------------------------------
-		!
-		return
-	end subroutine
-
-
-	subroutine write_ahc_tensor(ahc_tens, velo_ahc_tens)
-		real(dp),		intent(in)		::	ahc_tens(3,3), velo_ahc_tens(3,3)
-		character(len=12)					::	fname
-		character(len=70)					::	info_string
-		character(len=7)					::	id_string
-		!
-		!
-		fname		=	'ahc_tens.dat'
-		info_string	=	'# anomalous Hall conductivity tensor, written '//cTIME(time())
-		id_string	=	'ahc'
-		!
-		call	write_tens_file(ahc_out_dir,	fname,	ahc_tens,	info_string,	id_string)
-		!
-		!
-		fname		=	'ahc_velo.dat'
-		info_string	=	'# anomalous Hall conductivity tensor (via velocity kubo), written '//cTIME(time())
-		id_string	=	'ahcVELO'
-		!
-		call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
+		if(allo_ic .and. allo_lc .and. allo_cs) then
+			fname		= 	'kubo_mep_tens.dat'
+			info_string	= 	'# total KUBO mep tensor (with fermi-dirac statistic) (mep_tot= mep_ic+mep_lc+mep_cs), written '//cTIME(time())
+			allocate(kubo_mep_tens(3,3))
+			kubo_mep_tens	= 	kubo_mep_ic +	kubo_mep_lc	+	kubo_mep_cs
+			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_tens, info_string,	id_string )
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: wrote  KUBO MEP tensor on ",n_ki_glob," kpts"
+		end if
 		!
 		!
 		return
 	end subroutine
 
 
-	subroutine write_opt_tensors(s_symm, a_symm)
-		complex(dp),		intent(in)		::	s_symm(3,3),	a_symm(3,3)
-		character(len=13)					::	fname
-		character(len=70)					::	info_string
-		character(len=4)					::	id_string
+	subroutine write_ahc_tensor(n_ki_glob, ahc_tens, velo_ahc_tens)
+		integer,					intent(in)		::	n_ki_glob
+		real(dp),	allocatable,	intent(in)			::	ahc_tens(:,:), velo_ahc_tens(:,:)
+		character(len=12)								::	fname
+		character(len=70)								::	info_string
+		character(len=7)								::	id_string
 		!
 		!
-		fname		=	'opt_Ssymm.dat'
-		info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
-		id_string	=	'optS'
-		call 	write_tens_file(opt_out_dir,	fname,	s_symm,	info_string,	id_string)
+		if(allocated(ahc_tens)) then
+			fname		=	'ahc_tens.dat'
+			info_string	=	'# anomalous Hall conductivity tensor, written '//cTIME(time())
+			id_string	=	'ahc'
+			call	write_tens_file(ahc_out_dir,	fname,	ahc_tens,	info_string,	id_string)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor on ",n_ki_glob," kpts"
+		end if
 		!
-		fname		=	'opt_Asymm.dat'
-		info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
-		id_string	=	'optA'
-		call 	write_tens_file(opt_out_dir,	fname,	a_symm,	info_string,	id_string)
+		!
+		if(allocated(velo_ahc_tens)) then
+			fname		=	'ahc_velo.dat'
+			info_string	=	'# anomalous Hall conductivity tensor (via velocity kubo), written '//cTIME(time())
+			id_string	=	'ahcVELO'
+			call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC (via velo) tensor on ",n_ki_glob," kpts"
+		end if
+		!
+		!
+		return
+	end subroutine
+
+
+	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm)
+		integer,					intent(in)		::	n_ki_glob
+		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:),	a_symm(:,:)
+		character(len=13)									::	fname
+		character(len=70)									::	info_string
+		character(len=4)									::	id_string
+		!
+		!
+		if(allocated(s_symm)) then
+			fname		=	'opt_Ssymm.dat'
+			info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
+			id_string	=	'optS'
+			call 	write_tens_file(opt_out_dir,	fname,	s_symm,	info_string,	id_string)
+		end if
+		!
+		if(allocated(a_symm)) then
+			fname		=	'opt_Asymm.dat'
+			info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
+			id_string	=	'optA'
+			call 	write_tens_file(opt_out_dir,	fname,	a_symm,	info_string,	id_string)
+			!
+			!
+			if(allocated(s_symm)) then
+				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
+			end if
+		end if
+		!
 		!
 		return
 	end subroutine	
 
 
-	subroutine write_gyro_tensors(C_tens, D_tens, Dw_tens)
-		complex(dp),	intent(in)		::	C_tens(3,3),	D_tens(3,3), Dw_tens(3,3)
-		character(len=13)					::	fname
-		character(len=70)					::	info_string
-		character(len=6)					::	id_string
+	subroutine write_gyro_tensors(n_ki_glob, C_tens, D_tens, Dw_tens)
+		integer,					intent(in)		::	n_ki_glob
+		complex(dp),	allocatable, intent(in)				::	C_tens(:,:),	D_tens(:,:), Dw_tens(:,:)
+		character(len=13)									::	fname
+		character(len=70)									::	info_string
+		character(len=6)									::	id_string
 		!
-		fname		=	'gyro_C.dat'
-		info_string	=	'# the C tensor from arXiv:1710.03204v2, written '//cTIME(time())
-		id_string	=	'gyroC'
-		call	write_tens_file(gyro_out_dir,	fname,	C_tens,	info_string,	id_string)
+		if(allocated(C_tens)) then
+			fname		=	'gyro_C.dat'
+			info_string	=	'# the C tensor from arXiv:1710.03204v2, written '//cTIME(time())
+			id_string	=	'gyroC'
+			call	write_tens_file(gyro_out_dir,	fname,	C_tens,	info_string,	id_string)
+		end if
 		!
-		fname		=	'gyro_D.dat'
-		info_string	=	'# the D tensor from arXiv:1710.03204v2, written '//cTIME(time())
-		id_string	=	'gyroD'
-		call	write_tens_file(gyro_out_dir,	fname,	D_tens,	info_string,	id_string)
+		if(allocated(D_tens)) then
+			fname		=	'gyro_D.dat'
+			info_string	=	'# the D tensor from arXiv:1710.03204v2, written '//cTIME(time())
+			id_string	=	'gyroD'
+			call	write_tens_file(gyro_out_dir,	fname,	D_tens,	info_string,	id_string)
+		end if
 		!
-		fname		=	'gyro_Dw.dat'
-		info_string	=	'# the Dw tensor from arXiv:1710.03204v2, written '//cTIME(time())
-		id_string	=	'gyroDw'
-		call	write_tens_file(gyro_out_dir,	fname,	Dw_tens,	info_string,	id_string)
-
+		if(allocated(Dw_tens)) then
+			fname		=	'gyro_Dw.dat'
+			info_string	=	'# the Dw tensor from arXiv:1710.03204v2, written '//cTIME(time())
+			id_string	=	'gyroDw'
+			call	write_tens_file(gyro_out_dir,	fname,	Dw_tens,	info_string,	id_string)
+		end if
+		!
+		!
+		if(allocated(C_tens) .and. allocated(D_tens) .and. allocated(Dw_tens)) then
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated GYRO tensors on ",n_ki_glob," kpts"
+		end if
+		!
 		return
 	end subroutine
 
 
-	!private write helpers
 
+
+
+!private write helpers
 	subroutine d_write_tens_file(dir, fname,tens, info_string, id_string)
 		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
 		real(dp),			intent(in)		::	tens(3,3)
@@ -376,7 +446,7 @@ module file_io
 			end do
 			write(w_unit,*)	'end '//id_string
 		close(w_unit)
-		write(*,'(a,i3,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: success!"
+		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",fname," written  successfully!"
 		!
 		!
 		return
@@ -396,7 +466,7 @@ module file_io
 			end do
 			write(255,*)	'end '//id_string
 		close(255)
-		write(*,'(a,i3,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: success!"
+		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",fname," written successfully!"
 		!
 		!
 		return
