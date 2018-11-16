@@ -19,10 +19,11 @@ contains
 !MEP RESPONSES
 	pure function mep_niu_CS(A_ka, Om_kab) result(cs_tens)
 		complex(dp),	allocatable, 	intent(in)		::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		real(dp)										::	cs_tens(3,3)
+		real(dp), 	allocatable							::	cs_tens(:,:,:)
 		complex(dp)										::	cs_scal, om_vect(3)
 		integer											::	n0, i
 		!
+		allocate(	cs_tens(3,3,valence_bands)	)
 		cs_tens	=	0.0_dp
 		if(	allocated(A_ka)		.and.		allocated(Om_kab)		)then
 			cs_scal	= 0.0_dp
@@ -30,12 +31,15 @@ contains
 			!	sum over valence
 			do n0 = 1, valence_bands
 				call convert_tens_to_vect(	Om_kab(:,:,n0,n0),		om_vect(:)	)
-				cs_scal	= cs_scal +	 0.5_dp  *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	om_vect(:)	)			)
+				!cs_scal	= cs_scal +	 	0.5_dp  *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	om_vect(:)	)			)
+				do i = 1, 3
+					cs_tens(i,i,n0)	=	0.5_dp  *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	om_vect(:)	)			)
+				end do
 			end do
 			!
-			do i = 1, 3
-				cs_tens(i,i)	= real(cs_scal,dp)
-			end do
+			!do i = 1, 3
+			!	cs_tens(i,i)	= real(cs_scal,dp)
+			!end do
 		end if
 		!
 		return
@@ -47,7 +51,7 @@ contains
 		!
 		complex(dp),		intent(in)		::	velo(:,:,:)
 		real(dp),			intent(in)		::	En(:)
-		real(dp)							::	F3(3,3)
+		real(dp),			allocatable		::	F3(:,:,:)
 		integer								::	n0, n, neglected, tot, 		&
 												j, k, l
 		real(dp) 							::	pre_fact, velo_nom(3), en_denom
@@ -55,6 +59,7 @@ contains
 		neglected	= 0
 		tot 		= 0
 		!
+		allocate(	F3(3,3,valence_bands)	)
 		F3	= 0.0_dp
 		do n0 = 1, valence_bands
 			!
@@ -74,7 +79,7 @@ contains
 			 						!	
 			 						if(		 abs(pre_fact) 	> 1e-1_dp	) then
 			 							velo_nom(:)	=	real(		velo(:,n0,n) * velo(k,n,n0) * velo(l,n0,n0)		, dp)
-			 							F3(:,j)		= 	F3(:,j) 	+	pre_fact   * velo_nom(:)	/	en_denom	
+			 							F3(:,j,n0)		= 	F3(:,j,n0) 	+	pre_fact   * velo_nom(:)	/	en_denom	
 			 						end if
 			 						!
 			 					end do
@@ -98,7 +103,7 @@ contains
 		!
 		complex(dp),		intent(in)		::	velo(:,:,:)
 		real(dp),			intent(in)		::	En(:)
-		real(dp)							::	F2(3,3)
+		real(dp),			allocatable		::	F2(:,:,:)
 		integer								::	n0, m, n, 		&
 												j, k, l,		&
 												neglected, tot
@@ -106,6 +111,8 @@ contains
 		!
 		neglected	= 0
 		tot 		= 0
+		!
+		allocate(	F2(3,3,valence_bands)	)
 		!
 		F2	= 0.0_dp
 		do n0 = 1, valence_bands
@@ -127,7 +134,7 @@ contains
 				 						!
 				 						if(		 abs(pre_fact) 	> 1e-1_dp	) then
 											velo_nom(:)	=	real(		velo(:,n0,n) * velo(k,n,m) * velo(l,m,n0)	, dp)
-				 							F2(:,j)		= 	F2(:,j)		+	pre_fact  * velo_nom(:)	/	en_denom	
+				 							F2(:,j,n0)	= 	F2(:,j,n0)		+	pre_fact  * velo_nom(:)	/	en_denom	
 				 						end if
 				 						!
 				 					end do
