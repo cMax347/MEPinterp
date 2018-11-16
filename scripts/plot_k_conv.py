@@ -102,8 +102,8 @@ class conv_data:
 					for mep_lc in self.mep_lc_lst:
 						mep_lc_ab.append(	mep_lc[a][b])	
 
-					for idx, mep_tot in enumerate(self.mep_cs_lst):
-						mep_py_ab.append(	self.mep_lc_lst[idx][a][b] + self.mep_ic_lst[idx][a][b] + self.mep_cs_lst[idx][a][b]	)
+					#for idx, mep_tot in enumerate(self.mep_cs_lst):
+					#	mep_py_ab.append(	self.mep_lc_lst[idx][a][b] + self.mep_ic_lst[idx][a][b] + self.mep_cs_lst[idx][a][b]	)
 
 					#for mep_14 in self.mep_2014_lst:
 					#	mep_14_ab.append(	mep_14[a][b])
@@ -111,11 +111,11 @@ class conv_data:
 				fig, ax  = plt.subplots(1,1) 
 				plt.semilogx(nK_plot, mep_tot_ab, '+-'	,color='black' ,label="tot")
 				if show_indi_mep:
-					#plt.semilogx(nK_plot, mep_cs_ab,	'--',	color='red',		label="CS"	)					
-					#plt.semilogx(nK_plot, mep_lc_ab,	'o-',	color='darkblue',		label="LC"	)
-					#plt.semilogx(nK_plot, mep_ic_ab,	'^-',	color='lightblue',		label="IC"	)
+					plt.semilogx(nK_plot, mep_cs_ab,	'--',	color='red',		label="CS"	)					
+					plt.semilogx(nK_plot, mep_lc_ab,	'o-',	color='darkblue',		label="LC"	)
+					plt.semilogx(nK_plot, mep_ic_ab,	'^-',	color='lightblue',		label="IC"	)
 					
-					plt.semilogx(nK_plot, mep_py_ab , '+-', color='orange', label="py sumed")
+					#plt.semilogx(nK_plot, mep_py_ab , '+-', color='orange', label="py sumed")
 					
 
 					#plt.semilogx(nK_plot, mep_14_ab,	'v-',	color='magenta',	label="2014")
