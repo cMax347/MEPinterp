@@ -96,8 +96,7 @@ contains
 		integer								::	kix, kiy, kiz, ki, 						&
 												mp_grid(3), n_ki_loc, 					&
 												ic_skipped, lc_skipped
-		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
-												A_ka(:,:,:), Om_kab(:,:,:,:),			&
+		complex(dp),	allocatable			::	A_ka(:,:,:), Om_kab(:,:,:,:),			&
 												V_ka(:,:,:)
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
 												mep_tens_ic_loc(	:,:,:),	 			&
@@ -129,10 +128,11 @@ contains
 		if(use_mpi) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		if(mpi_id==mpi_root_id)	then
 			write(*,*)	"*"
-			write(*,*)	"----------------------GET REAL SPACE BASIS---------------------------"
+			write(*,*)	"----------------------GET REAL SPACE BASIS (DISABLED IN 3Q-STATE)---------------------------"
 		end if
-		call read_tb_basis(			seed_name, R_vect,		H_tb, r_tb					)
-		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
+	
+
+
 		call print_basis_info()
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	INTERPOLATE
 						!----------------------------------------------------------------------------------------------------------------------------------
-						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
+						call get_wann_interp(do_gauge_trafo,  ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
