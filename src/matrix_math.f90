@@ -153,6 +153,7 @@ module matrix_math
             if(n /= size(A,2)) then
             	write(*,*)"[eigSolver]: WARNING the matrix to solve is not a square matrix"
             end if
+            if(n /= size(w))    stop "[eigSolver]: eigval array has wrong size"
             lwork  	=   n*n + 2*n
             lrwork 	= 2*n*n + 5*n + 1
             liwork 	=         5*n + 3
