@@ -17,8 +17,8 @@ module wrapper_3q
 
 
 	!PUBLIC:
-	subroutine get_ham(kpt_dp,	H_dp, V_dp)
-		real(dp),		intent(in)							::	kpt_dp(3)
+	subroutine get_ham(rel_kpt_dp,	H_dp, V_dp)
+		real(dp),		intent(in)							::	rel_kpt_dp(3)
 		complex(dp),	allocatable,	intent(inout)		::	H_dp(:,:),	V_dp(:,:,:)
 		complex(sp),	allocatable							::	H_sp(:,:),	vx_sp(:,:), vy_sp(:,:),	vz_sp(:,:)
 		integer												::	num_wann	
@@ -28,8 +28,10 @@ module wrapper_3q
 		!			ALLOCATE																  |
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		num_wann	=	8
-		allocate(		H_sp(	num_wann,	num_wann)		)
-		allocate(		H_dp(	num_wann,	num_wann)		)
+		allocate(		H_sp(		num_wann,	num_wann)		)
+		allocate(		H_dp(		num_wann,	num_wann)		)
+		allocate(		V_dp(	3,	num_wann,	num_wann)		)
+
 		!
 		if(	allocated(	V_dp)	) then
 			allocate(	vx_sp(	num_wann,	num_wann ))				
@@ -53,12 +55,12 @@ module wrapper_3q
 			!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
 			!			ALSO SETUP VELOCITIES												  |
 			!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-			call init_ham(	real(kpt_dp,sp), 	num_wann,	H_sp, 	vx_sp, vy_sp, vz_sp	)
+			call init_ham(	real(rel_kpt_dp,sp), 	num_wann,	H_sp, 	vx_sp, vy_sp, vz_sp	)
 		else
 			!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
 			!			SETUP HAM ONLY														  |
 			!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-			call init_ham( 	real(kpt_dp,sp), 	num_wann,	H_sp						)
+			call init_ham( 	real(rel_kpt_dp,sp), 	num_wann,	H_sp						)
 		end if
 		!
 		!
