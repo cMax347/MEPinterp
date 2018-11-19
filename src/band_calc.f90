@@ -26,8 +26,8 @@ contains
 	subroutine band_worker()
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:)
 		real(dp)							::	recip_latt(3,3)
-		integer								::	num_kpts, ki, k_per_mpi
-		complex(dp),	allocatable			::	H_k(:,:)
+		integer								::	num_kpts, num_wann, ki, k_per_mpi
+		complex(dp),	allocatable			::	H_k(:,:),	v_dummy(:,:,:)
 		logical								::	do_gauge_trafo
 		!
 		if(mpi_id==mpi_root_id)	then
@@ -65,8 +65,11 @@ contains
 			do_gauge_trafo	= .false. !eigenvalues are gauge independent
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
-				call get_ham(rel_kpts(:,ki),	H_k	)
-				call zheevd_wrapper(H_k, e_k)
+				!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
+				!			ONLY GET HAM															 |
+				!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+				call get_ham(rel_kpts(:,ki),	H_k,	v_dummy	)
+				call zheevd_wrapper(H_k, en_k)
 
 				call write_en_binary(ki,en_k)
 				k_per_mpi	= k_per_mpi + 1
@@ -76,7 +79,7 @@ contains
 			!
 			!
 			!	write the results
-			if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+			if(mpi_nProcs>1)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 			if(mpi_id == mpi_root_id)	then
 				call write_en_global(rel_kpts)
 				write(*,*)'---------------------------------------------------------------------------------------------'
