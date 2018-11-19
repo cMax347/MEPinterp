@@ -46,55 +46,45 @@ module wann_interp
 
 
 !public:
-	subroutine get_wann_interp(		do_gauge_trafo				&
+	subroutine get_wann_interp(		do_gauge_trafo,				&
 									kpt_idx, kpt_rel, 			&
-									e_k, V_ka, A_ka, Om_kab		&
+									e_k, V_ka, 					&
+									dummy_conn, dummy_curv		&
 							)
 		!
 		!	interpolates the k-space:
-		!			-	H_k	: 		hamiltonian
-		!			-	H_ka:		k-space derivative of Ham 			
-		!			-	A_ka:		Berry conncection (only if r_real given)	
-		!			-	Om_kab:		Berry curvature	
-		!the real space basis (H_real (real space Hamiltonian) and optionally r_real (real space postition operator)	)
+		!			-	U_k	: 		hamiltonian, zheevd_wrapper overwrites to unitary gauge_trafo matrix ("hamiltonian gauge")
+		!			-	dummy_conn:		since setup is in k-space no connection is given	
+		!			-	dummy_curv:		since setup is in k-space no curv is given
+		!
 		!
 		!	see 	>>>	PRB 74, 195118 (2006)	<<<			for more details on Wannier interpolation
 		!
 		logical,						intent(in)				::	do_gauge_trafo
-		integer,						intent(in)				::	kpt_idx,	num_wann
+		integer,						intent(in)				::	kpt_idx
 		real(dp),						intent(in)				::	kpt_rel(3)															
 		real(dp),		allocatable,	intent(inout)			::	e_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		
-		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
-		!
-		!
-		num_wann	=	8
-
-		allocate(	e_k(					num_wann				)		)
-		allocate(	U_k(			num_wann,		num_wann		)		)		
-		allocate(	V_ka(	3	,	num_wann,		num_wann		)		)
-		allocate(	H_ka(	3	,	num_wann,		num_wann	 	)		)
+		complex(dp),	allocatable,	intent(inout)			::	dummy_conn(:,:,:), dummy_curv(:,:,:,:)	!DO NOT ALLOCATE DUMMYS, DUMMY
+		complex(dp),	allocatable								::	U_k(:,:)
 		!
 		!
 		!todo:	get k_space hamiltonian and store it in U_k
 		write(*,*)	"[get_wann_interp]	WARNING	get_ham takes relative kpt for now (todo: fix this)"	
-		call get_ham(kpt_rel,	U_k)
+		call get_ham(kpt_rel,	U_k, V_ka)
 
 
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
 		!
 		!rotate back to (H)-gauge
-		if( allocated(V_ka)	.and. do_gauge_trafo	)			call W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
-		if(	allocated(V_ka)							)			call get_velo(e_k, H_ka, A_ka, 	V_ka)
+		if( allocated(V_ka)	.and. do_gauge_trafo	)			call W_to_H_gaugeTRAFO(e_k, U_k, V_ka, dummy_conn, dummy_curv)
 		!
 		!
 		!	DEBUG
 		if(debug_mode)	then
-			call check_H_gauge_herm(kpt_idx, kpt_rel, A_ka, Om_kab, V_ka)
-			if(allocated(V_ka)	.and. do_write_velo)	call debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
+			call check_H_gauge_herm(kpt_idx, kpt_rel, dummy_conn, dummy_curv, V_ka)
+			if(allocated(V_ka)	.and. do_write_velo)	call debug_write_velo_files(kpt_idx, e_k, V_ka, dummy_conn, V_ka)
 		end if
 		!
 		return
