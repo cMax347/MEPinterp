@@ -141,7 +141,7 @@ module input_paras
 				!
 				!
 				write(*,*)					""
-				write(*,*)					"**********************init_parameter interpretation******************************"
+				write(*,*)					"**********************init_parameter interpretation (3q state mode most paras will be ignored)******************************"
 				write(*,*)					"parallelization with ",mpi_nProcs," MPI threads"
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
 				write(*,*)					"[methods]"
