@@ -21,6 +21,7 @@ module wann_interp
 									is_skew_herm_mat		
 	use input_paras,	only:		kubo_tol, debug_mode,	&
 									do_write_velo
+	use wrapper_3q,		only:		get_ham
 	use file_IO,		only:		write_velo
 
 
@@ -45,9 +46,9 @@ module wann_interp
 
 
 !public:
-	subroutine get_wann_interp(		do_gauge_trafo, H_real, r_real, 					&
-									a_latt, recip_latt, R_frac, kpt_idx, kpt_rel, 		&
-									e_k, V_ka, A_ka, Om_kab								&
+	subroutine get_wann_interp(		do_gauge_trafo				&
+									kpt_idx, kpt_rel, 			&
+									e_k, V_ka, A_ka, Om_kab		&
 							)
 		!
 		!	interpolates the k-space:
@@ -60,25 +61,28 @@ module wann_interp
 		!	see 	>>>	PRB 74, 195118 (2006)	<<<			for more details on Wannier interpolation
 		!
 		logical,						intent(in)				::	do_gauge_trafo
-		complex(dp),					intent(in)				::	H_real(:,:,:)
-		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
-		integer,						intent(in)				::	kpt_idx
-		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	& 
-																	R_frac(:,:), kpt_rel(3)	
-		real(dp),						intent(out)				::	e_k(:)
+		integer,						intent(in)				::	kpt_idx,	num_wann
+		real(dp),						intent(in)				::	kpt_rel(3)															
+		real(dp),		allocatable,	intent(inout)			::	e_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		
 		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
 		!
 		!
-								allocate(	U_k(			size(H_real,1),		size(H_real,2)		)		)		
-		if(	allocated(V_ka)	)	allocate(	H_ka(	3	,	size(H_real,1),		size(H_real,2)	 	)		)
+		num_wann	=	8
+
+		allocate(	e_k(					num_wann				)		)
+		allocate(	U_k(			num_wann,		num_wann		)		)		
+		allocate(	V_ka(	3	,	num_wann,		num_wann		)		)
+		allocate(	H_ka(	3	,	num_wann,		num_wann	 	)		)
 		!
 		!
-		!ft onto k-space (W)-gauge
-		call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
-		!
+		!todo:	get k_space hamiltonian and store it in U_k
+		write(*,*)	"[get_wann_interp]	WARNING	get_ham takes relative kpt for now (todo: fix this)"	
+		call get_ham(kpt_rel,	U_k)
+
+
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
 		!
@@ -103,79 +107,79 @@ module wann_interp
 
 
 !private:
-	subroutine FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
-		!	interpolates real space Ham and position matrix to k-space,
-		!	according to
-		!		PRB 74, 195118 (2006)		EQ.(37)-(40)
-		!
-		!
-		!	->	only the H_real, and H_k have to be allocated
-		!	->	all other quantities are only calculated if allocated
-		!
-		complex(dp),					intent(in)				::	H_real(:,:,:)
-		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
-		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	&
-																	R_frac(:,:), kpt_rel(3)	
-		complex(dp),					intent(out)				::	H_k(:,:)
-		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
-		real(dp)												::	R_abs(3), kpt_abs(3), ft_angle
-		complex(dp)												::	ft_phase
-		logical													::	use_pos_op, do_en_grad
-		integer    												::	sc, a, b 
-		!
-		!jobs
-		do_en_grad		= allocated(H_ka)
-		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
-		!
-		!get absolute kpt
-		kpt_abs		= 	matmul(	recip_latt	, kpt_rel	)	
-		!
-		!init
-						H_k		= 0.0_dp
-		if(do_en_grad)	H_ka	= 0.0_dp
-		if(use_pos_op)	A_ka	= 0.0_dp
-		if(use_pos_op)	Om_kab	= 0.0_dp	
-		!
-		!
-		!sum real space cells
-		do sc = 1, size(R_frac,2)
-			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
-			ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
-			!
-			!ft_phase	=	cmplx(1.0_dp, 0.0_dp, dp)
-			!
-			!Hamilton operator
-			H_k(:,:)				= 	H_k(:,:)			+	ft_phase 					* H_real(:,:,sc)	
-			!
-			do a = 1, 3
-				!OPTIONAL energy gradients
-				if( do_en_grad)		then
-					H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * R_abs(a) * H_real(:,:,sc)
-				end if
-				!OPTIONAL position operator
-				if( use_pos_op )	then
-					!connection
-					A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)
-					!curvature
-					do b = 1, 3
-						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * R_abs(a) * r_real(b,:,:,sc)
-						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * R_abs(b) * r_real(a,:,:,sc)
-					end do
-				end if 
-			end do
-			!
-			!
-		end do		
-		!
-		!
-		if(debug_mode) 	then
-			call check_ft_phase(a_latt, R_frac, kpt_abs)
-			call check_W_gauge_herm(kpt_rel, H_k, H_Ka, A_ka, Om_kab)
-		end if
-		!
-		return
-	end subroutine
+!	subroutine FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
+!		!	interpolates real space Ham and position matrix to k-space,
+!		!	according to
+!		!		PRB 74, 195118 (2006)		EQ.(37)-(40)
+!		!
+!		!
+!		!	->	only the H_real, and H_k have to be allocated
+!		!	->	all other quantities are only calculated if allocated
+!		!
+!		complex(dp),					intent(in)				::	H_real(:,:,:)
+!		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
+!		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	&
+!																	R_frac(:,:), kpt_rel(3)	
+!		complex(dp),					intent(out)				::	H_k(:,:)
+!		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
+!		real(dp)												::	R_abs(3), kpt_abs(3), ft_angle
+!		complex(dp)												::	ft_phase
+!		logical													::	use_pos_op, do_en_grad
+!		integer    												::	sc, a, b 
+!		!
+!		!jobs
+!		do_en_grad		= allocated(H_ka)
+!		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
+!		!
+!		!get absolute kpt
+!		kpt_abs		= 	matmul(	recip_latt	, kpt_rel	)	
+!		!
+!		!init
+!						H_k		= 0.0_dp
+!		if(do_en_grad)	H_ka	= 0.0_dp
+!		if(use_pos_op)	A_ka	= 0.0_dp
+!		if(use_pos_op)	Om_kab	= 0.0_dp	
+!		!
+!		!
+!		!sum real space cells
+!		do sc = 1, size(R_frac,2)
+!			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
+!			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
+!			ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
+!			!
+!			!ft_phase	=	cmplx(1.0_dp, 0.0_dp, dp)
+!			!
+!			!Hamilton operator
+!			H_k(:,:)				= 	H_k(:,:)			+	ft_phase 					* H_real(:,:,sc)	
+!			!
+!			do a = 1, 3
+!				!OPTIONAL energy gradients
+!				if( do_en_grad)		then
+!					H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * R_abs(a) * H_real(:,:,sc)
+!				end if
+!				!OPTIONAL position operator
+!				if( use_pos_op )	then
+!					!connection
+!					A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)
+!					!curvature
+!					do b = 1, 3
+!						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * R_abs(a) * r_real(b,:,:,sc)
+!						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * R_abs(b) * r_real(a,:,:,sc)
+!					end do
+!				end if 
+!			end do
+!			!
+!			!
+!		end do		
+!		!
+!		!
+!		if(debug_mode) 	then
+!			call check_ft_phase(a_latt, R_frac, kpt_abs)
+!			call check_W_gauge_herm(kpt_rel, H_k, H_Ka, A_ka, Om_kab)
+!		end if
+!		!
+!		return
+!	end subroutine
 
 
 
