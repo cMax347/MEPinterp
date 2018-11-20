@@ -394,17 +394,15 @@ contains
 			do n0 = 1, valence_bands
 				mep_sum_ic_loc(:,:)	=	mep_sum_ic_loc(:,:)	+	mep_tens_ic_loc(:,:,n0)
 				mep_sum_lc_loc(:,:)	=	mep_sum_lc_loc(:,:)	+	mep_tens_lc_loc(:,:,n0)
-				mep_sum_cs_loc(:,:)	=	mep_sum_cs_loc(:,:)	+	mep_tens_cs_loc(:,:,n0)			
+				mep_sum_cs_loc(:,:)	=	mep_sum_cs_loc(:,:)	+	mep_tens_cs_loc(:,:,n0)
+				!
+				if(do_write_mep_bands) then
+					mep_bands_loc(:,:,n0)	=	mep_tens_ic_loc(:,:,n0) + mep_tens_lc_loc(:,:,n0)	+ mep_tens_cs_loc(:,:,n0)
+				end if			
 			end do
 			!
-			!
-			if(do_write_mep_bands)	then
-				do n0 = 1, valence_bands
-					mep_bands_loc(:,:,n0)	=	mep_tens_ic_loc(:,:,n0) + mep_tens_lc_loc(:,:,n0)	+ mep_tens_cs_loc(:,:,n0)
-				end do
-			end if
 		end if
-
+		!
 		return 
 	end subroutine
 !
