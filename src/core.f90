@@ -399,7 +399,6 @@ contains
 			!
 			!
 			if(do_write_mep_bands)	then
-				allocate(	mep_bands_loc( 3,3,valence_bands)	)
 				do n0 = 1, valence_bands
 					mep_bands_loc(:,:,n0)	=	mep_tens_ic_loc(:,:,n0) + mep_tens_lc_loc(:,:,n0)	+ mep_tens_cs_loc(:,:,n0)
 				end do
