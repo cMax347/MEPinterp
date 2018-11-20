@@ -20,7 +20,7 @@ class MEP_worker:
 	def __init__(		self, root_dir, work_dir, phi, val_bands, mp_grid, 
 						kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 
 						debug_mode='F', do_gauge_trafo='T',	
-						do_write_velo='F',
+						do_write_velo='F', do_write_mep_bands='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 						):
 		self.root_dir		=	root_dir
@@ -37,6 +37,7 @@ class MEP_worker:
 		self.debug_mode		=	debug_mode
 		self.do_gauge_trafo	=	do_gauge_trafo
 		self.do_write_velo	=	do_write_velo
+		self.do_write_mep_bands	=	do_write_mep_bands
 		self.do_mep			=	do_mep
 		self.do_kubo		=	do_kubo
 		self.do_ahc			=	do_ahc
@@ -62,7 +63,7 @@ class MEP_worker:
 		write_souza_tb_input(		self.work_dir, self.phi, self.val_bands, self.mp_grid, 					
 									self.kubo_tol, self.hw, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
 									self.plot_bands, self.debug_mode, self.do_gauge_trafo,
-									self.do_write_velo,
+									self.do_write_velo, self.do_write_mep_bands,
 									self.do_mep, self.do_kubo, self.do_ahc, self.do_opt, self.do_gyro			 
 							)
 		copy(self.root_dir+'/../mepInterp',	self.work_dir)

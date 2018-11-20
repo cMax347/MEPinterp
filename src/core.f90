@@ -292,9 +292,11 @@ contains
 		call mpi_reduce_tens(	n_ki_loc,				n_ki_glob		)
 		!
 		call mpi_reduce_tens(	mep_bands_loc	,	mep_bands_glob		)
+
 		call mpi_reduce_tens(	mep_sum_ic_loc	,	mep_sum_ic_glob		)
 		call mpi_reduce_tens(	mep_sum_lc_loc	,	mep_sum_lc_glob		)
 		call mpi_reduce_tens(	mep_sum_cs_loc	,	mep_sum_cs_glob		)
+		!
 		call mpi_reduce_tens(	kubo_mep_ic_loc	,	kubo_mep_ic_glob	)
 		call mpi_reduce_tens(	kubo_mep_lc_loc	,	kubo_mep_lc_glob	)
 		call mpi_reduce_tens(	kubo_mep_cs_loc	,	kubo_mep_cs_glob	)
@@ -380,14 +382,12 @@ contains
 			mep_sum_ic_loc		=	0.0_dp
 			mep_sum_lc_loc		=	0.0_dp
 			mep_sum_cs_loc		=	0.0_dp
-
+			!
 			if(do_write_mep_bands)		then			
 				allocate(	mep_bands_loc(		3,	3,	valence_bands	))
 				mep_bands_loc	=	0.0_dp
 			end if
 			!
-			
-
 			do n0 = 1, valence_bands
 				mep_sum_ic_loc(:,:)	=	mep_sum_ic_loc(:,:)	+	mep_bands_ic_loc(:,:,n0)
 				mep_sum_lc_loc(:,:)	=	mep_sum_lc_loc(:,:)	+	mep_bands_lc_loc(:,:,n0)

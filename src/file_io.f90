@@ -218,15 +218,19 @@ module file_io
 			write(*,*)	"--------------------------"
 			write(*,*)	"*"
 			write(*,*)	"*"
+			!	write sum to file
+			write(info_string,*)		'# mep sum over band contributions (this should be the equivalent to mep_tens.dat)'
+			fname		='mep_band.sum'
+			call 	write_tens_file(	mep_out_dir,	trim(fname),	mep_sum,	info_string,	id_string)
 		end if
 		!
 		return
 	end subroutine
 
 
-	subroutine write_mep_tensors(n_ki_glob, mep_2014, mep_ic, mep_lc, mep_cs)
+	subroutine write_mep_tensors(n_ki_glob, mep_ic, mep_lc, mep_cs)
 		integer,					intent(in)		::	n_ki_glob
-		real(dp),	allocatable,	intent(in)		::	mep_2014(:,:), mep_ic(:,:), mep_lc(:,:), mep_cs(:,:)
+		real(dp),	allocatable,	intent(in)		::	mep_ic(:,:), mep_lc(:,:), mep_cs(:,:)
 		real(dp),	allocatable						::	mep_tens(:,:)
 		character(len=12)							::	fname
 		character(len=100)							::	info_string
@@ -247,14 +251,6 @@ module file_io
 				write(*,*)	mep_tens(row,:)
 			end do
 		end if
-		!-------------------------------------niu 2014 paper version of mep tensor-------------
-		if(allocated(mep_2014)) then
-			fname		= 	'mep_14.dat'
-			info_string	= 	'# 2014 original paper version of mep tensor, written '//cTIME(time())
-			!
-			call	write_tens_file(mep_out_dir,	fname,	mep_2014,	info_string,	id_string )
-		end if
-		!
 		!
 		!-------------------------------------itinerant contribution MEP tensor-------------
 		if(allocated(mep_ic)) then

@@ -101,7 +101,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 
 def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,			
 							kubo_tol=1e-3, hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  	 
-							plot_bands='F',	debug_mode='F', do_gauge_trafo='T', do_write_velo='F',									
+							plot_bands='F',	debug_mode='F', do_gauge_trafo='T', do_write_velo='F',	do_write_mep_bands='F',								
 							do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'		
 						):
 	with open(file_path+'input.cfg','w') as outfile:
@@ -141,6 +141,7 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 		#
 		outfile.write('[MEP]\n')
 		outfile.write('    '	+	'valence_bands= '	+	str(valence_bands)	+	'\n')
+		outfile.write('    '	+	'do_write_mep_bands= '+	str(do_write_mep_bands)+'\n')
 		#
 		#
 		outfile.write('[Kubo]\n')
@@ -169,7 +170,7 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 def write_souza_tb_input(	root_dir, phi_para, valence_bands, mp_grid ,						
  							kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 	
  							plot_bands='F', debug_mode='F' ,do_gauge_trafo='T',	
- 							do_write_velo='F',				
+ 							do_write_velo='F',	do_write_mep_bands='F',			
  							do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'		
  						):
 	target_dir_name	= 'w90files'
@@ -199,7 +200,7 @@ def write_souza_tb_input(	root_dir, phi_para, valence_bands, mp_grid ,
 	write_mepInterp_input(	 root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,	
 							kubo_tol, hw,eFermi, Tkelvin,eta_smearing, 							
 							plot_bands, debug_mode, do_gauge_trafo,	
-							do_write_velo,							
+							do_write_velo, do_write_mep_bands,							
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro							
 						)
 

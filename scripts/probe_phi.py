@@ -12,7 +12,7 @@ class Phi_probe:
 
 	def __init__(		self,n_phi, val_bands, mp_grid, gamma_scale, kubo_tol, 	
 						hw, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
-						do_write_velo='F',
+						do_write_velo='F', do_write_mep_bands='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 						):
 		self.n_phi 			= 	n_phi
@@ -27,6 +27,7 @@ class Phi_probe:
 		self.debug_mode		= 	debug_mode 
 		self.do_gauge_trafo	= 	do_gauge_trafo
 		self.do_write_velo	=	do_write_velo
+		self.do_write_mep_bands	=	do_write_mep_bands
 		self.do_mep			=	do_mep
 		self.do_kubo		=	do_kubo
 		self.do_ahc			=	do_ahc
@@ -82,6 +83,7 @@ class Phi_probe:
 									self.debug_mode,
 									self.do_gauge_trafo,
 									self.do_write_velo,
+									self.do_write_mep_bands,
 									self.do_mep,
 									self.do_kubo,
 									self.do_ahc,
@@ -230,6 +232,7 @@ def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
 					debug_mode		=	True, 
 					do_gauge_trafo	=	True,
 					do_write_velo	=	False,
+					do_write_mep_bands	= False,
 					do_mep			=	'T', 
 					do_kubo			=	'F', 
 					do_ahc			=	'F', 
@@ -238,7 +241,7 @@ def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
 				):
 	myTest	= Phi_probe(	n_phi, val_bands, mp_grid, gamma_scale, 
 							kubo_tol, hw, eFermi, Tkelvin, eta_smearing,
-							debug_mode, do_gauge_trafo, do_write_velo,
+							debug_mode, do_gauge_trafo, do_write_velo, do_write_mep_bands,
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro	
 						)
 	#
@@ -262,12 +265,13 @@ probe_phi(		n_phi			= 21				,
 				val_bands		= 2					, 
 				mp_grid			= [16,16,16]		, 
 				mpi_np			= 4					,
-				gamma_scale		= 7.7481e-5			,
+				gamma_scale		= 1.0			,
 				kubo_tol=1e-5, hw=0.0, eFermi=0.0, Tkelvin=10.0, eta_smearing=0.1, 
 				plot_bands		= False				, 
 				debug_mode		= True				, 
 				do_gauge_trafo	= True				,	
 				do_write_velo	= False				,
+				do_write_mep_bands	=	False		,
 				do_mep			= 'T'				, 
 				do_kubo			= 'F'				, 
 				do_ahc			= 'F'				, 
