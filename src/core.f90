@@ -39,9 +39,8 @@ module core
 	use wann_interp,	only:	get_wann_interp
 	!
 	use mep_niu,		only:	mep_niu_CS,	mep_niu_IC, mep_niu_LC
-	use mep_niu2014,	only:	mep_niu2014_full
-	use kubo,			only:	kubo_ahc_tens, velo_ahc_tens, kubo_opt_tens
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
+	use kubo,			only:	kubo_ahc_tens, velo_ahc_tens, kubo_opt_tens
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
 	!
 	use file_io,		only:	read_tb_basis,									&
@@ -79,14 +78,20 @@ contains
 												sum_N_el_loc, 							&
 												kpt(3),	recip_latt(3,3)
 												!local sum targets:
-		real(dp),		allocatable			::	mep_2014_loc(		:,:),				&
+		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
+												mep_bands_ic_loc(	:,:,:),	 			&
+												mep_bands_lc_loc(	:,:,:),				&
+												mep_bands_cs_loc(	:,:,:),				&
 												kubo_ahc_loc(		:,:),				&
 												velo_ahc_loc(		:,:),				&
 												kubo_mep_ic_loc(	:,:),				&
 												kubo_mep_lc_loc(	:,:),				&
 												kubo_mep_cs_loc(	:,:)
 												!
-		complex(dp),	allocatable			::	tempS(:,:), 	tempA(:,:),				&
+		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
+												A_ka(:,:,:), Om_kab(:,:,:,:),			&
+												V_ka(:,:,:),							&
+												tempS(:,:), 	tempA(:,:),				&
 												kubo_opt_s_loc(		:,:),				&
 												kubo_opt_a_loc(		:,:),				&
 												gyro_D_loc(			:,:),				&
@@ -96,19 +101,11 @@ contains
 		integer								::	kix, kiy, kiz, ki, 						&
 												mp_grid(3), n_ki_loc, 					&
 												ic_skipped, lc_skipped
-		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
-												A_ka(:,:,:), Om_kab(:,:,:,:),			&
-												V_ka(:,:,:)
-		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
-												mep_tens_ic_loc(	:,:,:),	 			&
-												mep_tens_lc_loc(	:,:,:),				&
-												mep_tens_cs_loc(	:,:,:)
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	allocate
 		!----------------------------------------------------------------------------------------------------------------------------------
 		call allo_core_loc_arrays(	N_el_k, sum_N_el_loc, max_n_el, min_n_el,										&
-									mep_2014_loc,																	&
-									mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,								&	
+									mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,								&	
 									kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
 									kubo_ahc_loc, velo_ahc_loc,														&
 									tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
@@ -155,11 +152,9 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
 						!----------------------------------------------------------------------------------------------------------------------------------
-						if(	allocated(mep_tens_ic_loc)	)		mep_tens_ic_loc	=	mep_tens_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
-						if( allocated(mep_tens_lc_loc)	)		mep_tens_lc_loc	=	mep_tens_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
-						if( allocated(mep_tens_cs_loc)	)		mep_tens_cs_loc =	mep_tens_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
-						!
-						if( allocated(mep_2014_loc)		)		mep_2014_loc	=	mep_2014_loc	+	mep_niu2014_full(V_ka, en_k)
+						if(	allocated(mep_bands_ic_loc)	)		mep_bands_ic_loc	=	mep_bands_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
+						if( allocated(mep_bands_lc_loc)	)		mep_bands_lc_loc	=	mep_bands_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
+						if( allocated(mep_bands_cs_loc)	)		mep_bands_cs_loc 	=	mep_bands_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	KUBO MEP (MEP with fermi_dirac)
@@ -221,9 +216,8 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	REDUCE MPI & WRITE FILES
 		!----------------------------------------------------------------------------------------------------------------------------------
-		call norm_K_int_and_write(			n_ki_loc,																	&
-										mep_2014_loc,																	&
-										mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,								&	
+		call norm_K_int_and_write(		n_ki_loc,																		&
+										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,							&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
 										kubo_ahc_loc, velo_ahc_loc,														&
 										kubo_opt_s_loc, kubo_opt_a_loc,													&
@@ -250,12 +244,11 @@ contains
 !	HELPERS
 	!----------------------------------------------------------------------------------------------------------------------------------	
 	subroutine norm_K_int_and_write(		n_ki_loc, 																&
-									mep_2014_loc,																		&
-									mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,									&	
-									kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,									&									
-									kubo_ahc_loc, velo_ahc_loc,															&
-									kubo_opt_s_loc, kubo_opt_a_loc,														&
-									gyro_C_loc, gyro_D_loc, gyro_Dw_loc													&
+										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,						&	
+										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,							&									
+										kubo_ahc_loc, velo_ahc_loc,													&
+										kubo_opt_s_loc, kubo_opt_a_loc,												&
+										gyro_C_loc, gyro_D_loc, gyro_Dw_loc											&
 							)
 		!-----------------------------------------------------------------------------------------------------------
 		!		local:		sum of k-points	 over local( within single mpi) thread
@@ -264,8 +257,7 @@ contains
 		!			mep_tens_ic_loc, , mep_tens_lc_loc, mep_tens_cs_loc ar given as arrays over valence bands
 		!-----------------------------------------------------------------------------------------------------------
 		integer,						intent(in)		::	n_ki_loc 	
-		real(dp),		allocatable,	intent(inout)	::	mep_2014_loc(:,:),														&
-															mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),	&
+		real(dp),		allocatable,	intent(inout)	::	mep_bands_ic_loc(:,:,:), mep_bands_lc_loc(:,:,:), mep_bands_cs_loc(:,:,:),	&
 															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),		&				
 															kubo_ahc_loc(:,:), velo_ahc_loc(:,:)									
 		complex(dp),	allocatable,	intent(inout)	::	kubo_opt_s_loc(:,:), kubo_opt_a_loc(:,:),								&
@@ -274,7 +266,6 @@ contains
 		integer											::	n_ki_glob
 		real(dp), 				allocatable				::	mep_bands_loc(:,:,:),													&
 															mep_bands_glob(:,:,:),													&
-															mep_2014_glob(:,:),														&
 															!
 															mep_sum_ic_loc(:,:), mep_sum_lc_loc(:,:), mep_sum_cs_loc(:,:),			&
 															mep_sum_ic_glob(:,:), mep_sum_lc_glob(:,:), mep_sum_cs_glob(:,:),		&
@@ -287,7 +278,7 @@ contains
 		!-----------------------------------------------------------------------------------------------------------
 		!			sum over bands before communication	(else: expensive )
 		!-----------------------------------------------------------------------------------------------------------		!
-		call mep_sum_bands(		mep_tens_ic_loc, 	mep_tens_lc_loc, 	mep_tens_cs_Loc,	&
+		call mep_sum_bands(		mep_bands_ic_loc, 	mep_bands_lc_loc, 	mep_bands_cs_Loc,	&
 								mep_sum_ic_loc,		mep_sum_lc_loc,		mep_sum_cs_loc,		&
 								mep_bands_loc												&
 			)
@@ -301,7 +292,6 @@ contains
 		call mpi_reduce_tens(	n_ki_loc,				n_ki_glob		)
 		!
 		call mpi_reduce_tens(	mep_bands_loc	,	mep_bands_glob		)
-		call mpi_reduce_tens(	mep_2014_loc	,	mep_2014_glob		)		
 		call mpi_reduce_tens(	mep_sum_ic_loc	,	mep_sum_ic_glob		)
 		call mpi_reduce_tens(	mep_sum_lc_loc	,	mep_sum_lc_glob		)
 		call mpi_reduce_tens(	mep_sum_cs_loc	,	mep_sum_cs_glob		)
@@ -325,11 +315,13 @@ contains
 		!-----------------------------------------------------------------------------------------------------------
 		!			NORMALIZE K-SPACE INTEGRAL
 		!-----------------------------------------------------------------------------------------------------------
-		call normalize_k_int(mep_2014_glob)
 		call normalize_k_int(mep_sum_ic_glob)
 		call normalize_k_int(mep_sum_lc_glob)
 		call normalize_k_int(mep_sum_cs_glob)
 		call normalize_k_int(mep_bands_glob)
+		call normalize_k_int(kubo_mep_ic_glob)
+		call normalize_k_int(kubo_mep_lc_glob)
+		call normalize_k_int(kubo_mep_cs_glob)
 		call normalize_k_int(kubo_ahc_glob)
 		call normalize_k_int(velo_ahc_glob)
 		call normalize_k_int(kubo_opt_s_glob)
@@ -345,7 +337,7 @@ contains
 			write(*,*)	"*"
 			write(*,*)	"------------------OUTPUT----------------------------------------------"
 			call write_mep_bands(			n_ki_glob,		mep_bands_glob												)
-			call write_mep_tensors(			n_ki_glob,		mep_2014_glob ,											&
+			call write_mep_tensors(			n_ki_glob,												&
 															mep_sum_ic_glob, 	mep_sum_lc_glob, 	mep_sum_cs_glob		)
 			call write_kubo_mep_tensors(	n_ki_glob,		kubo_mep_ic_glob, 	kubo_mep_lc_glob, 	kubo_mep_cs_glob	)
 			call write_ahc_tensor(			n_ki_glob,		kubo_ahc_glob, 		velo_ahc_glob							)
@@ -372,32 +364,37 @@ contains
 
 
 
-	subroutine mep_sum_bands(		mep_tens_ic_loc, 	mep_tens_lc_loc, 	mep_tens_cs_Loc,	&
+	subroutine mep_sum_bands(		mep_bands_ic_loc, 	mep_bands_lc_loc, 	mep_bands_cs_Loc,	&
 									mep_sum_ic_loc,		mep_sum_lc_loc,		mep_sum_cs_loc,		&
 									mep_bands_loc						&
 								)
-		real(dp),		allocatable, 		intent(inout)		::	mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),		& 
+		real(dp),		allocatable, 		intent(inout)		::	mep_bands_ic_loc(:,:,:), mep_bands_lc_loc(:,:,:), mep_bands_cs_loc(:,:,:),		& 
 																	mep_sum_ic_loc(:,:), 	mep_sum_lc_loc(:,:), 	mep_sum_cs_loc(:,:),		& 
 																	mep_bands_loc(:,:,:)
 		integer													::	n0
 		!
-		if(	allocated(mep_tens_ic_loc) .and. allocated(mep_tens_lc_loc) .and. allocated(mep_tens_cs_Loc)	) then
-			if(.not. allocated(	mep_sum_ic_loc	))	allocate(	mep_sum_ic_Loc(		3,	3					))		
-			if(.not. allocated(	mep_sum_lc_loc	))	allocate(	mep_sum_lc_Loc(		3,	3					))
-			if(.not. allocated(	mep_sum_cs_loc	))	allocate(	mep_sum_cs_Loc(		3,	3					))
-			if(.not. allocated(	mep_bands_loc	))	allocate(	mep_bands_loc(		3,	3,	valence_bands	))
-			!
+		if(	allocated(mep_bands_ic_loc) .and. allocated(mep_bands_lc_loc) .and. allocated(mep_bands_cs_Loc)	) then
+			allocate(	mep_sum_ic_Loc(		3,	3	))		
+			allocate(	mep_sum_lc_Loc(		3,	3	))
+			allocate(	mep_sum_cs_Loc(		3,	3	))
 			mep_sum_ic_loc		=	0.0_dp
 			mep_sum_lc_loc		=	0.0_dp
 			mep_sum_cs_loc		=	0.0_dp
-			mep_bands_loc		=	0.0_dp	
+
+			if(do_write_mep_bands)		then			
+				allocate(	mep_bands_loc(		3,	3,	valence_bands	))
+				mep_bands_loc	=	0.0_dp
+			end if
+			!
+			
+
 			do n0 = 1, valence_bands
-				mep_sum_ic_loc(:,:)	=	mep_sum_ic_loc(:,:)	+	mep_tens_ic_loc(:,:,n0)
-				mep_sum_lc_loc(:,:)	=	mep_sum_lc_loc(:,:)	+	mep_tens_lc_loc(:,:,n0)
-				mep_sum_cs_loc(:,:)	=	mep_sum_cs_loc(:,:)	+	mep_tens_cs_loc(:,:,n0)
+				mep_sum_ic_loc(:,:)	=	mep_sum_ic_loc(:,:)	+	mep_bands_ic_loc(:,:,n0)
+				mep_sum_lc_loc(:,:)	=	mep_sum_lc_loc(:,:)	+	mep_bands_lc_loc(:,:,n0)
+				mep_sum_cs_loc(:,:)	=	mep_sum_cs_loc(:,:)	+	mep_bands_cs_loc(:,:,n0)
 				!
 				if(do_write_mep_bands) then
-					mep_bands_loc(:,:,n0)	=	mep_tens_ic_loc(:,:,n0) + mep_tens_lc_loc(:,:,n0)	+ mep_tens_cs_loc(:,:,n0)
+					mep_bands_loc(:,:,n0)	=	mep_bands_ic_loc(:,:,n0) + mep_bands_lc_loc(:,:,n0)	+ mep_bands_cs_loc(:,:,n0)
 				end if			
 			end do
 			!
@@ -412,7 +409,6 @@ contains
 !	ALLOCATORS
 	!----------------------------------------------------------------------------------------------------------------------------------
 	subroutine allo_core_loc_arrays(			N_el_k, sum_N_el_loc, max_n_el, min_n_el,										&
-										mep_2014_loc,																	&
 										mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,								&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
 										kubo_ahc_loc, velo_ahc_loc,														&
@@ -420,8 +416,7 @@ contains
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
 							)
 		real(dp),						intent(inout)	::	N_el_k, sum_N_el_loc, max_n_el, min_n_el
-		real(dp),		allocatable,	intent(inout)	::	mep_2014_loc(:,:),														&
-															mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),	&
+		real(dp),		allocatable,	intent(inout)	::	mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),	&
 															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),		&				
 															kubo_ahc_loc(:,:), velo_ahc_loc(:,:)									
 		complex(dp),	allocatable,	intent(inout)	::	tempS(:,:), tempA(:,:), kubo_opt_s_loc(:,:), kubo_opt_a_loc(:,:),		&
@@ -438,9 +433,7 @@ contains
 			allocate(	mep_tens_ic_loc(	3,3,	valence_bands	)	)
 			allocate(	mep_tens_lc_loc(	3,3,	valence_bands	)	)
 			allocate(	mep_tens_cs_loc(	3,3,	valence_bands	)	)
-			allocate(	mep_2014_loc(				3,3				)	)
 			!
-			mep_2014_loc		=	0.0_dp
 			mep_tens_ic_loc		=	0.0_dp
 			mep_tens_lc_loc		=	0.0_dp
 			mep_tens_cs_loc		=	0.0_dp
