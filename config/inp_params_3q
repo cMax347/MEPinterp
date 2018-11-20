@@ -1,0 +1,9 @@
+64 64 64                     ! Nkx, Nky, Nkz for BZ integration
+1.0 1.2 4.0                  ! t1, t2, lambda
+   0.0   0.0                 ! phiA, thetaA for spin A
+  30.0  -109.47122063449069  ! phiB, thetaB for spin B
+ 270.0  -109.47122063449069  ! phiC, thetaC for spin C
+ 150.0  -109.47122063449069  ! phiD, thetaD for spin D
+-5.0 -3.0  200               ! Efmin, Efmax, NEf
+T                            ! k-path instead?
+2000                         ! Nk for k-path
