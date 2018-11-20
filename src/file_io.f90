@@ -184,17 +184,24 @@ module file_io
 		character(len=20)							::	fname
 		character(len=100)							::	info_string
 		character(len=3)							::	id_string
-		integer										::	n_band
+		integer										::	n0, row
 		!
 		!
 		if(allocated(mep_bands)) then
 			id_string	=	'mep'
 			!
-			do n_band = 1, size(mep_bands,3)
-				write(info_string,'(a,i3,a,i8,a)')		'# mep contribution of band '	,	n_band, 	'(n_kpt=',n_ki_glob,')'
-				write(fname, format)		 			'mep_band.'						,	n_band
+			write(*,*)	"[write_mep_bands]:	"
+			do n0 = 1, size(mep_bands,3)
+				write(info_string,'(a,i3,a,i8,a)')		'# mep contribution of band '	,	n0, 	'(n_kpt=',n_ki_glob,')'
+				write(fname, format)		 			'mep_band.'						,	n0
 				!
-				call 	write_tens_file(	mep_out_dir, fname, mep_bands(:,:,n_band), info_string, 	id_string)
+				call 	write_tens_file(	mep_out_dir, fname, mep_bands(:,:,n0), info_string, 	id_string)
+				!
+				!
+				write(*,*)	"band n=",n0
+				do row = 1, 3
+					write(*,*)	mep_bands(row,:,n0)
+				end do
 			end do			
 		end if
 		!
