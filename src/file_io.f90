@@ -181,7 +181,7 @@ module file_io
 	subroutine write_mep_bands(n_ki_glob, mep_bands)
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable, 	intent(inout)	::	mep_bands(:,:,:)
-		character(len=12)							::	fname
+		character(len=20)							::	fname
 		character(len=100)							::	info_string
 		character(len=3)							::	id_string
 		integer										::	n_band
