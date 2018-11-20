@@ -181,6 +181,7 @@ module file_io
 	subroutine write_mep_bands(n_ki_glob, mep_bands)
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable, 	intent(inout)	::	mep_bands(:,:,:)
+		real(dp),	allocatable						::	mep_sum(:,:)
 		character(len=20)							::	fname
 		character(len=100)							::	info_string
 		character(len=3)							::	id_string
@@ -188,21 +189,35 @@ module file_io
 		!
 		!
 		if(allocated(mep_bands)) then
+			allocate(	mep_sum(3,3)	)
+			mep_sum		=	0.0_dp
 			id_string	=	'mep'
 			!
 			write(*,*)	"[write_mep_bands]:	"
 			do n0 = 1, size(mep_bands,3)
+				!	write to file
 				write(info_string,'(a,i3,a,i8,a)')		'# mep contribution of band '	,	n0, 	'(n_kpt=',n_ki_glob,')'
 				write(fname, format)		 			'mep_band.'						,	n0
-				!
 				call 	write_tens_file(	mep_out_dir, fname, mep_bands(:,:,n0), info_string, 	id_string)
 				!
-				!
+				!	print to std output
 				write(*,*)	"band n=",n0
 				do row = 1, 3
 					write(*,*)	mep_bands(row,:,n0)
 				end do
-			end do			
+				!
+				!	add to sum over bands
+				mep_sum	=	mep_sum	+	mep_bands(:,:,n0)
+			end do
+			!
+			!	print sum to std output
+			write(*,*)	"band sum"
+			do row = 1, 3
+				write(*,*)	mep_sum(row,:)
+			end do
+			write(*,*)	"--------------------------"
+			write(*,*)	"*"
+			write(*,*)	"*"
 		end if
 		!
 		return
@@ -219,7 +234,20 @@ module file_io
 		integer										::	row
 		!
 		id_string	=	'mep'
-		!-------------------------------------itinerant contribution MEP tensor-------------
+		!-------------------------------------total MEP tensor------------------------------
+		if(allocated(mep_cs) .and. allocated(mep_lc) .and. allocated(mep_ic) ) then
+			fname		= 	'mep_tens.dat'
+			info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)  (in atomic units - dimensionless), written '//cTIME(time())
+			!
+			allocate(	mep_tens(3,3)	)
+			mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
+			call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
+			write(*,*)	"[write_mep_tensors]: mep_tens:"
+			do row = 1, 3
+				write(*,*)	mep_tens(row,:)
+			end do
+		end if
+		!-------------------------------------niu 2014 paper version of mep tensor-------------
 		if(allocated(mep_2014)) then
 			fname		= 	'mep_14.dat'
 			info_string	= 	'# 2014 original paper version of mep tensor, written '//cTIME(time())
@@ -266,21 +294,6 @@ module file_io
 			write(*,*)	"[write_mep_tensors]: mep_cs:"
 			do row = 1, 3
 				write(*,*)	mep_cs(row,:)
-			end do
-		end if
-		!
-		!
-		!-------------------------------------total MEP tensor------------------------------
-		if(allocated(mep_cs) .and. allocated(mep_lc) .and. allocated(mep_ic) ) then
-			fname		= 	'mep_tens.dat'
-			info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)  (in atomic units - dimensionless), written '//cTIME(time())
-			!
-			allocate(	mep_tens(3,3)	)
-			mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
-			call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
-			write(*,*)	"[write_mep_tensors]: mep_tens:"
-			do row = 1, 3
-				write(*,*)	mep_tens(row,:)
 			end do
 		end if
 		!-----------------------------------------------------------------------------------
