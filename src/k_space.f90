@@ -19,7 +19,7 @@ module k_space
 		module procedure d_scalar_normalize_k_int
 		module procedure z_scalar_normalize_k_int
 		module procedure d_matrix_normalize_k_int
-		module procedure d3_tens_noralize_k_int
+		module procedure d3_tenso_normalize_k_int
 		module procedure z_matrix_normalize_k_int
 	end interface normalize_k_int
 
@@ -53,7 +53,7 @@ contains
 		return
 	end subroutine
 	
-	subroutine d3_tens_noralize_k_int(tens)	
+	subroutine d3_tenso_normalize_k_int(tens)	
 		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
 		integer						:: 	n_k
 		!
