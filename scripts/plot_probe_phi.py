@@ -17,6 +17,7 @@ class Phi_probe:
 		#derived attributes
 		self.root_dir	= root_dir
 		self.plot_dir	= self.root_dir+'/plots'
+		self.n_bands	= 0
 
 		print("~")
 		print("-------------------------------------------------------------------------------")
@@ -70,7 +71,8 @@ class Phi_probe:
 		print("-------------------------------------------------------------------------------")
 		#
 		#
-		self.phi_tot_data = []
+		self.phi_tot_data 	= []
+		self.phi_bands_data	=	[]
 		self.phi_cs_data = []
 		self.phi_lc_data = []
 		self.phi_ic_data = []
@@ -96,6 +98,23 @@ class Phi_probe:
 				mep_file_path	= work_dir+'/out/mep/mep_ic.dat'
 				mep_ic		= read_real_tens_file(mep_file_path,				'mep')
 				#
+				search 		= True
+				band 		= 1
+				mep_bands	= []
+				while search:
+					mep_file_path 	=	work_dir+'/out/mep/mep_band.'+"{:07d}".format(band)
+					tmp 			=	read_real_tens_file(mep_file_path,		'mep')
+					if len(tmp)>0:
+						#print('#band=',band, '	mep=',tmp)
+						mep_bands.append(	tmp	)
+						band = band + 1
+					else:
+						search	=	False
+				self.n_bands = band -1 
+				print("detected n_bands=",band)
+
+				print("phi=",phi," mep_bands=",mep_bands)
+				#
 				#
 				#only record if the container is not empty (i.e. the file was found and had good behaviour)
 				if len(mep_tens) is 3:
@@ -109,11 +128,15 @@ class Phi_probe:
 					self.phi_lc_data.append(		[phi, mep_lc	]			)
 				if len(mep_ic) is 3:
 					self.phi_ic_data.append(		[phi, mep_ic	]			)
+				if len(mep_bands) >0:
+					self.phi_bands_data.append(			[phi, mep_bands	]			)
+
 		#			
 		self.phi_tot_data 	= 	sorted(self.phi_tot_data)
 		self.phi_cs_data	=	sorted(self.phi_cs_data)
 		self.phi_lc_data	=	sorted(self.phi_lc_data)
 		self.phi_ic_data	=	sorted(self.phi_ic_data)
+		self.phi_bands_data	=	sorted(self.phi_bands_data)
 
 
 
@@ -122,7 +145,7 @@ class Phi_probe:
 
 	
 
-	def plot_mep_over_phi(self, units='au', scale=1.0, plot_contributions=True, label_size=14, xtick_size=12, ytick_size=12):
+	def plot_mep_over_phi(self, units='au', scale=1.0, plot_contributions=True,plot_band_res=False, label_size=14, xtick_size=12, ytick_size=12):
 		print("		PLOTS")
 		print("-------------------------------------------------------------------------------")	
 
@@ -140,15 +163,25 @@ class Phi_probe:
 		else:
 			print(self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
 		
-
+		phi_plot_bands	= []
 		phi_plot 		= []
 		mep_tot_data 	= []
 		mep_cs_data		= []
 		mep_lc_data		= []
 		mep_ic_data		= []
+		mep_band_data	= []
 		for data in self.phi_tot_data:
 			phi_plot.append(float(data[0]))
-			mep_tot_data.append(scale*data[1])
+			mep_tot_data.append(data[1])
+
+		if plot_band_res:
+			for n_phi,mep_band in enumerate(self.phi_bands_data):
+				print('current PHI: #',n_phi)
+				phi_plot_bands.append(mep_band[0])
+				mep_band_data.append(mep_band[1])
+
+
+
 		
 		print("~")
 		print("fortran output expected to be in atomic units	")
@@ -157,7 +190,7 @@ class Phi_probe:
 			unit_conv	=	2.434135e-4
 			unit_str	=	'[S]'
 		elif units	==			'cgs':
-			unit_conv	=	1.0
+			unit_conv	=	7.297352726e-3 
 			unit_str	=	'[cgs units - not implemented properly]'
 		else							:
 			unit_conv	=	1.0
@@ -174,11 +207,11 @@ class Phi_probe:
 		if plot_contributions:
 			print("will plot Chern-Simons (CS) and  local & itinerant contributions ( lc & ic)")
 			for data in self.phi_cs_data:
-				mep_cs_data.append(scale*data[1])
+				mep_cs_data.append(data[1])
 			for data in self.phi_lc_data:
-				mep_lc_data.append(scale*data[1])
+				mep_lc_data.append(data[1])
 			for data in self.phi_ic_data:
-				mep_ic_data.append(scale*data[1])
+				mep_ic_data.append(data[1])
 
 		print("~")
 		mep_max		= np.amax(mep_tot_data)
@@ -203,18 +236,54 @@ class Phi_probe:
 				mep_cs_plot		= []
 				mep_lc_plot		= []
 				mep_ic_plot		= []
+				mep_band_plot	= []
 				for mep_tens in mep_tot_data:
-					mep_tot_plot.append(	mep_tens[i][j]	)
+					mep_tot_plot.append(	scale * mep_tens[i][j]	)
 				if plot_contributions:
 					for mep_cs in mep_cs_data:
-						mep_cs_plot.append(		mep_cs[i][j]	)
+						mep_cs_plot.append(		scale * mep_cs[i][j]	)
 					for mep_lc in mep_lc_data:
-						mep_lc_plot.append(		mep_lc[i][j]	)
+						mep_lc_plot.append(		scale * mep_lc[i][j]	)
 					for mep_ic in mep_ic_data:
-						mep_ic_plot.append(		mep_ic[i][j]	)
+						mep_ic_plot.append(		scale * mep_ic[i][j]	)
 
 
 
+				#collect band resolved data	
+				if plot_band_res:
+					#print('i=',i,' j=',j, '	band contributions:')
+					for phi, data in enumerate(mep_band_data):
+						#print('mep_band_data: #phi=',phi)
+						mep_band_plot.append([])
+						#print('---')
+						self.nn_bands	= 0
+						for idx,mep_band in enumerate(data):
+							self.nn_bands	=	self.nn_bands	+ 1
+							#print('band #',idx,'	data:',mep_band)
+							mep_band_plot[-1].append(	scale * mep_band[i][j])
+							print('phi=',phi,' #band',idx, ' mep_band: ',mep_band[i][j])
+					#print('------')
+
+					#print("#bands	=	"+str(self.n_bands))
+					#print("mep_band_plot:",mep_band_plot)
+					#print('----------')
+					mep_band_final	= []
+
+					#n_bands	= 2
+					for band in range(self.n_bands):
+						mep_band_final.append([])
+						for phi in phi_plot_bands:
+							mep_band_final[-1].append(phi)
+
+					#print('mep_band_final container:',	mep_band_final)
+					
+					for phi,mep_bands in enumerate(	mep_band_plot	):
+						#print("phi=",phi,	'mep:')
+						#print(mep_bands)
+						for band, mep in enumerate(	mep_bands):
+							mep_band_final[band][phi]	=	mep
+
+					#print('mep_band_final values:',	mep_band_final)
 
 
 
@@ -227,7 +296,10 @@ class Phi_probe:
 					plt.plot(phi_plot, mep_lc_plot,		'o-', 	color='darkblue',	label="LC")
 					plt.plot(phi_plot, mep_ic_plot,		'^-', 	color='lightblue',	label="IC")
 
+				if plot_band_res:
 
+					for band in range(self.n_bands):
+						plt.plot(phi_plot,	mep_band_final[band],	'x-', label=" #band "+str(band)		)
 				
 				#X-AXIS
 				plt.xlabel(r'$\varphi_{\mathcal{Hopp}}$',	fontsize=label_size)
@@ -275,8 +347,9 @@ def plot_data(root_dir):
 	myTest.print_results_container()
 	
 	myTest.plot_mep_over_phi(		scale=1.0,
-									units="SI",
-									plot_contributions=True,
+									units="au",
+									plot_contributions=False,
+									plot_band_res=True,
 									label_size=14, xtick_size=12, ytick_size=12)
 
 
