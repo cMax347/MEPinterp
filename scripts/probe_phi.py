@@ -318,12 +318,12 @@ def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
 	myTest.iterate_phi(plot_bandstruct=plot_bandstruct, mpi_np=mpi_np)
 	myTest.print_results_container()
 	#try:
-	myTest.plot_mep_over_phi(	plot_contributions	=	plot_orb_cont,	
-								plot_band_res		= 	plot_band_res, 
-								label_size			=	14, 
-								xtick_size			=	12, 
-								ytick_size			=	12
-							)
+	#myTest.plot_mep_over_phi(	plot_contributions	=	plot_orb_cont,	
+	#							plot_band_res		= 	plot_band_res, 
+	#							label_size			=	14, 
+	#							xtick_size			=	12, 
+	#							ytick_size			=	12
+	#						)
 	#except:
 	#	print("plotting failed. Please try plotting with plot_probe_phi.py")
 	#finally:
