@@ -49,11 +49,12 @@ class Phi_probe:
 				except OSError:
 					print(old_path+ ' exists already')
 
-		self.plot_dir	= self.root_dir+'/mep_tot_plots'
-		self.phi_tot_data = []
-		self.phi_cs_data = []
-		self.phi_lc_data = []
-		self.phi_ic_data = []
+		self.plot_dir		= 	self.root_dir+'/mep_tot_plots'
+		self.phi_tot_data 	= 	[]
+		self.phi_cs_data 	= 	[]
+		self.phi_lc_data 	= 	[]
+		self.phi_ic_data 	= 	[]
+		self.phi_bands_data	=	[]
 
 
 
@@ -65,7 +66,7 @@ class Phi_probe:
 
 
 
-	def iterate_phi(self,mpi_np=1, plot_bands=False):
+	def iterate_phi(self,mpi_np=1, plot_bandstruct=False):
 		for phi  in np.linspace(0.0, 2.0, num = self.n_phi):		#iterate over relative phi (phi_rel = phi / np.pi)
 			work_dir =	self.root_dir+'/phi'+str(phi)		
 			phi_pi	 = 	phi
@@ -92,13 +93,14 @@ class Phi_probe:
 								)
 			#run calc 
 			worker.run(mpi_np=mpi_np)
-			mep_tens, mep_cs, mep_lc, mep_ic = worker.get_mep_tens()
+			mep_tens, mep_cs, mep_lc, mep_ic, mep_bands = worker.get_mep_tens()
 			self.phi_tot_data.append(		[phi, mep_tens	]			)
 			self.phi_cs_data.append(		[phi, mep_cs	]			)
 			self.phi_lc_data.append(		[phi, mep_lc	]			)
 			self.phi_ic_data.append(		[phi, mep_ic	]			)
+			self.phi_bands_data.append(		[phi, mep_bands ]			)
 			#plot bands
-			if plot_bands:
+			if plot_bandstruct:
 				try:
 					worker.plot_bands()
 				except:
@@ -108,11 +110,18 @@ class Phi_probe:
 		self.phi_cs_data	=	sorted(self.phi_cs_data)
 		self.phi_lc_data	=	sorted(self.phi_lc_data)
 		self.phi_ic_data	=	sorted(self.phi_ic_data)
+		self.phi_bands_data	=	sorted(self.phi_bands_data)
 
 
 
 	def print_results_container(self):
-		print('results =',self.phi_tot_data)
+		print('^^^^^raw data ^^^^^^^')
+		print('mep_bands :')
+		print(self.phi_bands_data)
+		#print(self.phi_bands_data[0][0])
+
+		print('phi_tot_data =',self.phi_tot_data)
+		print('------------------------------------')
 
 
 
@@ -121,21 +130,38 @@ class Phi_probe:
 
 	
 
-	def plot_mep_over_phi(self, plot_contributions=True, label_size=14, xtick_size=12, ytick_size=12):
+	def plot_mep_over_phi(self, plot_contributions=True, plot_band_res=False, label_size=14, xtick_size=12, ytick_size=12):
 		try:
 			os.mkdir(self.plot_dir)
 		except OSError:
 			print('Could not make directory ',self.plot_dir)
 
 		phi_plot 		= []
+		phi_plot_bands	= []
 		mep_tot_data 	= []
 		mep_cs_data		= []
 		mep_lc_data		= []
 		mep_ic_data		= []
+		mep_band_data	= []
 		for data in self.phi_tot_data:
 			phi_plot.append(data[0])
 			mep_tot_data.append(data[1])
+	
+		if plot_band_res:
+			for n_phi,mep_band in enumerate(self.phi_bands_data):
+				print('current PHI: #',n_phi)
+				phi_plot_bands.append(mep_band[0])
+				mep_band_data.append(mep_band[1])
+
+
+		print('phi_plot=',phi_plot)
+		print('mep_tot_data=',mep_tot_data)
 		
+		if plot_band_res:
+			print('phi_plot_bands=',phi_plot_bands)
+			print('mep_band_data=',mep_band_data)
+
+
 		if plot_contributions:
 			for data in self.phi_cs_data:
 				mep_cs_data.append(data[1])
@@ -164,11 +190,49 @@ class Phi_probe:
 			for j in range(0,3):
 				#COLLECT a_ij(phi=0:n_phi)
 				mep_tot_plot 	= []
+				mep_band_plot	= []
 				mep_cs_plot		= []
 				mep_lc_plot		= []
 				mep_ic_plot		= []
 				for mep_tens in mep_tot_data:
 					mep_tot_plot.append(				self.gamma_scale *		mep_tens[i][j]	)
+					
+
+				#collect band resolved data	
+				if plot_band_res:
+					print('i=',i,' j=',j, '	band contributions:')
+					for phi, data in enumerate(mep_band_data):
+						#print('mep_band_data: #phi=',phi)
+						mep_band_plot.append([])
+						print('---')
+						n_bands	= 0
+						for idx,mep_band in enumerate(data):
+							n_bands	=	n_bands	+ 1
+							#print('band #',idx,'	data:',mep_band)
+							mep_band_plot[-1].append(	mep_band[i][j])
+							print('phi=',phi,' #band',idx, ' mep_band: ',mep_band[i][j])
+					print('------')
+
+					print("#bands	=	"+str(n_bands))
+					print("mep_band_plot:",mep_band_plot)
+					mep_band_final	= []
+
+					#n_bands	= 2
+					for band in range(n_bands):
+						mep_band_final.append([])
+						for phi in phi_plot_bands:
+							mep_band_final[-1].append(phi)
+
+					print('mep_band_final container:',	mep_band_final)
+					
+					for phi,mep_bands in enumerate(	mep_band_plot	):
+						print("phi=",phi,	'mep:')
+						print(mep_bands)
+						for band, mep in enumerate(	mep_bands):
+							mep_band_final[band][phi]	=	mep
+
+					print('mep_band_final values:',	mep_band_final)
+
 				if plot_contributions:
 					for mep_cs in mep_cs_data:
 						mep_cs_plot.append(				self.gamma_scale *		mep_cs[i][j]	)
@@ -178,7 +242,8 @@ class Phi_probe:
 						mep_ic_plot.append(				self.gamma_scale *		mep_ic[i][j]	)
 
 
-
+				#print('mep_tot_plot=',mep_tot_plot)
+				#print('mep_band_plot=',mep_band_plot)
 
 
 
@@ -191,6 +256,9 @@ class Phi_probe:
 					plt.plot(phi_plot, mep_lc_plot,		'o-', 	color='darkblue',	label="LC")
 					plt.plot(phi_plot, mep_ic_plot,		'^-', 	color='lightblue',	label="IC")
 
+				if plot_band_res:
+					for band in range(n_bands):
+						plt.plot(phi_plot_bands,	mep_band_final[band],	'x-', label=" #band "+str(band)		)
 
 				
 				#X-AXIS
@@ -205,7 +273,7 @@ class Phi_probe:
 				ax.set_ylim([self.gamma_scale *  mep_min,self.gamma_scale *  mep_max])
 				plt.tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 
-				if plot_contributions:
+				if plot_contributions or plot_band_res:
 					plt.legend()
 
 				plt.title('gamma_scale='+str(self.gamma_scale))
@@ -228,7 +296,9 @@ class Phi_probe:
 
 def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
 					kubo_tol=1e-3, hw=0.001, eFermi=0.0, Tkelvin=11.0, eta_smearing=0.2, 
-					plot_bands		=	False, 
+					plot_bandstruct	=	False, 
+					plot_orb_cont	=	True,
+					plot_band_res	=	False,
 					debug_mode		=	True, 
 					do_gauge_trafo	=	True,
 					do_write_velo	=	False,
@@ -245,10 +315,15 @@ def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro	
 						)
 	#
-	myTest.iterate_phi(plot_bands=plot_bands, mpi_np=mpi_np)
+	myTest.iterate_phi(plot_bandstruct=plot_bandstruct, mpi_np=mpi_np)
 	myTest.print_results_container()
 	#try:
-	myTest.plot_mep_over_phi(label_size=14, xtick_size=12, ytick_size=12)
+	myTest.plot_mep_over_phi(	plot_contributions	=	plot_orb_cont,	
+								plot_band_res		= 	plot_band_res, 
+								label_size			=	14, 
+								xtick_size			=	12, 
+								ytick_size			=	12
+							)
 	#except:
 	#	print("plotting failed. Please try plotting with plot_probe_phi.py")
 	#finally:
@@ -261,22 +336,32 @@ def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
 
 
 
-probe_phi(		n_phi			= 21				, 
-				val_bands		= 2					, 
-				mp_grid			= [16,16,16]		, 
-				mpi_np			= 4					,
-				gamma_scale		= 1.0			,
-				kubo_tol=1e-5, hw=0.0, eFermi=0.0, Tkelvin=10.0, eta_smearing=0.1, 
-				plot_bands		= False				, 
-				debug_mode		= True				, 
-				do_gauge_trafo	= True				,	
-				do_write_velo	= False				,
-				do_write_mep_bands	=	False		,
-				do_mep			= 'T'				, 
-				do_kubo			= 'F'				, 
-				do_ahc			= 'F'				, 
-				do_opt			= 'F'				, 
-				do_gyro			= 'F'
+probe_phi(		#parameter space probe density:
+				n_phi				=	21					, 
+				val_bands			=	2					, 
+				#numerical parameters
+				mp_grid				=	[16,16,16]			, 
+				mpi_np				=	4					,
+				gamma_scale			=	1.0					,
+				kubo_tol			=	1e-5				, 
+				hw					=	0.0					, 
+				eFermi				=	0.0					, 
+				Tkelvin				=	10.0				,
+				eta_smearing		=	0.1					, 
+				#set properties of plots
+				plot_bandstruct		=	False				, 
+				plot_orb_cont		=	True				,				
+				plot_band_res		=	False				,
+				#additional fortran controllers
+				debug_mode			=	True				, 
+				do_gauge_trafo		=	True				,	
+				do_write_velo		=	False				,
+				do_write_mep_bands	=	True				,
+				do_mep				=	'T'					, 
+				do_kubo				=	'F'					, 
+				do_ahc				=	'F'					, 
+				do_opt				=	'F'					, 
+				do_gyro				=	'F'
 			)
 
 

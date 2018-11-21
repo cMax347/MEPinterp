@@ -131,7 +131,16 @@ class MEP_worker:
 		mep_ic			= read_real_tens_file(mep_file_path,					'mep')
 		#
 		#
-		return mep_tens, mep_cs, mep_lc, mep_ic
+		#BAND RESOLVED
+		mep_bands 		= []
+		for n in range(1,self.val_bands+1):
+			mep_file_path	= self.work_dir+'/out/mep/mep_band.'+"{:07d}".format(n)
+			tmp	=	read_real_tens_file(mep_file_path,				'mep')
+			mep_bands.append(tmp)
+
+
+
+		return mep_tens, mep_cs, mep_lc, mep_ic, mep_bands
 
 	def get_ahc_tens(self):
 		ahc_file_path	= self.work_dir+'out/ahc/ahc_tens.dat'
