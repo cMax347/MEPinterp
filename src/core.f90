@@ -98,7 +98,7 @@ contains
 												ic_skipped, lc_skipped
 		complex(dp),	allocatable			::	A_ka(:,:,:), Om_kab(:,:,:,:),			&
 												V_ka(:,:,:)
-		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
+		real(dp),		allocatable			::	en_k(:)									& 
 												mep_tens_ic_loc(	:,:,:),	 			&
 												mep_tens_lc_loc(	:,:,:),				&
 												mep_tens_cs_loc(	:,:,:)
