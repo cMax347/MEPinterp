@@ -69,12 +69,16 @@ module wann_interp
 		complex(dp),	allocatable								::	U_k(:,:)
 		!
 		!
+
+
 		!todo:	get k_space hamiltonian and store it in U_k
 		write(*,*)	"[get_wann_interp]	WARNING	get_ham takes relative kpt for now (todo: fix this)"	
 		call get_ham(kpt_rel,	U_k, V_ka)
 
 
+
 		!get energies (H)-gauge
+		if(.not. allocated(e_k))	allocate(e_k(size(U_k,1)))
 		call zheevd_wrapper(U_k, e_k)
 		!
 		!rotate back to (H)-gauge
