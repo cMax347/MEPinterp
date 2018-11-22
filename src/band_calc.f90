@@ -81,7 +81,7 @@ contains
 			!	write the results
 			if(mpi_nProcs>1)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 			if(mpi_id == mpi_root_id)	then
-				call write_en_global(rel_kpts)
+				call write_en_global(num_wann,	rel_kpts)
 				write(*,*)'---------------------------------------------------------------------------------------------'
 			end if
 		else
