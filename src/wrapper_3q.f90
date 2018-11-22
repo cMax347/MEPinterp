@@ -76,17 +76,17 @@ module wrapper_3q
 		!			PRINT HAM																 |
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		!
-		!	dp
+		!	sp
 		write(*,'(a,i3,a)')	'[#',mpi_id,';	get_ham]	finished hamiltonian setup H_sp:'
 		do row = 1, num_wann
 			write(*,"(100(a,f5.2,a,f5.2,a))")	(	"(",real(H_sp(row,clm)),"+i* ",imag(H_sp(row,clm)),")	"	,	clm = 1, num_wann		)
 		end do
 		!
-		!	sp
-		write(*,'(a,i3,a)')	'[#',mpi_id,';	get_ham]	finished hamiltonian setup H_dp:'
-		do row = 1, num_wann
-			write(*,"(100(a,f5.2,a,f5.2,a))")	(	"(",dreal(H_dp(row,clm)),"+i* ",aimag(H_dp(row,clm)),")	"	,	clm = 1, num_wann		)
-		end do
+		!	dp
+		!write(*,'(a,i3,a)')	'[#',mpi_id,';	get_ham]	finished hamiltonian setup H_dp:'
+		!do row = 1, num_wann
+		!	write(*,"(100(a,f5.2,a,f5.2,a))")	(	"(",dreal(H_dp(row,clm)),"+i* ",aimag(H_dp(row,clm)),")	"	,	clm = 1, num_wann		)
+		!end do
 		!
 		!
 	end subroutine
