@@ -71,6 +71,7 @@ module file_io
 		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
 		write(mpi_unit)	e_bands(:)
 		close(mpi_unit) 
+		write(*,*)	"wrote ",size(e_bands), " bands to "//filename 
 		!
 		return
 	end subroutine
@@ -100,12 +101,13 @@ module file_io
 
 
 
-	subroutine write_en_global(kpt_latt)
+	subroutine write_en_global(n_bands, kpt_latt)
+		integer,	intent(in)			::	n_bands
 		real(dp),	intent(in)			::	kpt_latt(:,:)
 		real(dp),	allocatable			::	ek_bands(:)
 		integer							::	qi_idx, band, x, mpi_unit
 		!
-		allocate(	ek_bands(num_bands)		)
+		allocate(	ek_bands(n_bands)		)
 		!
 		mpi_unit	= 200 + mpi_id + 7 * mpi_nProcs
 		!
@@ -551,7 +553,7 @@ module file_io
 			open(unit=mpi_unit, file = filepath, form='unformatted', action='read', access='stream',	status='old'	)
 			read(mpi_unit)	e_bands(:)
 			close(mpi_unit)
-			!write(*,*)	'[read_en_binary]: read ',size(e_bands),' real values from "',trim(filepath),'"'
+			write(*,*)	'[read_en_binary]: read ',size(e_bands),' real values from "',trim(filepath),'"'
 		else
 			e_bands	=	0.0_dp
 			write(*,*)	"[read_en_binary]: WARNING could not read ",	filepath,". Does not exist"
