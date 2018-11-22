@@ -56,7 +56,10 @@ class Phi_probe:
 		print("~")
 		print("		COLLECTED DATA SUMMARY	")
 		print("-------------------------------------------------------------------------------")
-		print('results =',self.phi_tot_data)
+		for idx, phi_container in self.phi_tot_data:
+			print("#phi=",idx)
+			print(phi_container)
+			print("----------------------------------")
 		print("~")
 		print("~")
 		print("~")
@@ -111,7 +114,7 @@ class Phi_probe:
 					else:
 						search	=	False
 				self.n_bands = band -1 
-				print("detected n_bands=",band)
+				print("detected n_bands=",self.n_bands)
 
 				print("phi=",phi," mep_bands=",mep_bands)
 				#
@@ -130,6 +133,8 @@ class Phi_probe:
 					self.phi_ic_data.append(		[phi, mep_ic	]			)
 				if len(mep_bands) >0:
 					self.phi_bands_data.append(			[phi, mep_bands	]			)
+				print("----------------------------------------------------------------------")
+				print("")
 
 		#			
 		self.phi_tot_data 	= 	sorted(self.phi_tot_data)
@@ -174,17 +179,19 @@ class Phi_probe:
 			phi_plot.append(float(data[0]))
 			mep_tot_data.append(data[1])
 
+		self.n_phi	=	0
 		if plot_band_res:
 			for n_phi,mep_band in enumerate(self.phi_bands_data):
-				print('current PHI: #',n_phi)
+				#print('current PHI: #',n_phi)
 				phi_plot_bands.append(mep_band[0])
 				mep_band_data.append(mep_band[1])
+				self.n_phi	=	n_phi
 
-
+		print("found ",self.n_phi,"	different phi values")
 
 		
 		print("~")
-		print("fortran output expected to be in atomic units	")
+		print("fortran output is expected to be in atomic units	(dimensionless)")
 
 		if units 	== 				'SI':
 			unit_conv	=	2.434135e-4
@@ -261,7 +268,7 @@ class Phi_probe:
 							self.nn_bands	=	self.nn_bands	+ 1
 							#print('band #',idx,'	data:',mep_band)
 							mep_band_plot[-1].append(	scale * mep_band[i][j])
-							print('phi=',phi,' #band',idx, ' mep_band: ',mep_band[i][j])
+							#print('phi=',phi,' #band',idx, ' mep_band: ',mep_band[i][j])
 					#print('------')
 
 					#print("#bands	=	"+str(self.n_bands))
