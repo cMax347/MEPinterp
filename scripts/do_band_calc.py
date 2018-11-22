@@ -16,9 +16,10 @@ def do_band_calc(phi, val_bands=1):
 
 	main_exe	= root_dir+'/mepInterp'
 	kpt_gen		= root_dir+'/kptsgen.pl'
+	3q_inp		= root_dir+'/inp_params_3q'
 
 	#check if executables are present
-	if os.path.isfile(main_exe) and os.path.isfile(kpt_gen):
+	if os.path.isfile(main_exe) and os.path.isfile(kpt_gen) and os.path.isfile(3q_inp):
 		#delete old folder and create it again
 		if os.path.isdir(band_dir):
 			rmtree(band_dir)
@@ -31,6 +32,7 @@ def do_band_calc(phi, val_bands=1):
 		#now copy executables to target
 		copy(main_exe,		band_dir+'/mepInterp')
 		copy(kpt_gen,	band_dir)
+		copy(3q_inp,	band_dir)
 		print('copied the executables')
 	else:
 		print('did not find all executables necessary, nothing was done...')
