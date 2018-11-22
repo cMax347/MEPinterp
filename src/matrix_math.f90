@@ -118,8 +118,8 @@ module matrix_math
     	lwork	= 2*n
     	lrwork	= 24*n
     	liwork	= 10*n
-    	if( size(z,1)/= ldz ) write(*,*)"[eigSolver2]: z array has wrong size"
-    	if( size(w)/= n) write(*,*)"[eigSolver2]; w array has wrong size"
+    	if( size(z,1)/= ldz ) write(*,*)"[zheevr_wrapper]: z array has wrong size"
+    	if( size(w)/= n) write(*,*)"[zheevr_wrapper]; w array has wrong size"
     	!
     	allocate( isuppz(2*iu)	)
     	allocate(  work(lwork)	)
@@ -151,9 +151,14 @@ module matrix_math
             integer                                  :: n, info,lwork,lrwork,liwork
             n		= size(A,1)
             if(n /= size(A,2)) then
-            	write(*,*)"[eigSolver]: WARNING the matrix to solve is not a square matrix"
+            	write(*,*)"[zheevd_wrapper]: WARNING the matrix to solve is not a square matrix"
             end if
-            if(n /= size(w))    stop "[eigSolver]: eigval array has wrong size"
+            if(n /= size(w))   then 
+                write(*,'(a,i4,a,i4,a,i4,a)')   "[zheevd_wrapper]: eigval array w has size ",size(w),&
+                                                "   but matrix is of dim (",size(A,1),"x",size(A,2),"). "
+                stop "[zheevd_wrapper]: eigval array has wrong size"
+            end if
+
             lwork  	=   n*n + 2*n
             lrwork 	= 2*n*n + 5*n + 1
             liwork 	=         5*n + 3
