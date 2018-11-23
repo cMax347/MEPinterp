@@ -28,8 +28,7 @@ module core
 								valence_bands, 									&
 								seed_name,										&
 								kubo_tol,										&
-								hw, eFermi, T_kelvin, i_eta_smr, 				&
-								unit_vol
+								hw, eFermi, T_kelvin, i_eta_smr
 	!
 	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
 								kspace_allocator,								&
@@ -171,14 +170,14 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	AHC
 						!----------------------------------------------------------------------------------------------------------------------------------
-						if(allocated(kubo_ahc_loc)		)		kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin, unit_vol)
-						if(allocated(velo_ahc_loc)		)		velo_ahc_loc	=	velo_ahc_loc	+	velo_ahc_tens(en_k, V_ka,	eFermi, T_kelvin, unit_vol)
+						if(allocated(kubo_ahc_loc)		)		kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin)
+						if(allocated(velo_ahc_loc)		)		velo_ahc_loc	=	velo_ahc_loc	+	velo_ahc_tens(en_k, V_ka,	eFermi, T_kelvin)
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPT
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(allocated(kubo_opt_s_loc) .and. allocated(kubo_opt_a_loc)	)		then
-							call kubo_opt_tens(hw, unit_vol, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
+							call kubo_opt_tens(hw, eFermi, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
 							kubo_opt_s_loc	=	kubo_opt_s_loc	+	tempS							
 							kubo_opt_a_loc	=	kubo_opt_a_loc	+	tempA
 						end if
