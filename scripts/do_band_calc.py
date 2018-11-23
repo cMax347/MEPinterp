@@ -61,9 +61,11 @@ def do_band_calc(phi, val_bands=1):
 	#create pdf file 
 	k_file	= band_dir+'/kpts'
 	en_file	= band_dir+'/out/eBands.dat'
+	q3_file = band_dir+'/inp_params_3q'
+
 	pdf_file= band_dir+'/bands.pdf'
 	if os.path.isfile(k_file) and os.path.isfile(en_file):
-		plot_bandstruct(k_file,en_file, pdf_file, label_size=14, y_tick_size=12, plot_in_ev=True)
+		plot_bandstruct(k_file,en_file, q3_file, pdf_file, label_size=14, y_tick_size=12, plot_in_ev=True)
 	else:
 		print('could not plot bandstructure since not all input files ("',k_file,'", "',en_file,'"") were found')
 

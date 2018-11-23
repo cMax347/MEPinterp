@@ -54,9 +54,29 @@ def sort_energies(en_data):
 	return en_plot
 
 
+def get_3qmodel_paras(q3_file):
+	print("get_3qmodel_paras:	try to open "+str(q3_file) )
+	with open(q3_file,'r') as inp_file:
+		for idx,line in enumerate(inp_file):
+			if idx==1:
+				print(line)
+				t1, t2, lmbda 	=	np.fromstring(line,dtype=float, count=3, sep=" ")
+			if idx==2:
+				phiA, thetaA	=	np.fromstring(line,dtype=float,count=2)
+			if idx==3:
+				phiB, thetaB	=	np.fromstring(line,dtype=float,count=2)	
+			if idx==4:
+				phiC, thetaC	=	np.fromstring(line,dtype=float,count=2)	
+			if idx==5:
+				phiD, thetaD	=	np.fromstring(line,dtype=float,count=2)		
+
+	return t1, t2, lmbda, phiA, thetaA,  phiB, thetaB, phiC, thetaC, phiD, thetaD
 
 
-def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
+
+
+
+def plot_bandstruct(kpt_file, en_file, q3_file, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
 
 	#kpt_data = np.genfromtxt(kpt_file,skip_header=1,dtype=(float,float,float,float,str), missing_values='',filling_values='none')
 
@@ -64,6 +84,8 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 
 	en_data		= np.genfromtxt(en_file, skip_header=3, usecols=(0,1,2,3,4)	)
 
+
+	t1, t2, lmbda, phiA, thetaA,  phiB, thetaB, phiC, thetaC, phiD, thetaD	=	get_3qmodel_paras(q3_file)
 
 	print('found '+str(len(kpt_data))+' kpts')	
 	high_symm_points	=	get_high_symm_points(kpt_file)	
@@ -120,6 +142,8 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 	else:
 		plt.ylabel(r'$E \,(E_h)$',fontsize=label_size)
 
+	plt.title(r'3q FeMn:    $t_1=$'+str(t1)+r',$\: t_2=$'+str(t2)+r',$\: \lambda$='+str(lmbda))
+
 	#save file
 	plt.tight_layout()
 	try:
@@ -134,7 +158,7 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 
 
 def unit_test():
-	plot_bandstruct('./kpts','./eBands.dat',
+	plot_bandstruct('./kpts','./eBands.dat', './inp_params_3q',
 					'./bands.pdf',
 					label_size=14,
 					y_tick_size=12,

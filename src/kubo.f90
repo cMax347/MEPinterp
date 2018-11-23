@@ -80,10 +80,10 @@ contains
 
 
 
-	subroutine kubo_opt_tens(hw, vol, e_fermi, T_kelvin, i_eta_smr , en_k, A_ka, opt_symm, opt_asymm)	
+	subroutine kubo_opt_tens(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka, opt_symm, opt_asymm)	
 		!	see wann guide chapter 12
 		!		eq. (12.14) & (12.15)
-		real(dp),		intent(in)		::	hw, vol, e_fermi, T_kelvin, en_k(:) 
+		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:) 
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp), allocatable,	intent(in)		::	A_ka(:,:,:)
 		complex(dp), 	intent(out)		::	opt_symm(3,3), 	opt_asymm(3,3)
@@ -99,8 +99,8 @@ contains
 			write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
 		else
 			if(allocated(A_ka)) then
-				opt_herm	=	get_hermitian(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
-				opt_aherm	=	get_anti_herm(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+				opt_herm	=	get_hermitian(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+				opt_aherm	=	get_anti_herm(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
 				!
 				opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * aimag(	opt_aherm	)		!	(12.14)		
 				opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * aimag(	opt_herm	)		!	(12.15)

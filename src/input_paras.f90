@@ -4,7 +4,7 @@ module input_paras
 	use mpi
 #endif
 	use matrix_math,				only:		crossP
-	use constants,					only:		dp, fp_acc, pi_dp
+	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv, kBoltz_Eh_K
 	use mpi_comm,					only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
 	use k_space,					only:		set_recip_latt, set_mp_grid
 
@@ -162,9 +162,11 @@ module input_paras
 				write(*,*)					"[Kubo] # E_h (Hartree)"
 				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
 				write(*,*)					"	kuboTol=",kubo_tol
-				write(*,*)					"	hw=",hw
-				write(*,*)					"	eFermi=",eFermi
-				write(*,*)					"	T_kelvin=",T_kelvin
+				write(*,*)					"	hw=",hw,"	(eV)"
+				hw	=	hw	/	aUtoEv
+				write(*,*)					"	hw=",hw,"	(E_h)"
+				write(*,*)					"	eFermi=",eFermi,"	(E_h)"
+				write(*,*)					"	T_kelvin=",T_kelvin," (K ~ will be converted to",kBoltz_Eh_K*T_kelvin,"(E_h) )"
 				write(*,*)					"	eta=",eta
 				write(*,*)					"	i_eta_smr=",i_eta_smr
 				write(*,*)					"*********************************************************************************"		

@@ -10,7 +10,7 @@ module band_calc
 	use mpi_comm,		only:			mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use k_space,		only:			get_recip_latt										
 	use wrapper_3q,		only:			get_ham
-	use matrix_math,	only:			zheevd_wrapper
+	use matrix_math,	only:			zheevd_wrapper, zheevr_wrapper
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										write_en_binary, 								&
 										write_en_global							
@@ -26,8 +26,8 @@ contains
 	subroutine band_worker()
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:)
 		real(dp)							::	recip_latt(3,3)
-		integer								::	num_kpts, num_wann, ki, k_per_mpi
-		complex(dp),	allocatable			::	H_k(:,:),	v_dummy(:,:,:)
+		integer								::	num_kpts, num_wann, ki, k_per_mpi, info
+		complex(dp),	allocatable			::	H_k(:,:), U_k(:,:) ,	v_dummy(:,:,:)
 		logical								::	do_gauge_trafo
 		!
 		if(mpi_id==mpi_root_id)	then
@@ -55,6 +55,7 @@ contains
 			num_wann	=	8
 			allocate(	en_k(		num_wann			)	)
 			allocate(	H_k(	num_wann,	num_wann	)	)
+			!allocate(	U_k(	num_wann,	num_wann	)	)
 			!
 			!
 			!	do the work
@@ -70,6 +71,7 @@ contains
 				!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 				call get_ham(rel_kpts(:,ki),	H_k,	v_dummy	)
 				call zheevd_wrapper(H_k, en_k)
+				!call zheevr_wrapper(H_k, en_k, U_k, info)
 
 				call write_en_binary(ki,en_k)
 				k_per_mpi	= k_per_mpi + 1

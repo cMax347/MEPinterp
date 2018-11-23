@@ -65,8 +65,11 @@ class MEP_worker:
 									self.do_write_velo,
 									self.do_mep, self.do_kubo, self.do_ahc, self.do_opt, self.do_gyro			 
 							)
-		copy(self.root_dir+'/../mepInterp',	self.work_dir)
-		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)
+
+		#cpy executables, configs etc. to working dir
+		copy(self.root_dir+'/../mepInterp'		,	self.work_dir)
+		copy(self.root_dir+'/../kptsgen.pl'		,	self.work_dir)
+		copy(self.root_dir+'/../inp_params_3q'	,	self.work_dir)
 
 
 
@@ -136,6 +139,10 @@ class MEP_worker:
 		ahc_file_path	= self.work_dir+'out/ahc/ahc_tens.dat'
 		ahc_tens		= read_real_tens_file(ahc_file_path,					'ahc')
 		return	ahc_tens
+
+	def get_ohc_tens(self):
+		ohc_file_path	= self.work_dir+'out/ahc/ahc_velo.dat'
+		ohc_tens		= read_real_tens_file(ohc_file_path,					'ahcVELO')
 
 	def get_opt_tens(self):
 		#	symmetric contribution

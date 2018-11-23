@@ -2,7 +2,7 @@ module wrapper_3q
 	use constants,			only:		sp, dp, aUtoEv
 	use mpi_comm,			only:		mpi_id
 	use m_setham_FeMn,		only:		read_inp,	init_ham
-
+	use input_paras,		only:		debug_mode
 
 
 	implicit none
@@ -21,7 +21,7 @@ module wrapper_3q
 		real(dp),		intent(in)							::	rel_kpt_dp(3)
 		complex(dp),	allocatable,	intent(inout)		::	H_dp(:,:),	V_dp(:,:,:)
 		complex(sp),	allocatable							::	H_sp(:,:),	vx_sp(:,:), vy_sp(:,:),	vz_sp(:,:)
-		integer												::	num_wann, row, clm	
+		integer												::	num_wann, row, clm, n, m	
 		!
 		!
 		!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
@@ -47,7 +47,9 @@ module wrapper_3q
 		!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
 		!			HAM SETUP																  |
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		write(*,*)	'[#',mpi_id,';	get_ham]	Init 3q state k-space ham for rel. kpt=',rel_kpt_dp		
+		write(*,'(a,i3,a,f7.3,a,f7.3,a,f7.3,a)')	'[#',mpi_id,													&
+													';	get_ham]	Init 3q state k-space ham for rel. kpt= (',		&
+													rel_kpt_dp(1),", ",rel_kpt_dp(2),", ",rel_kpt_dp(3)	, ")."
 		if(	allocated(V_dp)	) 	then
 			!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
 			!			ALSO SETUP VELOCITIES												  |
@@ -77,10 +79,29 @@ module wrapper_3q
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		!
 		!	sp
-		write(*,'(a,i3,a)')	'[#',mpi_id,';	get_ham]	finished hamiltonian setup H_sp:'
-		do row = 1, num_wann
-			write(*,"(100(a,f5.2,a,f5.2,a))")	(	"(",real(H_sp(row,clm)),"+i* ",imag(H_sp(row,clm)),")	"	,	clm = 1, num_wann		)
-		end do
+		if(debug_mode)	then
+			write(*,'(a,i3,a)')	'[#',mpi_id,';	get_ham]	finished hamiltonian setup H_sp:'
+			do row = 1, num_wann
+				write(*,"(100(a,f5.2,a,f5.2,a))")	(	"(",real(H_sp(row,clm)),"+i* ",imag(H_sp(row,clm)),")	"	,	clm = 1, num_wann		)
+			end do
+			!
+			write(*,'(a,i3,a)')	'[#',mpi_id,';	get_ham]	got velocities:'
+			write(*,*)	"	n	| 	m 	||		vx 			|			vy 		|			vz				"
+			write(*,*)	"-------------------------------------------------------------------------------------------------"
+			do m =	1, size(V_dp,3)
+				do n = 1, size(V_dp,2)
+				!	
+				write(*,'(a,i4,a,i4,a)',advance="no")			" ",n," | ",m, "	||	"
+				write(*,'(a,f7.3,a,f7.3,a)',advance="no")		" (",dreal(	V_dp(1,n,m)	),"+i*",aimag( V_dp(1,n,m)),")	| "
+				write(*,'(a,f7.3,a,f7.3,a)',advance="no")		" (",dreal(	V_dp(2,n,m)	),"+i*",aimag( V_dp(2,n,m)),")	| "
+				write(*,'(a,f7.3,a,f7.3,a)')					" (",dreal(	V_dp(3,n,m)	),"+i*",aimag( V_dp(3,n,m)),")	| "
+
+				!
+				end do
+				write(*,*)	"------"
+			end do
+			write(*,*)	"-------------------------------------------------------------------------------------------------"
+		end if
 		!
 		!	dp
 		!write(*,'(a,i3,a)')	'[#',mpi_id,';	get_ham]	finished hamiltonian setup H_dp:'
