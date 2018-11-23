@@ -24,10 +24,10 @@ contains
 
 
 !public
-	pure function kubo_ahc_tens(en_k, Om_kab, eFermi, T_kelvin, unit_vol) result( o_ahc)
+	pure function kubo_ahc_tens(en_k, Om_kab, eFermi, T_kelvin) result( o_ahc)
 		!	see wann guide chapter 12
 		!		eq. (12.16)
-		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin, unit_vol
+		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin
 		complex(dp), allocatable,	intent(in)		::	Om_kab(:,:,:,:)
 		real(dp)						::	o_ahc(3,3)
 		integer							::	n
@@ -36,7 +36,7 @@ contains
 		!
 		if(allocated(Om_kab)) then
 			do n = 1, size(en_k)
-				o_ahc	=	o_ahc	-	real(Om_kab(:,:,n,n),dp)		*	fd_stat(en_k(n),	eFermi, 	T_kelvin) /	unit_vol
+				o_ahc	=	o_ahc	-	real(Om_kab(:,:,n,n),dp)		*	fd_stat(en_k(n),	eFermi, 	T_kelvin) 
 			end do
 		end if
 		!
@@ -44,8 +44,8 @@ contains
 		return
 	end function
 
-	pure function velo_ahc_tens(en_k, v_kab, eFermi, T_kelvin, unit_vol) result( o_ahc)
-		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin, unit_vol
+	pure function velo_ahc_tens(en_k, v_kab, eFermi, T_kelvin) result( o_ahc)
+		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin
 		complex(dp), 	intent(in)		::	v_kab(:,:,:)
 		real(dp)						::	o_ahc(3,3), en_denom	
 		real(dp)						::	Om_ab(3,3)
@@ -70,7 +70,7 @@ contains
 			end do
 			!
 			!
-			o_ahc	=	o_ahc	+ 	Om_ab 	*		fd_stat(en_k(n),	eFermi, T_kelvin)	/	unit_vol
+			o_ahc	=	o_ahc	+ 	Om_ab 	*		fd_stat(en_k(n),	eFermi, T_kelvin)	
 		end do
 		!
 		!
@@ -80,10 +80,10 @@ contains
 
 
 
-	subroutine kubo_opt_tens(hw, vol, e_fermi, T_kelvin, i_eta_smr , en_k, A_ka, opt_symm, opt_asymm)	
+	subroutine kubo_opt_tens(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka, opt_symm, opt_asymm)	
 		!	see wann guide chapter 12
 		!		eq. (12.14) & (12.15)
-		real(dp),		intent(in)		::	hw, vol, e_fermi, T_kelvin, en_k(:) 
+		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:) 
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp), allocatable,	intent(in)		::	A_ka(:,:,:)
 		complex(dp), 	intent(out)		::	opt_symm(3,3), 	opt_asymm(3,3)
@@ -99,8 +99,8 @@ contains
 			write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
 		else
 			if(allocated(A_ka)) then
-				opt_herm	=	get_hermitian(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
-				opt_aherm	=	get_anti_herm(hw, vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+				opt_herm	=	get_hermitian(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+				opt_aherm	=	get_anti_herm(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
 				!
 				opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * aimag(	opt_aherm	)		!	(12.14)		
 				opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * aimag(	opt_herm	)		!	(12.15)
@@ -134,9 +134,9 @@ contains
 	end function
 
 
-	function get_hermitian(hw, unit_vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_herm)
+	function get_hermitian(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_herm)
 		!	wann guide eq. (12.10)
-		real(dp),		intent(in)		::	hw, unit_vol, e_fermi, T_kelvin, en_k(:)
+		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
 		complex(dp)						::	opt_herm(3,3)
@@ -161,7 +161,7 @@ contains
 		end do
 		!
 		!
-		pre_fact	=	-	pi_dp / unit_vol
+		pre_fact	=	-	pi_dp 
 		opt_herm	=	cmplx(pre_fact,0.0_dp, dp)	* opt_herm
 		!
 		return
@@ -169,9 +169,9 @@ contains
 
 
 
-	function get_anti_herm(hw, unit_vol, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_aherm)
+	function get_anti_herm(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_aherm)
 		!	wann guide eq. (12.11)
-		real(dp),		intent(in)		::	hw, unit_vol, e_fermi, T_kelvin, en_k(:)
+		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr	
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
 		complex(dp)						::	opt_aherm(3,3)
@@ -197,7 +197,7 @@ contains
 		end do
 		!
 		!
-		pre_fact	=	i_dp /	unit_vol
+		pre_fact	=	i_dp
 		opt_aherm	=	pre_fact	*	opt_aherm
 		!
 		return
