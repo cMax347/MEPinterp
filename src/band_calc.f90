@@ -27,7 +27,7 @@ contains
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:)
 		real(dp)							::	recip_latt(3,3)
 		integer								::	num_kpts, num_wann, ki, k_per_mpi, info
-		complex(dp),	allocatable			::	H_k(:,:), U_k(:,:) ,	v_dummy(:,:,:)
+		complex(dp),	allocatable			::	H_k(:,:),	v_dummy(:,:,:)
 		logical								::	do_gauge_trafo
 		!
 		if(mpi_id==mpi_root_id)	then
@@ -55,7 +55,6 @@ contains
 			num_wann	=	8
 			allocate(	en_k(		num_wann			)	)
 			allocate(	H_k(	num_wann,	num_wann	)	)
-			!allocate(	U_k(	num_wann,	num_wann	)	)
 			!
 			!
 			!	do the work
@@ -71,8 +70,7 @@ contains
 				!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 				call get_ham(rel_kpts(:,ki),	H_k,	v_dummy	)
 				call zheevd_wrapper(H_k, en_k)
-				!call zheevr_wrapper(H_k, en_k, U_k, info)
-
+				!
 				call write_en_binary(ki,en_k)
 				k_per_mpi	= k_per_mpi + 1
 			end do
