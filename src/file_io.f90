@@ -334,9 +334,10 @@ module file_io
 	end subroutine
 
 
-	subroutine write_ahc_tensor(n_ki_glob, ahc_tens, velo_ahc_tens)
+	subroutine write_ahc_tensor(n_ki_glob, ahc_tens, velo_ahc_tens, ohc_tens)
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable,	intent(in)			::	ahc_tens(:,:), velo_ahc_tens(:,:)
+		complex(dp),allocatable,	intent(in)			::	ohc_tens(:,:)
 		character(len=12)								::	fname
 		character(len=70)								::	info_string
 		character(len=7)								::	id_string
@@ -357,6 +358,15 @@ module file_io
 			id_string	=	'ahcVELO'
 			call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC (via velo) tensor on ",n_ki_glob," kpts"
+		end if
+		!
+		!
+		if(allocated(ohc_tens)) then
+			fname		=	'ohc_kubo.dat'
+			info_string	=	'# optical Hall conductivity tensor (wann guide: eq.12.5) '//cTIME(time())
+			id_string	=	'ohcVELO'
+			call	write_tens_file(ahc_out_dir,	fname,	ohc_tens,	info_string,	id_string)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (via velo) tensor on ",n_ki_glob," kpts"
 		end if
 		!
 		!

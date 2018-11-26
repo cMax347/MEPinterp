@@ -80,6 +80,7 @@ class Phi_probe:
 				#
 				#
 				work_dir	=	entry.path
+				print("check subdir "+work_dir)
 				phi 		=	work_dir.split("phi")[1]	
 				print("found subdir ="+str(entry.path)+' assoc. phi='+phi)
 				#

@@ -13,7 +13,8 @@ module kubo
 	private
 	public			::			kubo_ahc_tens,		&
 								velo_ahc_tens,		&
-								kubo_opt_tens	
+								kubo_opt_tens,		&
+								kubo_ohc_tens	
 
 
 
@@ -43,6 +44,39 @@ contains
 		!
 		return
 	end function
+
+
+	pure function kubo_ohc_tens(en_k, v_kab, hw, eFermi, T_kelvin, i_eta_smr)	result(z_ohc)
+		!
+		!		calculates wann guide (12.5) explicitly
+		!	
+		real(dp),		intent(in)		::	en_k(:), hw, eFermi, T_kelvin
+		complex(dp),	intent(in)		::	v_kab(:,:,:), i_eta_smr
+		complex(dp)						::	z_ohc(3,3)
+		integer							::	n,	m, j
+		real(dp)						::	dFdE_mn, dE_mn
+		!
+		z_ohc	=	cmplx(0.0_dp, 0.0_dp, dp)
+		!
+		do m = 1 , size(v_kab,3)
+			do n = 1, size(v_kab,2)
+				dE_mn 	=	en_k(m)	-	en_k(n)	
+				dFdE_mn	=	fd_stat(en_k(m), 		eFermi, T_kelvin)	- fd_stat(en_k(n), 		eFermi, T_kelvin)
+				!
+				if( dE_mn > 1e-5_dp) then
+					dFdE_mn	=	dFdE_mn	/	dE_mn
+				end if
+				!
+				do j = 1, 3
+					z_ohc(:,j)	=	z_ohc(:,j)	 + 	i_dp * 	cmplx(dFdE_mn,0.0_dp,dp)	* v_kab(:,n,m) * v_kab(j,m,n)	&
+													/ 	(	cmplx(dE_mn - hw,0.0_dp,dp) - i_eta_smr	)
+				end do
+			end do
+		end do
+		!
+		return
+	end function
+
 
 	pure function velo_ahc_tens(en_k, v_kab, eFermi, T_kelvin) result( o_ahc)
 		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin
