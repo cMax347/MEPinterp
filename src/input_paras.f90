@@ -163,12 +163,15 @@ module input_paras
 				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
 				write(*,*)					"	kuboTol=",kubo_tol
 				write(*,*)					"	hw=",hw,"	(eV)"
-				hw	=	hw	/	aUtoEv
+				write(*,*)					"	etasmearing=",eta
+				write(*,*)					"	i_eta_smr=",i_eta_smr," (eV)" 
+				write(*,*)					"	T_kelvin=",T_kelvin," (K ~ will be converted to",kBoltz_Eh_K*T_kelvin*aUtoEv,"(eV) )"
+				hw			=	hw			/	aUtoEv
+				i_eta_smr	=	i_eta_smr	/	aUtoEv
 				write(*,*)					"	hw=",hw,"	(E_h)"
 				write(*,*)					"	eFermi=",eFermi,"	(E_h)"
 				write(*,*)					"	T_kelvin=",T_kelvin," (K ~ will be converted to",kBoltz_Eh_K*T_kelvin,"(E_h) )"
-				write(*,*)					"	eta=",eta
-				write(*,*)					"	i_eta_smr=",i_eta_smr
+				write(*,*)					"	i_eta_smr=",i_eta_smr," (E_h)" 
 				write(*,*)					"*********************************************************************************"		
 				!
 				!make the output folder
