@@ -341,6 +341,7 @@ module file_io
 		character(len=12)								::	fname
 		character(len=70)								::	info_string
 		character(len=7)								::	id_string
+		integer											::	row
 		!
 		!
 		if(allocated(ahc_tens)) then
@@ -348,7 +349,10 @@ module file_io
 			info_string	=	'# anomalous Hall conductivity tensor, written '//cTIME(time())
 			id_string	=	'ahc'
 			call	write_tens_file(ahc_out_dir,	fname,	ahc_tens,	info_string,	id_string)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor on ",n_ki_glob," kpts"
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor on ",n_ki_glob," kpts:"
+			do row = 1, 3
+				write(*,*)	ahc_tens(row,:)
+			end do
 		end if
 		!
 		!
@@ -357,7 +361,10 @@ module file_io
 			info_string	=	'# anomalous Hall conductivity tensor (via velocity kubo), written '//cTIME(time())
 			id_string	=	'ahcVELO'
 			call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC (via velo) tensor on ",n_ki_glob," kpts"
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC (via velo) tensor on ",n_ki_glob," kpts:"
+			do row = 1, 3
+				write(*,*)	velo_ahc_tens(row,:)
+			end do
 		end if
 		!
 		!
@@ -367,6 +374,9 @@ module file_io
 			id_string	=	'ohcVELO'
 			call	write_tens_file(ahc_out_dir,	fname,	ohc_tens,	info_string,	id_string)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (via velo) tensor on ",n_ki_glob," kpts"
+			do row = 1, 3
+				write(*,*)	ohc_tens(row,:)
+			end do
 		end if
 		!
 		!
@@ -380,6 +390,7 @@ module file_io
 		character(len=13)									::	fname
 		character(len=70)									::	info_string
 		character(len=4)									::	id_string
+		integer												::	row
 		!
 		!
 		if(allocated(s_symm)) then
@@ -387,6 +398,10 @@ module file_io
 			info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
 			id_string	=	'optS'
 			call 	write_tens_file(opt_out_dir,	fname,	s_symm,	info_string,	id_string)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_opt_tensors]: wrote opt. cond. symmetric tensor on ",n_ki_glob," kpts:"
+			do row = 1, 3
+				write(*,*)	s_symm(row,:)
+			end do
 		end if
 		!
 		if(allocated(a_symm)) then
@@ -394,11 +409,12 @@ module file_io
 			info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
 			id_string	=	'optA'
 			call 	write_tens_file(opt_out_dir,	fname,	a_symm,	info_string,	id_string)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_opt_tensors]: wrote opt. cond. a(!)symmetric tensor on ",n_ki_glob," kpts:"
+			do row = 1, 3
+				write(*,*)	a_symm(row,:)
+			end do
 			!
 			!
-			if(allocated(s_symm)) then
-				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
-			end if
 		end if
 		!
 		!
@@ -412,12 +428,17 @@ module file_io
 		character(len=13)									::	fname
 		character(len=70)									::	info_string
 		character(len=6)									::	id_string
+		integer												::	row
 		!
 		if(allocated(C_tens)) then
 			fname		=	'gyro_C.dat'
 			info_string	=	'# the C tensor from arXiv:1710.03204v2, written '//cTIME(time())
 			id_string	=	'gyroC'
 			call	write_tens_file(gyro_out_dir,	fname,	C_tens,	info_string,	id_string)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_gyro_tensors]: wrote gyrotropic C tensor on ",n_ki_glob," kpts:"
+			do row = 1, 3
+				write(*,*)	C_tens(row,:)
+			end do
 		end if
 		!
 		if(allocated(D_tens)) then
@@ -425,6 +446,10 @@ module file_io
 			info_string	=	'# the D tensor from arXiv:1710.03204v2, written '//cTIME(time())
 			id_string	=	'gyroD'
 			call	write_tens_file(gyro_out_dir,	fname,	D_tens,	info_string,	id_string)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_gyro_tensors]: wrote gyrotropic D tensor on ",n_ki_glob," kpts:"
+			do row = 1, 3
+				write(*,*)	D_tens(row,:)
+			end do
 		end if
 		!
 		if(allocated(Dw_tens)) then
@@ -432,6 +457,10 @@ module file_io
 			info_string	=	'# the Dw tensor from arXiv:1710.03204v2, written '//cTIME(time())
 			id_string	=	'gyroDw'
 			call	write_tens_file(gyro_out_dir,	fname,	Dw_tens,	info_string,	id_string)
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_gyro_tensors]: wrote gyrotropic Dw tensor on ",n_ki_glob," kpts:"
+			do row = 1, 3
+				write(*,*)	Dw_tens(row,:)
+			end do
 		end if
 		!
 		!
@@ -456,7 +485,7 @@ module file_io
 			write(w_unit,*)	info_string
 			write(w_unit,*)	'begin '//id_string
 			do row = 1, 3
-				write(w_unit,'(200(f16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
+				write(w_unit,'(200(e16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
 			end do
 			write(w_unit,*)	'end '//id_string
 		close(w_unit)
@@ -476,7 +505,7 @@ module file_io
 			write(255,*)	info_string
 			write(255,*)	'begin '//id_string
 			do row = 1, 3
-				write(255,'(200(a,f12.6,a,f12.6,a))')		(		' ',real(tens(row,clm),dp), ' ',imag(tens(row,clm)),' ', clm=1,3)
+				write(255,'(200(a,e16.8,a,e16.8,a))')		(		' ',real(tens(row,clm),dp), ' ',imag(tens(row,clm)),' ', clm=1,3)
 			end do
 			write(255,*)	'end '//id_string
 		close(255)
