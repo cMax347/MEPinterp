@@ -470,12 +470,10 @@ contains
 			allocate(	kubo_mep_ic_loc(			3,3	)			)	
 			allocate(	kubo_mep_lc_loc(			3,3	)			)	
 			allocate(	kubo_mep_cs_loc(			3,3	)			)
-			allocate(	kubo_ohc_loc(				3,3	)			)
 			!
 			kubo_mep_ic_loc		=	0.0_dp
 			kubo_mep_lc_loc		=	0.0_dp
 			kubo_mep_cs_loc		=	0.0_dp
-			kubo_ohc_loc		=	0.0_dp
 		end if
 		!
 		if(	do_opt	)	then
