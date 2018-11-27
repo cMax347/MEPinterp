@@ -18,18 +18,21 @@ class conv_data:
 			shutil.rmtree(self.plot_dir)
 		os.mkdir(self.plot_dir)
 
-		self.dir_lst	= 	[]
-		self.nK_lst		=	[]
+		self.dir_lst		= 	[]
+		self.nK_lst			=	[]
 		#
 		self.mep_2014_lst	=	[]
-		self.mep_tot_lst=	[]
-		self.mep_cs_lst	=	[]
-		self.mep_ic_lst	=	[]
-		self.mep_lc_lst	=	[]
+		self.mep_tot_lst	=	[]
+		self.mep_cs_lst		=	[]
+		self.mep_ic_lst		=	[]
+		self.mep_lc_lst		=	[]
 		#
-		self.ahc_lst	=	[]
-		self.optS_lst	=	[]
-		self.optA_lst	=	[]
+		self.ahc_lst		=	[]
+		self.ahc_velo_lst	=	[]
+		self.ohc_lst		=	[]
+		#
+		self.optS_lst		=	[]
+		self.optA_lst		=	[]
 
 
 	
@@ -43,16 +46,18 @@ class conv_data:
 				self.nK_lst.append(nK_new)
 				#
 				#self.mep_2014_lst.append(	0.0)
-				#self.mep_2014_lst.append(	read_real_tens_file(subdir + '/out/mep/mep_14.dat'			,		'mep')			)
-				self.mep_tot_lst.append(	read_real_tens_file(subdir + '/out/mep/mep_tens.dat'		, 		'mep')			)
-				self.mep_cs_lst.append(		read_real_tens_file(subdir + '/out/mep/mep_cs.dat'			, 		'mep')			)
-				self.mep_ic_lst.append(		read_real_tens_file(subdir + '/out/mep/mep_ic.dat'			, 		'mep')			)
-				self.mep_lc_lst.append(		read_real_tens_file(subdir + '/out/mep/mep_lc.dat'			, 		'mep')			)
+				#self.mep_2014_lst.append(	read_real_tens_file(subdir + '/out/mep/mep_14.dat'			,		'mep'		)			)
+				self.mep_tot_lst.append(	read_real_tens_file(subdir + '/out/mep/mep_tens.dat'		, 		'mep'		)			)
+				self.mep_cs_lst.append(		read_real_tens_file(subdir + '/out/mep/mep_cs.dat'			, 		'mep'		)			)
+				self.mep_ic_lst.append(		read_real_tens_file(subdir + '/out/mep/mep_ic.dat'			, 		'mep'		)			)
+				self.mep_lc_lst.append(		read_real_tens_file(subdir + '/out/mep/mep_lc.dat'			, 		'mep'		)			)
 				#
-				self.ahc_lst.append(		read_real_tens_file(subdir +	'/out/ahc/ahc_tens.dat'		,		'ahc')			)
+				self.ahc_lst.append(		read_real_tens_file(subdir + '/out/ahc/ahc_tens.dat'		,		'ahc'		)			)
+				self.ahc_velo_lst.append(	read_real_tens_file(subdir + '/out/ahc/ahc_velo.dat'		,		'ahc'		)			)
+				self.ohc_lst.append(		read_cmplx_tens_file(subdir + '/out/ahc/ohc_kubo.dat'		,		'ohcVELO'	)			)
 				#
-				self.optS_lst.append(		read_cmplx_tens_file(subdir + '/out/opt/opt_Ssymm.dat'		,		'optS')			)
-				self.optA_lst.append(		read_cmplx_tens_file(subdir + '/out/opt/opt_Asymm.dat'		,		'optA')			)
+				self.optS_lst.append(		read_cmplx_tens_file(subdir + '/out/opt/opt_Ssymm.dat'		,		'optS'		)			)
+				self.optA_lst.append(		read_cmplx_tens_file(subdir + '/out/opt/opt_Asymm.dat'		,		'optA'		)			)
 
 
 		#sort by number of kpts used\
@@ -147,14 +152,28 @@ class conv_data:
 		for a in range(0,3):
 			for b in range(0,3):
 				#
-				ahc_ab		= []
+				ahc_ab		= 	[]
+				velo_ab		=	[]
+				re_ohc_ab	= 	[]
+				im_ohc_ab	=	[]
 				for ahc_tens in self.ahc_lst:
 					ahc_ab.append(		ahc_tens[a][b]		)	
+				for velo_tens in self.ahc_velo_lst:
+					velo_ab.append(		velo_tens[a][b])
+				for ohc_tens in self.ohc_lst:
+					re_ohc_ab.append(		np.real(ohc_tens[a][b])		)
+					im_ohc_ab.append(		np.imag(ohc_tens[a][b])		)
+
 				#plot
 				fig, ax  = plt.subplots(1,1) 
-				plt.semilogx(nK_plot, ahc_ab,	'+-',	color='black', label="AHC" )
+				plt.semilogx(nK_plot, 		ahc_ab			,	'+-',	color='black'	, 		label="AHC (curv)"		)
+				plt.semilogx(nK_plot, 		velo_ab			,	'^-',	color='purple'	, 		label="AHC (velo)"		)
+				plt.semilogx(nK_plot, 		re_ohc_ab		,	'v-',	color='blue'	,		label="RE OHC (velo)"	)
+				plt.semilogx(nK_plot,		im_ohc_ab		,	'x-',	color='orange'	,		label="IM OHC (velo)"	)
 				#aesthetics
 				#plt.xticks(np.array([nK_plot]))
+
+				#todo plot ohc real and imaginary
 
 				plt.tick_params(axis='both', which='both',left=True,right=True, direction='in',labelsize=tick_label_size)
 				plt.ylabel(r'$\rho$_'+self.dim_string[a]+self.dim_string[b]+' (arb.unit TODO)')
@@ -190,6 +209,11 @@ class conv_data:
 				re_opt_a_ab	= []
 				im_opt_a_ab = []
 				#
+				velo_ab		=	[]
+				re_ohc_ab	= 	[]
+				im_ohc_ab	=	[]
+
+
 				for optS_tens in self.optS_lst:
 					re_opt_s_ab.append(		np.real(	optS_tens[a][b]	))
 					im_opt_s_ab.append(		np.imag(	optS_tens[a][b]	))
@@ -197,12 +221,26 @@ class conv_data:
 					re_opt_a_ab.append(		np.real(	optA_tens[a][b]	))
 					im_opt_a_ab.append(		np.imag(	optA_tens[a][b]	))
 
+				for velo_tens in self.ahc_velo_lst:
+					velo_ab.append(		velo_tens[a][b])
+				for ohc_tens in self.ohc_lst:
+					re_ohc_ab.append(		np.real(ohc_tens[a][b])		)
+					im_ohc_ab.append(		np.imag(ohc_tens[a][b])		)
+
 			
 				fig, ax	=	plt.subplots(1,1)
-				plt.semilogx(nK_plot, re_opt_s_ab, '^-',color="blue", label='Re symm')
-				plt.semilogx(nK_plot, im_opt_s_ab, 'v-',color="orange" , label='Im symm')
-				plt.semilogx(nK_plot, re_opt_s_ab, 'o-',color="green", label='Re asymm')
-				plt.semilogx(nK_plot, re_opt_s_ab, 's-',color="lime", label='Im asymm')
+				plt.semilogx(nK_plot, re_opt_s_ab	, '^-',color="blue", label='Re symm')
+				plt.semilogx(nK_plot, im_opt_s_ab	, 'v-',color="orange" , label='Im symm')
+				plt.semilogx(nK_plot, re_opt_s_ab	, 'o-',color="green", label='Re asymm')
+				plt.semilogx(nK_plot, re_opt_s_ab	, 's-',color="lime", label='Im asymm')
+				#	ahc via velocity kubo formula
+				plt.semilogx(nK_plot, velo_ab		,'-',	color="black", label="AHC (velo)")
+				#	ohc via wannier guide 12.5
+				plt.semilogx(nK_plot, re_ohc_ab		,'x-',	color="red",	label='Re OHC')
+				plt.semilogx(nK_plot, im_ohc_ab		, '+-',	color="darkred",	label="Im OHC")
+
+
+
 				#aesthetics
 				plt.tick_params(axis='both', which='both',left=True,right=True, direction='in',labelsize=tick_label_size)
 				plt.ylabel(r'$\rho$_'+self.dim_string[a]+self.dim_string[b]+' (arb.unit TODO)')
