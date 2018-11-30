@@ -1,19 +1,25 @@
-import numpy as np
-import datetime
-import os
-from	shutil import rmtree
-from postw90_in_writer import postw90_job
-from souza_tb_model	import get_souza_tb
-
-
-au_to_eV 		= 27.21139
-au_to_angtrom	= 0.529177211
-
-
-seed_name		= 'wf1'
-
-
-
+import 	os
+import 	datetime
+import 	numpy 				as 		np
+from 	shutil 				import 	rmtree
+from 	postw90_in_writer 	import 	postw90_job
+from 	souza_tb_model		import 	get_souza_tb
+from 	FeMn_3q_model		import 	get_FeMn3q_tb
+#
+#
+#
+#
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#		CONSTANTS
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+whitespace 		= 	'\t'
+#
+au_to_eV 		= 	27.21139
+au_to_angtrom	= 	0.529177211
+#
+seed_name		= 	'wf1'
 #
 #
 #
@@ -22,13 +28,9 @@ seed_name		= 'wf1'
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #		WANNIER90 INTERFACE
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 def write_postw90_input(w90_dir, seed_name, val_bands, mp_grid, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0):
 	pw90_job 	=	postw90_job(w90_dir, seed_name, val_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing)
 	pw90_job.write_win_file()
-
-
 #
 #
 #
@@ -37,10 +39,9 @@ def write_postw90_input(w90_dir, seed_name, val_bands, mp_grid, hw=0.0, eFermi=0
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #		WRITE TIGHT BINDING BASIS (_hr, _r files)
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 def write_hr_file(seed_name, nAt, nrpts, thopp):
-	whitespace = '\t'
-
+	
+	#
 	thopp = sorted(thopp)
 	with open(seed_name+'_hr.dat','w') as outfile:
 		#HEADER
@@ -67,12 +68,12 @@ def write_hr_file(seed_name, nAt, nrpts, thopp):
 				outfile.write("{:16.8f}".format(float(val))+whitespace)
 			outfile.write('\n')
 	print('wrote '+seed_name+'_hr.dat'+' file')
-
-
+#
+#
 def write_r_file(seed_name, nAt, rhopp ):
 	whitespace = '\t'
 	rhopp = sorted(rhopp)
-
+	#
 	with open(seed_name+'_r.dat','w') as outfile:
 		#HEADER
 		outfile.write('# my _r file created with inpgenTBwann.py on '+datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")+'\n')
@@ -97,8 +98,6 @@ def write_r_file(seed_name, nAt, rhopp ):
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #		MEPinterp CFG FILE
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,			
 							kubo_tol=1e-3, hw=0.0,eFermi=0.0, Tkelvin=0.0,eta_smearing=0.0,  	 
 							plot_bands='F',	debug_mode='F', do_gauge_trafo='T', do_write_velo='F',	do_write_mep_bands='F',								
@@ -166,8 +165,7 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #		PUBLIC FUNCTION
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-def write_souza_tb_input(	root_dir, phi_para, valence_bands, mp_grid ,						
+def write_tb_input(	tb_model, root_dir, phi_para, valence_bands, mp_grid ,						
  							kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 	
  							plot_bands='F', debug_mode='F' ,do_gauge_trafo='T',	
  							do_write_velo='F',	do_write_mep_bands='F',			
@@ -177,7 +175,19 @@ def write_souza_tb_input(	root_dir, phi_para, valence_bands, mp_grid ,
 	target_path		= root_dir+'/'+target_dir_name
 	#
 	#		get the tight binding basis
-	nWfs, nrpts, tHopp, rHopp	=	get_souza_tb(phi_para)
+	if tb_model == 'souza':
+		print("[write_tb_input]:	SOUZA TB MODEL SELECTED")
+		nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_souza_tb(phi_para)
+	elif tb_model == 'FeMn3q':
+		print("[write_tb_input]:	FeMn 3Q TB MODEL SELECTED")
+		config_file =	root_dir+'/inp_params_3q'
+		nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_FeMn3q_tb(config_file)
+	elif tb_model == 'w90':
+			print("[write_tb_input]:	USE EXISTING W90 FILES (NOT IMPLEMENTED YET)")
+			#	todo check if w90 files are present & consistent
+	else:
+		print("[write_tb_input]:	unknow tb_model identifier '"+tb_model+"' will use souza tb model with phi=0.0")
+		nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_souza_tb(0.0)
 	#
 	#
 	#write them to file
@@ -187,15 +197,8 @@ def write_souza_tb_input(	root_dir, phi_para, valence_bands, mp_grid ,
 
 	# now write the input files for postw90 & mepInterp
 	write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
-
-	#lattice setup
-	ax 				= np.zeros(3)
-	ay 				= np.zeros(3)
-	az 				= np.zeros(3)
-	ax[0]			= 2.0
-	ay[1]			= 2.0
-	az[2]			= 2.0
-	a0				= 1.0
+	#
+	
 	#	write mepInterp
 	write_mepInterp_input(	 root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,	
 							kubo_tol, hw,eFermi, Tkelvin,eta_smearing, 							
@@ -203,6 +206,10 @@ def write_souza_tb_input(	root_dir, phi_para, valence_bands, mp_grid ,
 							do_write_velo, do_write_mep_bands,							
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro							
 						)
+#
+#
+#def write_FeMn3q_tb_input():
+#	print("[write_FeMn3q_tb_input]:	Implement me!!!")
 
 
 
@@ -232,7 +239,7 @@ def test():
 	valence_bands=2
 	mp_grid=[4, 4, 4]
 
-	write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid)
+	write_tb_input('souza', root_dir, phi_para, valence_bands, mp_grid)
 
 
 #uncomment next line to generate some test input

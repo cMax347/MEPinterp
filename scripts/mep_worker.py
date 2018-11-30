@@ -4,7 +4,7 @@ import datetime
 import sys, traceback
 import numpy as np
 from shutil 			import 	copy
-from tb_input_writer 	import 	write_souza_tb_input
+from tb_input_writer 	import 	write_tb_input
 from plot_bandStruct 	import	plot_bandstruct
 from fortran_io			import	read_real_tens_file
 
@@ -17,12 +17,13 @@ class MEP_worker:
 
 
 	#constructor
-	def __init__(		self, root_dir, work_dir, phi, val_bands, mp_grid, 
+	def __init__(		self, tb_model, root_dir, work_dir, phi, val_bands, mp_grid, 
 						kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 
 						debug_mode='F', do_gauge_trafo='T',	
 						do_write_velo='F', do_write_mep_bands='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 						):
+		self.tb_model		=	tb_model
 		self.root_dir		=	root_dir
 		self.work_dir		=	work_dir
 		self.phi			=	phi
@@ -60,7 +61,7 @@ class MEP_worker:
 			sys.exit('could not makedirs '+str(self.work_dir)	)
 
 		#prepare files in working directory
-		write_souza_tb_input(		self.work_dir, self.phi, self.val_bands, self.mp_grid, 					
+		write_tb_input(		self.tb_model,	self.work_dir, self.phi, self.val_bands, self.mp_grid, 					
 									self.kubo_tol, self.hw, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
 									self.plot_bands, self.debug_mode, self.do_gauge_trafo,
 									self.do_write_velo, self.do_write_mep_bands,

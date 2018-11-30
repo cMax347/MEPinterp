@@ -425,11 +425,21 @@ def get_souza_tb(phi_para):
 	#
 	#	POSITION
 	rHopp    		=	get_souza_Pos(nWfs, R_nn_lst)
+	#
+	#
+	#	LATTICE
+	ax 				= np.zeros(3)
+	ay 				= np.zeros(3)
+	az 				= np.zeros(3)
+	ax[0]			= 2.0
+	ay[1]			= 2.0
+	az[2]			= 2.0
+	a0				= 1.0
 
 	print(' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
 
-	return nWfs, nrpts, tHopp, rHopp
+	return nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0
 
 #
 #
