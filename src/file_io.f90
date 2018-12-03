@@ -358,7 +358,7 @@ module file_io
 		!
 		if(allocated(velo_ahc_tens)) then
 			fname		=	'ahc_velo.dat'
-			info_string	=	'# anomalous Hall conductivity tensor (via velocity kubo), written '//cTIME(time())
+			info_string	=	'# OHC via Wanxiang formula (Im(v**2)/(dE**2 - (hw+eta)**2 )) '//cTIME(time())
 			id_string	=	'ahcVELO'
 			call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC (via velo) tensor on ",n_ki_glob," kpts:"
@@ -370,7 +370,7 @@ module file_io
 		!
 		if(allocated(ohc_tens)) then
 			fname		=	'ohc_kubo.dat'
-			info_string	=	'# optical Hall conductivity tensor (wann guide: eq.12.5) '//cTIME(time())
+			info_string	=	'# optical Hall conductivity tensor (via velocities, wann guide: eq.12.5) '//cTIME(time())
 			id_string	=	'ohcVELO'
 			call	write_tens_file(ahc_out_dir,	fname,	ohc_tens,	info_string,	id_string)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (via velo) tensor on ",n_ki_glob," kpts"
@@ -395,7 +395,7 @@ module file_io
 		!
 		if(allocated(s_symm)) then
 			fname		=	'opt_Ssymm.dat'
-			info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
+			info_string	=	'# symmetric optical conductivity tensor( via connection), written '//cTIME(time())
 			id_string	=	'optS'
 			call 	write_tens_file(opt_out_dir,	fname,	s_symm,	info_string,	id_string)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_opt_tensors]: wrote opt. cond. symmetric tensor on ",n_ki_glob," kpts:"
@@ -406,7 +406,7 @@ module file_io
 		!
 		if(allocated(a_symm)) then
 			fname		=	'opt_Asymm.dat'
-			info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
+			info_string	=	'# asymmetric optical conductivity tensor( via connection), written '//cTIME(time())
 			id_string	=	'optA'
 			call 	write_tens_file(opt_out_dir,	fname,	a_symm,	info_string,	id_string)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_opt_tensors]: wrote opt. cond. a(!)symmetric tensor on ",n_ki_glob," kpts:"
