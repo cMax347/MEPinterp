@@ -145,9 +145,10 @@ class conv_data:
 		nK_plot	= 	[]
 		for nk in self.nK_lst:
 			if show_tot_nK:
-				nK_plot.append(nk**3)
-			else:
 				nK_plot.append(nk)
+			else:
+				nK_plot.append(int(np.power(float(nk),1./3.)))
+		#
 		#
 		for a in range(0,3):
 			for b in range(0,3):
@@ -197,9 +198,10 @@ class conv_data:
 		nK_plot	= 	[]
 		for nk in self.nK_lst:
 			if show_tot_nK:
-				nK_plot.append(nk**3)
-			else:
 				nK_plot.append(nk)
+			else:
+				nK_plot.append(int(np.power(float(nk),1./3.)))
+		#
 		#
 		for a in range(0,3):
 			for b in range(0,3):
@@ -229,15 +231,15 @@ class conv_data:
 
 			
 				fig, ax	=	plt.subplots(1,1)
-				plt.semilogx(nK_plot, re_opt_s_ab	, '^-',color="blue", label='Re symm')
-				plt.semilogx(nK_plot, im_opt_s_ab	, 'v-',color="orange" , label='Im symm')
+				plt.semilogx(nK_plot, re_opt_s_ab	, '^-',color="red", label='Re symm')
+				plt.semilogx(nK_plot, im_opt_s_ab	, 'v-',color="darkred" , label='Im symm')
 				plt.semilogx(nK_plot, re_opt_s_ab	, 'o-',color="green", label='Re asymm')
 				plt.semilogx(nK_plot, re_opt_s_ab	, 's-',color="lime", label='Im asymm')
 				#	ahc via velocity kubo formula
-				plt.semilogx(nK_plot, velo_ab		,'-',	color="black", label="AHC (velo)")
+				plt.semilogx(nK_plot, velo_ab		,'-',	color="purple", label="AHC (velo)")
 				#	ohc via wannier guide 12.5
-				plt.semilogx(nK_plot, re_ohc_ab		,'x-',	color="red",	label='Re OHC')
-				plt.semilogx(nK_plot, im_ohc_ab		, '+-',	color="darkred",	label="Im OHC")
+				plt.semilogx(nK_plot, re_ohc_ab		,'x-',	color="blue",	label='Re OHC')
+				plt.semilogx(nK_plot, im_ohc_ab		, '+-',	color="orange",	label="Im OHC")
 
 
 
