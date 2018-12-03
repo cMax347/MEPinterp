@@ -80,12 +80,12 @@ contains
 												!local sum targets:
 		real(dp),		allocatable			::	mep_2014_loc(		:,:),				&
 												kubo_ahc_loc(		:,:),				&
-												velo_ahc_loc(		:,:),				&
 												kubo_mep_ic_loc(	:,:),				&
 												kubo_mep_lc_loc(	:,:),				&
 												kubo_mep_cs_loc(	:,:)
 												!
-		complex(dp),	allocatable			::	kubo_ohc_loc(		:,:),				&
+		complex(dp),	allocatable			::	velo_ahc_loc(		:,:),				&
+												kubo_ohc_loc(		:,:),				&
 												tempS(:,:),								& 	
 												tempA(:,:),								&
 												kubo_opt_s_loc(		:,:),				&
@@ -172,8 +172,8 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	AHC
 						!----------------------------------------------------------------------------------------------------------------------------------
-						if(allocated(kubo_ahc_loc)		)		kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab, eFermi, T_kelvin)
-						if(allocated(velo_ahc_loc)		)		velo_ahc_loc	=	velo_ahc_loc	+	velo_ahc_tens(en_k, V_ka,	eFermi, T_kelvin)
+						if(allocated(kubo_ahc_loc)		)		kubo_ahc_loc	=	kubo_ahc_loc	+ 	kubo_ahc_tens(en_k,	Om_kab,   eFermi, T_kelvin)
+						if(allocated(velo_ahc_loc)		)		velo_ahc_loc	=	velo_ahc_loc	+	velo_ahc_tens(en_k, V_ka, hw, eFermi, T_kelvin, i_eta_smr)
 						if(allocated(kubo_ohc_loc)		)		kubo_ohc_loc	=	kubo_ohc_loc	+	kubo_ohc_tens(en_k, V_ka, hw, eFermi, T_kelvin, i_eta_smr)
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -269,8 +269,9 @@ contains
 		real(dp),		allocatable,	intent(inout)	::	mep_2014_loc(:,:),														&
 															mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),	&
 															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),		&				
-															kubo_ahc_loc(:,:), velo_ahc_loc(:,:)									
-		complex(dp),	allocatable,	intent(inout)	::	kubo_ohc_loc(:,:),														&
+															kubo_ahc_loc(:,:)								
+		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:),														&	
+															kubo_ohc_loc(:,:),														&
 															kubo_opt_s_loc(:,:), kubo_opt_a_loc(:,:),								&
 															gyro_C_loc(:,:), gyro_D_loc(:,:), gyro_Dw_loc(:,:)		
 		!-----------------------------------------------------------------------------------------------------------
@@ -283,8 +284,9 @@ contains
 															mep_sum_ic_glob(:,:), mep_sum_lc_glob(:,:), mep_sum_cs_glob(:,:),		&
 															kubo_mep_ic_glob(:,:), kubo_mep_lc_glob(:,:), kubo_mep_cs_glob(:,:),	&
 															!
-															kubo_ahc_glob(:,:), velo_ahc_glob(:,:)
-		complex(dp),			allocatable				::	kubo_ohc_glob(:,:),														&
+															kubo_ahc_glob(:,:)
+		complex(dp),			allocatable				::	velo_ahc_glob(:,:),														&
+															kubo_ohc_glob(:,:),														&
 															kubo_opt_s_glob(:,:), kubo_opt_a_glob(:,:),								&
 															gyro_C_glob(:,:), gyro_D_glob(:,:), gyro_Dw_glob(:,:)		
 		!
@@ -432,8 +434,9 @@ contains
 		real(dp),		allocatable,	intent(inout)	::	mep_2014_loc(:,:),														&
 															mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),	&
 															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),		&				
-															kubo_ahc_loc(:,:), velo_ahc_loc(:,:)									
-		complex(dp),	allocatable,	intent(inout)	::	kubo_ohc_loc(:,:), 													&
+															kubo_ahc_loc(:,:)									
+		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:),														&
+															kubo_ohc_loc(:,:), 														&
 															tempS(:,:), tempA(:,:), kubo_opt_s_loc(:,:), kubo_opt_a_loc(:,:),		&
 															gyro_C_loc(:,:), gyro_D_loc(:,:), gyro_Dw_loc(:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------

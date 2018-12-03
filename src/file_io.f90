@@ -336,8 +336,8 @@ module file_io
 
 	subroutine write_ahc_tensor(n_ki_glob, ahc_tens, velo_ahc_tens, ohc_tens)
 		integer,					intent(in)		::	n_ki_glob
-		real(dp),	allocatable,	intent(in)			::	ahc_tens(:,:), velo_ahc_tens(:,:)
-		complex(dp),allocatable,	intent(in)			::	ohc_tens(:,:)
+		real(dp),	allocatable,	intent(in)			::	ahc_tens(:,:)
+		complex(dp),allocatable,	intent(in)			::	velo_ahc_tens(:,:), ohc_tens(:,:)
 		character(len=12)								::	fname
 		character(len=70)								::	info_string
 		character(len=7)								::	id_string

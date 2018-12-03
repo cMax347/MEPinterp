@@ -6,7 +6,9 @@ module kubo
 	!
 	!
 	use constants,		only:	dp, i_dp, pi_dp
+	use input_paras,	only:	kubo_tol
 	use statistics,		only:	fd_stat
+
 	implicit none
 
 
@@ -24,7 +26,10 @@ contains
 
 
 
-!public
+!
+!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+!				ANOMALOUS HALL (hw -> 0 LIMIT)
+!	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	pure function kubo_ahc_tens(en_k, Om_kab, eFermi, T_kelvin) result( o_ahc)
 		!	see wann guide chapter 12
 		!		eq. (12.16)
@@ -45,43 +50,20 @@ contains
 		return
 	end function
 
+!
+!
+!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+!				OPTICAL CONDUTCTIVITY (hw \non_eq 0)
+!	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	pure function kubo_ohc_tens(en_k, v_kab, hw, eFermi, T_kelvin, i_eta_smr)	result(z_ohc)
+	pure function velo_ahc_tens(en_k, v_kab, hw, eFermi, T_kelvin, i_eta_smr) result( o_ahc)
 		!
-		!		calculates wann guide (12.5) explicitly
-		!	
+		!	use Wanxiangs expression to calculate the ohc
+		!
+		!		VIA VELOCITIES
 		real(dp),		intent(in)		::	en_k(:), hw, eFermi, T_kelvin
-		complex(dp),	intent(in)		::	v_kab(:,:,:), i_eta_smr
-		complex(dp)						::	z_ohc(3,3)
-		integer							::	n,	m, j
-		real(dp)						::	dFdE_mn, dE_mn
-		!
-		z_ohc	=	cmplx(0.0_dp, 0.0_dp, dp)
-		!
-		do m = 1 , size(v_kab,3)
-			do n = 1, size(v_kab,2)
-				dE_mn 	=	en_k(m)	-	en_k(n)	
-				dFdE_mn	=	fd_stat(en_k(m), 		eFermi, T_kelvin)	- fd_stat(en_k(n), 		eFermi, T_kelvin)
-				!
-				if( dE_mn > 1e-5_dp) then
-					dFdE_mn	=	dFdE_mn	/	dE_mn
-				end if
-				!
-				do j = 1, 3
-					z_ohc(:,j)	=	z_ohc(:,j)	 + 	i_dp * 	cmplx(dFdE_mn,0.0_dp,dp)	* v_kab(:,n,m) * v_kab(j,m,n)	&
-													/ 	(	cmplx(dE_mn - hw,0.0_dp,dp) - i_eta_smr	)
-				end do
-			end do
-		end do
-		!
-		return
-	end function
-
-
-	pure function velo_ahc_tens(en_k, v_kab, eFermi, T_kelvin) result( o_ahc)
-		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin
-		complex(dp), 	intent(in)		::	v_kab(:,:,:)
-		real(dp)						::	o_ahc(3,3), en_denom	
+		complex(dp), 	intent(in)		::	v_kab(:,:,:), i_eta_smr
+		complex(dp)						::	o_ahc(3,3), en_denom, delta_fd	
 		real(dp)						::	Om_ab(3,3)
 		integer							::	n, l, j
 		!
@@ -92,12 +74,14 @@ contains
 			!
 			!	get curvature of band n
 			do l = 1, size(en_k)
-				en_denom	= en_k(n)-en_k(l)	
+				en_denom	= 	(	en_k(n) - en_k(l)			)**2 		-		 (		hw + i_eta_smr		)**2	
 				!
 				!
-				if(		(l /= n) .and.	abs(en_denom) > 1e-6_dp 		)  then
+				if(		(l /= n) .and.	abs(en_denom) > kubo_tol 		)  then
+					delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
+					!
 					do j = 1, 3
-						Om_ab(:,j)	= Om_ab(:,j) 	-2.0_dp * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/	( 	en_denom	)**2 		
+						Om_ab(:,j)	= 	Om_ab(:,j) 	+	 delta_fd * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/		en_denom		
 					end do
 				end if
 				!
@@ -114,9 +98,50 @@ contains
 
 
 
+
+
+
+	pure function kubo_ohc_tens(en_k, v_kab, hw, eFermi, T_kelvin, i_eta_smr)	result(z_ohc)
+		!
+		!		calculates wann guide (12.5) explicitly
+		!	
+		!	via VELOCITIES
+		real(dp),		intent(in)		::	en_k(:), hw, eFermi, T_kelvin
+		complex(dp),	intent(in)		::	v_kab(:,:,:), i_eta_smr
+		complex(dp)						::	z_ohc(3,3)
+		integer							::	n,	m, j
+		real(dp)						::	dFdE_mn, dE_mn
+		!
+		z_ohc	=	cmplx(0.0_dp, 0.0_dp, dp)
+		!
+		do m = 1 , size(v_kab,3)
+			do n = 1, size(v_kab,2)
+				dE_mn 	=	en_k(m)	-	en_k(n)	
+				dFdE_mn	=	fd_stat(en_k(m), 		eFermi, T_kelvin)	- fd_stat(en_k(n), 		eFermi, T_kelvin)
+				!
+				if( dE_mn > kubo_tol) then
+					dFdE_mn	=	dFdE_mn	/	dE_mn
+				end if
+				!
+				do j = 1, 3
+					z_ohc(:,j)	=	z_ohc(:,j)	 + 	i_dp * 	cmplx(dFdE_mn,0.0_dp,dp)	* v_kab(:,n,m) * v_kab(j,m,n)	&
+													/ 	(	cmplx(dE_mn - hw,0.0_dp,dp) - i_eta_smr	)
+				end do
+			end do
+		end do
+		!
+		return
+	end function
+
+
+
+
+
 	subroutine kubo_opt_tens(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka, opt_symm, opt_asymm)	
 		!	see wann guide chapter 12
 		!		eq. (12.14) & (12.15)
+		!
+		!	via CONNECTION
 		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:) 
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp), allocatable,	intent(in)		::	A_ka(:,:,:)
@@ -170,6 +195,8 @@ contains
 
 	function get_hermitian(hw,  e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_herm)
 		!	wann guide eq. (12.10)
+		!
+		!	via CONNECTION
 		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
@@ -205,6 +232,8 @@ contains
 
 	function get_anti_herm(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_aherm)
 		!	wann guide eq. (12.11)
+		!
+		!	via CONNECTION
 		real(dp),		intent(in)		::	hw,  e_fermi, T_kelvin, en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr	
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
