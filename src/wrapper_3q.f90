@@ -66,10 +66,12 @@ module wrapper_3q
 		!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
 		!			CONVERT SINGLE TO DOUBLE												 |
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		H_dp	=	H_sp /	aUtoEv
-		V_dp(	1	,:,:)	=	vx_sp(:,:)	 /	aUtoEv
-		V_dp(	2	,:,:)	=	vy_sp(:,:)	 /	aUtoEv
-		V_dp(	3	,:,:)	=	vz_sp(:,:)	 /	aUtoEv
+		!		jan seems to use atomic units, however energies are in (eV) ?!
+		!
+		H_dp				=	 H_sp(:,:) 	/	aUtoEv
+		V_dp(	1	,:,:)	=	vx_sp(:,:)	/	aUtoEv
+		V_dp(	2	,:,:)	=	vy_sp(:,:)	/	aUtoEv
+		V_dp(	3	,:,:)	=	vz_sp(:,:)	/	aUtoEv
 		!
 		!
 		!
