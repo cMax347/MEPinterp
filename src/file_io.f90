@@ -349,7 +349,7 @@ module file_io
 			info_string	=	'# anomalous Hall conductivity tensor, written '//cTIME(time())
 			id_string	=	'ahc'
 			call	write_tens_file(ahc_out_dir,	fname,	ahc_tens,	info_string,	id_string)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor on ",n_ki_glob," kpts:"
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor (curvature) on ",n_ki_glob," kpts:"
 			do row = 1, 3
 				write(*,*)	ahc_tens(row,:)
 			end do
@@ -361,7 +361,7 @@ module file_io
 			info_string	=	'# OHC via Wanxiang formula (Im(v**2)/(dE**2 - (hw+eta)**2 )) '//cTIME(time())
 			id_string	=	'ahcVELO'
 			call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC (via velo) tensor on ",n_ki_glob," kpts:"
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (wanxiang) tensor on ",n_ki_glob," kpts:"
 			do row = 1, 3
 				write(*,*)	velo_ahc_tens(row,:)
 			end do
@@ -373,7 +373,7 @@ module file_io
 			info_string	=	'# optical Hall conductivity tensor (via velocities, wann guide: eq.12.5) '//cTIME(time())
 			id_string	=	'ohcVELO'
 			call	write_tens_file(ahc_out_dir,	fname,	ohc_tens,	info_string,	id_string)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (via velo) tensor on ",n_ki_glob," kpts"
+			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (w90: velo) tensor on ",n_ki_glob," kpts"
 			do row = 1, 3
 				write(*,*)	ohc_tens(row,:)
 			end do
