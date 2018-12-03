@@ -60,15 +60,22 @@ class MEP_worker:
 		except OSError:
 			sys.exit('could not makedirs '+str(self.work_dir)	)
 
-		#prepare files in working directory
+		#copy executables to target
+		copy(self.root_dir+'/../mepInterp',	self.work_dir)
+		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)
+		
+		# copy existing input
+		if self.tb_model=='FeMn3q':
+			copy(self.root_dir+'/../inp_params_3q',	self.work_dir)
+
+		#generate fortran input
 		write_tb_input(		self.tb_model,	self.work_dir, self.phi, self.val_bands, self.mp_grid, 					
 									self.kubo_tol, self.hw, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
 									self.plot_bands, self.debug_mode, self.do_gauge_trafo,
 									self.do_write_velo, self.do_write_mep_bands,
 									self.do_mep, self.do_kubo, self.do_ahc, self.do_opt, self.do_gyro			 
 							)
-		copy(self.root_dir+'/../mepInterp',	self.work_dir)
-		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)
+
 
 
 
@@ -172,6 +179,10 @@ class MEP_worker:
 		#copy exectubales to target 
 		copy(self.work_dir+'/mepInterp', 	self.band_dir)
 		copy(self.work_dir+'/kptsgen.pl',	self.band_dir)
+
+		#
+		if self.tb_model=="FeMn3q":
+			copy(self.work_dir+'/inp_params_3q',	self.band_dir)
 		#
 		os.chdir(self.band_dir)
 		print('['+str(datetime.datetime.now())+']start BAND calculation....')

@@ -10,11 +10,12 @@ import matplotlib.pyplot as plt
 
 class hw_probe:
 
-	def __init__(		self,hw_min,hw_max,n_hw, val_bands, mp_grid, gamma_scale, kubo_tol, 	
+	def __init__(		self,tb_model,hw_min,hw_max,n_hw, val_bands, mp_grid, gamma_scale, kubo_tol, 	
 						eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
 						do_write_velo='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 						):
+		self.tb_model		=	tb_model
 		self.hw_min			=	hw_min
 		self.hw_max			=	hw_max
 		self.n_hw 			= 	n_hw
@@ -69,8 +70,21 @@ class hw_probe:
 		for hw  in np.linspace(self.hw_min, self.hw_max, num = self.n_hw):		#iterate over relative phi (phi_rel = phi / np.pi)
 			work_dir =	self.root_dir+'/hw'+str(hw)		
 			phi_pi	 = 	0.0
+
+			print(mpi_np)
 			#init current job
-			worker = MEP_worker(	self.root_dir, 
+			# mep_worker  constructor
+	#def __init__(		self, tb_model, root_dir, work_dir, phi, val_bands, mp_grid, 
+	#					kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 
+	#					debug_mode='F', do_gauge_trafo='T',	
+	#					do_write_velo='F', do_write_mep_bands='F',
+	#					do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
+	#					):
+
+
+
+			worker = MEP_worker(	self.tb_model,
+									self.root_dir, 
 									work_dir, 
 									phi_pi, 						#give  phi_rel*pi to calculation
 									self.val_bands, 
@@ -91,9 +105,9 @@ class hw_probe:
 								)
 			#run calc 
 			worker.run(mpi_np=mpi_np)
-			mep_tens, mep_cs, mep_lc, mep_ic 	= 	worker.get_mep_tens()
-			ahc_tens							=	worker.get_ahc_tens()
-			ohc_tens							=	worker.get_ohc_tens()
+			mep_tens, mep_cs, mep_lc, mep_ic, mep_bands 	= 	worker.get_mep_tens()
+			ahc_tens										=	worker.get_ahc_tens()
+			ohc_tens										=	worker.get_ohc_tens()
 			
 			self.phi_tot_data.append(		[hw, mep_tens	]			)
 			self.phi_cs_data.append(		[hw, mep_cs	]			)
@@ -228,7 +242,8 @@ class hw_probe:
 
 
 
-def probe_phi(		hw_min= 0					,
+def probe_hw(		tb_model		=	"FeMn3q" ,
+					hw_min= 0					,
 					hw_max			= 6					,
 					n_hw			= 10				,
 					val_bands=2, mp_grid= [1,1,1], mpi_np=1, gamma_scale=1,
@@ -243,13 +258,22 @@ def probe_phi(		hw_min= 0					,
 					do_opt			=	'F', 
 					do_gyro			=	'F'	
 				):
-	myTest	= hw_probe(	hw_min, hw_max, n_hw, val_bands, mp_grid, gamma_scale, 
+	myTest	= hw_probe(	tb_model,hw_min, hw_max, n_hw, val_bands, mp_grid, gamma_scale, 
 							kubo_tol, eFermi, Tkelvin, eta_smearing,
 							debug_mode, do_gauge_trafo, do_write_velo,
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro	
 						)
 	#
-	myTest.iterate_hw(plot_bands=plot_bands, mpi_np=mpi_np)
+	# mep_worker  constructor
+	#def __init__(		self, tb_model, root_dir, work_dir, phi, val_bands, mp_grid, 
+	#					kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 
+	#					debug_mode='F', do_gauge_trafo='T',	
+	#					do_write_velo='F', do_write_mep_bands='F',
+	#					do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
+	#					):
+
+
+	myTest.iterate_hw( mpi_np=mpi_np, plot_bands=plot_bands)
 	myTest.print_results_container()
 	#try:
 	myTest.plot_mep_over_phi(label_size=14, xtick_size=12, ytick_size=12)
@@ -265,7 +289,8 @@ def probe_phi(		hw_min= 0					,
 
 
 
-probe_phi(		hw_min			= 0					,
+probe_hw(		tb_model		= "FeMn3q"			,
+				hw_min			= 0					,
 				hw_max			= 6					,
 				n_hw			= 6					,
 				val_bands		= 2					, 
