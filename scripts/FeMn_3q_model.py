@@ -14,25 +14,19 @@ class FeMn_3q_model:
 	#
 	def __init__(self, fpath,	verbose=False):
 		self.nWfs		=	8
-		self.nrpts		=	1
+		self.nrpts		=	13
 		self.verbose	=	verbose
 		#
 		self.thconv		=	[]
 		self.phconv		=	[] 
 		self.wf_pos		=	[]
 		self.R_nn_lst	=	[]
+		self.tHopp		=	[]
+		self.rHopp		=	[]
 		#
 		self.v_print("	~~~~~~~~~~~~3D FCC - FeMn - 3q state~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		#
-		#	consider only hopping with nearest neigbours
-		#self.R_nn_lst.append(	[-1,  0,  0]	)
-		#self.R_nn_lst.append(	[ 0, -1,  0]	)
-		#self.R_nn_lst.append(	[ 0,  0, -1]	)
-		self.R_nn_lst.append(	[ 0,  0,  0]	)
-		#self.R_nn_lst.append(	[ 1,  0,  0]	)
-		#self.R_nn_lst.append(	[ 0,  1,  0]	)
-		#self.R_nn_lst.append(	[ 0,  0,  1]	)
-		#
+		
 		#	real space positions
 		rx_at	=	[.0,	.5,		.5,		.0]
 		ry_at	=	[.0,	.5,		.0,		.5]
@@ -69,7 +63,7 @@ class FeMn_3q_model:
 				#-------------------------------------------------------------------------------------
 				#
 				elif idx == 1:
-					self.t1, self.t2, self.lmbda				=		np.fromstring(	line,		dtype=float, count=3, sep=" ")
+					self.intra_t, self.inter_t, self.lmbda		=		np.fromstring(	line,		dtype=float, count=3, sep=" ")
 				#-------------------------------------------------------------------------------------
 				#
 				elif idx >=2 and idx<=5:
@@ -81,8 +75,8 @@ class FeMn_3q_model:
 				#-------------------------------------------------------------------------------------
 		self.v_print(	"	[FeMn_3q_model]:	initalized new param set from "+fpath			)
 		self.v_print(	"	[FeMn_3q_model]:	 summary"										)
-		self.v_print(	"		t1	    =	" + str(	self.t1		)	+ str("(eV)")		)
-		self.v_print(	"		t2	    =	" + str(	self.t2		)	+ str("(eV)")		)
+		self.v_print(	"		t1	    =	" + str(	self.intra_t		)	+ str("(eV)")		)
+		self.v_print(	"		t2	    =	" + str(	self.inter_t		)	+ str("(eV)")		)
 		self.v_print(	"		lmbda	=	" + str(	self.lmbda	)	+ str("(eV)")		)
 		self.v_print(	" 		# spin		|	phi(rad) 		| theta(rad) "					)
 		self.v_print(	"		------------------------------------------------------"			)
@@ -104,13 +98,13 @@ class FeMn_3q_model:
 
 
 
-	def tHopp_fill_zeros(self, tHopp):
+	def tHopp_fill_zeros(self):
 		#	FILL REST WITH ZERO
 		#
 		# creat list with already added elements
 		tHopp_exist = []
 		exist_cnt	= 0
-		for t in tHopp:
+		for t in self.tHopp:
 			tHopp_exist.append(	[	int(t[0]),int(t[1]),int(t[2]),int(t[3]),int(t[4])	]	 )
 			exist_cnt	= exist_cnt + 1
 		if exist_cnt != 80:
@@ -128,8 +122,8 @@ class FeMn_3q_model:
 						match_cnt = match_cnt + 1				
 					else:			
 						zero_cnt	= zero_cnt + 1
-						tHopp.append(		[ R_nn[0], R_nn[1], R_nn[2], m+1, n+1, 0.0, 0.0	]		)
-		return tHopp
+						self.tHopp.append(		[ R_nn[0], R_nn[1], R_nn[2], m+1, n+1, 0.0, 0.0	]		)
+		return self.tHopp
 
 
 
@@ -141,6 +135,16 @@ class FeMn_3q_model:
 
 
 
+	def set_right_left_cc(self,	R_left, R_right,	m, n, t_hopp):
+		#
+		# add the hopping (left & right)
+		self.tHopp.append(	np.concatenate((	R_right,	[	m,	n,	t_hopp[0],		t_hopp[1]			])))
+		self.tHopp.append(	np.concatenate(( 	R_left,		[	m,	n,	t_hopp[0], 		t_hopp[1]			])))
+		#
+		#	now add complex conjugates of both terms
+		self.tHopp.append(	np.concatenate(( 	R_right,	[	n  , m,	t_hopp[0],  - 	t_hopp[1]			])))
+		self.tHopp.append(	np.concatenate(( 	R_left,		[	n  , m,	t_hopp[0],  - 	t_hopp[1]			])))
+		
 
 
 
@@ -149,7 +153,6 @@ class FeMn_3q_model:
 	#
 	#	----
 	def setup_Ham(self):
-		tHopp	=	[]
 		#tHopp.append(	[ 0, 0, 0,			1,	2,			np.real(hopping[x][at1])	,   np.imag(hopping[x][at1])	])
 		#
 		#
@@ -172,43 +175,114 @@ class FeMn_3q_model:
 			#        ham(i+4,i+4) = -lambda*costheta(i)
 			#        ham(i,i+4) = lambda*phasphi(i)*sintheta(i)
 			#       enddo
-			tHopp.append(	[	0, 0, 0, 		i+1, i+1, 		self.lmbda 	* costheta[i]						, 	.0			]				)
-			tHopp.append(	[ 	0, 0, 0,		i+5, i+5, 	-	self.lmbda	* costheta[i] 						, 	.0			]				)
-			tHopp.append(	[	0, 0, 0,		i+1, i+5,			re_upDw										, 	im_upDw		]				)
-			tHopp.append(	[	0, 0, 0, 		i+5, i+1,			re_upDw										, - im_upDw		]				)
+			self.tHopp.append(	[	0, 0, 0, 		i+1, i+1, 		self.lmbda 	* costheta[i]						, 	.0			]				)
+			self.tHopp.append(	[ 	0, 0, 0,		i+5, i+5, 	-	self.lmbda	* costheta[i] 						, 	.0			]				)
+			self.tHopp.append(	[	0, 0, 0,		i+1, i+5,			re_upDw										, 	im_upDw		]				)
+			self.tHopp.append(	[	0, 0, 0, 		i+5, i+1,			re_upDw										, - im_upDw		]				)
+		self.R_nn_lst.append([0,0,0])
 		#
 		#
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		#      HOPPING																|
 		#---------------------------------------------------------------------------
-		
-		#! intra-layer hopping
-       	#ht1(1) = -2*t*cos(pi*kx-3./2.*pi*ky)
-       	#ht1(2) = -2*t*cos(2.*pi*kx)
-       	#ht1(3) = -2*t*cos(pi*kx+3./2.*pi*ky)
-       	
+		#
+		#	JAN'S HOPPING SETUP			
+		#> 	1	do i=0,4,4 ! intra- and inter-layer hopping
+        #> 	2		ham(1+i,2+i)=ht1(1)+ht2(1)
+        #> 	3		ham(1+i,3+i)=ht1(2)+ht2(2)
+        #> 	4		ham(1+i,4+i)=ht1(3)+ht2(3)
+        #> 	5		ham(2+i,3+i)=ht1(3)+ht2(3)
+        #> 	6		ham(2+i,4+i)=ht1(2)+ht2(2)
+        #> 	7		ham(3+i,4+i)=ht1(1)+ht2(1)
+       	#> 	8	enddo
+       	#
+       	#
+		#	JAN'S SOURE CODE
+		#>	1		! intra-layer hopping	
+       	#>	2		ht1(1) = -2*t*cos(pi*kx-3./2.*pi*ky)		/(2*Pi)	=	cos(	1/2 kx	-	3/4 ky	)
+       	#>	3		ht1(2) = -2*t*cos(2.*pi*kx)					/(2*Pi)	=	cos(	1	kx				)
+       	#>	4		ht1(3) = -2*t*cos(pi*kx+3./2.*pi*ky)		/(2*Pi)	=	cos(	1/2 kx	+	3/4 ky	)
 
+       	#todo:	jans & mine are slightly different: 	jan uses 		3./2.*pi*ky 
+       	#												i use			sqrt(3.)/2.*pi*ky								
+
+       	#	in-plane hopping directions
+		Rr_intra_12	=	[ +	1/2.	, +	 np.sqrt(3.)/4.		,	 .0	]
+		Rl_intra_12	=	[ -	1/2.	, -	 np.sqrt(3.)/4.		,	 .0	]
+		self.R_nn_lst.append( Rr_intra_12)
+		self.R_nn_lst.append( Rl_intra_12)
+		#
+		Rr_intra_13	=	[ +	1.0		,		 .0				,	 .0	]
+		Rl_intra_13	=	[ - 1.0		,		 .0				,	 .0	]
+		self.R_nn_lst.append( Rr_intra_13)
+		self.R_nn_lst.append( Rl_intra_13)
+		#
+		Rr_intra_14	=	[ +	1/2.	, - np.sqrt(3.)/4.		,	 .0	]
+		Rl_intra_14	=	[ -	1/2.	, + np.sqrt(3.)/4.		,	 .0	]
+		self.R_nn_lst.append( Rr_intra_14)
+		self.R_nn_lst.append( Rl_intra_14)
+		#
+		#
+		#	in-plane hopping strength
+		intra_hopp		=	np.array(	[np.real(self.intra_t),	+ np.imag(self.intra_t)]	)
+		#
+		#
+		#	ADD INTRA-LAYER HOPPING
+		for i in range(0,8,4):
+			#
+			self.set_right_left_cc(		Rl_intra_12,	Rr_intra_12,		1+i, 2+i,	intra_hopp		)
+			self.set_right_left_cc(		Rl_intra_13,	Rr_intra_13,		1+i, 3+i,	intra_hopp		)
+			self.set_right_left_cc(		Rl_intra_14,	Rr_intra_14,		1+i, 4+i,	intra_hopp		)
+			#
+			self.set_right_left_cc(		Rl_intra_14,	Rr_intra_14,		2+i, 3+i,	intra_hopp		)
+			self.set_right_left_cc(		Rl_intra_13,	Rr_intra_13,		2+i, 4+i,	intra_hopp		)
+			self.set_right_left_cc(		Rl_intra_12,	Rr_intra_12,		3+i, 4+i,	intra_hopp		)
+
+
+		# 	JAN'S SOURCE CODE
        	#! inter-layer hopping
-       	#ht2(1) =-2*t2*cos(-pi*kx-pi/2.*ky-2.*pi*kz)
-       	#ht2(2) =-2*t2*cos(          pi*ky-2.*pi*kz)
-       	#ht2(3) =-2*t2*cos( pi*kx-pi/2.*ky-2.*pi*kz)
+       	#ht2(1) =-2*t2*cos(-pi*kx-pi/2.*ky-2.*pi*kz)	/(2*Pi)	=	cos( -	1/2 kx	-	1/4 ky	- 1 kz	)
+       	#ht2(2) =-2*t2*cos(          pi*ky-2.*pi*kz)	/(2*Pi)	=	cos(				1/2 ky	- 1 kz	)
+       	#ht2(3) =-2*t2*cos( pi*kx-pi/2.*ky-2.*pi*kz)	/(2*Pi)	=	cos(	1/2 kx	-	1/4 ky	- 1 kz	)
+       	#
+		#
+		Rr_inter_12	=	[	-1./2.	, -	1./4.	,	-	1.0 ]
+		Rl_inter_12	=	[	+1./2.	, +	1./4.	,	+	1.0 ]
+		self.R_nn_lst.append( Rr_inter_12) 
+		self.R_nn_lst.append( Rl_inter_12) 
+		#
+		Rr_inter_13	=	[	  .0	, +	1./2.	,	-	1.0	]
+		Rl_inter_13	=	[	  .0	, -	1./2.	,	+	1.0	]		
+		self.R_nn_lst.append( Rr_inter_13) 
+		self.R_nn_lst.append( Rl_inter_13) 
+		#		
+		Rr_inter_14	=	[ +  1./2.	, -	1./4.	,	-	1.0	] 		
+		Rl_inter_14	=	[ -  1./2.	, +	1./4.	,	+	1.0	] 		
+		self.R_nn_lst.append( Rr_inter_14) 
+		self.R_nn_lst.append( Rl_inter_14) 
+		#
+		#
+		#	out-of-plane hopping strength
+		inter_hopp		=	np.array(	[np.real(self.inter_t),	+ np.imag(self.inter_t)]	)    	
+       	#
+		#	ADD INTER-LAYER HOPPING
+		for i in range(0,8,4):
+			self.set_right_left_cc(		Rl_inter_12,	Rr_inter_12,		1+i, 2+i,	inter_hopp		)
+			self.set_right_left_cc(		Rl_inter_13,	Rr_inter_13,		1+i, 3+i,	inter_hopp		)
+			self.set_right_left_cc(		Rl_inter_14,	Rr_inter_14,		1+i, 4+i,	inter_hopp		)
+			#
+			self.set_right_left_cc(		Rl_inter_14,	Rr_inter_14,		2+i, 3+i,	inter_hopp	 	)
+			self.set_right_left_cc(		Rl_inter_13,	Rr_inter_13,		2+i, 4+i,	inter_hopp	 	)
+			self.set_right_left_cc(		Rl_inter_12,	Rr_inter_12,		3+i, 4+i,	inter_hopp	 	)
 
-		#do i=0,4,4 ! intra- and inter-layer hopping
-        #	ham(1+i,2+i)=ht1(1)+ht2(1)
-        #	ham(1+i,3+i)=ht1(2)+ht2(2)
-        #	ham(1+i,4+i)=ht1(3)+ht2(3)
-        #	ham(2+i,3+i)=ht1(3)+ht2(3)
-        #	ham(2+i,4+i)=ht1(2)+ht2(2)
-        #	ham(3+i,4+i)=ht1(1)+ht2(1)
-       	#enddo
+
 
 		#
 		#
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		#      FILL REST WITH ZEROS													|
 		#---------------------------------------------------------------------------
-		tHopp	=	self.tHopp_fill_zeros(tHopp)	
-		return tHopp	
+		self.tHopp_fill_zeros()	
 	
 
 
@@ -256,7 +330,6 @@ class FeMn_3q_model:
 	#
 	#	----
 	def setup_Pos(self):
-		rHopp		=	[]
 		#
 		self.v_print(	"		[FeMn_3q_model/setup_Pos]:	start position operator setup!"		)
 		self.v_print(	"		[FeMn_3q_model/setup_Pos]: got the following nn cells: "		)
@@ -275,8 +348,7 @@ class FeMn_3q_model:
 					if R_nn == [0,0,0]:		
 						if m == n:
 							at_pos	=	self.wf_pos[m]		
-					rHopp.append(	[	R_nn[0],R_nn[1],R_nn[2], 	m+1, n+1, 		at_pos[0], at_pos[1], at_pos[2], at_pos[3], at_pos[4], at_pos[5]		])
-		return rHopp
+					self.rHopp.append(	[	R_nn[0],R_nn[1],R_nn[2], 	m+1, n+1, 		at_pos[0], at_pos[1], at_pos[2], at_pos[3], at_pos[4], at_pos[5]		])
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -295,14 +367,14 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	print("[get_FeMn3q_tb]:	started..  FeMn3q model setup at " +			datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
 	#
 	#	READ INPUT FILE
-	sys_params		=	FeMn_3q_model(fpath, verbose)
+	test_model		=	FeMn_3q_model(fpath, verbose)
 	#
 	#
 	#	HOPPING
-	tHopp			=	sys_params.setup_Ham()
+	test_model.setup_Ham()
 	#
 	#	POSITION
-	rHopp			=	sys_params.setup_Pos()
+	test_model.setup_Pos()
 	#
 	#	LATTICE
 	a0 	= 1.0
@@ -316,7 +388,7 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	#
 	print("[get_FeMn3q_tb]:	..finished FeMn3q model setup (TODO: PROPER LATTICE SETUP !) at " +	datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
 	#
-	return sys_params.nWfs, sys_params.nrpts, tHopp, rHopp, ax, ay, az, a0
+	return test_model.nWfs, test_model.nrpts, test_model.tHopp, test_model.rHopp, ax, ay, az, a0
 
 
 #
@@ -370,7 +442,8 @@ def test(verbose=True):
 	print("	R 	|	n m  |	t^R_nm (eV)")
 	print("----------------------------------------------")
 	for t_mn in tHopp:
-		print(t_mn[0:3],"	| ",t_mn[3:5],"	|	",t_mn[-1])
+		print("%5.2f %5.2f %5.2f	| %1d %1d"	%(t_mn[0],	t_mn[1], t_mn[2],	t_mn[3],t_mn[4])			,"	|	%5.2f +i* %5.2f"%(t_mn[-2],t_mn[-1])	)
+
 	
 	print("")
 	print("[FeMn_3q_model/test]:			rHopp (len="+str(len(rHopp))+")")
@@ -382,7 +455,7 @@ def test(verbose=True):
 #
 #
 #UNCOMMENT TO TEST THIS SCRIPT
-#test(verbose	=	False)
+test(verbose	=	True)
 
 
 

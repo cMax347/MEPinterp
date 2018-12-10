@@ -155,6 +155,10 @@ class MEP_worker:
 		ahc_tens		= read_real_tens_file(ahc_file_path,					'ahc')
 		return	ahc_tens
 
+
+	def get_ohc_tens(self):
+		ohc_file_path	=	self.work_dir+'out/ahc/ahc_tens.dat'
+
 	def get_opt_tens(self):
 		#	symmetric contribution
 		Ssymm_file_path	=	self.work_dir+'out/opt/opt_Ssymm.dat'

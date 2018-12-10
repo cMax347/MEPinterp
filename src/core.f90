@@ -41,6 +41,7 @@ module core
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
 	use kubo,			only:	kubo_ahc_tens, velo_ahc_tens, kubo_opt_tens
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
+	use photo,			only:	photo_2nd_cond
 	!
 	use file_io,		only:	read_tb_basis,									&
 								write_mep_bands,								&
@@ -85,7 +86,8 @@ contains
 												velo_ahc_loc(		:,:),				&
 												kubo_mep_ic_loc(	:,:),				&
 												kubo_mep_lc_loc(	:,:),				&
-												kubo_mep_cs_loc(	:,:)
+												kubo_mep_cs_loc(	:,:),				&
+												photo2_cond_loc(	:,:)
 												!
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_kab(:,:,:,:),			&
@@ -109,6 +111,7 @@ contains
 									kubo_ahc_loc, velo_ahc_loc,														&
 									tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
 									gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
+									photo2_cond_loc
 						)
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -183,6 +186,11 @@ contains
 						if(	allocated(gyro_C_loc)		)		gyro_C_loc		=	gyro_C_loc		+	get_gyro_C(en_k, V_ka, eFermi, T_kelvin)
 						if(	allocated(gyro_D_loc)		)		gyro_D_loc		=	gyro_D_loc		+ 	get_gyro_D(en_k, V_ka, Om_kab, eFermi, T_kelvin)
 						if(	allocated(gyro_Dw_loc)		)		gyro_Dw_loc		=	gyro_Dw_loc		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
+						!
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	PHOTOCURRENT
+						!----------------------------------------------------------------------------------------------------------------------------------
+						if(	allocated(photo2_cond_loc)	)		photo2_cond_loc=	pho
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	$WILDCARD	:	add new tensors here!
