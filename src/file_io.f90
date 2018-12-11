@@ -687,13 +687,14 @@ module file_io
 				!
 				!	... FLOAT
 				read(mpi_unit,*)	real3(1:3)
-				R_vect(1:3,cell)	= matmul(unit_cell,	real3(1:3)	)
 			else
 				!
 				!	...	INTEGER
-				read(mpi_unit,*) int3(1:3)
-				R_vect(1:3,cell)	= matmul(unit_cell,	real(int3(1:3),dp)	)
+				read(mpi_unit,*)	int3(1:3)
+				real3(:)	=		int3(:)
+				
 			end if
+			R_vect(1:3,cell)	= matmul(unit_cell,	real3(1:3)	)
 			!
 			!	READ HOPPING
 			do n = 1, f_nWfs**2
@@ -710,14 +711,14 @@ module file_io
 			!	read R_CELL FROM POS OP
 			if(	use_R_float	) then
 				read(mpi_unit,*)	real3(1:3)
-				rTest(1:3)	= matmul(unit_cell,real3(1:3)	)
 			else
 				read(mpi_unit,*)	int3(1:3)
-				rTest(1:3)	= matmul(unit_cell,	real(int3(1:3),dp)	)
+				real3(:)	=		int3(1:3)
 			end if
+			rTest(:)	= 	matmul(unit_cell,real3(:)	)
 			!
 			!	CHECK IF SAME AS ORIGINAL R-CELL FROM HOPPING (see above)
-			if(		 norm2( rTest(1:3) - R_vect(1:3,cell) )	> 1e-8_dp		) then
+			if(		 norm2( rTest(:) - R_vect(:,cell) )	> 1e-8_dp		) then
 				write(*,*)	"[read_tb_basis]: WARNING rHopp has different sc order then tHopp"
 			end if
 			!
@@ -751,7 +752,7 @@ module file_io
 		complex(dp),	allocatable, 	intent(inout)	::	H_mat(:,:,:)
 		integer											::	mpi_unit,&
 															f_nwfs, f_nSC, to_read, int15(15), int3(3), m,n, idx, sc, wf
-		real(dp)										::	real2(2)
+		real(dp)										::	real2(2), real3(3)
 		integer,		allocatable						::	R_degneracy(:)
 		!
 		mpi_unit	= 	100 + mpi_id	+ mpi_nProcs
@@ -798,15 +799,20 @@ module file_io
 		do sc = 1, f_nSC
 			do wf  = 1, f_nwfs**2
 				!read next line
-				read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
-				!
+				if(use_R_float) then
+					read(mpi_unit,*)	real3(1:3),	m, n,	real2(1:2)
+				else
+					read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
+					real3	= real(int3,dp)
+				end if
+					!
 				!get Wigner Seitz vector
 				if( wf==1 .and. sc==1 ) then
 					idx = 1
-					R_vect(1:3,idx)	= real(int3(1:3),dp)
-				else if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,idx),	real(int3(1:3),dp) )		) then
+					R_vect(1:3,idx)	= real3(1:3)
+				else if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,idx),	real3(1:3) )		) then
 					idx = idx +1 
-					R_vect(1:3,idx)	= real(int3(1:3),dp)
+					R_vect(1:3,idx)	= real3(1:3)
 					if(wf /= 1)	then 
 						write(*,'(a,i3,a)')				 		"[#",mpi_id,";read_hr_file]: 	WARNING unexpected new R_vect"
 						write(*,'(a,i4,a,i4)',advance="no")		"	m=",m," n=",n
@@ -838,7 +844,7 @@ module file_io
 		complex(dp),	allocatable,	intent(inout)	::	r_mat(:,:,:,:)
 		integer											::	mpi_unit, &
 															f_nwfs, sc, m, n, int3(3), it
-		real(dp)										::	real6(6)
+		real(dp)										::	real6(6), real3(3)
 		!
 		mpi_unit	= 100 + mpi_id + 2*mpi_nProcs
 		!
@@ -850,8 +856,15 @@ module file_io
 		!
 		do sc = 1, size(R_vect,2)
 			do it= 1, f_nWfs**2
-				read(mpi_unit,*)		int3(1:3), 		m, n, 	real6(1:6)
-				if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,sc),	real(int3(1:3),dp))	)	then
+				if(use_R_float) then
+					read(mpi_unit,*)		real3(1:3), 		m, n, 	real6(1:6)
+				else
+					read(mpi_unit,*)		int3(1:3), 		m, n, 	real6(1:6)
+					real3(:)	=	real(int3(:),dp)
+				end if
+				!
+				!
+				if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,sc),	real3(1:3))	)	then
 					write(*,*)	"[read_r_file]: R_vect=",R_vect(1:3,sc)
 					write(*,*)	"[read_r_file]:	input_R=",real(int3(1:3),dp)
 					stop 'different R_vect order in _hr.dat and _r.dat file'
