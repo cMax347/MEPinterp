@@ -29,12 +29,13 @@ module input_paras
 												debug_mode,															&
 												do_gauge_trafo,														&
 												do_write_velo,														&
+												use_R_float,														&
 												do_write_mep_bands,													&
 												do_mep, do_ahc, do_kubo, do_opt, do_gyro,							&
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
-												hw, eFermi, T_kelvin, i_eta_smr
+												hw, phi_laser, eFermi, T_kelvin, i_eta_smr
 
 
 
@@ -54,13 +55,14 @@ module input_paras
 	character(len=10)			::	gyro_out_dir	
 	logical						::	plot_bands, do_gauge_trafo, 	&
 									do_write_velo,					&
+									use_R_float,					&
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_gyro
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol,						&
 									hw, eFermi, T_kelvin			
-	complex(dp)					::	i_eta_smr
+	complex(dp)					::	i_eta_smr, phi_laser
 
 
 
@@ -73,7 +75,7 @@ module input_paras
 !public
 	logical function init_parameters()
 		type(CFG_t) 			:: 	my_cfg
-		real(dp)				::	a1(3), a2(3), a3(3), eta
+		real(dp)				::	a1(3), a2(3), a3(3), eta, laser_phase
 		integer					::	mp_grid(3)
 		logical					::	input_exist
 		!
@@ -101,6 +103,7 @@ module input_paras
 				![methods]
 				call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"	)
 				call CFG_add_get(my_cfg,	"jobs%debug_mode"				,	debug_mode			,	"switch aditional debug tests in code")
+				call CFG_add_get(my_cfg,	"jobs%R_vect_float"				,	use_R_float			,	"the R_cell vector is now real (else: integer)")
 				call CFG_add_get(my_cfg,	"jobs%do_write_velo"			,	do_write_velo		,	"write formatted velocity files at each kpt")
 				call CFG_add_get(my_cfg,	"jobs%do_mep"					,	do_mep				,	"switch response tensor calc")
 				call CFG_add_get(my_cfg,	"jobs%do_kubo"					,	do_kubo				,	"switch response tensor calc")
@@ -133,11 +136,13 @@ module input_paras
 				![Fermi]
 				call CFG_add_get(my_cfg,	"Kubo%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO"		)
 				call CFG_add_get(my_cfg,	"Kubo%hw"						,	hw					,	"energy of incoming light"			)
+				call CFG_add_get(my_cfg,	"Kubo%laser_phase"				,	laser_phase			,	"euler angle of phase shift of driving E-field")
 				call CFG_add_get(my_cfg,	"Kubo%eFermi"					,	eFermi				,	"set the Fermi energy"				)
 				call CFG_add_get(my_cfg,	"Kubo%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
 				call CFG_add_get(my_cfg,	"Kubo%eta_smearing"				,	eta					,	"smearing for optical conductivty"	)
 				!
 				i_eta_smr	=	cmplx(0.0_dp,	eta	,dp)
+				phi_laser	=	cmplx(cos(pi_dp*laser_phase),sin(pi_dp*laser_phase),dp)
 				!
 				!
 				write(*,*)					""
@@ -162,6 +167,8 @@ module input_paras
 				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
 				write(*,*)					"	kuboTol=",kubo_tol
 				write(*,*)					"	hw=",hw
+				write(*,*)					"	laser_phase= pi * ",laser_phase
+				write(*,*)					"	phi_laser( exp(i*laser_phase))=",phi_laser
 				write(*,*)					"	eFermi=",eFermi
 				write(*,*)					"	T_kelvin=",T_kelvin
 				write(*,*)					"	eta=",eta
@@ -206,6 +213,7 @@ module input_paras
 				call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_write_velo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_write_mep_bands,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		use_R_float		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_mep 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_kubo 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_ahc 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
@@ -222,6 +230,7 @@ module input_paras
 				call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		i_eta_smr		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		phi_laser		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			end if
 			!
 			!UNIT CELL VOLUME
