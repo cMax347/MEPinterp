@@ -28,7 +28,7 @@ module core
 								valence_bands, 									&
 								seed_name,										&
 								kubo_tol,										&
-								hw, eFermi, T_kelvin, i_eta_smr
+								hw, phi_laser, eFermi, T_kelvin, i_eta_smr
 	!
 	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
 								kspace_allocator,								&
@@ -106,12 +106,12 @@ contains
 		!	allocate
 		!----------------------------------------------------------------------------------------------------------------------------------
 		call allo_core_loc_arrays(	N_el_k, sum_N_el_loc, max_n_el, min_n_el,										&
-									mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,								&	
+									mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,							&	
 									kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
 									kubo_ahc_loc, velo_ahc_loc,														&
 									tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
-									gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
-									photo2_cond_loc
+									gyro_C_loc, gyro_D_loc, gyro_Dw_loc,											&
+									photo2_cond_loc																	&
 						)
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -190,7 +190,9 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	PHOTOCURRENT
 						!----------------------------------------------------------------------------------------------------------------------------------
-						if(	allocated(photo2_cond_loc)	)		photo2_cond_loc=	pho
+						if(	allocated(photo2_cond_loc)	)	then	
+							photo2_cond_loc=	photo2_cond_loc	+	photo_2nd_cond(hw, phi_laser, e_fermi, T_kelvin, i_eta_smr, en_k, V_ka)	
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	$WILDCARD	:	add new tensors here!
