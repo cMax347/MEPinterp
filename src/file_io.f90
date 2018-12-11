@@ -15,6 +15,7 @@ module file_io
 													raw_dir, 							&
 													a_latt, 							&
 													debug_mode,							&
+													use_R_float,						&
 													plot_bands										
 
 	implicit none
@@ -385,11 +386,12 @@ module file_io
 	end subroutine
 
 
-	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm)
-		integer,					intent(in)		::	n_ki_glob
+	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm, photo_2nd)
+		integer,						intent(in)			::	n_ki_glob
 		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:),	a_symm(:,:)
+		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:)
 		character(len=13)									::	fname
-		character(len=70)									::	info_string
+		character(len=90)									::	info_string
 		character(len=4)									::	id_string
 		!
 		!
@@ -410,6 +412,13 @@ module file_io
 			if(allocated(s_symm)) then
 				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
 			end if
+		end if
+		!
+		if(allocated(photo_2nd))	then
+			fname		=	'2nd_photo.dat'
+			info_string	=	'seoncd order photconductivitc: J^c_photo = rho^c_ab . E^*_a E_b (PRB 97, 241118(R) (2018))'
+			id_string	=	"2phC"
+			call	write_tens_file(opt_out_dir,	fname,	photo_2nd,	info_string,	id_string)
 		end if
 		!
 		!
@@ -639,7 +648,7 @@ module file_io
 		integer												::	mpi_unit, &
 																f_nwfs, f_nSC, readLines, line, &
 																cell, n
-		integer												::	cell_rel(3), index(2)
+		integer												::	int3(3), index(2)
 		real(dp)											::	unit_cell(3,3), compl1(2),compl3(6), rTest(3), real3(3)
 		!
 		mpi_unit	= mpi_id
@@ -672,9 +681,21 @@ module file_io
 		!read tHopp (eV)
 		do cell = 1, f_nSC
 			read(mpi_unit,*)
-			read(mpi_unit,*) cell_rel(1:3)
-
-			R_vect(1:3,cell)	= matmul(unit_cell,	real(cell_rel(1:3),dp)	)
+			!
+			!	READ R-VECTOR AS ...
+			if(	use_R_float	) then
+				!
+				!	... FLOAT
+				read(mpi_unit,*)	real3(1:3)
+				R_vect(1:3,cell)	= matmul(unit_cell,	real3(1:3)	)
+			else
+				!
+				!	...	INTEGER
+				read(mpi_unit,*) int3(1:3)
+				R_vect(1:3,cell)	= matmul(unit_cell,	real(int3(1:3),dp)	)
+			end if
+			!
+			!	READ HOPPING
 			do n = 1, f_nWfs**2
 				read(mpi_unit,*)	index(1:2), compl1(1:2)
 				!
@@ -685,16 +706,25 @@ module file_io
 		!read rHopp (ang)
 		do cell = 1, f_nSC
 			read(mpi_unit,*)
-			read(mpi_unit,*)	cell_rel(1:3)
-
-			rTest(1:3)	= matmul(unit_cell,	real(cell_rel(1:3),dp)	)
+			!
+			!	read R_CELL FROM POS OP
+			if(	use_R_float	) then
+				read(mpi_unit,*)	real3(1:3)
+				rTest(1:3)	= matmul(unit_cell,real3(1:3)	)
+			else
+				read(mpi_unit,*)	int3(1:3)
+				rTest(1:3)	= matmul(unit_cell,	real(int3(1:3),dp)	)
+			end if
+			!
+			!	CHECK IF SAME AS ORIGINAL R-CELL FROM HOPPING (see above)
 			if(		 norm2( rTest(1:3) - R_vect(1:3,cell) )	> 1e-8_dp		) then
 				write(*,*)	"[read_tb_basis]: WARNING rHopp has different sc order then tHopp"
 			end if
-
+			!
+			!
 			do n = 1, f_nWfs**2
 				read(mpi_unit,*)	index(1:2), compl3(1:6)
-
+				!
 				rHopp(1,	index(1), index(2), cell)	= cmplx( compl3(1), compl3(2),	dp	)
 				rHopp(2,	index(1), index(2), cell)	= cmplx( compl3(3), compl3(4),	dp	)
 				rHopp(3,	index(1), index(2), cell)	= cmplx( compl3(5), compl3(6),	dp	)
