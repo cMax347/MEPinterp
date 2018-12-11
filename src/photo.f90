@@ -21,11 +21,11 @@ contains
 		!		EQ.(1)		
 		!
 		real(dp),		intent(in)			::	hw, e_fermi, T_kelvin, en_k(:)
-		complex(dp),	intent(in)			::	V_ka(:,:,:), phi_laser
+		complex(dp),	intent(in)			::	V_ka(:,:,:), phi_laser, i_eta_smr
 		real(dp)							::	phot_cond(3,3)
 		complex(dp)							::	cmplx_cond(3,3), dE_nm, dE_nl, df_ln
 		real(dp)							:: 	pre_fact, w
-		integer								::	omega
+		integer								::	m, n, l, omega, b, c
 		!
 		phot_cond	=	0.0_dp
 		!
