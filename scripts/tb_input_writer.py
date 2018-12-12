@@ -169,7 +169,7 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #		PUBLIC FUNCTION
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def write_tb_input(	tb_model, root_dir, phi_para, valence_bands, mp_grid ,						
+def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_grid ,						
  							kubo_tol, hw,laser_phase, eFermi, Tkelvin, eta_smearing, 	
  							plot_bands='F', debug_mode='F' ,do_gauge_trafo='T',	 R_vect_float='F',
  							do_write_velo='F',	do_write_mep_bands='F',			
@@ -197,7 +197,8 @@ def write_tb_input(	tb_model, root_dir, phi_para, valence_bands, mp_grid ,
 	#write them to file
 	os.mkdir(target_path)
 	write_hr_file(	target_path+'/'+seed_name,	nWfs, nrpts, tHopp )
-	write_r_file(	target_path+'/'+seed_name, 	nWfs,		 rHopp )
+	if use_pos_op:
+		write_r_file(	target_path+'/'+seed_name, 	nWfs,		 rHopp )
 
 	# now write the input files for postw90 & mepInterp
 	write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
