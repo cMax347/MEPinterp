@@ -791,11 +791,10 @@ module file_io
 			end if
 
 
-			stop 'issue reading Wigner Seitz degeneracy (idx/=f_nSC) in  _hr.dat file'
+			stop '[read_hr_file]: issue reading Wigner Seitz degeneracy (idx/=f_nSC) in  _hr.dat file'
 		end if
 		!
 		!read body
-		idx = 0
 		do sc = 1, f_nSC
 			do wf  = 1, f_nwfs**2
 				!read next line
@@ -807,25 +806,19 @@ module file_io
 				end if
 					!
 				!get Wigner Seitz vector
-				if( wf==1 .and. sc==1 ) then
-					idx = 1
-					R_vect(1:3,idx)	= real3(1:3)
-				else if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,idx),	real3(1:3) )		) then
-					idx = idx +1 
-					R_vect(1:3,idx)	= real3(1:3)
-					if(wf /= 1)	then 
-						write(*,'(a,i3,a)')				 		"[#",mpi_id,";read_hr_file]: 	WARNING unexpected new R_vect"
+				if( wf==1  ) then
+					R_vect(1:3,sc)	= real3(1:3)
+				else if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,sc),	real3(1:3) )		) then
+						write(*,*)				 		"[#",mpi_id,";read_hr_file]: 	WARNING unexpected new R_vect=",real3(:)
 						write(*,'(a,i4,a,i4)',advance="no")		"	m=",m," n=",n
-						write(*,*)								"	wf=",wf," sc=",sc," raw R_vect=",R_vect(:,idx)
-					end if
+						write(*,*)								"	wf=",wf," sc=",sc," expected R_vect=",R_vect(:,sc)
 				end if
 				!
 				!fill Hamiltonian
-				H_mat(m,n, idx)	= cmplx(	real2(1),	real2(2)	, dp	)
+				H_mat(m,n, sc)	= cmplx(	real2(1),	real2(2)	, dp	)
 			end do
 		end do
 		close(mpi_unit)
-		if(idx /= f_nSC)	stop 'issue reading the body in _hr.dat file'
 		!
 		!
 		!convert to a.u
@@ -867,7 +860,7 @@ module file_io
 				if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,sc),	real3(1:3))	)	then
 					write(*,*)	"[read_r_file]: R_vect=",R_vect(1:3,sc)
 					write(*,*)	"[read_r_file]:	input_R=",real(int3(1:3),dp)
-					stop 'different R_vect order in _hr.dat and _r.dat file'
+					stop '[read_r_file]: different R_vect order in _hr.dat and _r.dat file'
 				end if
 				!
 				r_mat(1,m,n,sc)	=	cmplx(	real6(1)	, real6(2)	, dp	)
