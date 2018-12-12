@@ -1,5 +1,6 @@
 import numpy as np
 import 	datetime
+import sys
 #
 #
 #	parameter to convert from degrees to radiants
@@ -103,30 +104,54 @@ class FeMn_3q_model:
 		#
 		# creat list with already added elements
 		tHopp_exist = []
-		exist_cnt	= 0
-		for t in self.tHopp:
-			tHopp_exist.append(	[	int(t[0]),int(t[1]),int(t[2]),int(t[3]),int(t[4])	]	 )
-			exist_cnt	= exist_cnt + 1
-		if exist_cnt != 80:
-			print("WARNING the tHopp_exist list is wrong")
+		
+		print("[FeMn_3q_model/tHopp_fill_zeros]:	initial tHopp size=",len(self.tHopp))
+
+		nExist		=	len(self.tHopp)
+		#
 		#
 		#only if not in already added list append value
 		zero_cnt = 0
 		match_cnt = 0
 		t_matches = []
-		for R_nn in self.R_nn_lst:
+		for idx,R_nn in enumerate(self.R_nn_lst):
+			print("#R="+str(idx)+" -> len(tHopp)="+str(len(self.tHopp)))
+			per_r_nn	=	0
 			for m in range(self.nWfs):
 				for n in range(self.nWfs):
-					if [ int(R_nn[0]), int(R_nn[1]), int(R_nn[2]), int(m+1), int(n+1)] in tHopp_exist:
-						t_matches.append([ int(R_nn[0]), int(R_nn[1]), int(R_nn[2]), int(m+1), int(n+1)])
-						match_cnt = match_cnt + 1				
+						# old integer code:
+						#
+						#	if [ R_nn[0], R_nn[1], R_nn[2], int(m+1), int(n+1)] in tHopp_exist:
+						#		t_matches.append([ R_nn[0], R_nn[1], R_nn[2], int(m+1), int(n+1)])
+						#		match_cnt = match_cnt + 1				
+					new_r		= 	np.array(	[R_nn[ 0]	,	R_nn[ 1], 	R_nn[ 2]	]	)
+					exists	= False
+					for old_t in self.tHopp:
+						old_r	=	np.array(	[old_t[0]	,	old_t[1],	old_t[2]	]	)
+						old_m	=	old_t[3]
+						old_n 	=	old_t[4]
+						if (	m+1==old_m and n+1==old_n ):
+							exists	=	(	np.linalg.norm(old_r-new_r)		<	1e-2)
+							
+						if(exists):	break	
+					#
+					#
+					if(exists):
+						#print("old_r="+str(old_r)+" new_r="+str(new_r)) 
+						per_r_nn	=	per_r_nn + 1
+						t_matches.append([ R_nn[0], R_nn[1], R_nn[2], int(m+1), int(n+1)])
+						match_cnt	= match_cnt + 1
 					else:			
 						zero_cnt	= zero_cnt + 1
 						self.tHopp.append(		[ R_nn[0], R_nn[1], R_nn[2], m+1, n+1, 0.0, 0.0	]		)
-		return self.tHopp
+			print("found "+str(per_r_nn)+" values in this cell")
 
-
-
+		t_matches	=	sorted(t_matches)
+		if (match_cnt != nExist):
+			print("[FeMn_3q_model/tHopp_fill_zeros]: WARNING identified "+str(match_cnt)+" but expected "+str(nExist)+" data points")
+			#print("matched data points:")
+			#for match in t_matches:
+			#	print(match)
 
 
 
@@ -136,16 +161,15 @@ class FeMn_3q_model:
 
 
 	def set_right_left_cc(self,	R_left, R_right,	m, n, t_hopp):
-		#
-		# add the hopping (left & right)
-		self.tHopp.append(	np.concatenate((	R_right,	[	m,	n,	t_hopp[0],		t_hopp[1]			])))
-		self.tHopp.append(	np.concatenate(( 	R_left,		[	m,	n,	t_hopp[0], 		t_hopp[1]			])))
-		#
-		#	now add complex conjugates of both terms
-		self.tHopp.append(	np.concatenate(( 	R_right,	[	n  , m,	t_hopp[0],  - 	t_hopp[1]			])))
-		self.tHopp.append(	np.concatenate(( 	R_left,		[	n  , m,	t_hopp[0],  - 	t_hopp[1]			])))
+		if m>=n:
+			print("[FeMn_3q_model/set_right_left_cc]:	unexpected lower traingle values specified (m="+str(m)+",n="+str(n)+")")
 		
-
+		# add the hopping (left & right)
+		self.tHopp.append(		[	R_right[0]	,	R_right[1],	R_right[2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
+		self.tHopp.append(		[	R_left[0]	,	R_left[1],	R_left[2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
+		#	now add complex conjugates of both terms	
+		self.tHopp.append(		[	R_right[0]	,	R_right[1],	R_right[2]	, 	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
+		self.tHopp.append(		[	R_left[0]	,	R_left[1],	R_left[2]	, 	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
 
 
 
@@ -175,11 +199,18 @@ class FeMn_3q_model:
 			#        ham(i+4,i+4) = -lambda*costheta(i)
 			#        ham(i,i+4) = lambda*phasphi(i)*sintheta(i)
 			#       enddo
-			self.tHopp.append(	[	0, 0, 0, 		i+1, i+1, 		self.lmbda 	* costheta[i]						, 	.0			]				)
-			self.tHopp.append(	[ 	0, 0, 0,		i+5, i+5, 	-	self.lmbda	* costheta[i] 						, 	.0			]				)
-			self.tHopp.append(	[	0, 0, 0,		i+1, i+5,			re_upDw										, 	im_upDw		]				)
-			self.tHopp.append(	[	0, 0, 0, 		i+5, i+1,			re_upDw										, - im_upDw		]				)
-		self.R_nn_lst.append([0,0,0])
+			self.tHopp.append(	[	0., 0., 0., 		i+1, i+1, 		self.lmbda 	* costheta[i]						, 	.0			]				)
+			self.tHopp.append(	[ 	0., 0., 0.,			i+5, i+5, 	-	self.lmbda	* costheta[i] 						, 	.0			]				)
+			self.tHopp.append(	[	0., 0., 0.,			i+1, i+5,			re_upDw										, 	im_upDw		]				)
+			self.tHopp.append(	[	0., 0., 0., 		i+5, i+1,			re_upDw										, - im_upDw		]				)
+		self.R_nn_lst.append([0.,0.,0.])
+
+		nExchange		= 	4*4
+		actual_size		=	len(self.tHopp)
+		if( nExchange != actual_size):
+			print("[FeMn_3q_model/setup_Ham]: the exchange list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nExchange))
+		else:
+			print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	exhange entries")
 		#
 		#
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -238,6 +269,14 @@ class FeMn_3q_model:
 			self.set_right_left_cc(		Rl_intra_13,	Rr_intra_13,		2+i, 4+i,	intra_hopp		)
 			self.set_right_left_cc(		Rl_intra_12,	Rr_intra_12,		3+i, 4+i,	intra_hopp		)
 
+		nIntra			= 	2*6*4			# spin i gives factor 2, set_right_left_cc is called 6 times and should set 4 values every time
+		actual_size		=	len(self.tHopp)- nExchange
+		if( nIntra != actual_size):
+			print("[FeMn_3q_model/setup_Ham]: the intralayer list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nIntra))
+		else:
+			print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	intralayer entries")
+		#
+
 
 		# 	JAN'S SOURCE CODE
        	#! inter-layer hopping
@@ -277,12 +316,33 @@ class FeMn_3q_model:
 
 
 
+		nInter			=	2*6*4
+		actual_size		=	len(self.tHopp)- nExchange-nIntra
+		if( nIntra != actual_size):
+			print("[FeMn_3q_model/setup_Ham]: the interlayer list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nInter))
+		else:
+			print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	interlayer entries")
+		#
+
+		expected_size	=	nExchange + nIntra + nInter
+		actual_size		= len(self.tHopp)
+		if(actual_size != expected_size):
+			print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong number of hoppings: got"+ str(actual_size)+" expected:"+str(expected_size))
+			sys.exit()
+		else:
+			print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	hopping parameters in total")
 		#
 		#
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		#      FILL REST WITH ZEROS													|
 		#---------------------------------------------------------------------------
 		self.tHopp_fill_zeros()	
+
+		actual_size		=	len(self.tHopp)
+		expected_size	=	self.nWfs**2 * self.nrpts
+		if(actual_size != expected_size):
+			print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong size: got"+str(actual_size)+" expected:"+str(expected_size))
+			sys.exit()
 	
 
 
@@ -375,6 +435,9 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	#
 	#	POSITION
 	test_model.setup_Pos()
+
+	
+	
 	#
 	#	LATTICE
 	a0 	= 1.0
@@ -455,7 +518,7 @@ def test(verbose=True):
 #
 #
 #UNCOMMENT TO TEST THIS SCRIPT
-test(verbose	=	True)
+#test(verbose	=	True)
 
 
 
