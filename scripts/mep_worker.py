@@ -199,7 +199,7 @@ class MEP_worker:
 		#time.sleep(1)	#delay for one second
 
 		#run the bandstructure calculation
-		os.system('mpirun -np 4 ./mepInterp > mepBAND.log')
+		os.system('mpirun -np 4 ./mepInterp > mepBAND.log 2> mepBAND.err')
 		print('MEPinterp run completed')
 
 		#make a plot

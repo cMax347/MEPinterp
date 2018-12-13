@@ -32,9 +32,9 @@ class conv_run:
 
 
 	def add_jobs(	self, 	
-					phi, val_bands, mp_dens_per_dim, 
-					kubo_tol, hw, eFermi, Tkelvin, eta_smearing,
-					debug_mode, do_gauge_trafo='T', do_write_velo='F',
+					tb_model, use_pos_op, phi, val_bands, mp_dens_per_dim, 
+					kubo_tol, hw, laser_phase, eFermi, Tkelvin, eta_smearing,
+					debug_mode, do_gauge_trafo='T',	R_vect_float='F', do_write_velo='F',
 					do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 				):
 		for n_mp in mp_dens_per_dim:
@@ -44,9 +44,11 @@ class conv_run:
 			work_dir= self.root_dir+'/nK'+str(nK)
 			self.work_dirs.append(work_dir)
 
-			job = MEP_worker(	self.root_dir, work_dir, phi, val_bands, mp_grid, 
-								kubo_tol, hw, eFermi, Tkelvin, eta_smearing, 
-								debug_mode, do_gauge_trafo,	do_write_velo,
+
+
+			job = MEP_worker(	tb_model, use_pos_op, self.root_dir, work_dir, phi, val_bands, mp_grid, 
+								kubo_tol, hw, laser_phase, eFermi, Tkelvin, eta_smearing, 
+								debug_mode, do_gauge_trafo,	R_vect_float,	do_write_velo,
 								do_mep, do_kubo, do_ahc, do_opt, do_gyro	
 							)
 			self.jobs.append( 	job	)
@@ -68,39 +70,51 @@ class conv_run:
 
 #paras
 root_dir		=	os.getcwd()+'/k_conv_cluster'
-kubo_tol		=	1e-5
+
+#Laser
 hw				= 	0.3
+eta_smearing	=	0.3
+laser_phase		=	1.0
+
+
+
+
+#FERMI SMEARING
 eFermi			=	-3.0	
 Tkelvin			=	300.0	
-eta_smearing	=	0.3
 
 
 #flags
 debug_mode		=	'T'
 do_gauge_trafo	=	'T'
-do_write_velo	=	'F'
+do_write_velo	=	'T'
 
 #repsonse tensors to calculate:
+kubo_tol		=	1e-5
 do_mep			=	'T'
 do_kubo			=	'F'
 do_ahc			=	'F'
 do_opt			=	'F'
 do_gyro			=	'F'
 
+#TB MODEL
+tb_model		=	'FeMn3q'
+use_pos_op		=	False
+R_vect_float	=	True
 
 
+#NUMERICS
 val_bands		=	2
-mp_dens			=	[1, 2, 4, 6, 8, 12, 16]#, 32, 48, 64, 80, 128,256,512]
+mp_dens			=	[1, 2, 4]#, 6, 8, 12, 16]#, 32, 48, 64, 80, 128,256,512]
 phi_lst			=	[0.0] 	#,1.0,2.0]
-
 n_mpi_procs		=	4
 
 for phi in phi_lst:
 	cluster_calc 	= 	conv_run(root_dir+'_phi'+str(phi))
 	#
-	cluster_calc.add_jobs(	phi,	val_bands,	mp_dens, 
-							kubo_tol, hw, eFermi, Tkelvin, eta_smearing, 
-							debug_mode, do_gauge_trafo, do_write_velo,
+	cluster_calc.add_jobs(	tb_model, use_pos_op, phi,	val_bands,	mp_dens, 
+							kubo_tol, hw, laser_phase, eFermi, Tkelvin, eta_smearing, 
+							debug_mode, do_gauge_trafo, R_vect_float, do_write_velo,
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro	
 						)
 	cluster_calc.run_jobs(mpi_np=n_mpi_procs)

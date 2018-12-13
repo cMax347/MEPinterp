@@ -38,7 +38,7 @@ class FeMn_3q_model:
 		ry_wf	=	ry_at	+	ry_at
 		rz_wf	=	rz_at	+	rz_at
 
-		print("[FeMn_3q_model/init]: rx_wf=",rx_wf)
+		self.v_print("[FeMn_3q_model/init]: rx_wf="+str(rx_wf))
 		#
 		for wf in range(self.nWfs):
 			#position op. is real
@@ -113,7 +113,7 @@ class FeMn_3q_model:
 		# creat list with already added elements
 		tHopp_exist = []
 		
-		print("[FeMn_3q_model/tHopp_fill_zeros]:	initial tHopp size=",len(self.tHopp))
+		self.v_print("[FeMn_3q_model/tHopp_fill_zeros]:	initial tHopp size="+str(len(self.tHopp)))
 
 		nExist		=	len(self.tHopp)
 		#
@@ -123,7 +123,7 @@ class FeMn_3q_model:
 		match_cnt = 0
 		t_matches = []
 		for idx,R_nn in enumerate(self.R_nn_lst):
-			print("#R="+str(idx)+" -> len(tHopp)="+str(len(self.tHopp)))
+			self.v_print("#R="+str(idx)+" -> len(tHopp)="+str(len(self.tHopp)))
 			per_r_nn	=	0
 			for m in range(self.nWfs):
 				for n in range(self.nWfs):
@@ -152,11 +152,11 @@ class FeMn_3q_model:
 					else:			
 						zero_cnt	= zero_cnt + 1
 						self.tHopp.append(		[ R_nn[0], R_nn[1], R_nn[2], m+1, n+1, 0.0, 0.0	]		)
-			print("found "+str(per_r_nn)+" values in this cell")
+			self.v_print("found "+str(per_r_nn)+" values in this cell")
 
 		t_matches	=	sorted(t_matches)
 		if (match_cnt != nExist):
-			print("[FeMn_3q_model/tHopp_fill_zeros]: WARNING identified "+str(match_cnt)+" but expected "+str(nExist)+" data points")
+			self.v_print("[FeMn_3q_model/tHopp_fill_zeros]: WARNING identified "+str(match_cnt)+" but expected "+str(nExist)+" data points")
 			#print("matched data points:")
 			#for match in t_matches:
 			#	print(match)
@@ -170,7 +170,7 @@ class FeMn_3q_model:
 
 	def set_right_left_cc(self,	R_left, R_right,	m, n, t_hopp):
 		if m>=n:
-			print("[FeMn_3q_model/set_right_left_cc]:	unexpected lower traingle values specified (m="+str(m)+",n="+str(n)+")")
+			self.v_print("[FeMn_3q_model/set_right_left_cc]:	unexpected lower traingle values specified (m="+str(m)+",n="+str(n)+")")
 		
 		# add the hopping (left & right)
 		self.tHopp.append(		[	R_right[0]	,	R_right[1],	R_right[2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
@@ -216,9 +216,9 @@ class FeMn_3q_model:
 		nExchange		= 	4*4
 		actual_size		=	len(self.tHopp)
 		if( nExchange != actual_size):
-			print("[FeMn_3q_model/setup_Ham]: the exchange list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nExchange))
+			self.v_print("[FeMn_3q_model/setup_Ham]: the exchange list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nExchange))
 		else:
-			print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	exhange entries")
+			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	exhange entries")
 		#
 		#
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -293,9 +293,9 @@ class FeMn_3q_model:
 		nIntra			= 	2*6*4			# spin i gives factor 2, set_right_left_cc is called 6 times and should set 4 values every time
 		actual_size		=	len(self.tHopp)- nExchange
 		if( nIntra != actual_size):
-			print("[FeMn_3q_model/setup_Ham]: the intralayer list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nIntra))
+			self.v_print("[FeMn_3q_model/setup_Ham]: the intralayer list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nIntra))
 		else:
-			print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	intralayer entries")
+			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	intralayer entries")
 		#
 
 
@@ -355,18 +355,18 @@ class FeMn_3q_model:
 		nInter			=	2*6*4
 		actual_size		=	len(self.tHopp)- nExchange-nIntra
 		if( nIntra != actual_size):
-			print("[FeMn_3q_model/setup_Ham]: the interlayer list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nInter))
+			self.v_print("[FeMn_3q_model/setup_Ham]: the interlayer list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nInter))
 		else:
-			print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	interlayer entries")
+			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	interlayer entries")
 		#
 
 		expected_size	=	nExchange + nIntra + nInter
 		actual_size		= len(self.tHopp)
 		if(actual_size != expected_size):
-			print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong number of hoppings: got"+ str(actual_size)+" expected:"+str(expected_size))
+			self.v_print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong number of hoppings: got"+ str(actual_size)+" expected:"+str(expected_size))
 			sys.exit()
 		else:
-			print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	hopping parameters in total")
+			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	hopping parameters in total")
 		#
 		#
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -377,7 +377,7 @@ class FeMn_3q_model:
 		actual_size		=	len(self.tHopp)
 		expected_size	=	self.nWfs**2 * self.nrpts
 		if(actual_size != expected_size):
-			print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong size: got"+str(actual_size)+" expected:"+str(expected_size))
+			self.v_print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong size: got"+str(actual_size)+" expected:"+str(expected_size))
 			sys.exit()
 	
 
@@ -480,9 +480,12 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	ax	= np.zeros(3)
 	ay 	= np.zeros(3)
 	az	= np.zeros(3)
-	ax[0]	=	1.0
-	ay[1]	=	1.0
-	az[2]	=	1.0	
+	ax[0]	=	1.
+	ay[1]	=	2./np.sqrt(3.)
+	az[2]	=	np.sqrt(2./3.)	
+
+
+
 	#
 	#
 	print("[get_FeMn3q_tb]:	..finished FeMn3q model setup (TODO: PROPER LATTICE SETUP !) at " +	datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
