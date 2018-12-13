@@ -61,7 +61,15 @@ def do_band_calc(tb_model, latt_sym_group='cub',kpath="Gamma 1000 X 1000 M 1000 
 	#write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands='F'):
 
 
-	write_tb_input(tb_model, band_dir, phi, val_bands, mp_grid, kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=300.0, eta_smearing=3.0, plot_bands='T', debug_mode='T' )
+
+	write_tb_input(	tb_model, band_dir, phi, val_bands, mp_grid, 
+							kubo_tol=1e-3, 
+							hw=0.0,laser_phase=0, 
+							eFermi=0.0, Tkelvin=300.0, eta_smearing=3.0, 
+							plot_bands='T', 
+							debug_mode='T', 
+							R_vect_float='T'
+					)
 	os.system('./kptsgen.pl -l '+latt_sym_group+' -k "'+kpath+'"')
 	print('[do_band_calc]: generated k-space path list')
 	os.system('mpirun -np 4 ./mepInterp > mepBANDS.out')

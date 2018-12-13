@@ -74,6 +74,14 @@ class FeMn_3q_model:
 				#-------------------------------------------------------------------------------------
 				#-------------------------------------------------------------------------------------
 				#-------------------------------------------------------------------------------------
+		
+		# set negative prefactor
+		self.intra_t	=	-	self.intra_t
+		self.inter_t	=	-	self.inter_t
+		self.lmbda		=	-	self.lmbda
+
+
+
 		self.v_print(	"	[FeMn_3q_model]:	initalized new param set from "+fpath			)
 		self.v_print(	"	[FeMn_3q_model]:	 summary"										)
 		self.v_print(	"		t1	    =	" + str(	self.intra_t		)	+ str("(eV)")		)
@@ -238,18 +246,31 @@ class FeMn_3q_model:
        	#												i use			sqrt(3.)/2.*pi*ky								
 
        	#	in-plane hopping directions
-		Rr_intra_12	=	[ +	1/2.	, +	 np.sqrt(3.)/4.		,	 .0	]
-		Rl_intra_12	=	[ -	1/2.	, -	 np.sqrt(3.)/4.		,	 .0	]
-		self.R_nn_lst.append( Rr_intra_12)
-		self.R_nn_lst.append( Rl_intra_12)
+		#Rr_intra_12	=	[ +	1/2.	, +	 np.sqrt(3.)/4.		,	 .0	]
+		#Rl_intra_12	=	[ -	1/2.	, -	 np.sqrt(3.)/4.		,	 .0	]
+		##
+		#Rr_intra_13	=	[ +	1.0		,		 .0				,	 .0	]
+		#Rl_intra_13	=	[ - 1.0		,		 .0				,	 .0	]
+		##
+		#Rr_intra_14	=	[ +	1/2.	, - np.sqrt(3.)/4.		,	 .0	]
+		#Rl_intra_14	=	[ -	1/2.	, + np.sqrt(3.)/4.		,	 .0	]
+
+
+
+		Rr_intra_12	=	[ +	1./2.	, -	 3./4.		,	 .0	]
+		Rl_intra_12	=	[ -	1/2.	, +	 3./4.		,	 .0	]
 		#
 		Rr_intra_13	=	[ +	1.0		,		 .0				,	 .0	]
 		Rl_intra_13	=	[ - 1.0		,		 .0				,	 .0	]
+		#
+		Rr_intra_14	=	[ +	1/2.	, 	+ 3./4.		,	 .0	]
+		Rl_intra_14	=	[ -	1/2.	, 	- 3./4.		,	 .0	]
+
+
+		self.R_nn_lst.append( Rr_intra_12)
+		self.R_nn_lst.append( Rl_intra_12)
 		self.R_nn_lst.append( Rr_intra_13)
 		self.R_nn_lst.append( Rl_intra_13)
-		#
-		Rr_intra_14	=	[ +	1/2.	, - np.sqrt(3.)/4.		,	 .0	]
-		Rl_intra_14	=	[ -	1/2.	, + np.sqrt(3.)/4.		,	 .0	]
 		self.R_nn_lst.append( Rr_intra_14)
 		self.R_nn_lst.append( Rl_intra_14)
 		#
@@ -285,18 +306,33 @@ class FeMn_3q_model:
        	#ht2(3) =-2*t2*cos( pi*kx-pi/2.*ky-2.*pi*kz)	/(2*Pi)	=	cos(	1/2 kx	-	1/4 ky	- 1 kz	)
        	#
 		#
+		#Rr_inter_12	=	[	-1./2.	, -	1./4.	,	-	1.0 ]
+		#Rl_inter_12	=	[	+1./2.	, +	1./4.	,	+	1.0 ]
+		##
+		#Rr_inter_13	=	[	  .0	, +	1./2.	,	-	1.0	]
+		#Rl_inter_13	=	[	  .0	, -	1./2.	,	+	1.0	]		
+		##		
+		#Rr_inter_14	=	[ +  1./2.	, -	1./4.	,	-	1.0	] 		
+		#Rl_inter_14	=	[ -  1./2.	, +	1./4.	,	+	1.0	] 		
+		
+
 		Rr_inter_12	=	[	-1./2.	, -	1./4.	,	-	1.0 ]
 		Rl_inter_12	=	[	+1./2.	, +	1./4.	,	+	1.0 ]
-		self.R_nn_lst.append( Rr_inter_12) 
-		self.R_nn_lst.append( Rl_inter_12) 
 		#
 		Rr_inter_13	=	[	  .0	, +	1./2.	,	-	1.0	]
 		Rl_inter_13	=	[	  .0	, -	1./2.	,	+	1.0	]		
-		self.R_nn_lst.append( Rr_inter_13) 
-		self.R_nn_lst.append( Rl_inter_13) 
 		#		
 		Rr_inter_14	=	[ +  1./2.	, -	1./4.	,	-	1.0	] 		
 		Rl_inter_14	=	[ -  1./2.	, +	1./4.	,	+	1.0	] 		
+
+		
+
+
+
+		self.R_nn_lst.append( Rr_inter_12) 
+		self.R_nn_lst.append( Rl_inter_12) 
+		self.R_nn_lst.append( Rr_inter_13) 
+		self.R_nn_lst.append( Rl_inter_13) 
 		self.R_nn_lst.append( Rr_inter_14) 
 		self.R_nn_lst.append( Rl_inter_14) 
 		#
