@@ -15,6 +15,7 @@ class hw_probe:
 
 	def __init__(		self,
 						tb_model,
+						use_pos_op,
 						hw_min,
 						hw_max,
 						n_hw, 
@@ -31,6 +32,7 @@ class hw_probe:
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 						):
 		self.tb_model		=	tb_model
+		self.use_pos_op		=	use_pos_op
 		self.hw_min			=	hw_min
 		self.hw_max			=	hw_max
 		self.n_hw 			= 	n_hw
@@ -103,6 +105,7 @@ class hw_probe:
 
 
 			worker = MEP_worker(	self.tb_model,
+									self.use_pos_op,
 									self.root_dir, 
 									work_dir, 
 									phi_pi, 						#give  phi_rel*pi to calculation
@@ -161,6 +164,7 @@ class hw_probe:
 
 
 def probe_hw(		tb_model		=	"FeMn3q" 		,
+					use_pos_op		=	False			,
 					hw_min			=	0				,
 					hw_max			= 	6				,
 					n_hw			= 	10				,
