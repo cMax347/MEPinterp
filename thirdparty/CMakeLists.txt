@@ -1,2 +1,3 @@
-add_library(config_fortran config_fortran/m_config.f90)
+add_library(m_config config_fortran/m_config.f90)
+#link_directories(wannier90)
 
