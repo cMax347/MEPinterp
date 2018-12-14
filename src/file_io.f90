@@ -132,23 +132,27 @@ module file_io
 
 
 
-	subroutine write_velo(kpt_idx, fname, info_string, V_ka)
+	subroutine write_velo(kpt_idx, V_ka)
 		integer,			intent(in)		::	kpt_idx
-		character(len=*), 	intent(in)		::	fname
-		character(len=*), 	intent(in)		::	info_string
 		complex(dp),		intent(in)		::	V_ka(:,:,:)
 		integer								::	mpi_unit, x, n, m 
+		character(len=10)					::	fname
+		character(len=120)					::	info_string
 		character(len=40)					::	fpath
 		!
-		write(fpath,format) velo_out_dir //	trim(fname)//".", kpt_idx 
+		!	SPECIFY FILE
+		write(fname,*)			"velo_Vka"
+		write(info_string,*)	"#interpolated velocities"
+		write(fpath,format) 	velo_out_dir //	trim(fname)//".", kpt_idx 
 		!
+		!	OPEN FILE
 		mpi_unit	=	300 + mpi_id + 8 * mpi_nProcs
-		!
 		open(unit=mpi_unit, file=fpath, form='formatted', action='write', access='stream', status='replace')
 		write(mpi_unit,*)	trim(info_string)
 		write(mpi_unit,*)	'# x |	 n		|	m 	|	real(V^x_nm)  |		imag(Vx_nm)'
 		write(mpi_unit,*)	'#-----------------------------------------------------------------------'
 		!
+		!	WRITE FILE
 		do x = 1, 3
 			do m = 1, size(V_ka,3)
 				do n = 1, size(V_ka,2)
@@ -158,8 +162,9 @@ module file_io
 			end do
 			write(mpi_unit,*)	"#----------------------------------------------------------------------"
 		end do
-		close(mpi_unit)
 		!
+		!	CLOSE FILE
+		close(mpi_unit)
 		write(*,'(a,i3,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
 		!
 		return
