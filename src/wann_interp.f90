@@ -19,9 +19,8 @@ module wann_interp
 									uni_gauge_trafo,		&
 									is_herm_mat,			&
 									is_skew_herm_mat		
-	use input_paras,	only:		kubo_tol, debug_mode,	&
-									do_write_velo
-	use file_IO,		only:		write_velo
+	use input_paras,	only:		kubo_tol, debug_mode
+	
 
 
 
@@ -88,10 +87,7 @@ module wann_interp
 		!
 		!
 		!	DEBUG
-		if(debug_mode)	then
-			call check_H_gauge_herm(kpt_idx, kpt_rel, A_ka, Om_kab, V_ka)
-			if(allocated(V_ka)	.and. do_write_velo)	call debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
-		end if
+		if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt_rel, A_ka, Om_kab, V_ka)
 		!
 		return
 	end subroutine
@@ -587,44 +583,6 @@ module wann_interp
 
 
 
-	subroutine debug_write_velo_files(kpt_idx, e_k, H_ka, A_ka, V_ka)
-		integer,						intent(in)		::	kpt_idx
-		real(dp),						intent(in)		::	e_k(:)
-		complex(dp),					intent(in)		::	H_ka(:,:,:), V_ka(:,:,:)
-		complex(dp), 	allocatable, 	intent(in)		::	A_ka(:,:,:)
-		complex(dp),	allocatable						::	Vtemp(:,:,:)
-		character(len=10)								::	fname
-		character(len=120)								::	info_string
-		integer											::	n, m
-		!
-		!
-		if(allocated(A_ka))	 then
-			write(fname,*)		"velo_Aka"
-			write(info_string,*)	"#	Berry Connection contribution to velocities: V_ka(n,m) =  - i (E_m - E_n) A_ka(n,m)"
-			!
-			allocate(		Vtemp(3, size(A_ka,2), size(A_ka,3))			)
-			!
-			Vtemp	= cmplx(0.0_dp, 0.0_dp,dp)
-			do n = 1, size(A_ka,2)
-				do m = 1, size(A_ka,3)
-					Vtemp(:,n,m)	=	-i_dp	* cmplx( e_k(m)	- e_k(n), 0.0_dp, dp) *	A_ka(:,n,m)
-				end do
-			end do
-			call write_velo(kpt_idx, fname, info_string, Vtemp)
-			!
-			!
-			write(fname,*)		"velo_Vka"
-			write(info_string,*)	"#	(H)-gauge velo velocity: V_ka(n,m) =  H_ka(n,m)  - i (E_m - E_n) A_ka(n,m)"
-			call write_velo(kpt_idx, fname, info_string, V_ka)
-		end if
-		!
-		write(fname,*)		"velo_Hka"
-		write(info_string,*)	"#	Hamiltonian contribution to velocities: V_ka =  H_ka"
-		call write_velo(kpt_idx, fname, info_string, H_ka)
-		!
-		!
-		return
-	end subroutine
 
 
 
