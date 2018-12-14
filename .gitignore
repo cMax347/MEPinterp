@@ -35,6 +35,7 @@ bin/**
 **/tests/Testing
 **/raw
 
+**/build/
 **/build_dev/
 **/build_3q/
 **/build_graph/
