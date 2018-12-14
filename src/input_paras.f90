@@ -186,7 +186,7 @@ module input_paras
 					if(			do_ahc			)	call my_mkdir(ahc_out_dir)
 					if(			do_opt			)	call my_mkdir(opt_out_dir)
 					if(			do_gyro			)	call my_mkdir(gyro_out_dir)		
-					if(		  debug_mode		)	call my_mkdir(velo_out_dir)			
+					if(		  do_write_velo		)	call my_mkdir(velo_out_dir)			
 				end if	
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: ... directories created"
 			else
