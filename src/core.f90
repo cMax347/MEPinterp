@@ -41,7 +41,7 @@ module core
 	!
 	use mep_niu,		only:	mep_niu_CS,	mep_niu_IC, mep_niu_LC
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
-	use kubo,			only:	kubo_ahc_tens, velo_ahc_tens, kubo_opt_tens
+	use kubo,			only:	kubo_ahc_tens, velo_ahc_tens, kubo_ohc_tens, kubo_opt_tens
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
 	use photo,			only:	photo_2nd_cond
 	!
@@ -81,7 +81,7 @@ contains
 												sum_N_el_loc, 							&
 												kpt(3),	recip_latt(3,3)
 												!local sum targets:
-		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
+		real(dp),		allocatable			::	en_k(:),								& 
 												mep_bands_ic_loc(	:,:,:),	 			&
 												mep_bands_lc_loc(	:,:,:),				&
 												mep_bands_cs_loc(	:,:,:),				&
@@ -106,10 +106,6 @@ contains
 												ic_skipped, lc_skipped
 		complex(dp),	allocatable			::	A_ka(:,:,:), Om_kab(:,:,:,:),			&
 												V_ka(:,:,:)
-		real(dp),		allocatable			::	en_k(:),								& 
-												mep_tens_ic_loc(	:,:,:),	 			&
-												mep_tens_lc_loc(	:,:,:),				&
-												mep_tens_cs_loc(	:,:,:)
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	allocate
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -120,7 +116,7 @@ contains
 									tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
 									gyro_C_loc, gyro_D_loc, gyro_Dw_loc,											&
 									photo2_cond_loc																	&
-						)
+								)
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get 	k-space
@@ -268,7 +264,7 @@ contains
 	subroutine norm_K_int_and_write(		n_ki_loc, 																&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,						&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,							&									
-										kubo_ahc_loc, velo_ahc_loc,													&
+										kubo_ahc_loc, velo_ahc_loc,	kubo_ohc_loc,									&
 										kubo_opt_s_loc, kubo_opt_a_loc,												&
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc,										&
 										photo2_cond_loc																&
@@ -282,9 +278,10 @@ contains
 		integer,						intent(in)		::	n_ki_loc 	
 		real(dp),		allocatable,	intent(inout)	::	mep_bands_ic_loc(:,:,:), mep_bands_lc_loc(:,:,:), mep_bands_cs_loc(:,:,:),	&
 															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),		&				
-															kubo_ahc_loc(:,:), velo_ahc_loc(:,:),									&									
+															kubo_ahc_loc(:,:),														&									
 															photo2_cond_loc(:,:)
-		complex(dp),	allocatable,	intent(inout)	::	kubo_opt_s_loc(:,:), kubo_opt_a_loc(:,:),								&
+		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:),	kubo_ohc_loc(:,:),									&
+															kubo_opt_s_loc(:,:), kubo_opt_a_loc(:,:),								&
 															gyro_C_loc(:,:), gyro_D_loc(:,:), gyro_Dw_loc(:,:)		
 		!-----------------------------------------------------------------------------------------------------------
 		integer											::	n_ki_glob
@@ -295,14 +292,15 @@ contains
 															mep_sum_ic_glob(:,:), mep_sum_lc_glob(:,:), mep_sum_cs_glob(:,:),		&
 															kubo_mep_ic_glob(:,:), kubo_mep_lc_glob(:,:), kubo_mep_cs_glob(:,:),	&
 															kubo_ahc_glob(:,:),														&
-															velo_ahc_glob(:,:),														&
 															photo2_cond_glob(:,:)
 
 															
 															
 															!
 															!
-		complex(dp),			allocatable				::	kubo_opt_s_glob(:,:), kubo_opt_a_glob(:,:),								&
+		complex(dp),			allocatable				::	velo_ahc_glob(:,:),														&
+															kubo_ohc_glob(:,:),														&
+															kubo_opt_s_glob(:,:), kubo_opt_a_glob(:,:),								&
 															gyro_C_glob(:,:), gyro_D_glob(:,:), gyro_Dw_glob(:,:)		
 		!
 		!-----------------------------------------------------------------------------------------------------------
@@ -376,7 +374,7 @@ contains
 			call write_mep_tensors(			n_ki_glob,												&
 															mep_sum_ic_glob, 	mep_sum_lc_glob, 	mep_sum_cs_glob		)
 			call write_kubo_mep_tensors(	n_ki_glob,		kubo_mep_ic_glob, 	kubo_mep_lc_glob, 	kubo_mep_cs_glob	)
-			call write_ahc_tensor(			n_ki_glob,		kubo_ahc_glob, 		velo_ahc_glob							)
+			call write_ahc_tensor(			n_ki_glob,		kubo_ahc_glob, 		velo_ahc_glob,		kubo_ohc_glob		)
 			call write_opt_tensors(			n_ki_glob,		kubo_opt_s_glob, 	kubo_opt_a_glob,	photo2_cond_glob	)			
 			call write_gyro_tensors( 		n_ki_glob,		gyro_C_glob, 		gyro_D_glob, 		gyro_Dw_glob		)
 			write(*,*)	"*"
@@ -453,9 +451,10 @@ contains
 		real(dp),						intent(inout)	::	N_el_k, sum_N_el_loc, max_n_el, min_n_el
 		real(dp),		allocatable,	intent(inout)	::	mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),	&
 															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),		&				
-															kubo_ahc_loc(:,:), velo_ahc_loc(:,:),									&
+															kubo_ahc_loc(:,:),														&
 															photo2_cond_loc(:,:)									
-		complex(dp),	allocatable,	intent(inout)	::	tempS(:,:), tempA(:,:), kubo_opt_s_loc(:,:), kubo_opt_a_loc(:,:),		&
+		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:), kubo_ohc_loc(:,:),									&
+															tempS(:,:), tempA(:,:), kubo_opt_s_loc(:,:), kubo_opt_a_loc(:,:),		&
 															gyro_C_loc(:,:), gyro_D_loc(:,:), gyro_Dw_loc(:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	ALLOCATE & INIT

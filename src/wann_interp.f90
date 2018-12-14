@@ -85,7 +85,7 @@ module wann_interp
 		!
 		!
 		!	DEBUG
-		if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt_rel, A_ka, Om_kab, V_ka)
+		if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt_rel, dummy_conn, dummy_curv, V_ka)
 		!
 		return
 	end subroutine

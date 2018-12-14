@@ -32,9 +32,8 @@ contains
 	subroutine band_worker()
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:)
 		real(dp)							::	recip_latt(3,3)
-		integer								::	num_kpts, ki, k_per_mpi
-		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 				&
-												A_ka(:,:,:), Om_kab(:,:,:,:),				&
+		integer								::	num_kpts, num_wann, ki, k_per_mpi
+		complex(dp),	allocatable			::	H_k(:,:),	&
 												V_ka(:,:,:)					
 		!
 		if(mpi_id==mpi_root_id)	then
@@ -73,7 +72,7 @@ contains
 				!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
 				!			ONLY GET HAM															 |
 				!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-				call get_ham(rel_kpts(:,ki),	H_k,	v_dummy	)
+				call get_ham(rel_kpts(:,ki),	H_k,	V_ka	)
 				call zheevd_wrapper(H_k, en_k)
 				!
 				call write_en_binary(ki,en_k)
