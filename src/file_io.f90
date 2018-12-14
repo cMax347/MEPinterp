@@ -141,9 +141,9 @@ module file_io
 		character(len=40)					::	fpath
 		!
 		!	SPECIFY FILE
-		write(fname,*)			"velo_Vka"
+		write(fname,*)			'velo_Vka'
 		write(info_string,*)	"#interpolated velocities"
-		write(fpath,format) 	velo_out_dir //	trim(fname)//".", kpt_idx 
+		write(fpath,format) 	trim(velo_out_dir) //trim(fname)//".", kpt_idx 
 		!
 		!	OPEN FILE
 		mpi_unit	=	300 + mpi_id + 8 * mpi_nProcs
