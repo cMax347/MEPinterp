@@ -4,7 +4,7 @@ import datetime
 import sys, traceback
 import numpy as np
 from shutil 			import 	copy
-from tb_input_writer 	import 	write_souza_tb_input
+from tb_input_writer 	import 	write_tb_input
 from plot_bandStruct 	import	plot_bandstruct
 from fortran_io			import	read_real_tens_file
 
@@ -17,12 +17,14 @@ class MEP_worker:
 
 
 	#constructor
-	def __init__(		self, root_dir, work_dir, phi, val_bands, mp_grid, 
-						kubo_tol=1e-3,  hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 
-						debug_mode='F', do_gauge_trafo='T',	
-						do_write_velo='F',
+	def __init__(		self, tb_model, use_pos_op, root_dir, work_dir, phi, val_bands, mp_grid, 
+						kubo_tol=1e-3,  hw=0.0, laser_phase=1, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, 
+						debug_mode='F', do_gauge_trafo='T',	R_vect_float='F',
+						do_write_velo='F', do_write_mep_bands='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 						):
+		self.tb_model		=	tb_model
+		self.use_pos_op		=	use_pos_op
 		self.root_dir		=	root_dir
 		self.work_dir		=	work_dir
 		self.phi			=	phi
@@ -30,13 +32,16 @@ class MEP_worker:
 		self.mp_grid		=	mp_grid
 		self.kubo_tol		=	kubo_tol
 		self.hw				=	hw	
+		self.laser_phase	=	laser_phase
 		self.eFermi			=	eFermi
 		self.Tkelvin		=	Tkelvin
 		self.eta_smearing	=	eta_smearing
 		self.plot_bands		=	'F'	
 		self.debug_mode		=	debug_mode
 		self.do_gauge_trafo	=	do_gauge_trafo
+		self.R_vect_float	=	R_vect_float
 		self.do_write_velo	=	do_write_velo
+		self.do_write_mep_bands	=	do_write_mep_bands
 		self.do_mep			=	do_mep
 		self.do_kubo		=	do_kubo
 		self.do_ahc			=	do_ahc
@@ -58,18 +63,25 @@ class MEP_worker:
 		except OSError:
 			sys.exit('could not makedirs '+str(self.work_dir)	)
 
-		#prepare files in working directory
-		write_souza_tb_input(		self.work_dir, self.phi, self.val_bands, self.mp_grid, 					
-									self.kubo_tol, self.hw, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
-									self.plot_bands, self.debug_mode, self.do_gauge_trafo,
-									self.do_write_velo,
-									self.do_mep, self.do_kubo, self.do_ahc, self.do_opt, self.do_gyro			 
+
+		#copy executables to target
+		copy(self.root_dir+'/../mepInterp',	self.work_dir)
+		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)
+		
+		# copy existing input
+		if self.tb_model=='FeMn3q':
+			copy(self.root_dir+'/../inp_params_3q',	self.work_dir)
+
+		#generate fortran input
+		write_tb_input(		self.tb_model, self.use_pos_op,	self.work_dir, 
+							self.phi, self.val_bands, self.mp_grid, 					
+							self.kubo_tol, self.hw, self.laser_phase, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
+							self.plot_bands, self.debug_mode, self.do_gauge_trafo, self.R_vect_float,
+							self.do_write_velo, self.do_write_mep_bands,
+							self.do_mep, self.do_kubo, self.do_ahc, self.do_opt, self.do_gyro			 
 							)
 
-		#cpy executables, configs etc. to working dir
-		copy(self.root_dir+'/../mepInterp'		,	self.work_dir)
-		copy(self.root_dir+'/../kptsgen.pl'		,	self.work_dir)
-		copy(self.root_dir+'/../inp_params_3q'	,	self.work_dir)
+
 
 
 
@@ -108,7 +120,7 @@ class MEP_worker:
 		nK	= self.mp_grid[0]*self.mp_grid[1]*self.mp_grid[2]
 		print('['+str(datetime.datetime.now())+']start calculation (nK='+str(nK)+')....')
 		try:
-			os.system('mpirun -np '+str(mpi_np)+' ./mepInterp > mep.log')
+			os.system('mpirun -np '+str(mpi_np)+' ./mepInterp > mepINTERPOLATION.log')
 			self.success = True
 		except:
 			print('calculation could not be executed')
@@ -133,16 +145,27 @@ class MEP_worker:
 		mep_ic			= read_real_tens_file(mep_file_path,					'mep')
 		#
 		#
-		return mep_tens, mep_cs, mep_lc, mep_ic
+		#BAND RESOLVED
+		mep_bands 		= []
+		for n in range(1,self.val_bands+1):
+			mep_file_path	= self.work_dir+'/out/mep/mep_band.'+"{:07d}".format(n)
+			tmp	=	read_real_tens_file(mep_file_path,				'mep')
+			mep_bands.append(tmp)
+
+
+
+		return mep_tens, mep_cs, mep_lc, mep_ic, mep_bands
 
 	def get_ahc_tens(self):
 		ahc_file_path	= self.work_dir+'out/ahc/ahc_tens.dat'
 		ahc_tens		= read_real_tens_file(ahc_file_path,					'ahc')
 		return	ahc_tens
 
+
+
 	def get_ohc_tens(self):
-		ohc_file_path	= self.work_dir+'out/ahc/ahc_velo.dat'
-		ohc_tens		= read_real_tens_file(ohc_file_path,					'ahcVELO')
+		ohc_file_path	=	self.work_dir+'out/ahc/ahc_tens.dat'
+
 
 	def get_opt_tens(self):
 		#	symmetric contribution
@@ -168,6 +191,10 @@ class MEP_worker:
 		#copy exectubales to target 
 		copy(self.work_dir+'/mepInterp', 	self.band_dir)
 		copy(self.work_dir+'/kptsgen.pl',	self.band_dir)
+
+		#
+		if self.tb_model=="FeMn3q":
+			copy(self.work_dir+'/inp_params_3q',	self.band_dir)
 		#
 		os.chdir(self.band_dir)
 		print('['+str(datetime.datetime.now())+']start BAND calculation....')
@@ -177,7 +204,7 @@ class MEP_worker:
 		#time.sleep(1)	#delay for one second
 
 		#run the bandstructure calculation
-		os.system('mpirun -np 4 ./mepInterp > mepBAND.log')
+		os.system('mpirun -np 4 ./mepInterp > mepBAND.log 2> mepBAND.err')
 		print('MEPinterp run completed')
 
 		#make a plot

@@ -32,17 +32,20 @@ at8 = 7
 def convert_phase_to_complex(angles):
 	#computes e^{i*phi}
 	hopp = []
-	for angle in angles:
-		hopp.append(	np.exp(	1j * np.pi * angle)		)
-		#tmp.append(		2.0*np.cos(np.pi*angle)			)
+	#if len(angles) > 1:
+	#	for angle in angles:
+	#		hopp.append(	np.exp(	1j * np.pi * angle)		)
+	#		#tmp.append(		2.0*np.cos(np.pi*angle)			)
+	#else:
+	hopp = np.exp(1j * np.pi * angles)
 	return hopp
 
 
 def prepare_hoppings(phi_x, phi_y, phi_z):
 	#	get 		exp(i	Phi)
-	phi_x	= convert_phase_to_complex(phi_x)
-	phi_y	= convert_phase_to_complex(phi_y)
-	phi_z	= convert_phase_to_complex(phi_z)
+	#phi_x	= convert_phase_to_complex(phi_x)
+	#phi_y	= convert_phase_to_complex(phi_y)
+	#phi_z	= convert_phase_to_complex(phi_z)
 	#
 	#	fill target array
 	phi		= []
@@ -85,142 +88,171 @@ def set_units(onsite, phi):
 
 
 
-def get_x_hopp(hopping):
+
+
+
+def get_x_hopp(phi):
 	tHopp	=	[]
 	#	
 	#			X-HOPPINGS
 	#
 	#	atom 1 - 2 		Rx
-	tHopp.append(	[-1, 0, 0,			2,	1,			np.real(hopping[x][at2])	, 	np.imag(hopping[x][at2])	])
-	tHopp.append(	[ 0, 0, 0,			1,	2,			np.real(hopping[x][at1])	,   np.imag(hopping[x][at1])	])
-	tHopp.append(	[+1, 0, 0,			2,	1,			np.real(hopping[x][at2])	,   np.imag(hopping[x][at2])	])
+	home 	=	convert_phase_to_complex(phi[x][at1])
+	t_nn 	=	2.0 * np.cos(phi[x][at2])
+
+	tHopp.append(	[-1, 0, 0,			2,	1,			t_nn						, 	0.0							])
+	tHopp.append(	[ 0, 0, 0,			1,	2,			np.real(home)				,- 	np.imag(home)				])
+	#tHopp.append(	[+1, 0, 0,			2,	1,			np.real(hopping[x][at2])	,   np.imag(hopping[x][at2])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			1,	2,			np.real(hopping[x][at2])	, - np.imag(hopping[x][at2])	])
-	tHopp.append(	[ 0, 0, 0,			2,	1,			np.real(hopping[x][at1])	, - np.imag(hopping[x][at1])	])
-	tHopp.append(	[+1, 0, 0,			1,	2,			np.real(hopping[x][at2])	, - np.imag(hopping[x][at2])	])
+	tHopp.append(	[-1, 0, 0,			1,	2,			t_nn	, 0.0												])
+	tHopp.append(	[ 0, 0, 0,			2,	1,			np.real(home)				,+ np.imag(home)				])
+	#tHopp.append(	[+1, 0, 0,			1,	2,			np.real(hopping[x][at2])	, - np.imag(hopping[x][at2])	])
 	#
 	#	atom 4 - 3		Rx
-	tHopp.append(	[-1, 0, 0,			3,	4,			np.real(hopping[x][at3])	, 	np.imag(hopping[x][at3])	])
-	tHopp.append(	[ 0, 0, 0,			4,	3,			np.real(hopping[x][at4])	,   np.imag(hopping[x][at4])	])
-	tHopp.append(	[+1, 0, 0,			3,	4,			np.real(hopping[x][at3])	,  np.imag(hopping[x][at3])	])
+	home 	=	convert_phase_to_complex(phi[x][at4])
+	t_nn 	=	2.0 * np.cos(phi[x][at3])				
+	tHopp.append(	[-1, 0, 0,			3,	4,			t_nn						,	0.0							])
+	tHopp.append(	[ 0, 0, 0,			4,	3,			np.real(home)				, -	np.imag(home)				])
+	#tHopp.append(	[+1, 0, 0,			3,	4,			np.real(hopping[x][at3])	,   np.imag(hopping[x][at3])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			4,	3,			np.real(hopping[x][at3])	, - np.imag(hopping[x][at3])	])
-	tHopp.append(	[ 0, 0, 0,			3,	4,			np.real(hopping[x][at4])	, - np.imag(hopping[x][at4])	])
-	tHopp.append(	[+1, 0, 0,			4,	3,			np.real(hopping[x][at3])	, - np.imag(hopping[x][at3])	])
+	tHopp.append(	[-1, 0, 0,			4,	3,			t_nn						, 	0.0							])
+	tHopp.append(	[ 0, 0, 0,			3,	4,			np.real(home)				,+ np.imag(home)				])
+	#tHopp.append(	[+1, 0, 0,			4,	3,			np.real(hopping[x][at3])	, - np.imag(hopping[x][at3])	])
 	##
 	##
 	##	atom 5 - 6 		Rx
-	tHopp.append(	[-1, 0, 0,			6,	5,			np.real(hopping[x][at6])	, 	np.imag(hopping[x][at6])	])
-	tHopp.append(	[ 0, 0, 0,			5,	6,			np.real(hopping[x][at5])	,   np.imag(hopping[x][at5])	])
-	tHopp.append(	[+1, 0, 0,			6,	5,			np.real(hopping[x][at6])	,  np.imag(hopping[x][at6])	])
+	home 	=	convert_phase_to_complex(phi[x][at5])
+	t_nn 	=	2.0 * np.cos(phi[x][at6])	
+	tHopp.append(	[-1, 0, 0,			6,	5,			t_nn						,	0.0							])
+	tHopp.append(	[ 0, 0, 0,			5,	6,			np.real(home)				, -	np.imag(home)				])
+	#tHopp.append(	[+1, 0, 0,			6,	5,			np.real(hopping[x][at6])	,   np.imag(hopping[x][at6])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			5,	6,			np.real(hopping[x][at6])	, - np.imag(hopping[x][at6])	])
-	tHopp.append(	[ 0, 0, 0,			6,	5,			np.real(hopping[x][at5])	, - np.imag(hopping[x][at5])	])
-	tHopp.append(	[+1, 0, 0,			5,	6,			np.real(hopping[x][at6])	, - np.imag(hopping[x][at6])	])
+	tHopp.append(	[-1, 0, 0,			5,	6,			t_nn						,  0.0							])
+	tHopp.append(	[ 0, 0, 0,			6,	5,			np.real(home)				,+ np.imag(home)				])
+	#tHopp.append(	[+1, 0, 0,			5,	6,			np.real(hopping[x][at6])	, - np.imag(hopping[x][at6])	])
 	##
 	##
 	##	atom 8 - 7		Rx
-	tHopp.append(	[-1, 0, 0,			7,	8,			np.real(hopping[x][at7])	, 	np.imag(hopping[x][at7])	])
-	tHopp.append(	[ 0, 0, 0,			8,	7,			np.real(hopping[x][at8])	,   np.imag(hopping[x][at8])	])
-	tHopp.append(	[+1, 0, 0,			7,	8,			np.real(hopping[x][at7])	,  np.imag(hopping[x][at7])	])
+	home 	=	convert_phase_to_complex(phi[x][at8])
+	t_nn 	=	2.0 * np.cos(phi[x][at7])	
+	tHopp.append(	[-1, 0, 0,			7,	8,			t_nn						,	0.0							])
+	tHopp.append(	[ 0, 0, 0,			8,	7,			np.real(home)				, -	np.imag(home)				])
+	#tHopp.append(	[+1, 0, 0,			7,	8,			np.real(hopping[x][at7])	,   np.imag(hopping[x][at7])	])
 	#	c.c.:
-	tHopp.append(	[-1, 0, 0,			8,	7,			np.real(hopping[x][at7])	, - np.imag(hopping[x][at7])	])
-	tHopp.append(	[ 0, 0, 0,			7,	8,			np.real(hopping[x][at8])	, - np.imag(hopping[x][at8])	])
-	tHopp.append(	[+1, 0, 0,			8,	7,			np.real(hopping[x][at7])	, - np.imag(hopping[x][at7])	])
+	tHopp.append(	[-1, 0, 0,			8,	7,			t_nn						,	0.0							])
+	tHopp.append(	[ 0, 0, 0,			7,	8,			np.real(home)				,+ np.imag(home)				])
+	#tHopp.append(	[+1, 0, 0,			8,	7,			np.real(hopping[x][at7])	, - np.imag(hopping[x][at7])	])
 	#
 	return tHopp 
 
 
-def get_y_hopp(hopping):
+
+def get_y_hopp(phi):
 	tHopp	=	[]	
 	#			Y-HOPPINGS
 	#
 	#	atom 1 - 4 		Ry
-	tHopp.append(	[0, -1, 0,			4,	1,			np.real(hopping[y][at4])	, 	np.imag(hopping[y][at4])	])
-	tHopp.append(	[0,  0, 0,			1,	4,			np.real(hopping[y][at1])	,   np.imag(hopping[y][at1])	])
-	tHopp.append(	[0, +1, 0,			4,	1,			np.real(hopping[y][at4])	,   np.imag(hopping[y][at4])	])
+	home 	=	convert_phase_to_complex(phi[y][at1])
+	t_nn 	=	2.0 * np.cos(phi[y][at4])	
+	tHopp.append(	[0, -1, 0,			4,	1,			t_nn						,	0.0							])
+	tHopp.append(	[0,  0, 0,			1,	4,			np.real(home)				, -	np.imag(home)				])
+	#tHopp.append(	[0, +1, 0,			4,	1,			np.real(hopping[y][at4])	,   np.imag(hopping[y][at4])	])
 	#	c.c.:
-	tHopp.append(	[0, -1, 0,			1,	4,			np.real(hopping[y][at4])	, -  np.imag(hopping[y][at4])	])
-	tHopp.append(	[0,  0, 0,			4,	1,			np.real(hopping[y][at1])	, -  np.imag(hopping[y][at1])	])
-	tHopp.append(	[0, +1, 0,			1,	4,			np.real(hopping[y][at4])	, -  np.imag(hopping[y][at4])	])
+	tHopp.append(	[0, -1, 0,			1,	4,			t_nn						,	0.0							])
+	tHopp.append(	[0,  0, 0,			4,	1,			np.real(home)				,+ np.imag(home)				])
+	#tHopp.append(	[0, +1, 0,			1,	4,			np.real(hopping[y][at4])	, -  np.imag(hopping[y][at4])	])
 	#
 	#
 	#	atom 2 - 3 		Ry
-	tHopp.append(	[0, -1, 0,			3,	2,			np.real(hopping[y][at3])	, 	np.imag(hopping[y][at3])	])
-	tHopp.append(	[0,  0, 0,			2,	3,			np.real(hopping[y][at2])	,   np.imag(hopping[y][at2])	])
-	tHopp.append(	[0, +1, 0,			3,	2,			np.real(hopping[y][at3])	,  np.imag(hopping[y][at3])	])
+	home 	=	convert_phase_to_complex(phi[y][at2])
+	t_nn 	=	2.0 * np.cos(phi[y][at3])	
+	tHopp.append(	[0, -1, 0,			3,	2,				t_nn						,	0.0						])
+	tHopp.append(	[0,  0, 0,			2,	3,				np.real(home)				, - 	np.imag(home)			])
+	#tHopp.append(	[0, +1, 0,			3,	2,			np.real(hopping[y][at3])	,   np.imag(hopping[y][at3])	])
 	#	c.c.:
-	tHopp.append(	[0, -1, 0,			2,	3,			np.real(hopping[y][at3])	, - np.imag(hopping[y][at3])	])
-	tHopp.append(	[0,  0, 0,			3,	2,			np.real(hopping[y][at2])	, - np.imag(hopping[y][at2])	])
-	tHopp.append(	[0, +1, 0,			2,	3,			np.real(hopping[y][at3])	, - np.imag(hopping[y][at3])	])
+	tHopp.append(	[0, -1, 0,			2,	3,				t_nn						,	0.0						])
+	tHopp.append(	[0,  0, 0,			3,	2,				np.real(home)			,	+ 	np.imag(home)			])
+	#tHopp.append(	[0, +1, 0,			2,	3,			np.real(hopping[y][at3])	, - np.imag(hopping[y][at3])	])
 	##
 	##
 	##	atom 5 - 8 		Ry
-	tHopp.append(	[0, -1, 0,			8,	5,			np.real(hopping[y][at8])	, 	np.imag(hopping[y][at8])	])
-	tHopp.append(	[0,  0, 0,			5,	8,			np.real(hopping[y][at5])	,   np.imag(hopping[y][at5])	])
-	tHopp.append(	[0, +1, 0,			8,	5,			np.real(hopping[y][at8])	,   np.imag(hopping[y][at8])	])
+	home 	=	convert_phase_to_complex(phi[y][at5])
+	t_nn 	=	2.0 * np.cos(phi[y][at8])	
+	tHopp.append(	[0, -1, 0,			8,	5,				t_nn						,	0.0						])
+	tHopp.append(	[0,  0, 0,			5,	8,				np.real(home)				,- 	np.imag(home)			])
+	#tHopp.append(	[0, +1, 0,			8,	5,			np.real(hopping[y][at8])	,   np.imag(hopping[y][at8])	])
 	#	c.c.:
-	tHopp.append(	[0, -1, 0,			5,	8,			np.real(hopping[y][at8])	, - np.imag(hopping[y][at8])	])
-	tHopp.append(	[0,  0, 0,			8,	5,			np.real(hopping[y][at5])	, - np.imag(hopping[y][at5])	])
-	tHopp.append(	[0, +1, 0,			5,	8,			np.real(hopping[y][at8])	, - np.imag(hopping[y][at8])	])
+	tHopp.append(	[0, -1, 0,			5,	8,				t_nn						,	0.0						])
+	tHopp.append(	[0,  0, 0,			8,	5,				np.real(home)			,+  np.imag(home)			])
+	#tHopp.append(	[0, +1, 0,			5,	8,			np.real(hopping[y][at8])	, - np.imag(hopping[y][at8])	])
 	#
 	#
 	#	atom 6 - 7 		Ry
-	tHopp.append(	[0, -1, 0,			7,	6,			np.real(hopping[y][at7])	, 	np.imag(hopping[y][at7])	])
-	tHopp.append(	[0,  0, 0,			6,	7,			np.real(hopping[y][at6])	,   np.imag(hopping[y][at6])	])
-	tHopp.append(	[0, +1, 0,			7,	6,			np.real(hopping[y][at7])	,   np.imag(hopping[y][at7])	])
+	home 	=	convert_phase_to_complex(phi[y][at6])
+	t_nn 	=	2.0 * np.cos(phi[y][at7])	
+	tHopp.append(	[0, -1, 0,			7,	6,				t_nn						,	0.0						])
+	tHopp.append(	[0,  0, 0,			6,	7,			np.real(home)				, 	-np.imag(home)				])
+	#tHopp.append(	[0, +1, 0,			7,	6,			np.real(hopping[y][at7])	,   np.imag(hopping[y][at7])	])
 	#	c.c.:
-	tHopp.append(	[0, -1, 0,			6,	7,			np.real(hopping[y][at7])	, - np.imag(hopping[y][at7])	])
-	tHopp.append(	[0,  0, 0,			7,	6,			np.real(hopping[y][at6])	, - np.imag(hopping[y][at6])	])
-	tHopp.append(	[0, +1, 0,			6,	7,			np.real(hopping[y][at7])	, - np.imag(hopping[y][at7])	])
+	tHopp.append(	[0, -1, 0,			6,	7,				t_nn						,	0.0						])
+	tHopp.append(	[0,  0, 0,			7,	6,				np.real(home)			,+ np.imag(home)			])
+	#tHopp.append(	[0, +1, 0,			6,	7,			np.real(hopping[y][at7])	, - np.imag(hopping[y][at7])	])
 	#
 	return tHopp
 
 
 
-def get_z_hopp(hopping):
+def get_z_hopp(phi):
 	tHopp 	=	[]
 	#	
 	#			Z-HOPPINGS
 	#
 	#	atom 1 - 5 		Rz
-	tHopp.append(	[0, 0, -1,			5,	1,			np.real(hopping[z][at5])	, 	np.imag(hopping[z][at5])	])
-	tHopp.append(	[0, 0,  0,			1,	5,			np.real(hopping[z][at1])	,   np.imag(hopping[z][at1])	])
-	tHopp.append(	[0, 0, +1,			5,	1,			np.real(hopping[z][at5])	,   np.imag(hopping[z][at5])	])
+	home 	=	convert_phase_to_complex(phi[z][at1])
+	t_nn 	=	2.0 * np.cos(phi[z][at5])	
+	tHopp.append(	[0, 0, -1,			5,	1,			t_nn						,	0.0							])
+	tHopp.append(	[0, 0,  0,			1,	5,			np.real(home)				, -	np.imag(home)				])
+	#tHopp.append(	[0, 0, +1,			5,	1,			np.real(hopping[z][at5])	,   np.imag(hopping[z][at5])	])
 	#	c.c.:
-	tHopp.append(	[0, 0, -1,			1,	5,			np.real(hopping[z][at5])	, - np.imag(hopping[z][at5])	])
-	tHopp.append(	[0, 0,  0,			5,	1,			np.real(hopping[z][at1])	, - np.imag(hopping[z][at1])	])
-	tHopp.append(	[0, 0, +1,			1,	5,			np.real(hopping[z][at5])	, - np.imag(hopping[z][at5])	])
+	tHopp.append(	[0, 0, -1,			1,	5,				t_nn						,	0.0						])
+	tHopp.append(	[0, 0,  0,			5,	1,			np.real(home)				,+ 	np.imag(home)			])
+	#tHopp.append(	[0, 0, +1,			1,	5,			np.real(hopping[z][at5])	, - np.imag(hopping[z][at5])	])
 	#
 	#
 	#	atom 2 - 6 		Rz
-	tHopp.append(	[0, 0, -1,			6,	2,			np.real(hopping[z][at6])	, 	np.imag(hopping[z][at6])	])
-	tHopp.append(	[0, 0,  0,			2,	6,			np.real(hopping[z][at2])	,   np.imag(hopping[z][at2])	])
-	tHopp.append(	[0, 0, +1,			6,	2,			np.real(hopping[z][at6])	,   np.imag(hopping[z][at6])	])
+	home 	=	convert_phase_to_complex(phi[z][at2])
+	t_nn 	=	2.0 * np.cos(phi[z][at6])	
+	tHopp.append(	[0, 0, -1,			6,	2,				t_nn						,	0.0						])
+	tHopp.append(	[0, 0,  0,			2,	6,			np.real(home)				, 	-np.imag(home)				])
+	#tHopp.append(	[0, 0, +1,			6,	2,			np.real(hopping[z][at6])	,   np.imag(hopping[z][at6])	])
 	#	c.c.:
-	tHopp.append(	[0, 0, -1,			2,	6,			np.real(hopping[z][at6])	, - np.imag(hopping[z][at6])	])
-	tHopp.append(	[0, 0,  0,			6,	2,			np.real(hopping[z][at2])	, - np.imag(hopping[z][at2])	])
-	tHopp.append(	[0, 0, +1,			2,	6,			np.real(hopping[z][at6])	, - np.imag(hopping[z][at6])	])
+	tHopp.append(	[0, 0, -1,			2,	6,			t_nn						,	0.0							])
+	tHopp.append(	[0, 0,  0,			6,	2,			np.real(home)				, +	np.imag(home)			])
+	#tHopp.append(	[0, 0, +1,			2,	6,			np.real(hopping[z][at6])	, - np.imag(hopping[z][at6])	])
 	#
 	#
 	#	atom 3 - 7 		Rz
-	tHopp.append(	[0, 0, -1,			7,	3,			np.real(hopping[z][at7])	, 	np.imag(hopping[z][at7])	])
-	tHopp.append(	[0, 0,  0,			3,	7,			np.real(hopping[z][at3])	,   np.imag(hopping[z][at3])	])
-	tHopp.append(	[0, 0, +1,			7,	3,			np.real(hopping[z][at7])	,   np.imag(hopping[z][at7])	])
+	home 	=	convert_phase_to_complex(phi[z][at3])
+	t_nn 	=	2.0 * np.cos(phi[z][at7])	
+	tHopp.append(	[0, 0, -1,			7,	3,				t_nn						,	0.0						])
+	tHopp.append(	[0, 0,  0,			3,	7,			np.real(home)				, 	-np.imag(home)				])
+	#tHopp.append(	[0, 0, +1,			7,	3,			np.real(hopping[z][at7])	,   np.imag(hopping[z][at7])	])
 	#	c.c.:
-	tHopp.append(	[0, 0, -1,			3,	7,			np.real(hopping[z][at7])	, - np.imag(hopping[z][at7])	])
-	tHopp.append(	[0, 0,  0,			7,	3,			np.real(hopping[z][at3])	, - np.imag(hopping[z][at3])	])
-	tHopp.append(	[0, 0, +1,			3,	7,			np.real(hopping[z][at7])	, - np.imag(hopping[z][at7])	])
+	tHopp.append(	[0, 0, -1,			3,	7,				t_nn						,	0.0						])
+	tHopp.append(	[0, 0,  0,			7,	3,		np.real(home)					, +	np.imag(home)			])
+	#tHopp.append(	[0, 0, +1,			3,	7,			np.real(hopping[z][at7])	, - np.imag(hopping[z][at7])	])
 	#
 	#
 	#	atom 4 - 8 		Rz
-	tHopp.append(	[0, 0, -1,			8,	4,			np.real(hopping[z][at8])	, 	np.imag(hopping[z][at8])	])
-	tHopp.append(	[0, 0,  0,			4,	8,			np.real(hopping[z][at4])	,   np.imag(hopping[z][at4])	])
-	tHopp.append(	[0, 0, +1,			8,	4,			np.real(hopping[z][at8])	,   np.imag(hopping[z][at8])	])
+	home 	=	convert_phase_to_complex(phi[z][at4])
+	t_nn 	=	2.0 * np.cos(phi[z][at8])	
+	tHopp.append(	[0, 0, -1,			8,	4,				t_nn						,	0.0						])
+	tHopp.append(	[0, 0,  0,			4,	8,			np.real(home)				, 	-np.imag(home)				])
+	#tHopp.append(	[0, 0, +1,			8,	4,			np.real(hopping[z][at8])	, 	np.imag(hopping[z][at8])	])
 	#	c.c.:
-	tHopp.append(	[0, 0, -1,			4,	8,			np.real(hopping[z][at8])	, - np.imag(hopping[z][at8])	])
-	tHopp.append(	[0, 0,  0,			8,	4,			np.real(hopping[z][at4])	, - np.imag(hopping[z][at4])	])
-	tHopp.append(	[0, 0, +1,			4,	8,			np.real(hopping[z][at8])	, - np.imag(hopping[z][at8])	])
+	tHopp.append(	[0, 0, -1,			4,	8,				t_nn						,	0.0						])
+	tHopp.append(	[0, 0,  0,			8,	4,		np.real(home)					, +	np.imag(home)			])
+	#tHopp.append(	[0, 0, +1,			4,	8,			np.real(hopping[z][at8])	, - np.imag(hopping[z][at8])	])
 	#
 	return tHopp
 
@@ -400,7 +432,7 @@ def get_souza_tb(phi_para):
 	#
 	#
 	hopping 		=	prepare_hoppings(phi_x, phi_y, phi_z)
-	onsite, hopping	=	set_units(onsite, hopping)
+	#onsite, hopping	=	set_units(onsite, hopping)
 	#
 	#	INPUT DEBUG
 	if onsite.size is not 8:
@@ -425,21 +457,11 @@ def get_souza_tb(phi_para):
 	#
 	#	POSITION
 	rHopp    		=	get_souza_Pos(nWfs, R_nn_lst)
-	#
-	#
-	#	LATTICE
-	ax 				= np.zeros(3)
-	ay 				= np.zeros(3)
-	az 				= np.zeros(3)
-	ax[0]			= 2.0
-	ay[1]			= 2.0
-	az[2]			= 2.0
-	a0				= 1.0
 
 	print(' ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
 
-	return nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0
+	return nWfs, nrpts, tHopp, rHopp
 
 #
 #

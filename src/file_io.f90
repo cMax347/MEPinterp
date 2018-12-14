@@ -15,6 +15,7 @@ module file_io
 													raw_dir, 							&
 													a_latt, 							&
 													debug_mode,							&
+													use_R_float,						&
 													plot_bands										
 
 	implicit none
@@ -133,23 +134,28 @@ module file_io
 
 
 
-	subroutine write_velo(kpt_idx, fname, info_string, V_ka)
+	subroutine write_velo(kpt_idx, V_ka)
 		integer,			intent(in)		::	kpt_idx
-		character(len=*), 	intent(in)		::	fname
-		character(len=*), 	intent(in)		::	info_string
 		complex(dp),		intent(in)		::	V_ka(:,:,:)
 		integer								::	mpi_unit, x, n, m 
+		character(len=8)					::	fname
+		character(len=120)					::	info_string
 		character(len=40)					::	fpath
 		!
-		write(fpath,format) velo_out_dir //	trim(fname)//".", kpt_idx 
+		!	SPECIFY FILE
+		fname	=	'velo_Vka'
+		write(info_string,*)	"#interpolated velocities"
+		write(fpath,format) 	velo_out_dir //fname//".", kpt_idx 
+		write(*,*) fpath
 		!
+		!	OPEN FILE
 		mpi_unit	=	300 + mpi_id + 8 * mpi_nProcs
-		!
-		open(unit=mpi_unit, file=fpath, form='formatted', action='write', access='stream', status='replace')
+		open(unit=mpi_unit, file=trim(fpath), form='formatted', action='write', access='stream', status='replace')
 		write(mpi_unit,*)	trim(info_string)
 		write(mpi_unit,*)	'# x |	 n		|	m 	|	real(V^x_nm)  |		imag(Vx_nm)'
 		write(mpi_unit,*)	'#-----------------------------------------------------------------------'
 		!
+		!	WRITE FILE
 		do x = 1, 3
 			do m = 1, size(V_ka,3)
 				do n = 1, size(V_ka,2)
@@ -159,8 +165,9 @@ module file_io
 			end do
 			write(mpi_unit,*)	"#----------------------------------------------------------------------"
 		end do
-		close(mpi_unit)
 		!
+		!	CLOSE FILE
+		close(mpi_unit)
 		write(*,'(a,i3,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
 		!
 		return
@@ -183,12 +190,47 @@ module file_io
 	subroutine write_mep_bands(n_ki_glob, mep_bands)
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable, 	intent(inout)	::	mep_bands(:,:,:)
+		real(dp),	allocatable						::	mep_sum(:,:)
+		character(len=20)							::	fname
+		character(len=100)							::	info_string
+		character(len=3)							::	id_string
+		integer										::	n0, row
 		!
-		write(*,*)	"WARNING! 	write_mep_bands not implemented yet"
 		!
 		if(allocated(mep_bands)) then
-
-
+			allocate(	mep_sum(3,3)	)
+			mep_sum		=	0.0_dp
+			id_string	=	'mep'
+			!
+			write(*,*)	"[write_mep_bands]:	"
+			do n0 = 1, size(mep_bands,3)
+				!	write to file
+				write(info_string,'(a,i3,a,i8,a)')		'# mep contribution of band '	,	n0, 	'(n_kpt=',n_ki_glob,')'
+				write(fname, format)		 			'mep_band.'						,	n0
+				call 	write_tens_file(	mep_out_dir, fname, mep_bands(:,:,n0), info_string, 	id_string)
+				!
+				!	print to std output
+				write(*,*)	"band n=",n0
+				do row = 1, 3
+					write(*,*)	mep_bands(row,:,n0)
+				end do
+				!
+				!	add to sum over bands
+				mep_sum	=	mep_sum	+	mep_bands(:,:,n0)
+			end do
+			!
+			!	print sum to std output
+			write(*,*)	"band sum"
+			do row = 1, 3
+				write(*,*)	mep_sum(row,:)
+			end do
+			write(*,*)	"--------------------------"
+			write(*,*)	"*"
+			write(*,*)	"*"
+			!	write sum to file
+			write(info_string,*)		'# mep sum over band contributions (this should be the equivalent to mep_tens.dat)'
+			fname		='mep_band.sum'
+			call 	write_tens_file(	mep_out_dir,	trim(fname),	mep_sum,	info_string,	id_string)
 		end if
 		!
 		return
@@ -196,10 +238,9 @@ module file_io
 
 
 
-
-	subroutine write_mep_tensors(n_ki_glob, mep_2014, mep_ic, mep_lc, mep_cs)
+	subroutine write_mep_tensors(n_ki_glob, mep_ic, mep_lc, mep_cs)
 		integer,					intent(in)		::	n_ki_glob
-		real(dp),	allocatable,	intent(in)		::	mep_2014(:,:), mep_ic(:,:), mep_lc(:,:), mep_cs(:,:)
+		real(dp),	allocatable,	intent(in)		::	mep_ic(:,:), mep_lc(:,:), mep_cs(:,:)
 		real(dp),	allocatable						::	mep_tens(:,:)
 		character(len=12)							::	fname
 		character(len=100)							::	info_string
@@ -207,14 +248,19 @@ module file_io
 		integer										::	row
 		!
 		id_string	=	'mep'
-		!-------------------------------------itinerant contribution MEP tensor-------------
-		if(allocated(mep_2014)) then
-			fname		= 	'mep_14.dat'
-			info_string	= 	'# 2014 original paper version of mep tensor, written '//cTIME(time())
+		!-------------------------------------total MEP tensor------------------------------
+		if(allocated(mep_cs) .and. allocated(mep_lc) .and. allocated(mep_ic) ) then
+			fname		= 	'mep_tens.dat'
+			info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)  (in atomic units - dimensionless), written '//cTIME(time())
 			!
-			call	write_tens_file(mep_out_dir,	fname,	mep_2014,	info_string,	id_string )
+			allocate(	mep_tens(3,3)	)
+			mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
+			call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
+			write(*,*)	"[write_mep_tensors]: mep_tens:"
+			do row = 1, 3
+				write(*,*)	mep_tens(row,:)
+			end do
 		end if
-		!
 		!
 		!-------------------------------------itinerant contribution MEP tensor-------------
 		if(allocated(mep_ic)) then
@@ -254,21 +300,6 @@ module file_io
 			write(*,*)	"[write_mep_tensors]: mep_cs:"
 			do row = 1, 3
 				write(*,*)	mep_cs(row,:)
-			end do
-		end if
-		!
-		!
-		!-------------------------------------total MEP tensor------------------------------
-		if(allocated(mep_cs) .and. allocated(mep_lc) .and. allocated(mep_ic) ) then
-			fname		= 	'mep_tens.dat'
-			info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)  (in atomic units - dimensionless), written '//cTIME(time())
-			!
-			allocate(	mep_tens(3,3)	)
-			mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
-			call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string )
-			write(*,*)	"[write_mep_tensors]: mep_tens:"
-			do row = 1, 3
-				write(*,*)	mep_tens(row,:)
 			end do
 		end if
 		!-----------------------------------------------------------------------------------
@@ -384,11 +415,12 @@ module file_io
 	end subroutine
 
 
-	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm)
-		integer,					intent(in)		::	n_ki_glob
+	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm, photo_2nd)
+		integer,						intent(in)			::	n_ki_glob
 		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:),	a_symm(:,:)
+		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:)
 		character(len=13)									::	fname
-		character(len=70)									::	info_string
+		character(len=90)									::	info_string
 		character(len=4)									::	id_string
 		integer												::	row
 		!
@@ -415,6 +447,13 @@ module file_io
 			end do
 			!
 			!
+		end if
+		!
+		if(allocated(photo_2nd))	then
+			fname		=	'2nd_photo.dat'
+			info_string	=	'seoncd order photconductivitc: J^c_photo = rho^c_ab . E^*_a E_b (PRB 97, 241118(R) (2018))'
+			id_string	=	"2phC"
+			call	write_tens_file(opt_out_dir,	fname,	photo_2nd,	info_string,	id_string)
 		end if
 		!
 		!
@@ -675,7 +714,7 @@ module file_io
 		integer												::	mpi_unit, &
 																f_nwfs, f_nSC, readLines, line, &
 																cell, n
-		integer												::	cell_rel(3), index(2)
+		integer												::	int3(3), index(2)
 		real(dp)											::	unit_cell(3,3), compl1(2),compl3(6), rTest(3), real3(3)
 		!
 		mpi_unit	= mpi_id
@@ -708,9 +747,22 @@ module file_io
 		!read tHopp (eV)
 		do cell = 1, f_nSC
 			read(mpi_unit,*)
-			read(mpi_unit,*) cell_rel(1:3)
-
-			R_vect(1:3,cell)	= matmul(unit_cell,	real(cell_rel(1:3),dp)	)
+			!
+			!	READ R-VECTOR AS ...
+			if(	use_R_float	) then
+				!
+				!	... FLOAT
+				read(mpi_unit,*)	real3(1:3)
+			else
+				!
+				!	...	INTEGER
+				read(mpi_unit,*)	int3(1:3)
+				real3(:)	=		int3(:)
+				
+			end if
+			R_vect(1:3,cell)	= matmul(unit_cell,	real3(1:3)	)
+			!
+			!	READ HOPPING
 			do n = 1, f_nWfs**2
 				read(mpi_unit,*)	index(1:2), compl1(1:2)
 				!
@@ -721,16 +773,25 @@ module file_io
 		!read rHopp (ang)
 		do cell = 1, f_nSC
 			read(mpi_unit,*)
-			read(mpi_unit,*)	cell_rel(1:3)
-
-			rTest(1:3)	= matmul(unit_cell,	real(cell_rel(1:3),dp)	)
-			if(		 norm2( rTest(1:3) - R_vect(1:3,cell) )	> 1e-8_dp		) then
+			!
+			!	read R_CELL FROM POS OP
+			if(	use_R_float	) then
+				read(mpi_unit,*)	real3(1:3)
+			else
+				read(mpi_unit,*)	int3(1:3)
+				real3(:)	=		int3(1:3)
+			end if
+			rTest(:)	= 	matmul(unit_cell,real3(:)	)
+			!
+			!	CHECK IF SAME AS ORIGINAL R-CELL FROM HOPPING (see above)
+			if(		 norm2( rTest(:) - R_vect(:,cell) )	> 1e-8_dp		) then
 				write(*,*)	"[read_tb_basis]: WARNING rHopp has different sc order then tHopp"
 			end if
-
+			!
+			!
 			do n = 1, f_nWfs**2
 				read(mpi_unit,*)	index(1:2), compl3(1:6)
-
+				!
 				rHopp(1,	index(1), index(2), cell)	= cmplx( compl3(1), compl3(2),	dp	)
 				rHopp(2,	index(1), index(2), cell)	= cmplx( compl3(3), compl3(4),	dp	)
 				rHopp(3,	index(1), index(2), cell)	= cmplx( compl3(5), compl3(6),	dp	)
@@ -757,7 +818,7 @@ module file_io
 		complex(dp),	allocatable, 	intent(inout)	::	H_mat(:,:,:)
 		integer											::	mpi_unit,&
 															f_nwfs, f_nSC, to_read, int15(15), int3(3), m,n, idx, sc, wf
-		real(dp)										::	real2(2)
+		real(dp)										::	real2(2), real3(3)
 		integer,		allocatable						::	R_degneracy(:)
 		!
 		mpi_unit	= 	100 + mpi_id	+ mpi_nProcs
@@ -796,36 +857,34 @@ module file_io
 			end if
 
 
-			stop 'issue reading Wigner Seitz degeneracy (idx/=f_nSC) in  _hr.dat file'
+			stop '[read_hr_file]: issue reading Wigner Seitz degeneracy (idx/=f_nSC) in  _hr.dat file'
 		end if
 		!
 		!read body
-		idx = 0
 		do sc = 1, f_nSC
 			do wf  = 1, f_nwfs**2
 				!read next line
-				read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
-				!
+				if(use_R_float) then
+					read(mpi_unit,*)	real3(1:3),	m, n,	real2(1:2)
+				else
+					read(mpi_unit,*)		int3(1:3), m,n, 	real2(1:2)
+					real3	= real(int3,dp)
+				end if
+					!
 				!get Wigner Seitz vector
-				if( wf==1 .and. sc==1 ) then
-					idx = 1
-					R_vect(1:3,idx)	= real(int3(1:3),dp)
-				else if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,idx),	real(int3(1:3),dp) )		) then
-					idx = idx +1 
-					R_vect(1:3,idx)	= real(int3(1:3),dp)
-					if(wf /= 1)	then 
-						write(*,'(a,i3,a)')				 		"[#",mpi_id,";read_hr_file]: 	WARNING unexpected new R_vect"
+				if( wf==1  ) then
+					R_vect(1:3,sc)	= real3(1:3)
+				else if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,sc),	real3(1:3) )		) then
+						write(*,*)				 		"[#",mpi_id,";read_hr_file]: 	WARNING unexpected new R_vect=",real3(:)
 						write(*,'(a,i4,a,i4)',advance="no")		"	m=",m," n=",n
-						write(*,*)								"	wf=",wf," sc=",sc," raw R_vect=",R_vect(:,idx)
-					end if
+						write(*,*)								"	wf=",wf," sc=",sc," expected R_vect=",R_vect(:,sc)
 				end if
 				!
 				!fill Hamiltonian
-				H_mat(m,n, idx)	= cmplx(	real2(1),	real2(2)	, dp	)
+				H_mat(m,n, sc)	= cmplx(	real2(1),	real2(2)	, dp	)
 			end do
 		end do
 		close(mpi_unit)
-		if(idx /= f_nSC)	stop 'issue reading the body in _hr.dat file'
 		!
 		!
 		!convert to a.u
@@ -844,7 +903,7 @@ module file_io
 		complex(dp),	allocatable,	intent(inout)	::	r_mat(:,:,:,:)
 		integer											::	mpi_unit, &
 															f_nwfs, sc, m, n, int3(3), it
-		real(dp)										::	real6(6)
+		real(dp)										::	real6(6), real3(3)
 		!
 		mpi_unit	= 100 + mpi_id + 2*mpi_nProcs
 		!
@@ -856,11 +915,18 @@ module file_io
 		!
 		do sc = 1, size(R_vect,2)
 			do it= 1, f_nWfs**2
-				read(mpi_unit,*)		int3(1:3), 		m, n, 	real6(1:6)
-				if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,sc),	real(int3(1:3),dp))	)	then
+				if(use_R_float) then
+					read(mpi_unit,*)		real3(1:3), 		m, n, 	real6(1:6)
+				else
+					read(mpi_unit,*)		int3(1:3), 		m, n, 	real6(1:6)
+					real3(:)	=	real(int3(:),dp)
+				end if
+				!
+				!
+				if( .not.	is_equal_vect(fp_acc,	R_vect(1:3,sc),	real3(1:3))	)	then
 					write(*,*)	"[read_r_file]: R_vect=",R_vect(1:3,sc)
 					write(*,*)	"[read_r_file]:	input_R=",real(int3(1:3),dp)
-					stop 'different R_vect order in _hr.dat and _r.dat file'
+					stop '[read_r_file]: different R_vect order in _hr.dat and _r.dat file'
 				end if
 				!
 				r_mat(1,m,n,sc)	=	cmplx(	real6(1)	, real6(2)	, dp	)

@@ -45,12 +45,12 @@ def read_real_tens_file(file,id):
 					print(		'error at the end of reading tensor in file '+str(file)		)
 		#
 		tens = np.array(tens)
-		print('read real file '+tens_file_path)
+		print(' > read real file '+tens_file_path)
 		if tens.size is not 9:
 			print('WARNING issues with dimensionalty of '+str(id)+' tensor')
 			print(str(id)+'_tens interpretation: '+str(tens))
 	else:
-		print('could not find file '+file)
+		print(' ! could not find file '+file)
 	return tens
 
 
@@ -74,9 +74,9 @@ def read_cmplx_tens_file(file,id):
 					print(		'error at the end of reading tensor in file '+str(file)		)
 		#
 		tens	=	np.array( tens ) 
-		print('read cmplx file '+file)
+		print(' > read cmplx file '+file)
 	else:
-		print('could not find file '+file)
+		print(' ! could not find file '+file)
 	return tens
 
 

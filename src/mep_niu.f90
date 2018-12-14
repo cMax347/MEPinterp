@@ -20,13 +20,12 @@ contains
 	pure function mep_niu_CS(A_ka, Om_kab) result(cs_tens)
 		complex(dp),	allocatable, 	intent(in)		::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp), 	allocatable							::	cs_tens(:,:,:)
-		complex(dp)										::	cs_scal, om_vect(3)
+		complex(dp)										::	om_vect(3)
 		integer											::	n0, i
 		!
 		allocate(	cs_tens(3,3,valence_bands)	)
 		cs_tens	=	0.0_dp
 		if(	allocated(A_ka)		.and.		allocated(Om_kab)		)then
-			cs_scal	= 0.0_dp
 			!
 			!	sum over valence
 			do n0 = 1, valence_bands
@@ -37,9 +36,6 @@ contains
 				end do
 			end do
 			!
-			!do i = 1, 3
-			!	cs_tens(i,i)	= real(cs_scal,dp)
-			!end do
 		end if
 		!
 		return

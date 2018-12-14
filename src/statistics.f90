@@ -10,7 +10,6 @@ module statistics
 contains
 
 
-
 	pure subroutine fd_count_el(en_k, eFermi, T_kelvin, el_count, sum_loc, n_el_min, n_el_max)
 		real(dp),		intent(in)					::		en_k(:), eFermi, T_kelvin
 		real(dp),		intent(out)					::		el_count

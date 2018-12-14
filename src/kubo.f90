@@ -28,8 +28,10 @@ contains
 
 !
 !	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-!				ANOMALOUS HALL (hw -> 0 LIMIT)
-!	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+!				ANOMALOUS HALL (hw -> 0 LIMIT)!	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+!public
+
 	pure function kubo_ahc_tens(en_k, Om_kab, eFermi, T_kelvin) result( o_ahc)
 		!	see wann guide chapter 12
 		!		eq. (12.16)
@@ -42,7 +44,7 @@ contains
 		!
 		if(allocated(Om_kab)) then
 			do n = 1, size(en_k)
-				o_ahc	=	o_ahc	-	real(Om_kab(:,:,n,n),dp)		*	fd_stat(en_k(n),	eFermi, 	T_kelvin)
+				o_ahc	=	o_ahc	-	real(Om_kab(:,:,n,n),dp)		*	fd_stat(en_k(n),	eFermi, 	T_kelvin) 
 			end do
 		end if
 		!
@@ -94,9 +96,6 @@ contains
 		!
 		return
 	end function
-
-
-
 
 
 
@@ -193,10 +192,9 @@ contains
 	end function
 
 
-	function get_hermitian(hw,  e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_herm)
+
+	function get_hermitian(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_herm)
 		!	wann guide eq. (12.10)
-		!
-		!	via CONNECTION
 		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
@@ -232,9 +230,7 @@ contains
 
 	function get_anti_herm(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_aherm)
 		!	wann guide eq. (12.11)
-		!
-		!	via CONNECTION
-		real(dp),		intent(in)		::	hw,  e_fermi, T_kelvin, en_k(:)
+		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr	
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
 		complex(dp)						::	opt_aherm(3,3)
