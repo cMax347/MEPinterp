@@ -175,28 +175,28 @@ module wann_interp
 
 
 
-	pure subroutine get_velo(e_k, H_ka, A_ka, V_k)
+	pure subroutine get_velo(e_k, H_ka, A_ka, V_ka)
 		!	calc the (H)-gauge velocity matrix
 		!
 		!	PRB 74, 195118 (2006) EQ.(31)
 		real(dp),						intent(in)		::		e_k(:)
 		complex(dp),					intent(in)		::		H_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
-		complex(dp),					intent(out)		::		V_k(:,:,:)
+		complex(dp),					intent(out)		::		V_ka(:,:,:)
 		complex(dp)										::		eDiff
 		integer											::		m, n
 		!
-		V_k		=	H_ka
+		V_ka		=	H_ka
 		!
 		!
 		if( allocated(A_ka)	) then
-			do m = 1, size(V_k,3)
-				do n = 1, size(V_k,2)
+			do m = 1, size(V_ka,3)
+				do n = 1, size(V_ka,2)
 					if(	n >	m )	then
 						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
 						!
-						V_k(:,n,m)	= V_k(:,n,m)	- i_dp	* 	eDiff	* 	A_ka(:,n,m)
-						V_k(:,m,n)	= V_k(:,m,n)	+ i_dp	*	eDiff	*	A_ka(:,m,n)
+						V_ka(:,n,m)	= V_ka(:,n,m)	- i_dp	* 	eDiff	* 	A_ka(:,n,m)
+						V_ka(:,m,n)	= V_ka(:,m,n)	+ i_dp	*	eDiff	*	A_ka(:,m,n)
 					end if
 				end do
 			end do
