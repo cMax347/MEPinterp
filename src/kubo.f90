@@ -65,8 +65,8 @@ contains
 		!		VIA VELOCITIES
 		real(dp),		intent(in)		::	en_k(:), hw, eFermi, T_kelvin
 		complex(dp), 	intent(in)		::	v_kab(:,:,:), i_eta_smr
-		complex(dp)						::	o_ahc(3,3), en_denom, delta_fd	
-		real(dp)						::	Om_ab(3,3)
+		complex(dp)						::	o_ahc(3,3), en_denom, delta_fd,  Om_ab(3,3)	
+		real(dp)						::	
 		integer							::	n, l, j
 		!
 		o_ahc	=	0.0_dp
