@@ -66,6 +66,7 @@ class Phi_probe:
 
 
 
+
 	def iterate_phi(self,mpi_np=1, plot_bandstruct=False):
 		for phi  in np.linspace(0.0, 2.0, num = self.n_phi):		#iterate over relative phi (phi_rel = phi / np.pi)
 			work_dir =	self.root_dir+'/phi'+str(phi)		
