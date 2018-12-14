@@ -180,7 +180,8 @@ module input_paras
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: start target mkdir..."
 				call my_mkdir(out_dir)
 				call my_mkdir(raw_dir)
-				if(.not. plot_bands) then
+				if( do_write_velo )
+				if(.not. plot_bands) call my_mkdir(velo_out_dir)	
 					if( do_mep .or. do_kubo		)	call my_mkdir(mep_out_dir)
 					if(			do_ahc			)	call my_mkdir(ahc_out_dir)
 					if(			do_opt			)	call my_mkdir(opt_out_dir)
