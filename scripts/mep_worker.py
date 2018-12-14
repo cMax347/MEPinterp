@@ -72,11 +72,12 @@ class MEP_worker:
 			copy(self.root_dir+'/../inp_params_3q',	self.work_dir)
 
 		#generate fortran input
-		write_tb_input(		self.tb_model, self.use_pos_op,	self.work_dir, self.phi, self.val_bands, self.mp_grid, 					
-									self.kubo_tol, self.hw, self.laser_phase, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
-									self.plot_bands, self.debug_mode, self.do_gauge_trafo, self.R_vect_float,
-									self.do_write_velo, self.do_write_mep_bands,
-									self.do_mep, self.do_kubo, self.do_ahc, self.do_opt, self.do_gyro			 
+		write_tb_input(		self.tb_model, self.use_pos_op,	self.work_dir, 
+							self.phi, self.val_bands, self.mp_grid, 					
+							self.kubo_tol, self.hw, self.laser_phase, self.eFermi, self.Tkelvin,	self.eta_smearing,	 
+							self.plot_bands, self.debug_mode, self.do_gauge_trafo, self.R_vect_float,
+							self.do_write_velo, self.do_write_mep_bands,
+							self.do_mep, self.do_kubo, self.do_ahc, self.do_opt, self.do_gyro			 
 							)
 
 
