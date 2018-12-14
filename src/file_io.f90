@@ -136,18 +136,19 @@ module file_io
 		integer,			intent(in)		::	kpt_idx
 		complex(dp),		intent(in)		::	V_ka(:,:,:)
 		integer								::	mpi_unit, x, n, m 
-		character(len=10)					::	fname
+		character(len=8)					::	fname
 		character(len=120)					::	info_string
 		character(len=40)					::	fpath
 		!
 		!	SPECIFY FILE
-		write(fname,*)			'velo_Vka'
+		fname	=	'velo_Vka'
 		write(info_string,*)	"#interpolated velocities"
-		write(fpath,format) 	trim(velo_out_dir) //trim(fname)//".", kpt_idx 
+		write(fpath,format) 	velo_out_dir //fname//".", kpt_idx 
+		write(*,*) fpath
 		!
 		!	OPEN FILE
 		mpi_unit	=	300 + mpi_id + 8 * mpi_nProcs
-		open(unit=mpi_unit, file=fpath, form='formatted', action='write', access='stream', status='replace')
+		open(unit=mpi_unit, file=trim(fpath), form='formatted', action='write', access='stream', status='replace')
 		write(mpi_unit,*)	trim(info_string)
 		write(mpi_unit,*)	'# x |	 n		|	m 	|	real(V^x_nm)  |		imag(Vx_nm)'
 		write(mpi_unit,*)	'#-----------------------------------------------------------------------'
