@@ -74,7 +74,7 @@ def do_band_calc(tb_model, use_pos_op, latt_sym_group='cub',kpath="Gamma 1000 X 
 					)
 	os.system('./kptsgen.pl -l '+latt_sym_group+' -k "'+kpath+'"')
 	print('[do_band_calc]: generated k-space path list')
-	os.system('mpirun -np 4 ./mepInterp > mepBANDS.out')
+	os.system('mpirun -np 4 ./mepInterp > mepBANDS.log')
 	print('[do_band_calc]: calculation done, now try plotting')
 
 
