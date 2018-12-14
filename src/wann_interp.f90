@@ -535,46 +535,50 @@ module wann_interp
 		complex(dp),	allocatable,	intent(in)			::	A_ka(:,:,:), Om_kab(:,:,:,:), 	V_ka(:,:,:)
 		real(dp)											::	max_err
 		character(len=31)									::	k_string
-		logical												::	conn, curv, velo
+		logical												::	conn, curv, velo, is_herm
 		!
 		write(k_string,'(a,f6.2,a,f6.2,a,f6.2,a)')	'( ',kpt_rel(1),', ',kpt_rel(2),', ',kpt_rel(3),') '
+		is_herm	= .true.
 		!
 		!
 		!	CONNECTION
 		if(allocated(A_ka)) then
 			conn	=	velo_is_herm(A_ka, max_err)
+			is_herm =	conn
 			if(.not. conn) 		write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]:	"								//	&
 															"WARNING (H)-gauge A_ka IS NOT hermitian at rel. kpt= "			//	&
 															k_string//"max_err=", max_err
 		else
-			conn	=	.true.
+			write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]: NOTE	connection was not calculated"
 		end if
 		!
 		!
 		!	CURVATURE
 		if(allocated(Om_kab)) then
 			curv	=	curv_is_herm( Om_kab, max_err)
+			is_herm =	is_herm .and. curv
 			if(.not. curv) 		write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]:	"						 		//	&
 															"WARNING (H)-gauge Om_kab IS NOT hermitian at rel. kpt= "		//	&
 															k_string//"max_err=", max_err
 		else
-			curv	=	.true.
+			write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]: NOTE	curvature was not calculated"
 		end if
 		!
 		!
 		!	VELOCITY
 		if(allocated(V_ka)) then
 			velo	=	velo_is_herm( V_ka, max_err )
+			is_herm =	is_herm .and. velo
 			if(.not. velo) 		write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]:	"								//	&
 															"WARNING (H)-gauge V_KA IS NOT hermitian at rel. kpt= "			//	&
 															k_string//"max_err=", max_err
 		else
-			velo	=	.true.
+			write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]: NOTE	curvature was not calculated"
 		end if
 		!
 		!
 		!	SUCCESS MESSAGE
-		if(	conn .and. curv .and. velo ) 	write(*,'(a,i8)')	"[check_H_gauge_herm/DEBUG-MODE]:	"						//	&
+		if(	is_herm ) 	write(*,'(a,i8)')	"[check_H_gauge_herm/DEBUG-MODE]:	"						//	&
 															"SUCCESS (H)-gauge quantities (conn,curv,velo) are hermitian "	//  &
 															" at  #kpt= ", kpt_idx		
 		!
