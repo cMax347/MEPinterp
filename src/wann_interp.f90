@@ -234,10 +234,11 @@ module wann_interp
 		!do 	(W) -> (Hbar)
 		call rotate_gauge(U_k, H_ka, 	A_ka, Om_kab )
 		!
-		if(debug_mode)	call check_Hbar_gauge_herm(H_ka, A_ka, Om_kab)
-		!
 		!conn/curv	 (Hbar) -> (H)
 		if( allocated(A_ka) )	then
+			if(debug_mode)	call check_Hbar_gauge_herm(H_ka, A_ka, Om_kab)			! if(.not.allocated(A_ka)) then  (Hbar)-gauge is same as (H)-gauge (therefore avoid testing same twice)
+			!
+			!
 			allocate(		D_ka(	3,	size(H_ka,2),	size(H_ka,3))				)
 			!
 			!
@@ -294,7 +295,7 @@ module wann_interp
 						D_ka(1:3,m,n)	=	H_ka(1:3,m,n) /	( - eDiff_mn	)
 					else
 						write(*,'(a)',advance="no")	'[;get_gauge_covar_deriv]: '
-						write(*,'(a,i6,a,i6)')		'WARNING degenerate bands detetected n=',n,' m=',m
+						write(*,'(a,i6,a,i6,a)')		'WARNING degenerate bands detetected n=',n,' m=',m,"	(this might lead to precission issues with gauge covariant derivate D_ka)"
 					end if
 					!
 					!
@@ -325,10 +326,6 @@ module wann_interp
 
 	pure subroutine conn_gaugeTrafo(D_ka, A_ka)
 		!	PRB 74, 195118 (2006)	EQ.(25)
-		!
-		!	Lapack
-		!		https://software.intel.com/en-us/mkl-developer-reference-fortran-gemm#90EAA001-D4C8-4211-9EA0-B62F5ADE9CF0
-		!		C :- 
 		complex(dp),		intent(in)		::	D_ka(:,:,:)
 		complex(dp),		intent(inout)	::	A_ka(:,:,:)
 		!
