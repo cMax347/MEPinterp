@@ -8,7 +8,7 @@ from plot_bandStruct	import	plot_bandstruct
 
 
 
-def do_band_calc(tb_model, latt_sym_group='cub',kpath="Gamma 1000 X 1000 M 1000 Gamma 1000 R", phi=0.0, val_bands=1):
+def do_band_calc(tb_model, use_pos_op, latt_sym_group='cub',kpath="Gamma 1000 X 1000 M 1000 Gamma 1000 R", phi=0.0, val_bands=1, gauge_velos=True, write_velos=False):
 	#create working directory
 	root_dir	= os.getcwd()
 	band_dir	= root_dir+'/bands'
@@ -60,15 +60,17 @@ def do_band_calc(tb_model, latt_sym_group='cub',kpath="Gamma 1000 X 1000 M 1000 
 
 	#write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands='F'):
 
+ 
 
-
-	write_tb_input(	tb_model, band_dir, phi, val_bands, mp_grid, 
+	write_tb_input(	tb_model, use_pos_op, band_dir, phi, val_bands, mp_grid, 
 							kubo_tol=1e-3, 
 							hw=0.0,laser_phase=0, 
 							eFermi=0.0, Tkelvin=300.0, eta_smearing=3.0, 
 							plot_bands='T', 
-							debug_mode='T', 
-							R_vect_float='T'
+							debug_mode='T',
+							do_gauge_trafo=gauge_velos, 
+							R_vect_float='T',
+							do_write_velo=write_velos
 					)
 	os.system('./kptsgen.pl -l '+latt_sym_group+' -k "'+kpath+'"')
 	print('[do_band_calc]: generated k-space path list')
@@ -91,6 +93,13 @@ def do_band_calc(tb_model, latt_sym_group='cub',kpath="Gamma 1000 X 1000 M 1000 
 
 
 
-do_band_calc(tb_model='FeMn3q',latt_sym_group='jpH',kpath='Gamma 1000 X 1000 M 1000 Gamma 1000 R', phi=0.0)
+do_band_calc(	tb_model		=	'FeMn3q'									,
+				use_pos_op		=	False										,
+				latt_sym_group	=	'jpH'										,
+				kpath			=	'Gamma 1000 X 1000 M 1000 Gamma 1000 R'		, 
+				phi				=	0.0											, 
+				gauge_velos		=	False										,
+				write_velos		=	True										,
+			)
 
 

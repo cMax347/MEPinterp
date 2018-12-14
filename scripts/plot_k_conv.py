@@ -21,7 +21,7 @@ class conv_data:
 		self.dir_lst	= 	[]
 		self.nK_lst		=	[]
 		#
-		self.mep_2014_lst	=	[]
+		self.mep_2014_lst=	[]
 		self.mep_tot_lst=	[]
 		self.mep_cs_lst	=	[]
 		self.mep_ic_lst	=	[]
