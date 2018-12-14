@@ -10,55 +10,6 @@ module statistics
 contains
 
 
-
-	pure function get_fermi_energy(	N_el,	T_kelvin 	)
-		integer,		intent(in)		::	N_el 		! number of electrons in system
-		real(dp),		intent(in)		::	T_kelvin	! smearing paramter
-		real(dp)						::	N_el_loc, N_el_glob
-		real(dp)						::	e_fermi, e_fermi_max, e_fermi_min
-		!
-		N_el_loc	=	0.0_dp
-		N_el_glob	=	0.0_dp
-		!
-		
-		N_efermi	=	200
-		e_fermi		=	e_fermi_min
-		delta_e		=	e_fermi_max - e_fermi_min)	/	N_e_fermi		
-
-		do while(e_fermi <= e_fermi_max) 
-
-			if(	abs(	real(N_el,dp)	-	N_el_glob)	< 1e-3_dp	) then
-
-
-			e_fermi	=	e_fermi + delta_e
-		end do
-
-		!
-		! 	sum over local k-pts
-
-		do kiz = 1, mp_grid(3)
-			do kiy = 1, mp_grid(2)
-				do kix = 1, mp_grid(1)
-					ki	=	get_rel_kpt(kix, kiy, kiz, kpt)
-					!
-					!
-					if( mpi_ki_selector(ki, num_kpts)	) then
-						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
-						!
-						N_el_loc	=	N_el_loc	+	fd_get_N_el(en_k, e_fermi, T_kelvin)
-					end if
-				end do
-			end do
-		end do
-		!
-		!	sum over all k-pts
-		call MPI_REDUCE(	N_el_loc,  N_el_glob, 1, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
-
-
-
-
-
-
 	pure subroutine fd_count_el(en_k, eFermi, T_kelvin, el_count, sum_loc, n_el_min, n_el_max)
 		real(dp),		intent(in)					::		en_k(:), eFermi, T_kelvin
 		real(dp),		intent(out)					::		el_count
