@@ -118,7 +118,7 @@ class MEP_worker:
 		nK	= self.mp_grid[0]*self.mp_grid[1]*self.mp_grid[2]
 		print('['+str(datetime.datetime.now())+']start calculation (nK='+str(nK)+')....')
 		try:
-			os.system('mpirun -np '+str(mpi_np)+' ./mepInterp > mep.log')
+			os.system('mpirun -np '+str(mpi_np)+' ./mepInterp > mepINTERPOLATION.log')
 			self.success = True
 		except:
 			print('calculation could not be executed')
