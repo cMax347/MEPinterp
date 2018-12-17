@@ -482,7 +482,7 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	az	= np.zeros(3)
 	ax[0]	=	1.
 	ay[1]	=	2./np.sqrt(3.)
-	az[2]	=	np.sqrt(2./3.)	
+	az[2]	=	np.sqrt(2./3.)	* (test_model.intra_t/	test_model.inter_t)	
 
 
 
