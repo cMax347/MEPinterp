@@ -4,7 +4,9 @@ module matrix_math
 
 	private
 	public						::			my_Levi_Civita, crossP,                 &
-                                            zheevr_wrapper, zheevd_wrapper,         & 
+                                            zheevr_wrapper,                         &
+                                            zheevd_wrapper,                         &
+                                            zheevx_wrapper,                         &
                                             uni_gauge_trafo,                        &
                                             is_equal_vect,                          &
                                             is_equal_mat,                           &
@@ -168,9 +170,47 @@ module matrix_math
             !
             !check if system was solved correctly
             call errCheck(n,info,jobz)
+            if( info /= 0)  stop 'zheevd'
             return
 	end subroutine
 
+
+
+
+    subroutine zheevx_wrapper(A, w)
+        complex(dp),        intent(inout)       ::  A(:,:)
+        real(dp),           intent(in)          ::  w(:)
+        real(dp)                                ::  vl, vu
+        integer                                 ::  il, iu, lwork, lrwork, liwork, info, num_wann
+        complex(dp),        allocatable         ::  z(:,:), work(:) 
+        real(dp),           allocatable         ::  rwork(:)
+        integer,            allocatable         ::  iwork(:), ifail(:)       
+        !
+        if (size(A,1)== size(A,2)) then
+            num_wann    =   size(A,1)
+        else
+            stop "zheevx_wrapper was given non symmetric matrix!"
+        end if
+        !
+        lwork=12*num_wann
+        lrwork=17*num_wann
+        liwork=15*num_wann
+        allocate(   ifail(          num_wann            ))
+        allocate(   z(             num_wann, num_wann   ))
+        allocate( rwork(lrwork),    work(lwork),    iwork(liwork) )
+        !
+        !
+        call zheevx('V', 'A', 'U', size(A,1), A(:,:), size(A,1), vl, vu, il, iu, 0.0_dp, size(w,1),& 
+                            w(:), z(:,:), size(A,1), work, lwork, rwork, iwork, ifail, info)
+        !
+        !   return eigenvectors
+        A(:,:)  = z(:,:)
+        !
+        !   debug
+        call errCheck(num_wann,info,'V')
+        if( info /= 0)  stop 'zheevx'
+        return
+    end subroutine
 
 
     subroutine uni_gauge_trafo(U_mat, M_mat)
@@ -198,9 +238,10 @@ module matrix_math
         U_dag   = conjg(    transpose( U_mat )  )
         !
         !       WORKING:
-        M_mat   =   blas_matmul(    M_mat,  U_mat   )
-        M_mat   =   blas_matmul(    U_dag,  M_mat   )
+       ! M_mat   =   blas_matmul(    M_mat,  U_mat   )
+       ! M_mat   =   blas_matmul(    U_dag,  M_mat   )
         !
+        M_mat   =   blas_matmul(    blas_matmul(U_dag, M_mat),  U_mat)
         !       NOT WORKING:   
         !M_mat   =   blas_matmul(    M_mat,  U_dag   )
         !M_mat   =   blas_matmul(    U_mat,  M_mat   )
@@ -486,6 +527,7 @@ module matrix_math
         integer    , intent(in)        :: n,info
         character(len=1), intent(in)   :: jobz
         !
+
         if(info > 0) then
               write(*,*) '[solver/errCheck]: WARNING, Problem solving the eigenvalue problem: '
               if(jobz .EQ. 'N') write(*,*) '[solver/errCheck]: the algorithm failed to converge; ', info ,&
