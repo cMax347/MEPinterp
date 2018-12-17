@@ -73,7 +73,9 @@ contains
 				!			ONLY GET HAM															 |
 				!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 				call get_ham(rel_kpts(:,ki),	H_k,	V_ka	)
-				call zheevd_wrapper(H_k, en_k)
+				!
+				!
+				if(do_gauge_trafo)	call do_jans_gauge_trafo(ki, H_k, V_ka, en_k)
 				!
 				call write_en_binary(ki,en_k)
 				if(do_write_velo)	call write_velo(ki,V_ka)
@@ -93,6 +95,63 @@ contains
 		else
 			stop 'for bandstructure calculations a kpts file has to be provided'
 		end if
+		!
+		return
+	end subroutine
+
+
+
+	subroutine do_jans_gauge_trafo(kpt_idx, H_k, V_ka, en_k)
+		integer,			intent(in)		::	kpt_idx
+		complex(dp),		intent(in)		::	H_k(:,:)
+		complex(dp),		intent(inout)	::	V_ka(:,:,:)
+		real(dp),			intent(out)		::	en_k(:)
+		integer, 			allocatable 	::	iwork(:),ifail(:)
+      	real(dp),			allocatable 	::	rwork(:)
+		complex(dp),		allocatable		::	work(:), z(:,:)
+		integer								::	num_wann, lwork,lrwork,liwork,info,nev, i
+		real(dp) 							::	vl,vu,abstol
+		!
+		!	JANS SOURCE CODE:
+		!
+		!       call init_ham( kpts(1:3,k),num_wann,ham,
+		!     >                vW(:,:,1),vW(:,:,2),vW(:,:,3) )
+		!
+		!       call zheevx('V','A','U',num_wann,ham,num_wann,
+		!     >             vl,vu,1, num_wann,abstol,nev,
+		!     >             eig(:,k),z(:,:),num_wann,work,lwork,
+		!     >             rwork,iwork,ifail,info)
+		!       if(info.ne.0) stop 'zheevx'
+		!
+		!       do i=1,3
+		!        vH(:,:,i) = matmul(matmul(conjg(transpose(z(:,:))),
+		!     >                   vW(:,:,i)),z(:,:))
+		!       enddo
+		!
+		abstol 		= 	0.0 !2.0*tiny(abstol)
+		num_wann	=	8
+      	lwork		=	12*num_wann
+     	lrwork		=	17*num_wann
+      	liwork		=	15*num_wann
+      	!
+      	allocate( z(num_wann, num_wann))
+		allocate( rwork(lrwork),work(lwork),iwork(liwork) )
+		allocate( ifail(num_wann) )
+		!
+		!
+		!	GET EIGENVECTORS
+		call zheevx('V','A','U',num_wann,H_K,num_wann,				&
+			             vl,vu,1, num_wann,abstol,nev,				&
+			             en_k(:),z(:,:),num_wann,work,lwork,		&
+			             rwork,iwork,ifail,info						&
+			        )
+		if(info /= 0 ) stop 'zheevx'
+		!
+		!	PERFORM GAUGE TRAFO
+		do i = 1, 3
+			V_ka(i,:,:)		=	matmul(		matmul( conjg(transpose(z(:,:))), V_ka(i,:,:)), 		z(:,:)		)
+		end do
+		write(*,'(a,i7)')	"[do_jans_gauge_trafo]: finished gauging velos at #kpt",kpt_idx	
 		!
 		return
 	end subroutine
