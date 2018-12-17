@@ -295,7 +295,8 @@ module wann_interp
 						D_ka(1:3,m,n)	=	H_ka(1:3,m,n) /	( - eDiff_mn	)
 					else
 						write(*,'(a)',advance="no")	'[;get_gauge_covar_deriv]: '
-						write(*,'(a,i6,a,i6,a)')		'WARNING degenerate bands detetected n=',n,' m=',m,"	(this might lead to precission issues with gauge covariant derivate D_ka)"
+						write(*,'(a,i6,a,i6)',advance="no")		'WARNING degenerate bands detetected n=',n,' m=',m
+						write(*,*)	"	(this might lead to precission issues with gauge covariant derivate D_ka)"
 					end if
 					!
 					!
