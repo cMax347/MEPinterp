@@ -7,7 +7,6 @@ module matrix_math
                                             zheevr_wrapper,                         &
                                             zheevd_wrapper,                         &
                                             zheevx_wrapper,                         &
-                                            uni_gauge_trafo,                        &
                                             is_equal_vect,                          &
                                             is_equal_mat,                           &
                                             is_herm_mat,                            &
@@ -213,41 +212,41 @@ module matrix_math
     end subroutine
 
 
-    subroutine uni_gauge_trafo(U_mat, M_mat)
-        !   does a gauge trafo of the gauge-covariant matrix M_mat
-        !   by applying the unitary matrix U_mat as shown in 
-        !   Eq.(21), PRB 74, 195118, (2006)
-        !
-        !   since U is defined differently in the paper and in the lapack
-        !   consider the following
-        !
-        !   want:   M^(hbar)    
-        !   
-        !    paper:      U^*    H^(W)   U   = H^(H)
-        !           and M^(hbar) = U^* M^(W) U
-        !
-        !   lapack:
-        !            U  H^(W)   U^*     = H^(H) 
-        !   therefore here M^(hbar) = U M^(W) U^*
-
-        complex(dp),        intent(in)      ::  U_mat(:,:)
-        complex(dp),        intent(inout)   ::  M_mat(:,:)
-        complex(dp),        allocatable     ::  U_dag(:,:)
-        !
-        allocate(U_dag(  size(U_mat,1),size(U_mat,2)  ))
-        U_dag   = conjg(    transpose( U_mat )  )
-        !
-        !       WORKING:
-       ! M_mat   =   blas_matmul(    M_mat,  U_mat   )
-       ! M_mat   =   blas_matmul(    U_dag,  M_mat   )
-        !
-        M_mat   =   blas_matmul(    blas_matmul(U_dag, M_mat),  U_mat)
-        !       NOT WORKING:   
-        !M_mat   =   blas_matmul(    M_mat,  U_dag   )
-        !M_mat   =   blas_matmul(    U_mat,  M_mat   )
-        !       
-        return
-    end subroutine
+!    subroutine uni_gauge_trafo(U_mat, M_mat)
+!        !   does a gauge trafo of the gauge-covariant matrix M_mat
+!        !   by applying the unitary matrix U_mat as shown in 
+!        !   Eq.(21), PRB 74, 195118, (2006)
+!        !
+!        !   since U is defined differently in the paper and in the lapack
+!        !   consider the following
+!        !
+!        !   want:   M^(hbar)    
+!        !   
+!        !    paper:      U^*    H^(W)   U   = H^(H)
+!        !           and M^(hbar) = U^* M^(W) U
+!        !
+!        !   lapack:
+!        !            U  H^(W)   U^*     = H^(H) 
+!        !   therefore here M^(hbar) = U M^(W) U^*
+!
+!        complex(dp),        intent(in)      ::  U_mat(:,:)
+!        complex(dp),        intent(inout)   ::  M_mat(:,:)
+!        complex(dp),        allocatable     ::  U_dag(:,:)
+!        !
+!        allocate(U_dag(  size(U_mat,1),size(U_mat,2)  ))
+!        U_dag   = conjg(    transpose( U_mat )  )
+!        !
+!        !       WORKING:
+!       ! M_mat   =   blas_matmul(    M_mat,  U_mat   )
+!       ! M_mat   =   blas_matmul(    U_dag,  M_mat   )
+!        !
+!        M_mat   =   blas_matmul(    blas_matmul(U_dag, M_mat),  U_mat)
+!        !       NOT WORKING:   
+!        !M_mat   =   blas_matmul(    M_mat,  U_dag   )
+!        !M_mat   =   blas_matmul(    U_mat,  M_mat   )
+!        !       
+!        return
+!    end subroutine
 
 
 
