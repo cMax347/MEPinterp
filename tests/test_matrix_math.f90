@@ -5,7 +5,6 @@ program test_matrix_math
 											is_equal_vect,		&
 											is_equal_mat,		&
 											zheevd_wrapper,		&
-											uni_gauge_trafo, 	&
 											blas_matmul,		&
 											matrix_comm
 
@@ -290,7 +289,7 @@ contains
 		call zheevd_wrapper(U,	eigVal)
 
 		!rotate M_W with U should yield diagonal matrix (matrix in H gauge)
-		call uni_gauge_trafo(U, M_W)
+		M_W	=	blas_matmul(	blas_matmul(conjg(transpose(U)),M_W),	U)
 		!
 		!
 		!todo: check now if M_H is diagonal with eival on diago
