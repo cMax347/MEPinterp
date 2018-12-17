@@ -100,9 +100,11 @@ contains
 																A_ka(:,:,:), Om_kab(:,:,:,:)									
 		!
 		allocate(	en_k(size(H_tb,2))		)
+		en_k	=	0.0_dp
 		!
 		if( do_write_velo )		then
 			allocate(	V_ka(3,	size(H_tb,1), size(H_tb,2))		)
+			V_ka	=	0.0_dp
 			write(*,'(a,i3,a,i1,a,i3,a,i3,a)')	"[",mpi_id,"]V_ka allocated with size=	(",size(V_ka,1), "x",size(V_ka,2),"x",size(V_ka,3),")"
 		end if
 		!
@@ -110,7 +112,10 @@ contains
 		if(	allocated(r_tb)	)	then	
 			allocate(	A_ka(	3,		size(r_tb,2),	size(r_tb,3)	)	)
 			allocate(	Om_kab(	3,3,	size(r_tb,2),	size(r_tb,3)	)	)
+			A_ka	=	0.0_dp
+			Om_kab	=	0.0_dp
 		end if
+		!
 		!
 		return
 	end subroutine
