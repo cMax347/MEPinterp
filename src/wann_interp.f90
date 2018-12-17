@@ -31,7 +31,7 @@ module wann_interp
 
 
 	private
-	public					::		get_wann_interp, W_to_H_gaugeTRAFO	
+	public					::		get_wann_interp
 
 
 	contains
@@ -47,7 +47,7 @@ module wann_interp
 !public:
 	subroutine get_wann_interp(		do_gauge_trafo,				&
 									kpt_idx, kpt_rel, 			&
-									e_k, V_ka, 					&
+									en_k, V_ka, 				&
 									dummy_conn, dummy_curv		&
 							)
 		!
@@ -62,27 +62,30 @@ module wann_interp
 		logical,						intent(in)				::	do_gauge_trafo
 		integer,						intent(in)				::	kpt_idx
 		real(dp),						intent(in)				::	kpt_rel(3)															
-		real(dp),		allocatable,	intent(inout)			::	e_k(:)
+		real(dp),		allocatable,	intent(inout)			::	en_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	dummy_conn(:,:,:), dummy_curv(:,:,:,:)	!DO NOT ALLOCATE DUMMYS, DUMMY
-		complex(dp),	allocatable								::	U_k(:,:)
+		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
 		!
 		!
-
-
-		!todo:	get k_space hamiltonian and store it in U_k
-		write(*,*)	"[get_wann_interp]	WARNING	get_ham takes relative kpt for now (todo: fix this)"	
-		call get_ham(kpt_rel,	U_k, V_ka)
-
-
-
+		!
+		!	GET (W)-GAUGE
+		call get_ham(kpt_rel,	U_k, H_ka)
+		call check_W_gauge_herm(kpt_rel,	U_k, H_ka, dummy_conn, dummy_curv)
+		!
+		!	allocate at first run
+		if(.not. allocated(en_k))	allocate(	en_k(		size(U_k,1)					))
+		if(.not. allocated(V_ka))	allocate(	V_ka(	3,	size(U_k,1), size(U_k,2)	))
+		!
 		!get energies (H)-gauge
-		if(.not. allocated(e_k))	allocate(e_k(size(U_k,1)))
-		call zheevd_wrapper(U_k, e_k)
+		if(.not. allocated(en_k))	allocate(en_k(size(U_k,1)))
+		call zheevd_wrapper(U_k, en_k)
 		!
 		!rotate back to (H)-gauge
-		if( allocated(V_ka)	.and. do_gauge_trafo	)			call W_to_H_gaugeTRAFO(e_k, U_k, V_ka, dummy_conn, dummy_curv)
+		if(do_gauge_trafo)			call W_to_H_gaugeTRAFO(en_k, U_k, H_ka, dummy_conn, dummy_curv)
 		!
+		!	get velocities
+		call get_velo(en_k, H_ka, dummy_conn, V_ka)
 		!
 		!	DEBUG
 		if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt_rel, dummy_conn, dummy_curv, V_ka)

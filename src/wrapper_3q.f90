@@ -4,7 +4,6 @@ module wrapper_3q
 	use m_setham_FeMn,		only:		read_inp,	init_ham
 	use input_paras,		only:		debug_mode
 
-
 	implicit none
 
 
@@ -20,7 +19,8 @@ module wrapper_3q
 	subroutine get_ham(rel_kpt_dp,	H_dp, V_dp)
 		real(dp),		intent(in)							::	rel_kpt_dp(3)
 		complex(dp),	allocatable,	intent(inout)		::	H_dp(:,:),	V_dp(:,:,:)
-		complex(sp),	allocatable							::	H_sp(:,:),	vx_sp(:,:), vy_sp(:,:),	vz_sp(:,:)
+		complex(sp),	allocatable							::	H_sp(:,:),	vx_sp(:,:), vy_sp(:,:),	vz_sp(:,:), &
+																conn_dummy(:,:,:), curv_dummy(:,:,:)
 		integer												::	num_wann, row, clm, n, m	
 		!
 		!
