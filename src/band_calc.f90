@@ -59,6 +59,8 @@ contains
 			!
 			num_wann	= 8
 			!
+			allocate(	V_ka(3,num_wann, num_wann	))
+			allocate(	en_k(			num_wann	))
 			!
 			!	do the work
 			if(mpi_nProcs>1)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
@@ -94,7 +96,5 @@ contains
 	end subroutine
 
 
-
-	
 
 end module
