@@ -49,7 +49,7 @@ module wann_interp
 	subroutine get_wann_interp(		do_gauge_trafo,				&
 									kpt_idx, kpt_rel, 			&
 									en_k, V_ka, 				&
-									dummy_conn, dummy_curv		&
+									A_ka, Om_kab				&
 							)
 		!
 		!	interpolates the k-space:
@@ -65,26 +65,26 @@ module wann_interp
 		real(dp),						intent(in)				::	kpt_rel(3)															
 		real(dp),		allocatable,	intent(inout)			::	en_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout)			::	dummy_conn(:,:,:), dummy_curv(:,:,:,:)	!DO NOT ALLOCATE DUMMYS, DUMMY
+		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)	!DO NOT ALLOCATE DUMMYS, DUMMY
 		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
 		!
 		!
 		!
 		!	GET (W)-GAUGE
 		call get_ham(kpt_rel,	U_k, H_ka)
-		call check_W_gauge_herm(kpt_rel,	U_k, H_ka, dummy_conn, dummy_curv)
+		call check_W_gauge_herm(kpt_rel,	U_k, H_ka, A_ka, Om_kab)
 		!
 
 		!
 		!get energies (H)-gauge
-		call zheevd_wrapper(U_k, e_k)
+		call zheevd_wrapper(U_k, en_k)
 		!call zheevx_wrapper(U_k, e_k)
 		!
 		!rotate back to (H)-gauge
-		if(do_gauge_trafo)			call W_to_H_gaugeTRAFO(en_k, U_k, H_ka, dummy_conn, dummy_curv)
+		if(do_gauge_trafo)			call W_to_H_gaugeTRAFO(en_k, U_k, H_ka, A_ka, Om_kab)
 		!
 		!	get velocities
-		call get_velo(en_k, H_ka, dummy_conn, V_ka)
+		call get_velo(en_k, H_ka, A_ka, V_ka)
 		!
 		!	DEBUG
 		if(debug_mode .and. do_gauge_trafo)	call check_H_gauge_herm(kpt_idx, kpt_rel, A_ka, Om_kab, V_ka)
