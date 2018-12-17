@@ -15,6 +15,7 @@ module wann_interp
 	!	was used
 	use constants,		only:		dp, fp_acc, i_dp	
 	use matrix_math,	only:		zheevd_wrapper, 		&
+									zheevx_wrapper,			&
 									matrix_comm,			& 
 									uni_gauge_trafo,		&
 									is_herm_mat,			&
@@ -79,7 +80,8 @@ module wann_interp
 		call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
 		!
 		!get energies (H)-gauge
-		call zheevd_wrapper(U_k, e_k)
+		!call zheevd_wrapper(U_k, e_k)
+		call zheevx_wrapper(U_k, e_k)
 		!
 		!rotate back to (H)-gauge
 		if( allocated(V_ka)	.and. do_gauge_trafo	)			call W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
