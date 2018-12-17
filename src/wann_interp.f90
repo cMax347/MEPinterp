@@ -16,7 +16,7 @@ module wann_interp
 	use constants,		only:		dp, fp_acc, i_dp	
 	use matrix_math,	only:		zheevd_wrapper, 		&
 									matrix_comm,			& 
-									uni_gauge_trafo,		&
+									blas_matmul,			&
 									is_herm_mat,			&
 									is_skew_herm_mat		
 	use input_paras,	only:		kubo_tol, debug_mode
@@ -31,7 +31,7 @@ module wann_interp
 
 
 	private
-	public					::		get_wann_interp	
+	public					::		get_wann_interp, W_to_H_gaugeTRAFO	
 
 
 	contains
@@ -236,6 +236,7 @@ module wann_interp
 		!
 		!conn/curv	 (Hbar) -> (H)
 		if( allocated(A_ka) )	then
+			stop "W_to_H_gaugeTRAFO: in 3qstate model to connection is not used (and should not be allocated) "
 			if(debug_mode)	call check_Hbar_gauge_herm(H_ka, A_ka, Om_kab)			! if(.not.allocated(A_ka)) then  (Hbar)-gauge is same as (H)-gauge (therefore avoid testing same twice)
 			!
 			!
@@ -256,14 +257,18 @@ module wann_interp
 		complex(dp),					intent(in)		::	U_k(:,:)
 		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
 		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		complex(dp),	allocatable						::	U_dag(:,:)
 		integer											::	a, b
 		!
+		allocate(	U_dag(size(U_k,1),size(U_k,2))	)
+		U_dag	=	conjg(	transpose(	U_k(:,:)	))
+
 		do a = 1, 3
-										call uni_gauge_trafo( U_k,		H_ka(a,:,:)		)
-			if( allocated(A_ka)		)	call uni_gauge_trafo( U_k, 		A_ka(a,:,:)		)
+										H_ka(a,:,:)	=	blas_matmul(	blas_matmul(U_dag,	H_ka(a,:,:))	,	U_k	)
+			if( allocated(A_ka)		)	A_ka(a,:,:)	=	blas_matmul(	blas_matmul(U_dag,	A_ka(a,:,:))	,	U_k	)
 			if( allocated(Om_kab)	)then
 				do b = 1,3 
-										call uni_gauge_trafo( U_k,		Om_kab(a,b,:,:)	)
+									Om_kab(a,b,:,:)	=	blas_matmul(	blas_matmul(U_dag,	Om_kab(a,b,:,:)),	U_k	)
 				end do
 			end if
 		end do

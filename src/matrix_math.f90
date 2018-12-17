@@ -204,8 +204,9 @@ module matrix_math
         U_dag   = conjg(    transpose( U_mat )  )
         !
         !       WORKING:
-        M_mat   =   blas_matmul(    M_mat,  U_mat   )
-        M_mat   =   blas_matmul(    U_dag,  M_mat   )
+       ! M_mat   =   blas_matmul(    M_mat,  U_mat   )
+       ! M_mat   =   blas_matmul(    U_dag,  M_mat   )
+        M_mat   =    blas_matmul    (   blas_matmul(    U_dag,  M_mat), U_mat)
         !
         !       NOT WORKING:   
         !M_mat   =   blas_matmul(    M_mat,  U_dag   )

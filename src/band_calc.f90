@@ -18,7 +18,7 @@ module band_calc
 										write_en_binary, 								&
 										write_en_global,								&
 										write_velo
-	use wann_interp,	only:			get_wann_interp									
+	use wann_interp,	only:			get_wann_interp, W_to_H_gaugeTRAFO									
 
 	implicit none
 
@@ -108,8 +108,8 @@ contains
 		real(dp),			intent(out)		::	en_k(:)
 		integer, 			allocatable 	::	iwork(:),ifail(:)
       	real(dp),			allocatable 	::	rwork(:)
-		complex(dp),		allocatable		::	work(:), z(:,:)
-		integer								::	num_wann, lwork,lrwork,liwork,info,nev, i
+		complex(dp),		allocatable		::	work(:), z(:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
+		integer								::	num_wann, lwork,lrwork,liwork,info,nev, i, x
 		real(dp) 							::	vl,vu,abstol
 		!
 		!	JANS SOURCE CODE:
@@ -139,14 +139,29 @@ contains
 		allocate( ifail(num_wann) )
 		!
 		!
-		!	GET EIGENVECTORS
-		call zheevx('V','A','U',num_wann,H_K,num_wann,				&
-			             vl,vu,1, num_wann,abstol,nev,				&
-			             en_k(:),z(:,:),num_wann,work,lwork,		&
-			             rwork,iwork,ifail,info						&
-			        )
-		if(info /= 0 ) stop 'zheevx'
-		!
+		!!!	GET EIGENVECTORS
+		!call zheevx('V','A','U',num_wann,H_K,num_wann,				&
+		!	             vl,vu,1, num_wann,abstol,nev,				&
+		!	             en_k(:),z(:,:),num_wann,work,lwork,		&
+		!	             rwork,iwork,ifail,info						&
+		!	        )
+		!if(info /= 0 ) stop 'zheevx'
+		
+		!z(:,:)	=	H_k(:,:)
+		!call zheevd_wrapper(z, en_k)
+
+
+		!W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
+		z(:,:)	=	H_k(:,:)
+		call zheevd_wrapper(z, en_k)
+
+
+
+		!call W_to_H_gaugeTRAFO(en_k, z(:,:), V_ka(:,:,:), A_ka, Om_kab)
+
+
+
+
 		!	PERFORM GAUGE TRAFO
 		do i = 1, 3
 			V_ka(i,:,:)		=	matmul(		matmul( conjg(transpose(z(:,:))), V_ka(i,:,:)), 		z(:,:)		)
