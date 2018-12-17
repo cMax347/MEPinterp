@@ -131,6 +131,7 @@ module matrix_math
     					m, w, z, ldz, isuppz, work, lwork, rwork, lrwork, iwork, liwork, info)
     	!
     	call errCheck(n,info,jobz)
+        if( info /= 0)  stop 'zheevr'
     	return
     end subroutine
 
