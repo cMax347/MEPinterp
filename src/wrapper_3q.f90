@@ -68,10 +68,10 @@ module wrapper_3q
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		!		jan seems to use atomic units, however energies are in (eV) ?!
 		!
-		H_dp				=	 H_sp(:,:) 	/	aUtoEv
-		V_dp(	1	,:,:)	=	vx_sp(:,:)	/	aUtoEv
-		V_dp(	2	,:,:)	=	vy_sp(:,:)	/	aUtoEv
-		V_dp(	3	,:,:)	=	vz_sp(:,:)	/	aUtoEv
+		H_dp				=	real(	 H_sp(:,:)	,dp) 	/	aUtoEv
+		V_dp(	1	,:,:)	=	real(	vx_sp(:,:)	,dp)	/	aUtoEv
+		V_dp(	2	,:,:)	=	real(	vy_sp(:,:)	,dp)	/	aUtoEv
+		V_dp(	3	,:,:)	=	real(	vz_sp(:,:)	,dp)	/	aUtoEv
 		!
 		!
 		!
