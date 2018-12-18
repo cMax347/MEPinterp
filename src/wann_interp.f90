@@ -72,9 +72,14 @@ module wann_interp
 		!
 		!
 		!
-		!
 		!ft onto k-space (W)-gauge
 		call get_ham(kpt_rel,	U_k, H_ka)
+		!
+		if(.not. allocated(e_k)	)	allocate(	e_k(size(U_k,1))	)
+
+
+
+		!
 		!call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
 		if(debug_mode )	call check_W_gauge_herm(kpt_rel, U_k, H_ka, A_ka, Om_kab)
 		if(debug_mode)	call write_ham_binary(kpt_idx,	U_k)
@@ -192,10 +197,11 @@ module wann_interp
 		real(dp),						intent(in)		::		e_k(:)
 		complex(dp),					intent(in)		::		H_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
-		complex(dp),					intent(out)		::		V_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout)	::		V_ka(:,:,:)
 		complex(dp)										::		eDiff
 		integer											::		m, n
 		!
+		if( .not. allocated(V_ka)  )		allocate(	V_ka(3,size(H_ka,2),size(H_ka,3))		)
 		V_ka		=	H_ka
 		!
 		!
