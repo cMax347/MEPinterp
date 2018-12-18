@@ -7,6 +7,7 @@ module file_io
 	use mpi_comm,						only:		mpi_id, mpi_root_id, mpi_nProcs
 	use input_paras,					only:		w90_dir, 							&
 													out_dir,							& 
+													eig_out_dir,						&
 													velo_out_dir,						&
 													mep_out_dir,						&
 													ahc_out_dir,						&
@@ -24,6 +25,8 @@ module file_io
 	public									::		read_tb_basis,						& 
 													read_kptsgen_pl_file,				&
 													!-----------------------------------!
+													write_ham_binary,					&
+													write_eig_binary,					&
 													write_en_binary, read_en_binary,	&
 													write_en_global,					&
 													write_velo,							&
@@ -60,18 +63,60 @@ module file_io
 !--------------------------------------------------------------------------------------------------------------------------------		
 !
 !
-	subroutine write_en_binary(qi_idx, e_bands)
-		integer,		intent(in)		::	qi_idx
+	subroutine write_en_binary(kpt_idx, e_bands)
+		integer,		intent(in)		::	kpt_idx
 		real(dp),		intent(in)		::	e_bands(:)
 		character(len=24)				::	filename
 		integer							::	mpi_unit
 		!
 		mpi_unit	=	100 + mpi_id + 6 * mpi_nProcs
 		!
-		write(filename, format) raw_dir//'enK.',qi_idx
+		write(filename, format) raw_dir//'enK.',kpt_idx
 		open(unit=mpi_unit,	file = filename, form='unformatted', action='write', access='stream',	status='replace'		)
 		write(mpi_unit)	e_bands(:)
 		close(mpi_unit) 
+		!
+		return
+	end subroutine
+
+
+	subroutine write_eig_binary(kpt_idx, U_k)
+		integer,		intent(in)		::	kpt_idx
+		complex(dp),	intent(in)		::	U_k(:,:)
+		character(len=24)				::	filename
+		integer							::	mpi_unit, n, m
+		!
+		mpi_unit	=	100 + mpi_id + 15 * mpi_nProcs
+		write(filename, format) eig_out_dir//'eig.',kpt_idx
+		!
+		open(unit=mpi_unit, file=filename, form='formatted', action='write', access='stream', status='replace')
+			do m =1, size(U_k,2)
+				do n =1, size(U_k,1)
+					write(mpi_unit,'(i2,a,i2,a,e16.7,a,e16.7)') n," ",m," ",real(U_k(n,m),dp)," ",aimag(U_k(n,m))
+				end do
+			end do
+		close(mpi_unit)
+		!
+		return
+	end subroutine
+
+
+	subroutine write_ham_binary(kpt_idx, H_k)
+		integer,		intent(in)		::	kpt_idx
+		complex(dp),	intent(in)		::	H_k(:,:)
+		character(len=24)				::	filename
+		integer							::	mpi_unit, n, m
+		!
+		mpi_unit	=	100 + mpi_id + 15 * mpi_nProcs
+		write(filename, format) eig_out_dir//'ham.',kpt_idx
+		!
+		open(unit=mpi_unit, file=filename, form='formatted', action='write', access='stream', status='replace')
+			do m =1, size(H_k,2)
+				do n =1, size(H_k,1)
+					write(mpi_unit,'(i2,a,i2,a,e16.7,a,e16.7)') n," ",m," ",real(H_k(n,m),dp)," ",aimag(H_k(n,m))
+				end do
+			end do
+		close(mpi_unit)
 		!
 		return
 	end subroutine
@@ -81,21 +126,19 @@ module file_io
 		character(len=*),	intent(in)			::	seed_name
 		real(dp),			intent(in)			::	kpt_latt(:,:)	
 		integer									::	qi_idx, x		
-
-
+		!
 		open(unit=200, file = seed_name//'_geninterp.kpt', form='formatted', action='write',	access='stream', status='replace')
 		write(200,*)	'# fractional kpts created by MEPInterp, written '//cTIME(time())
 		write(200,*)	'frac'
 		write(200,*)	size(kpt_latt,2)
-
-
+		!
 		do qi_idx = 1, size(kpt_latt,2)
 			write(200,'(i3,a)',advance="no")	qi_idx, ' '
 			write(200,'(*(f16.8))')		(kpt_latt(x,qi_idx), x= 1, size(kpt_latt,1))
 		end do
 		close(200)
 		write(*,'(a,i3,a,a)')		'[#',mpi_id,'; write_geninterp_kpt_file]: wrote ',seed_name//'_geninterp.kpt file'
-
+		!
 		return
 	end subroutine
 

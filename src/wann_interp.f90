@@ -22,7 +22,8 @@ module wann_interp
 									is_herm_mat,			&
 									is_skew_herm_mat		
 	use input_paras,	only:		kubo_tol, debug_mode
-	
+	use file_io,		only:		write_eig_binary,		&
+									write_ham_binary
 
 
 
@@ -80,14 +81,19 @@ module wann_interp
 		!ft onto k-space (W)-gauge
 		call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
 		if(debug_mode )	call check_W_gauge_herm(kpt_rel, U_k, H_ka, A_ka, Om_kab)
+		if(debug_mode)	call write_ham_binary(kpt_idx,	U_k)
 		!
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
 		if(debug_mode)	call check_velo(U_k, H_ka)
-		!call zheevx_wrapper(U_k, e_k)
+		if(debug_mode)	then
+			call write_eig_binary(kpt_idx,	U_k)
+
+			!	call write_velo(kpt_idx, H_ka)
+			!	
+			!			
+		end if
 		!
-
-
 		!rotate back to (H)-gauge
 		if( allocated(V_ka)	.and. do_gauge_trafo	)			call W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
 		if(	allocated(V_ka)							)			call get_velo(e_k, H_ka, A_ka, 	V_ka)

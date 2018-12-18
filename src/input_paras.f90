@@ -21,6 +21,7 @@ module input_paras
 												w90_dir, 															&
 												raw_dir,															&
 												out_dir,															&
+												eig_out_dir,														&
 												velo_out_dir,														&
 												mep_out_dir, ahc_out_dir, 	opt_out_dir,	gyro_out_dir,			&
 												!jobs
@@ -49,13 +50,14 @@ module input_paras
 	character(len=4)			::	raw_dir ="raw/"
 	character(len=4)			::	out_dir	="out/"
 	character(len=10)			:: 	velo_out_dir
+	character(len=11)			::	eig_out_dir
 	character(len=9)			::	mep_out_dir	
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir
 	character(len=10)			::	gyro_out_dir	
 	logical						::	plot_bands, do_gauge_trafo, 	&
-									do_write_velo,					&
 									use_R_float,					&
+									do_write_velo,					&
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_gyro
@@ -92,6 +94,7 @@ module input_paras
 		ahc_out_dir		=	out_dir//"/ahc/"
 		opt_out_dir 	=	out_dir//"/opt/"	
 		gyro_out_dir	=	out_dir//"/gyro/"
+		eig_out_dir		=	raw_dir//"/eigen/"
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
 			inquire(file="./input.cfg",exist=input_exist)
@@ -181,7 +184,8 @@ module input_paras
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: start target mkdir..."
 				call my_mkdir(out_dir)
 				call my_mkdir(raw_dir)
-				if(		  do_write_velo		)	call my_mkdir(velo_out_dir)	
+				if(		 	do_write_velo		)	call my_mkdir(velo_out_dir)	
+				if(			debug_mode			)	call my_mkdir(eig_out_dir)
 				if(.not. plot_bands) then
 					if( do_mep .or. do_kubo		)	call my_mkdir(mep_out_dir)
 					if(			do_ahc			)	call my_mkdir(ahc_out_dir)
