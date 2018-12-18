@@ -18,6 +18,7 @@ module wann_interp
 									zheevx_wrapper,			&
 									matrix_comm,			& 
 									blas_matmul,			&
+									is_equal_mat,			&
 									is_herm_mat,			&
 									is_skew_herm_mat		
 	use input_paras,	only:		kubo_tol, debug_mode
@@ -78,11 +79,15 @@ module wann_interp
 		!
 		!ft onto k-space (W)-gauge
 		call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
+		if(debug_mode )	call check_W_gauge_herm(kpt_rel, U_k, H_ka, A_ka, Om_kab)
 		!
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
+		if(debug_mode)	call check_velo(U_k, H_ka)
 		!call zheevx_wrapper(U_k, e_k)
 		!
+
+
 		!rotate back to (H)-gauge
 		if( allocated(V_ka)	.and. do_gauge_trafo	)			call W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
 		if(	allocated(V_ka)							)			call get_velo(e_k, H_ka, A_ka, 	V_ka)
@@ -169,7 +174,6 @@ module wann_interp
 		!
 		if(debug_mode) 	then
 			call check_ft_phase(a_latt, R_frac, kpt_abs)
-			call check_W_gauge_herm(kpt_rel, H_k, H_Ka, A_ka, Om_kab)
 		end if
 		!
 		return
@@ -267,12 +271,12 @@ module wann_interp
 		!
 		!
 		do a = 1, 3
-										H_ka(a,:,:)		=	blas_matmul(	blas_matmul(U_dag,	H_ka(a,:,:))	, U_k	)
-			if( allocated(A_ka)		)	A_ka(a,:,:)		=	blas_matmul(	blas_matmul(U_dag,	A_ka(a,:,:))	, U_k	)
+										H_ka(a,:,:)		=	matmul(	matmul(U_dag,	H_ka(a,:,:))	, U_k	)
+			if( allocated(A_ka)		)	A_ka(a,:,:)		=	matmul(	matmul(U_dag,	A_ka(a,:,:))	, U_k	)
 
 			if( allocated(Om_kab)	)then
 				do b = 1,3 
-										Om_kab(a,b,:,:)	=	blas_matmul(	blas_matmul(U_dag,	Om_kab(a,b,:,:))	, U_k)
+										Om_kab(a,b,:,:)	=	matmul(	matmul(U_dag,	Om_kab(a,b,:,:))	, U_k)
 				end do
 			end if
 		end do
@@ -466,6 +470,35 @@ module wann_interp
 		!
 		return
 	end function
+
+
+	subroutine check_velo(U_k, VW_ka)
+		!	check if rotating forward and backwards wants is identity operation
+		!
+		complex(dp),		intent(in)		::	U_k(:,:), VW_ka(:,:,:)
+		complex(dp),	allocatable			::	VW_new_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
+		!
+		allocate(		VW_new_ka(size(VW_ka,1), size(VW_ka,2),size(VW_ka,3))	)
+		!
+		VW_new_ka	=	VW_ka
+		!
+		call rotate_gauge(U_k, VW_new_ka, A_ka, Om_kab)
+		!
+		!	now rotate back to wannier gauge
+		call rotate_gauge(	conjg(transpose(U_k)),	VW_new_ka,	A_ka, Om_kab)
+		!
+		!
+		if(			is_equal_mat(	1e-9_dp	, VW_ka(1,:,:), VW_new_ka(1,:,:))	&
+			.and.	is_equal_mat(	1e-9_dp	, VW_ka(2,:,:), VW_new_ka(2,:,:))	&
+			.and.	is_equal_mat(	1e-9_dp	, VW_ka(3,:,:), VW_new_ka(3,:,:))	&
+			)	then
+			write(*,*)	"[wann_interp/check_velo]:	SUCCESS gauge consistency seems fine "
+		else
+			write(*,*)	"[wann_interp/check_velo]:	WARNING gauge consistency not given "
+		end if
+
+		return
+	end subroutine
 
 
 
