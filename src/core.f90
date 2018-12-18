@@ -130,13 +130,6 @@ contains
 		!	get		TB	BASIS
 		!----------------------------------------------------------------------------------------------------------------------------------
 		if(use_mpi) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		if(mpi_id==mpi_root_id)	then
-			write(*,*)	"*"
-			write(*,*)	"----------------------GET REAL SPACE BASIS (DISABLED IN 3Q-STATE)---------------------------"
-		end if
-	
-
-
 		call print_basis_info()
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -538,9 +531,9 @@ contains
 			write(*,*)	"*"
 			write(*,*)	"*"
 			if(do_gauge_trafo)	then
-					write(*,*)	"***^^^^	-	FULL INTERPOLATION MODE	-	^^^^***"
+					write(*,*)	"***^^^^	-	FULL INTERPOLATION MODE (3Q - KSPACE MODE)	-	^^^^***"
 			else
-					write(*,*)	"***^^^^	-	WANNIER GAUGE MODE 	-	^^^^***"
+					write(*,*)	"***^^^^	-	WANNIER GAUGE MODE  (3Q - KSPACE MODE) -	^^^^***"
 			end if
 			write(*,*)	"*"
 			write(*,*)	"*"
