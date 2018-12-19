@@ -78,7 +78,8 @@ class FeMn_3q_model:
 		# set negative prefactor
 		self.intra_t	=	-	self.intra_t
 		self.inter_t	=	-	self.inter_t
-		self.lmbda		=	-	self.lmbda
+		#
+		self.lmbda		=		self.lmbda
 
 
 
@@ -111,10 +112,8 @@ class FeMn_3q_model:
 		#	FILL REST WITH ZERO
 		#
 		# creat list with already added elements
-		tHopp_exist = []
-		
+		tHopp_exist = 	[]
 		self.v_print("[FeMn_3q_model/tHopp_fill_zeros]:	initial tHopp size="+str(len(self.tHopp)))
-
 		nExist		=	len(self.tHopp)
 		#
 		#
@@ -171,13 +170,20 @@ class FeMn_3q_model:
 	def set_right_left_cc(self,	R_left, R_right,	m, n, t_hopp):
 		if m>=n:
 			self.v_print("[FeMn_3q_model/set_right_left_cc]:	unexpected lower traingle values specified (m="+str(m)+",n="+str(n)+")")
+		if m> self.nWfs:
+			print("[FeMn_3q_model/set_right_left_cc]: m="+str(m)+" exeeds num_wann="+str(self.nWfs))
+			sys.exit()
+
+		if n> self.nWfs:
+			print("[FeMn_3q_model/set_right_left_cc]: m="+str(m)+" exeeds num_wann="+str(self.nWfs))
+			sys.exit()
 		
 		# add the hopping (left & right)
 		self.tHopp.append(		[	R_right[0]	,	R_right[1],	R_right[2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
-		self.tHopp.append(		[	R_left[0]	,	R_left[1],	R_left[2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
+		self.tHopp.append(		[	R_left[ 0]	,	R_left[ 1],	R_left[ 2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
 		#	now add complex conjugates of both terms	
 		self.tHopp.append(		[	R_right[0]	,	R_right[1],	R_right[2]	, 	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
-		self.tHopp.append(		[	R_left[0]	,	R_left[1],	R_left[2]	, 	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
+		self.tHopp.append(		[	R_left[ 0]	,	R_left[ 1],	R_left[ 2]	, 	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
 
 
 
@@ -197,7 +203,7 @@ class FeMn_3q_model:
 		for i in range(4):
 			sintheta.append(						np.sin( self.thconv[i] )							)
 			costheta.append(						np.cos(	self.thconv[i] )							)
-			phasphi.append(		np.complex128(	np.cos(self.phconv[i])	 - 1j * np.sin(self.phconv[i]))	) 	
+			phasphi.append(		np.cos(self.phconv[i])	 - 1j * np.sin(self.phconv[i])					) 	
 			#
 			z_upDw	=	self.lmbda 	* sintheta[i]	*	phasphi[i]
 			re_upDw	=	np.real(	z_upDw	)
@@ -209,6 +215,7 @@ class FeMn_3q_model:
 			#       enddo
 			self.tHopp.append(	[	0., 0., 0., 		i+1, i+1, 		self.lmbda 	* costheta[i]						, 	.0			]				)
 			self.tHopp.append(	[ 	0., 0., 0.,			i+5, i+5, 	-	self.lmbda	* costheta[i] 						, 	.0			]				)
+			#
 			self.tHopp.append(	[	0., 0., 0.,			i+1, i+5,			re_upDw										, 	im_upDw		]				)
 			self.tHopp.append(	[	0., 0., 0., 		i+5, i+1,			re_upDw										, - im_upDw		]				)
 		self.R_nn_lst.append([0.,0.,0.])
@@ -276,7 +283,7 @@ class FeMn_3q_model:
 		#
 		#
 		#	in-plane hopping strength
-		intra_hopp		=	np.array(	[np.real(self.intra_t),	+ np.imag(self.intra_t)]	)
+		intra_hopp		=	np.array(	[np.real(self.intra_t),	 np.imag(self.intra_t)]	)
 		#
 		#
 		#	ADD INTRA-LAYER HOPPING
@@ -297,6 +304,7 @@ class FeMn_3q_model:
 		else:
 			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	intralayer entries")
 		#
+
 
 
 		# 	JAN'S SOURCE CODE
@@ -338,7 +346,7 @@ class FeMn_3q_model:
 		#
 		#
 		#	out-of-plane hopping strength
-		inter_hopp		=	np.array(	[np.real(self.inter_t),	+ np.imag(self.inter_t)]	)    	
+		inter_hopp		=	np.array(	[np.real(self.inter_t),	 np.imag(self.inter_t)]	)    	
        	#
 		#	ADD INTER-LAYER HOPPING
 		for i in range(0,8,4):
@@ -363,8 +371,8 @@ class FeMn_3q_model:
 		expected_size	=	nExchange + nIntra + nInter
 		actual_size		= len(self.tHopp)
 		if(actual_size != expected_size):
-			self.v_print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong number of hoppings: got"+ str(actual_size)+" expected:"+str(expected_size))
-			sys.exit()
+			print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong number of hoppings: got"+ str(actual_size)+" expected:"+str(expected_size))
+			#sys.exit()
 		else:
 			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	hopping parameters in total")
 		#
@@ -373,11 +381,11 @@ class FeMn_3q_model:
 		#      FILL REST WITH ZEROS													|
 		#---------------------------------------------------------------------------
 		self.tHopp_fill_zeros()	
-
+		#
 		actual_size		=	len(self.tHopp)
 		expected_size	=	self.nWfs**2 * self.nrpts
 		if(actual_size != expected_size):
-			self.v_print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong size: got"+str(actual_size)+" expected:"+str(expected_size))
+			print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong size: got"+str(actual_size)+" expected:"+str(expected_size))
 			sys.exit()
 	
 
@@ -445,6 +453,7 @@ class FeMn_3q_model:
 						if m == n:
 							at_pos	=	self.wf_pos[m]		
 					self.rHopp.append(	[	R_nn[0],R_nn[1],R_nn[2], 	m+1, n+1, 		at_pos[0], at_pos[1], at_pos[2], at_pos[3], at_pos[4], at_pos[5]		])
+		print("pos done")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -468,9 +477,11 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	#
 	#	HOPPING
 	test_model.setup_Ham()
+	print("[get_FeMn3q_tb]:	hamiltonian fully setup")
 	#
 	#	POSITION
-	test_model.setup_Pos()
+	#test_model.setup_Pos()
+	#print("pos setup done")
 
 	
 	
@@ -482,10 +493,18 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	az	= np.zeros(3)
 	ax[0]	=	1.
 	ay[1]	=	2./np.sqrt(3.)
-	az[2]	=	np.sqrt(2./3.)	* (test_model.intra_t/	test_model.inter_t)	
+	az[2]	=	np.sqrt(2./3.)
 
 
-
+	#
+	try:
+		if np.abs(test_model.intra_t/	test_model.inter_t) > 1e-4: 
+			az[2]	=	az[2]	* (test_model.intra_t/	test_model.inter_t)	
+			print("[get_FeMn3q_tb]:	scaled az lattice constant by factor t1/t2="+str(	test_model.intra_t/	test_model.inter_t	)			)
+		else:
+			print("[get_FeMn3q_tb]:	az lattice constant was not changed! az="+str(az[2]))
+	except:
+			print("[get_FeMn3q_tb]:	WARNING failed to scale az, az set to "+str(az[2]))
 	#
 	#
 	print("[get_FeMn3q_tb]:	..finished FeMn3q model setup (TODO: PROPER LATTICE SETUP !) at " +	datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))

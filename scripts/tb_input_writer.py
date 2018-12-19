@@ -70,7 +70,6 @@ def write_hr_file(seed_name, nAt, nrpts, thopp):
 			for val in t[5:7]:
 				outfile.write("{:16.8f}".format(float(val))+whitespace)
 			outfile.write('\n')
-	print('wrote '+seed_name+'_hr.dat'+' file')
 #
 #
 def write_r_file(seed_name, nAt, rhopp ):
@@ -91,7 +90,6 @@ def write_r_file(seed_name, nAt, rhopp ):
 			for val in r[5:11]:
 				outfile.write("{:16.8f}".format(float(val))+whitespace)
 			outfile.write('\n')
-	print('wrote '+seed_name+'_r.dat'+' file')
 
 #
 #
@@ -155,7 +153,6 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 		outfile.write('    '	+	'Tkelvin= '			+	str(Tkelvin)		+	'\n')
 		outfile.write('    '	+	'eta_smearing= '	+	str(eta_smearing)	+	'\n')
 		#
-		print('wrote '+file_path+'input.cfg')
 
 
 
@@ -197,11 +194,15 @@ def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_g
 	#write them to file
 	os.mkdir(target_path)
 	write_hr_file(	target_path+'/'+seed_name,	nWfs, nrpts, tHopp )
+	print("[write_tb_input]:	wrote "+target_path+'/'+seed_name+'_hr.dat')
 	if use_pos_op:
 		write_r_file(	target_path+'/'+seed_name, 	nWfs,		 rHopp )
+		print("[write_tb_input]:	wrote "+target_path+'/'+seed_name+'_r.dat')
 
 	# now write the input files for postw90 & mepInterp
 	write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
+	print("[write_tb_input]: wrote pw90 input file")
+
 	#
 	
 	#	write mepInterp
@@ -211,6 +212,8 @@ def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_g
 							do_write_velo, do_write_mep_bands,							
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro							
 						)
+	print("[write_tb_input]: wrote "+str(root_dir)+"/input.cfg file for fortran core")
+
 #
 #
 #def write_FeMn3q_tb_input():

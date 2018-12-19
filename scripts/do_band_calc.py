@@ -17,7 +17,8 @@ def do_band_calc(tb_model, use_pos_op, latt_sym_group='cub',kpath="Gamma 1000 X 
 	main_exe	= root_dir+'/mepInterp'
 	kpt_gen		= root_dir+'/kptsgen.pl'
 
-	
+	print('[do_band_calc]: hello there')
+
 	#check if executables are present
 	if os.path.isfile(main_exe) and os.path.isfile(kpt_gen):
 		#delete old folder and create it again
