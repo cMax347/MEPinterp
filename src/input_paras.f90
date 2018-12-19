@@ -4,7 +4,11 @@ module input_paras
 	use mpi
 #endif
 	use matrix_math,				only:		crossP
+<<<<<<< HEAD
 	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv, kBoltz_Eh_K
+=======
+	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv
+>>>>>>> develop
 	use mpi_comm,					only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
 	use k_space,					only:		set_recip_latt, set_mp_grid
 
@@ -144,6 +148,12 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Kubo%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
 				call CFG_add_get(my_cfg,	"Kubo%eta_smearing"				,	eta					,	"smearing for optical conductivty"	)
 				!
+				! 	unit conversion
+				hw			=	hw 		/ 	aUtoEv
+				eFermi		= 	eFermi	/	aUtoEv
+				eta			=	eta		/	aUtoEv
+				!
+				!	derived constants
 				i_eta_smr	=	cmplx(0.0_dp,	eta	,dp)
 				phi_laser	=	cmplx(cos(pi_dp*laser_phase),sin(pi_dp*laser_phase),dp)
 				!
@@ -170,17 +180,13 @@ module input_paras
 				write(*,*)					"[Kubo] # E_h (Hartree)"
 				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
 				write(*,*)					"	kuboTol=",kubo_tol
-				write(*,*)					"	hw=",hw,"	(eV)"
-				write(*,*)					"	etasmearing=",eta
-				write(*,*)					"	i_eta_smr=",i_eta_smr," (eV)" 
-				write(*,*)					"	T_kelvin=",T_kelvin," (K ~ will be converted to",kBoltz_Eh_K*T_kelvin*aUtoEv,"(eV) )"
-				hw			=	hw			/	aUtoEv
-				i_eta_smr	=	i_eta_smr	/	aUtoEv
-				write(*,*)					"	hw=",hw,"	(E_h)"
-				write(*,*)					"	eFermi=",eFermi,"	(E_h)"
-				write(*,*)					"	T_kelvin=",T_kelvin," (K ~ will be converted to",kBoltz_Eh_K*T_kelvin,"(E_h) )"
-				write(*,*)					"	i_eta_smr=",i_eta_smr," (E_h)" 
-
+				write(*,*)					"	hw=",hw*aUtoEv," (eV)" 
+				write(*,*)					"	laser_phase= pi * ",laser_phase
+				write(*,*)					"	phi_laser( exp(i*laser_phase))=",phi_laser
+				write(*,*)					"	eFermi=",eFermi*aUtoEv," (eV)"
+				write(*,*)					"	T_kelvin=",T_kelvin," (K)"
+				write(*,*)					"	eta=",eta*aUtoEv," (eV)"
+				write(*,*)					"	i_eta_smr=",i_eta_smr
 				write(*,*)					"*********************************************************************************"		
 				!
 				!make the output folder

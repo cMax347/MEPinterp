@@ -130,16 +130,18 @@ def plot_bandstruct(kpt_file, en_file, q3_file, pdf_out_file, label_size=14, y_t
 	ax.set_xticklabels(k_labels,fontsize=label_size)
 	ax.grid(axis='x', alpha=.5, linewidth=.8,	color='black')
 
-	ax.set_yticks([0.],minor=True)
-	ax.grid(which='minor',axis='y')
+	
+	
 
 	#y-axis
-
 	ax.set_yticks(	[-12, -9,-6,-3,0,3,6]	,	minor=False	)
 	ax.set_yticks(	[0	]					,	minor=True		)
 	ax.grid(axis='y',which='minor', alpha=.5, linewidth=.8,	color='black')
 	#ax.set_ylim([-9.2,6.2])
 	plt.tick_params(axis='y', which='major',left=True,right=True, direction='in',labelsize=y_tick_size)
+	plt.tick_params(axis='y', which='minor',left=True,right=True, direction='in',labelsize=y_tick_size-2)
+	ax.grid(which='minor',axis='y')
+
 	if plot_in_ev:
 		plt.ylabel(r'$E \,(eV)$',fontsize=label_size)
 	else:
