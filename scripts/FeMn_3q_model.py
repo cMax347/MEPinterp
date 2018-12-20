@@ -140,7 +140,16 @@ class FeMn_3q_model:
 						if (	m+1==old_m and n+1==old_n ):
 							exists	=	(	np.linalg.norm(old_r-new_r)		<	1e-2)
 							
-						if(exists):	break	
+						if(exists):	
+							#	set numerical noise to zero
+							if np.abs(old_t[5]) < 1e-15:
+								old_t[5]	=	0.0
+							if np.abs(old_t[6]) < 1e-15:
+								old_t[6]	=	0.0
+							#	exit loop over self.tHopp
+							break	
+					
+
 					#
 					#
 					if(exists):
