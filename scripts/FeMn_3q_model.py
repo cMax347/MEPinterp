@@ -485,7 +485,7 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	print("[get_FeMn3q_tb]:	started..  FeMn3q model setup at " +			datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
 	#
 	#	READ INPUT FILE
-	test_model		=	FeMn_3q_model(fpath, True)
+	test_model		=	FeMn_3q_model(fpath, verbose)
 	#
 	#
 	#	HOPPING
