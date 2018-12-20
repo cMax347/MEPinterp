@@ -142,10 +142,10 @@ class FeMn_3q_model:
 							
 						if(exists):	
 							#	set numerical noise to zero
-							if np.abs(old_t[5]) < 1e-15:
+							if np.abs(old_t[5]) < 1e-14:
 								self.v_print("[tHopp_fill_zeros]: NOTE  {0:.16e} will be set to zero!".format(old_t[5]))
 								old_t[5]	=	0.0
-							if np.abs(old_t[6]) < 1e-15:
+							if np.abs(old_t[6]) < 1e-14:
 								self.v_print("[tHopp_fill_zeros]: NOTE  {0:.16e} will be set to zero!".format(old_t[6]))
 								old_t[6]	=	0.0
 							#	exit loop over self.tHopp
