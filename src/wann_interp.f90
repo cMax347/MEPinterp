@@ -72,7 +72,6 @@ module wann_interp
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		
 		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
-		integer													::	n,m
 		!
 		!
 								allocate(	U_k(			size(H_real,1),		size(H_real,2)		)		)		
@@ -91,7 +90,7 @@ module wann_interp
 		!
 		!debug
 		if(debug_mode)	then
-			call check_velo(U_k, H_ka)
+			if(allocated(H_ka))	call check_velo(U_k, H_ka)
 			call write_eig_binary(kpt_idx,	U_k)
 			!	call write_velo(kpt_idx, H_ka)
 			!	
