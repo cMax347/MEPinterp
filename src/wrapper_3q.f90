@@ -20,7 +20,8 @@ module wrapper_3q
 		complex(dp),	allocatable,	intent(inout)		::	H_dp(:,:),	V_dp(:,:,:)
 		complex(sp),	allocatable							::	H_sp(:,:),	vx_sp(:,:), vy_sp(:,:),	vz_sp(:,:), &
 																conn_dummy(:,:,:), curv_dummy(:,:,:)
-		integer												::	num_wann, row, clm, n, m	
+		integer												::	num_wann, row, clm, n, m, x
+		real(dp)											::	single_prec
 		!
 		!
 		!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
@@ -61,16 +62,32 @@ module wrapper_3q
 		!			ALSO SETUP VELOCITIES												  |
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		call init_ham(	real(rel_kpt_dp,sp), 	num_wann,	H_sp, 	vx_sp, vy_sp, vz_sp	)
+
+
+
+
 		!
 		!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^				
 		!			CONVERT SINGLE TO DOUBLE												 |
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		!		jan seems to use atomic units, however energies are in (eV) ?!
 		!
-		H_dp				=	real(	 H_sp(:,:)	,dp) 	/	aUtoEv
-		V_dp(	1	,:,:)	=	real(	vx_sp(:,:)	,dp)	/	aUtoEv
-		V_dp(	2	,:,:)	=	real(	vy_sp(:,:)	,dp)	/	aUtoEv
-		V_dp(	3	,:,:)	=	real(	vz_sp(:,:)	,dp)	/	aUtoEv
+		H_dp				=	 H_sp(:,:) 	/	aUtoEv
+		V_dp(	1	,:,:)	=	vx_sp(:,:)	/	aUtoEv
+		V_dp(	2	,:,:)	=	vy_sp(:,:)	/	aUtoEv
+		V_dp(	3	,:,:)	=	vz_sp(:,:)	/	aUtoEv
+		!
+		!
+		!	try to avoid 1e-9 hoppings in the hamiltonian (allows for better comparability)
+		single_prec		=	1e-8_dp
+		do m = 1, size(H_dp,2)
+			do n = 1, size(H_dp,1)
+				if(		abs(	H_dp(n,m)	) 		< 	single_prec)			H_dp(n,m)	=	cmplx(0.0_dp,0.0_dp,dp)
+				do x = 1, 3
+					if(	abs(	V_dp(x,n,m)	)		<	single_prec)			V_dp(x,n,m)	=	cmplx(0.0_dp,0.0_dp,dp)
+				end do
+			end do
+		end do
 		!
 		!
 	end subroutine

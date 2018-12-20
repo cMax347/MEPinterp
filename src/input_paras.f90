@@ -4,11 +4,7 @@ module input_paras
 	use mpi
 #endif
 	use matrix_math,				only:		crossP
-<<<<<<< HEAD
-	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv, kBoltz_Eh_K
-=======
 	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv
->>>>>>> develop
 	use mpi_comm,					only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
 	use k_space,					only:		set_recip_latt, set_mp_grid
 
