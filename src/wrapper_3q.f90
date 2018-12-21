@@ -9,6 +9,11 @@ module wrapper_3q
 	private
 	public					::		get_ham
 
+	interface rm_num_noise
+        module procedure   d_zet_zero
+        module procedure   z_zet_zero
+    end interface rm_num_noise
+
 
 	contains
 
@@ -82,9 +87,10 @@ module wrapper_3q
 		single_prec		=	1e-8_dp
 		do m = 1, size(H_dp,2)
 			do n = 1, size(H_dp,1)
-				if(		abs(	H_dp(n,m)	) 		< 	single_prec)			H_dp(n,m)	=	cmplx(0.0_dp,0.0_dp,dp)
+				call rm_num_noise(		H_dp(	n,m)	)
+				!
 				do x = 1, 3
-					if(	abs(	V_dp(x,n,m)	)		<	single_prec)			V_dp(x,n,m)	=	cmplx(0.0_dp,0.0_dp,dp)
+					call rm_num_noise(	V_dp(x,	n,m)	)
 				end do
 			end do
 		end do
@@ -94,6 +100,32 @@ module wrapper_3q
 
 
 
+
+
+
+
+
+
+	pure subroutine z_zet_zero(	z)
+		complex(dp),	intent(inout)		::	z
+		real(dp)							::	re_z,	im_z	
+		!
+		re_z	=	real(	z	,dp	)
+		im_z	=	aimag(	z		)
+		!
+		call d_zet_zero(	re_z	)
+		call d_zet_zero(	im_z	)
+		!
+		z	=	cmplx(re_z, im_z, dp)
+		!
+	end subroutine
+
+
+	pure subroutine d_zet_zero(	d)
+		real(dp),	intent(inout)			::	d
+		!
+		if(	abs(d)	< 1e-8_dp)		d	=	0.0_dp
+	end subroutine
 
 
 
