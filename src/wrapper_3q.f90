@@ -82,6 +82,13 @@ module wrapper_3q
 		V_dp(	2	,:,:)	=	vy_sp(:,:)	/	aUtoEv
 		V_dp(	3	,:,:)	=	vz_sp(:,:)	/	aUtoEv
 		!
+		!	
+		!	make Ham hermitian
+		do m = 1, size(H_dp,2)
+			do n = 1, size(H_dp,1)
+				if( n > m ) 	H_dp(n,m)	=	conjg(	H_dp(m,n)	)	
+			end do
+		end do
 		!
 		!	try to avoid 1e-9 hoppings in the hamiltonian (allows for better comparability)
 		single_prec		=	1e-8_dp
