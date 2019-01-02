@@ -749,6 +749,9 @@ module file_io
 			do n = 1, f_nWfs**2
 				read(mpi_unit,*)	index(1:2), compl1(1:2)
 				!
+				if (abs(compl1(1))	< 1e-7_dp) 	compl1(1)	=	0.0_dp
+				if (abs(compl1(2))	< 1e-7_dp) 	compl1(2)	=	0.0_dp
+				!
 				tHopp(index(1),index(2), cell)	= cmplx(	compl1(1), compl1(2),	dp		)
 			end do
 		end do
@@ -864,6 +867,8 @@ module file_io
 				end if
 				!
 				!fill Hamiltonian
+				if( abs(real2(1))< 1e-7_dp)	real2(1)	=	0.0_dp
+				if( abs(real2(2))< 1e-7_dp)	real2(2)	=	0.0_dp
 				H_mat(m,n, sc)	= cmplx(	real2(1),	real2(2)	, dp	)
 			end do
 		end do
