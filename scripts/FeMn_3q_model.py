@@ -228,9 +228,9 @@ class FeMn_3q_model:
 			self.tHopp.append(	[ 	0., 0., 0.,			i+5, i+5, 	-	self.lmbda	* costheta[i] 						, 	.0			]				)
 			#
 			self.tHopp.append(	[	0., 0., 0.,			i+1, i+5,			re_upDw										, 	im_upDw		]				)
-			print("[FeMn_3q_model/setup_Ham]:	 exchange - added: "+str(self.tHopp[-1]))
+			#print("[FeMn_3q_model/setup_Ham]:	 exchange - added: "+str(self.tHopp[-1]))
 			self.tHopp.append(	[	0., 0., 0., 		i+5, i+1,			re_upDw										, - im_upDw		]				)
-			print("[FeMn_3q_model/setup_Ham]: cc exchange - added: "+str(self.tHopp[-1]))
+			#print("[FeMn_3q_model/setup_Ham]: cc exchange - added: "+str(self.tHopp[-1]))
 		self.R_nn_lst.append([0.,0.,0.])
 
 		nExchange		= 	4*4
