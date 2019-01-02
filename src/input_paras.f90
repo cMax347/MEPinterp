@@ -181,7 +181,7 @@ module input_paras
 				write(*,*)					"	eFermi=",eFermi*aUtoEv," (eV)"
 				write(*,*)					"	T_kelvin=",T_kelvin," (K)"
 				write(*,*)					"	eta=",eta*aUtoEv," (eV)"
-				write(*,*)					"	i_eta_smr=",i_eta_smr
+				write(*,*)					"	i_eta_smr=",i_eta_smr," (Hartree)"
 				write(*,*)					"*********************************************************************************"		
 				!
 				!make the output folder
