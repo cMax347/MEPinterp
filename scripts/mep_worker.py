@@ -54,7 +54,7 @@ class MEP_worker:
 		#
 		#
 		print('************new calculation****************[   '+str(datetime.datetime.now())+'  ]')
-		print('phi='+str(phi))
+		#print('phi='+str(phi))
 		print('mp_grid='+str(mp_grid))
 		#make new folder
 		try:
@@ -87,7 +87,7 @@ class MEP_worker:
 
 	#desctructor
 	def __del__(self):
-		print('done with calculation for phi='+str(self.phi) )
+		print('done with calculation')
 		print('--------------------------------------------------------')
 		print('\n\n\n\n')
 		try:
@@ -105,7 +105,7 @@ class MEP_worker:
 		print('----current parameters:--------------')
 		print('the root directory is',self.root_dir)
 		print('the working directory is ',self.work_dir)
-		print('phi= ',self.phi)
+		#print('phi= ',self.phi)
 		print(' ')
 
 	
