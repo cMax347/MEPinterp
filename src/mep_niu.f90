@@ -1,124 +1,114 @@
 module mep_niu
-	!this module uses a semiclassic approach to calculate the first ordrer correction
-	!	to the polariztion induced by a perturbive magnetic field
-	! 	see Niu PRL 112, 166601 (2014)
-	!use omp_lib
-	use parameters,		only:	myLeviCivita,									&
-								dp, aUtoAngstrm, auToTesla,	machineP,			&
-								mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
-								seed_name,										&
-								a_latt, valence_bands			
-	use file_io,		only:	read_k_mesh, read_tb_basis
-	use wann_interp,	only:	wann_interp_ft, velo_interp
-	use matrix_math,	only:	zheevd_wrapper
+	use constants,		only:		dp
+	use input_paras,	only:		kubo_tol,	valence_bands
+	use matrix_math,	only:		my_Levi_Civita,			& 
+									convert_tens_to_vect
 
 	implicit none
 
-
-
 	private
-	public ::			mep_interp
+	public			::		mep_niu_CS,		&
+							mep_niu_IC,		&
+							mep_niu_LC	
 
-	real(dp),		parameter 	::	elemCharge	 	= 1.6021766208 * 1e-19_dp  *1e+6_dp! in  mu Coulomb
+	save
 
-	integer									::		num_kpts
-	real(dp),		dimension(3,3)			::		real_lattice, recip_lattice
-	real(dp),		allocatable				::		kpt_latt(:,:)
+contains
 
-
-	contains
-
-
-
-!TODO CHECK INDEXING OF VELO ACONN FCURV AFTER THEY HAVE BEEN CALCULATED
-
-
-!public
-	subroutine	mep_interp(	mep_tens_tot)
-		real(dp),		intent(out)			::	mep_tens_tot(3,3)
 		!
-		real(dp)							::	mep_tens_k(3,3)	
-		integer								::	ki
-		complex(dp),	allocatable			::	H_real(:,:,:), r_mat(:,:,:,:), 			&
-												U_k(:,:), H_ka(:,:,:), A_ka(:,:,:), 	&
-												v_k(:,:,:)
-		real(dp),		allocatable			::	en_k(:), R_vect(:,:)
-
-		
-		!get interp mesh
-		call read_k_mesh(seed_name, kpt_latt)
-		num_kpts	= 	size(kpt_latt,2)
-
-		!get real space matrice(s)
-		call read_tb_basis(seed_name, R_vect, H_real, r_mat)
-
-		!allocate k-space
-		allocate(	U_k(		size(H_real,1),	size(H_real,2)	)	)
-		allocate(	en_k(					size(H_real,2)		)	)
-		allocate(	H_ka(	3,	size(H_real,1),	size(H_real,2)	)	)
-		allocate(	v_k(	3,	size(H_real,1),	size(H_real,2)	)	)
-		if(	allocated(r_mat)	)		allocate(	A_ka(	3,	size(r_mat,1),	size(r_mat,2)	)		)
-
-
-		!loop kpts
-		mep_tens_tot	=	0.0_dp
-		do ki = mpi_id + 1, num_kpts,	mpi_nProcs
+!MEP RESPONSES
+	pure function mep_niu_CS(A_ka, Om_kab) result(cs_tens)
+		complex(dp),	allocatable, 	intent(in)		::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		real(dp), 	allocatable							::	cs_tens(:,:,:)
+		complex(dp)										::	om_vect(3)
+		integer											::	n0, i
+		!
+		allocate(	cs_tens(3,3,valence_bands)	)
+		cs_tens	=	0.0_dp
+		if(	allocated(A_ka)		.and.		allocated(Om_kab)		)then
 			!
-			!interpolate
-			call wann_interp_ft(H_real, r_mat,  R_vect,	 kpt_latt(1:3,ki),	U_k,	H_ka, A_ka)	
-			!get energies
-			call zheevd_wrapper(U_k, en_k)
-			!get velos
-			call velo_interp(U_k, en_k, H_ka, A_ka, V_k)
-			!get MEP_tensor
-			mep_tens_k	=	0.0_dp
-			call calc_mep_tensor(V_k, en_k, mep_tens_k)
+			!	sum over valence
+			do n0 = 1, valence_bands
+				call convert_tens_to_vect(	Om_kab(:,:,n0,n0),		om_vect(:)	)
+				!cs_scal	= cs_scal +	 	0.5_dp  *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	om_vect(:)	)			)
+				do i = 1, 3
+					cs_tens(i,i,n0)	=	0.5_dp  *	dreal(	 dot_product(	A_ka(:,n0,n0)	,	om_vect(:)	)			)
+				end do
+			end do
 			!
-			!sum MEP over kpts
-			mep_tens_tot = mep_tens_tot + mep_tens_k
-		end do
-
-
+		end if
+		!
 		return
-	end subroutine
+	end function
 
 
-
-
-
-
-
-
-
-
-
-
-!private:
-	subroutine calc_mep_tensor(velo, En, mep_tens)
-		complex(dp),	intent(in)		::	velo(:,:,:)
-		real(dp),		intent(in)		::	En(:)
-		real(dp),		intent(out)		::	mep_tens(3,3)
-		real(dp)						::	F2(3,3), F3(3,3)
+	pure function mep_niu_LC(velo, En) result(F3)
+		!	LOCAL KUBO CONTRIBUTION
 		!
-		mep_tens	= 	0.0_dp		
-		!		
-		call get_F2(	velo, En, F2)
-		call get_F3(	velo, En, F3)
-		!
-		mep_tens 	=	F2 + F3
-		!
-		return 
-	end subroutine
-
-
-	subroutine get_F2(velo, En,	F2)
 		complex(dp),		intent(in)		::	velo(:,:,:)
 		real(dp),			intent(in)		::	En(:)
-		real(dp),			intent(out)		::	F2(3,3)
+		real(dp),			allocatable		::	F3(:,:,:)
+		integer								::	n0, n, neglected, tot, 		&
+												j, k, l
+		real(dp) 							::	pre_fact, velo_nom(3), en_denom
+		!
+		neglected	= 0
+		tot 		= 0
+		!
+		allocate(	F3(3,3,valence_bands)	)
+		F3	= 0.0_dp
+		do n0 = 1, valence_bands
+			!
+			!MIXING
+			do n = 1, size(velo,2)
+			 	if( n/= n0 )	then	
+			 		en_denom	=	(	en(n0) - en(n)	)**3
+			 		tot			= 	tot + 1
+			 		if(abs(en_denom) > kubo_tol) then 
+			 			!
+						!TRIPLE PRODUCT			 		
+			 			do j = 1, 3
+			 				do k = 1, 3
+			 					do l = 1, 3
+			 						pre_fact	=	real(			my_Levi_Civita(j,k,l)						,dp)	
+			 						!
+			 						!	
+			 						if(		 abs(pre_fact) 	> 1e-1_dp	) then
+			 							velo_nom(:)	=	real(		velo(:,n0,n) * velo(k,n,n0) * velo(l,n0,n0)		, dp)
+			 							F3(:,j,n0)		= 	F3(:,j,n0) 	+	pre_fact   * velo_nom(:)	/	en_denom	
+			 						end if
+			 						!
+			 					end do
+			 				end do
+			 			end do
+			 		else
+			 			neglected = neglected + 1
+			 		end if
+			 	end if
+			 	!
+			 	!
+			end do
+		end do
+		!
+		return
+	end function
+
+
+	pure function mep_niu_IC(velo, En) result(F2)
+		!	ITINERANT KUBO CONTRIBUTION
+		!
+		complex(dp),		intent(in)		::	velo(:,:,:)
+		real(dp),			intent(in)		::	En(:)
+		real(dp),			allocatable		::	F2(:,:,:)
 		integer								::	n0, m, n, 		&
-												i, j, k, l
-		complex(dp)							::	velo_nom
-		real(dp) 							::	en_denom
+												j, k, l,		&
+												neglected, tot
+		real(dp) 							::	pre_fact, velo_nom(3), en_denom
+		!
+		neglected	= 0
+		tot 		= 0
+		!
+		allocate(	F2(3,3,valence_bands)	)
 		!
 		F2	= 0.0_dp
 		do n0 = 1, valence_bands
@@ -126,283 +116,42 @@ module mep_niu
 			!MIXING
 			do m = 1, size(velo,2)
 				do n = 1, size(velo,2)
-				 	if( n/= n0 .and. m/n0 )	then
-				 		!
-				 		!TRIPLE PRODUCT
-				 		do j = 1, 3
-				 			do i = 1, 3
-				 				do l = 1, 3
-				 					do k = 1, 3
-				 						velo_nom	=	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)
+				 	if( n/= n0 .and. m/=n0 )	then
+				 		en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
+				 		tot 		= 	tot + 1
+				 		if( abs(en_denom) > kubo_tol) then
+				 			!
+				 			!TRIPLE PRODUCT
+				 			do j = 1, 3
+				 				do k = 1, 3
+				 					do l = 1, 3
+				 						pre_fact	= 	- real(my_Levi_Civita(j,k,l),dp)
 				 						!
-				 						en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
 				 						!
-				 						F2(i,j)	= F2(i,j) - real(myLeviCivita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
+				 						if(		 abs(pre_fact) 	> 1e-1_dp	) then
+											velo_nom(:)	=	real(		velo(:,n0,n) * velo(k,n,m) * velo(l,m,n0)	, dp)
+				 							F2(:,j,n0)	= 	F2(:,j,n0)		+	pre_fact  * velo_nom(:)	/	en_denom	
+				 						end if
+				 						!
 				 					end do
 				 				end do
 				 			end do
-				 		end do
-				 		!
-				 		!
+				 		else
+				 			neglected	= neglected + 1
+				 		end if
 				 	end if
+				 	!
+				 	!
 				end do
 			end do
-			!
-			!
 		end do
-		return
-	end subroutine
-
-
-
-
-	subroutine get_F3(velo, En,	F3)
-		complex(dp),		intent(in)		::	velo(:,:,:)
-		real(dp),			intent(in)		::	En(:)
-		real(dp),			intent(out)		::	F3(3,3)
-		integer								::	n0, n, 		&
-												i, j, k, l
-		complex(dp)							::	velo_nom
-		real(dp) 							::	en_denom
 		!
-		F3	= 0.0_dp
-		do n0 = 1, valence_bands
-			!
-			!MIXING
-			do n = 1, size(velo,2)
-			 	if( n/= n0 )	then
-					!
-					!TRIPLE PRODUCT			 		
-			 		do j = 1, 3
-			 			do i = 1, 3
-			 				do l = 1, 3
-			 					do k = 1, 3
-			 						velo_nom	=	velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)
-			 						!
-			 						en_denom	=	(	en(n0) - en(n)	)**3		
-			 						!
-			 						F3(i,j)	= F3(i,j) + real(myLeviCivita(j,k,l),dp) * dreal(	velo_nom	 )	/	en_denom	
-			 					end do
-			 				end do
-			 			end do
-			 		end do
-			 	end if
-			 	!
-			 	!
-			end do
-			!
-			!
-		end do
 		return
-	end subroutine
+	end function
 
 
 
-!old:
-!	subroutine	calcFirstOrdP(polQuantum, centiMet, Bext, prefactF3, Fcurv, Aconn, Velo, En, centers_F2, centers_F3, centers_F3_essin)
-!		!calculates the first order polarization p1 according to
-!		!	P'= -int_dk [0.5 (Curv.Velo)*B_ext + a']
-!		!
-!		!	returns centers in Angstroem
-!		!
-!		!
-!		real(dp),		intent(in)		::	polQuantum, centiMet, Bext(3), prefactF3, Fcurv(:,:,:,:), Aconn(:,:,:,:), En(:,:)		
-!		complex(dp),	intent(in)		::	Velo(:,:,:,:)			
-!		real(dp),		intent(out)		::  centers_F2(:,:), centers_F3(:,:), centers_F3_essin(:,:)
-!		!real(dp)						::	pnF2(3), pnF3(3)
-!		real(dp)						:: 	F2(3,3), F3(3,3), F2k(3,3), F3k(3,3), F3essin(3,3), F3essinK(3,3), sumF2(3), sumF3(3), &
-!											p2Test(3), p3Test(3),p3_essin_test(3), p2max, p3max, p2min, p3min, kpt(3)
-!		real(dp)						:: 	densCorr(3)
-!		integer							:: 	n, ki, kSize, ind, k2max, k3max, k2min, k3min
-!		character(len=12)				::	fname
-!		!
-!		kSize		= size(Velo,4)
-!		!
-!		if(	kSize == size(qpts,2)	)	fname = 'response.txt' 
-!		if(	kSize == size(kpts,2)	)	fname = 'interpol.txt'
-!		!
-!		write(*,*)"[calcFirstOrdP]: start calculating P' via semiclassic approach"
-!		write(*,'(a,f8.3,a,f8.3,a,f8.3,a)')"[calcFirstOrdP]: Bext=(",Bext(1)*auToTesla,", ",Bext(2)*auToTesla,", ",Bext(3)*auToTesla,") T"
-!		write(*,*)"[calcFirstOrdP]: will use ",size(Velo,3)," states"
-!
-!		centers_F2 			= 0.0_dp
-!		centers_F3 			= 0.0_dp
-!		centers_F3_essin 	= 0.0_dp
-!		
-!		!!!!$OMP PARALLEL DEFAULT(SHARED)  &
-!		!!!!$OMP PRIVATE(n, ki, densCorr, F2, F2k, F3, F3k, p2max, p2min, p3max, p3min, p2Test, p3Test)
-!		!!!!$OMP DO SCHEDULE(STATIC)
-!
-!
-!		open(unit=200,file=info_dir//'f2'//fname,action='write',status='replace')
-!		open(unit=300,file=info_dir//'f3'//fname,action='write',status='replace')
-!		open(unit=400,file=info_dir//'f3essin_'//fname,action='write',status='replace')
-!
-!		write(200,*)	"# f2 positional shift for each wf n, at each kpt"
-!		write(300,*)	"# f3 positional shift for each wf n, at each kpt"
-!		write(400,*)	"# f3 with the essin formalsism, flipped sign ?!"
-!
-!		write(200,*)	"# nStat | kpt(1:3) |	a_f2 (1:3,kpt)	(ang)"		
-!		write(300,*)	"# nStat | kpt(1:3) |	a_f3 (1:3,kpt)	(ang)"
-!		write(400,*)	"# nStat | kpt(1:3) |	a_f3 (1:3,kpt)	(ang)"
-!		
-!		write(200,*)	size(centers_F2,2)," ",kSize 
-!		write(200,*)	Bext(3)*auToTesla
-!		write(300,*)	size(centers_F3,2)," ",kSize
-!		write(300,*)	Bext(3)*auToTesla
-!		write(400,*)	size(centers_F3_essin,2)," ",kSize
-!		write(400,*)	Bext(3)*auToTesla
-!
-!
-!		do n = 1, size(centers_F2,2)
-!			F2 = 0.0_dp
-!			F3 = 0.0_dp
-!			F3essin	= 0.0_dp
-!			!
-!			k2max = -1
-!			k3max = -1
-!			k2min = -1
-!			k3min = -1
-!
-!			!GET RESPONSE MATRIX
-!			p2max	= 0.0_dp
-!			p3max	= 0.0_dp
-!			p2min	= 100.0_dp
-!			p3min	= 100.0_dp
-!
-!			do ki = 1, kSize		
-!				!
-!				!PHASE SPACE DENSITY CORRECTION
-!				densCorr(1:3)	= 0.5_dp * dot_product(		Fcurv(1:3,n,n,ki), Aconn(1:3,n,n,ki)	)		* Bext
-!				if( norm2(densCorr) > acc ) write(*,*)	"[calcFirstOrdP]: WARNING the densCorr is none zero, norm2(densCorr)=",norm2(densCorr)
-!				!
-!				!POSITIONAL SHIFT
-!				call getF2(n,ki,Velo,En, F2k)
-!				call getF3(prefactF3, n,ki,Velo,En, F3k)
-!				call getF3essin(prefactF3, n, ki, Velo, En, F3essinK)
-!				!sum over K
-!				F2 = F2 + F2k
-!				F3 = F3 + F3k
-!				F3essin = F3essin + F3essinK
-!				!
-!				!search for extrema
-!				p2Test = matmul(F2k,Bext)* aUtoAngstrm
-!				p3Test = matmul(F3k,Bext)* aUtoAngstrm
-!				p3_essin_test = matmul(F3essinK,Bext) * aUtoAngstrm
-!
-!				kpt = 0.0_dp
-!				if( kSize == size(qpts,2)	)	kpt(1:2) 	= qpts(1:2,ki)
-!				if( kSize == size(kpts,2)	)	kpt(1:2)	= kpts(1:2,ki)
-!				
-!				write(200,'(i3,a,i5,a,e16.9,a,e16.9,a,e16.9,a,e16.9,a,e16.9,a,e16.9)')	n," ",ki," ",kpt(1)," ",kpt(2)," ",kpt(3)," ",p2Test(1)," ",p2Test(2)," ",p2Test(3)
-!				write(300,'(i3,a,i5,a,e16.9,a,e16.9,a,e16.9,a,e16.9,a,e16.9,a,e16.9)')	n," ",ki," ",kpt(1)," ",kpt(2)," ",kpt(3)," ",p3Test(1)," ",p3Test(2)," ",p3Test(3)
-!				write(400,'(i3,a,i5,a,e16.9,a,e16.9,a,e16.9,a,e16.9,a,e16.9,a,e16.9)')	n," ",ki," ",kpt(1)," ",kpt(2)," ",kpt(3)," ",p3Test(1)," ",p3Test(2)," ",p3_essin_test(3)
-!
-!				if( norm2(p2Test) > p2max) then
-!					p2max = norm2(p2Test)
-!					k2max = ki
-!				else if (norm2(p2Test) < p2min) then
-!					p2min = norm2(p2Test)
-!					k2min = ki
-!				end if
-!				if( norm2(p3Test) > p3max) then
-!					p3max = norm2(p3Test)
-!					k3max = ki
-!				else if (norm2(p3Test) < p3min) then
-!					p3min = norm2(p3Test)
-!					k3min = ki
-!				end if
-!			end do
-!			!
-!			write(*,'(a,i2,a,i5,a,e13.4)')	"[calcFirstOrdP]: n=",n," largest F2 shift (at #kpt=",k2max,"): ",p2max, "(ang)"
-!			write(*,'(a,i2,a,i5,a,e13.4)')	"[calcFirstOrdP]: n=",n," smalles F2 shift (at #kpt=",k2min,"): ",p2min, "(ang)"
-!			write(*,'(a,i2,a,i5,a,e13.4)')	"[calcFirstOrdP]: n=",n," largest F3 shift (at #kpt=",k3max,"): ",p3max, "(ang)"
-!			write(*,'(a,i2,a,i5,a,e13.4)')	"[calcFirstOrdP]: n=",n," smalles F3 shift (at #kpt=",k3min,"): ",p3min, "(ang)"
-!			!NORMALIZE
-!			F2 = F2 / real(kSize,dp)
-!			F3 = F3  / real(kSize,dp)
-!			F3essin = F3essin / real(ksize,dp) 
-!		
-!			!APPLY MATRIX 
-!			centers_F2(:,n) = matmul(F2,Bext) * aUtoAngstrm
-!			centers_F3(:,n) = matmul(F3,Bext) * aUtoAngstrm
-!			centers_F3_essin(:,n) = matmul(F3essin,Bext) * aUtoAngstrm
-!			!
-!		end do
-!
-!
-!		close(200)
-!		close(300)
-!		close(400)
-!
-!
-!		!!!!$OMP END DO
-!		!!!!$OMP END PARALLEL
-!		!
-!
-!		do ind = 1, 3
-!			sumF2(ind) 	= sum( 	centers_F2(ind,:)		)  	* polQuantum *centiMet
-!			sumF3(ind)	= sum(	centers_F3(ind,:) 		)	* polQuantum *centiMet		
-!		end do
-!		!
-!		!PRINT F2
-!		write(*,*)															"[calcFirstOrdP]: F2 matrix contribution:"
-!		write(*,*)															" #state | 		<r>[Å]			| 		p[mu C / cm]"
-!		do n = 1, size(centers_F2,2)	
-!			write(*,'(i3,a,e13.4,a,e13.4,a,e13.4,a,a,e13.4,a,e13.4,a)')		n," | ", centers_F2(1,n),", ",centers_F2(2,n), ", ", centers_F2(3,n)," | ", &
-!																					" (",	centers_F2(1,n) * polQuantum * centiMet		,&
-!																					", ",	centers_F2(2,n) * polQuantum * centiMet		,")"
-!		end do
-!		write(*,'(a,e13.4,a,e13.4,a,e13.4,a)')								"sum | 						|	(", sumF2(1),", ",sumF2(2), ", ", sumF2(3),")."
-!		!
-!		!PRINT F3
-!		write(*,*)															"[calcFirstOrdP]: F3 matrix contribution:"
-!		write(*,*)															" #state | 		<r>[Å]			| 		p[mu C / cm]"
-!		do n = 1, size(centers_F3,2)	
-!			write(*,'(i3,a,e13.4,a,e13.4,a,e13.4,a,a,e13.4,a,e13.4,a)')		n," | ", centers_F3(1,n),", ",centers_F3(2,n),", ", centers_F3(3,n)," | ", &
-!																					" (",	centers_F3(1,n)*aUtoAngstrm * polQuantum * centiMet		, &
-!																					", ",	centers_F3(2,n)*aUtoAngstrm * polQuantum * centiMet		,")"
-!		end do
-!		write(*,'(a,e13.4,a,e13.4,a,e13.4,a)')								"sum | 						|	(", sumF3(1),", ",sumF3(2), ", ", sumF3(3),")."
-!		!
-!		!PRINT TOT
-!		write(*,*)															"[calcFirstOrdP] total first order pol:"
-!		write(*,'(a,e13.4,a,e13.4,a,e13.4,a)')								"p'= (",sumF2(1)+sumF3(1),", ",sumF2(2)+sumF3(2),", ",sumF2(3)+sumF3(3),") [mu C/ cm] "
-!
-!		!
-!		!DEBUG
-!		if(	kSize /= size(En,2)	)	 write(*,*)"[calcFirstOrdP]: WARNING Energy and velocities live on different k meshes!"
-!		!
-!		!
-!		return
-!	end subroutine
-
-
-
-!	subroutine	calcFmat(prefactF3, nZero,ki, Velo ,En, Fmat)
-!		!calculates the linear response F matrix for magnetic field perturbation
-!		!F is derived in the semiclassical wavepacket approach (again see Niu PRL 112, 166601 (2014))
-!		integer,		intent(in)		:: nZero, ki
-!		complex(dp),	intent(in)		:: Velo(:,:,:,:)  !V(3,nWfs,nWfs,nK)
-!		real(dp),		intent(in)		:: prefactF3, En(:,:)			!En(nK nWfs)
-!		real(dp),		intent(out)		:: Fmat(3,3)
-!		real(dp)						:: F2(3,3), F3(3,3)
-!		!
-!		Fmat	=	0.0_dp		
-!		call getF2(nZero, ki, Velo, En, F2)
-!		call getF3(prefactF3, nZero, ki, Velo, En, F3)
-!		!
-!		!
-!		Fmat	=	F2 + F3
-!		!
-!		return
-!	end subroutine
-
-
-
-
-
-
+end module mep_niu
 
 
 
@@ -457,8 +206,8 @@ module mep_niu
 !										Vtmp		= Velo(k,n,m,ki) * Velo(l,m,nZero,ki) * Velo(i,nZero,n,ki) 
 !										!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF2]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
 !										!MATRIX
-!										F2(i,j) 	= F2(i,j) +   real(myLeviCivita(j,k,l),dp) *  dreal( Vtmp )  / eDiff	
-!										!F2(i,j) 	= F2(i,j) +   myLeviCivita(j,k,l) *  dreal( Vtmp )  / eDiff	
+!										F2(i,j) 	= F2(i,j) +   real(my_Levi_Civita(j,k,l),dp) *  dreal( Vtmp )  / eDiff	
+!										!F2(i,j) 	= F2(i,j) +   my_Levi_Civita(j,k,l) *  dreal( Vtmp )  / eDiff	
 !									end do
 !								end do
 !								!
@@ -511,8 +260,8 @@ module mep_niu
 !								!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF3]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
 !								!
 !								!MATRIX
-!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(myLeviCivita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
-!								!F3(i,j) 	= F3(i,j) + prefactF3 * myLeviCivita(j,k,l) *	 dreal( Vtmp ) / eDiff
+!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(my_Levi_Civita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
+!								!F3(i,j) 	= F3(i,j) + prefactF3 * my_Levi_Civita(j,k,l) *	 dreal( Vtmp ) / eDiff
 !							end do								!
 !						end do
 !						!
@@ -562,8 +311,8 @@ module mep_niu
 !								!if( dimag(Vtmp) > 1e-10_dp ) write(*,*)	"[addF3]: none zero imag velo product: ",dimag(Vtmp),"; real part: ",dreal(Vtmp)
 !								!
 !								!MATRIX
-!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(myLeviCivita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
-!								!F3(i,j) 	= F3(i,j) + prefactF3 * myLeviCivita(j,k,l) *	 dreal( Vtmp ) / eDiff
+!								F3(i,j) 	= F3(i,j) + real(prefactF3,dp) * real(my_Levi_Civita(j,k,l),dp) *	 dreal( Vtmp ) / eDiff
+!								!F3(i,j) 	= F3(i,j) + prefactF3 * my_Levi_Civita(j,k,l) *	 dreal( Vtmp ) / eDiff
 !							end do								!
 !						end do
 !						!
@@ -576,8 +325,3 @@ module mep_niu
 !		!
 !		return
 !	end subroutine
-
-
-
-
-end module mep_Niu
