@@ -79,17 +79,22 @@ module wann_interp
 
 
 
-		!
+
+
 		!call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
-		if(debug_mode )	call check_W_gauge_herm(kpt_rel, U_k, H_ka, A_ka, Om_kab)
-		if(debug_mode)	call write_ham_binary(kpt_idx,	U_k)
+		if(debug_mode) then	
+			call write_ham_binary(kpt_idx,	U_k)
+			call check_W_gauge_herm(kpt_rel, U_k, H_ka, A_ka, Om_kab)
+		end if	
+
 		!
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
-		if(debug_mode)	call check_velo(U_k, H_ka)
+		!
+		!debug
 		if(debug_mode)	then
+			if(allocated(H_ka))	call check_velo(U_k, H_ka)
 			call write_eig_binary(kpt_idx,	U_k)
-
 			!	call write_velo(kpt_idx, H_ka)
 			!	
 			!			

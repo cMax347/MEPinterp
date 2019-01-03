@@ -53,15 +53,15 @@ class MEP_worker:
 		self.band_dir		= self.work_dir+'/bands'
 		#
 		#
-		print('************new calculation****************[   '+str(datetime.datetime.now())+'  ]')
-		print('phi='+str(phi))
-		print('mp_grid='+str(mp_grid))
+		print('[mep_worker]: ************new model system****************[   '+str(datetime.datetime.now())+'  ]')
+		#print('phi='+str(phi))
+		print('[mep_worker]: mp_grid='+str(mp_grid))
 		#make new folder
 		try:
 			os.makedirs(self.work_dir)
-			print('made dir '+self.work_dir)
+			print('[mep_worker]: made dir '+self.work_dir)
 		except OSError:
-			sys.exit('could not makedirs '+str(self.work_dir)	)
+			sys.exit('[mep_worker]: could not makedirs '+str(self.work_dir)	)
 
 
 		#copy executables to target
@@ -84,30 +84,12 @@ class MEP_worker:
 
 
 
-
-
-
-	#desctructor
-	def __del__(self):
-		print('done with calculation for phi='+str(self.phi) )
-		print('--------------------------------------------------------')
-		print('\n\n\n\n')
-		try:
-			os.rmdir(self.work_dir+'/raw')
-		except:
-			print('no "raw" dir found')
-		finally:
-			print('cleaned the working directory')
-
-
-
-
 	#atributes
 	def print_info(self):
-		print('----current parameters:--------------')
-		print('the root directory is',self.root_dir)
-		print('the working directory is ',self.work_dir)
-		print('phi= ',self.phi)
+		print('[mep_worker]: ----infos about current run:--------------')
+		print('[mep_worker]: the root directory is',self.root_dir)
+		print('[mep_worker]: the working directory is ',self.work_dir)
+		#print('phi= ',self.phi)
 		print(' ')
 
 	
@@ -123,7 +105,7 @@ class MEP_worker:
 			os.system('mpirun -np '+str(mpi_np)+' ./mepInterp > mepINTERPOLATION.log')
 			self.success = True
 		except:
-			print('calculation could not be executed')
+			print('[mep_worker]: calculation could not be executed')
 
 		os.chdir(self.root_dir)
 		print('['+str(datetime.datetime.now())+'] ...finished calculation')
@@ -185,7 +167,7 @@ class MEP_worker:
 		try:
 			os.mkdir(self.band_dir)
 		except OSError:
-			print('could not make directory "'+self.band_dir+'" ')
+			print('[mep_worker]: could not make directory "'+self.band_dir+'" ')
 		write_souza_tb_input(self.band_dir, self.phi, self.val_bands, self.mp_grid, 'T' )
 		#
 		#copy exectubales to target 
@@ -197,7 +179,7 @@ class MEP_worker:
 			copy(self.work_dir+'/inp_params_3q',	self.band_dir)
 		#
 		os.chdir(self.band_dir)
-		print('['+str(datetime.datetime.now())+']start BAND calculation....')
+		print('['+str(datetime.datetime.now())+';mep_worker]: start BAND calculation....')
 		#genearte the kpt file
 		os.system('./kptsgen.pl -l cub -k "Gamma 25 X 25 M 35 Gamma 25 R"')
 		print('generated kpt file')
@@ -205,22 +187,22 @@ class MEP_worker:
 
 		#run the bandstructure calculation
 		os.system('mpirun -np 4 ./mepInterp > mepBAND.log 2> mepBAND.err')
-		print('MEPinterp run completed')
+		print('[mep_worker]: MEPinterp run completed')
 
 		#make a plot
 		try:
 			plot_bandstruct('kpts', 'MEPout/eBands.dat', 'bands.pdf',	label_size=14, y_tick_size=12, plot_in_ev=False)
 		except:
-			print('WARNING creation of bandstructure plot failed')
+			print('[mep_worker]: WARNING creation of bandstructure plot failed')
 
 		
 		try:
 			os.rmdir(self.band_dir+'/raw')
 		except OSError:
-			print('could not remove "'+self.band_dir+'/raw", check for correct execution ')
+			print('[mep_worker]: could not remove "'+self.band_dir+'/raw", check for correct execution ')
 
 
 
 		os.chdir(self.root_dir)
-		print('['+datetime.datetime.now()+']...finished BAND plotting')
+		print('['+datetime.datetime.now()+';mep_worker]: ...finished BAND plotting')
 

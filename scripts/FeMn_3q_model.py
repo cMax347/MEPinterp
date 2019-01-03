@@ -140,7 +140,18 @@ class FeMn_3q_model:
 						if (	m+1==old_m and n+1==old_n ):
 							exists	=	(	np.linalg.norm(old_r-new_r)		<	1e-2)
 							
-						if(exists):	break	
+						if(exists):	
+							#	set numerical noise to zero
+							if np.abs(old_t[5]) < 1e-14:
+								self.v_print("[tHopp_fill_zeros]: NOTE  {0:.16e} will be set to zero!".format(old_t[5]))
+								old_t[5]	=	0.0
+							if np.abs(old_t[6]) < 1e-14:
+								self.v_print("[tHopp_fill_zeros]: NOTE  {0:.16e} will be set to zero!".format(old_t[6]))
+								old_t[6]	=	0.0
+							#	exit loop over self.tHopp
+							break	
+					
+
 					#
 					#
 					if(exists):
@@ -217,7 +228,9 @@ class FeMn_3q_model:
 			self.tHopp.append(	[ 	0., 0., 0.,			i+5, i+5, 	-	self.lmbda	* costheta[i] 						, 	.0			]				)
 			#
 			self.tHopp.append(	[	0., 0., 0.,			i+1, i+5,			re_upDw										, 	im_upDw		]				)
+			#print("[FeMn_3q_model/setup_Ham]:	 exchange - added: "+str(self.tHopp[-1]))
 			self.tHopp.append(	[	0., 0., 0., 		i+5, i+1,			re_upDw										, - im_upDw		]				)
+			#print("[FeMn_3q_model/setup_Ham]: cc exchange - added: "+str(self.tHopp[-1]))
 		self.R_nn_lst.append([0.,0.,0.])
 
 		nExchange		= 	4*4
