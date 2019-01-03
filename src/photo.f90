@@ -15,7 +15,7 @@ contains
 
 	pure function photo_2nd_cond(hw, phi_laser, e_fermi, T_kelvin, i_eta_smr, en_k, V_ka) result(phot_cond)
 		!
-		!	implementation of Yang et al., PRB 97 241118(R) (2018) 
+		!	implementation of Yang et al., PRB 97 241118(R) (2018)    EQ(1)
 		!	"PHOTOGALVANIC EFFECT IN WEYL SEMIMETALS FROM FIRST PRINCIPLES"
 		!
 		!		EQ.(1)		
