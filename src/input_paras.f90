@@ -36,7 +36,8 @@ module input_paras
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
-												hw, phi_laser, eFermi, T_kelvin, i_eta_smr
+												hw, phi_laser, 														&
+												N_eF, eF_min, eF_max, T_kelvin, i_eta_smr
 
 
 
@@ -61,9 +62,10 @@ module input_paras
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_gyro
+	integer						::	N_eF
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
-									kubo_tol,						&
-									hw, eFermi, T_kelvin			
+									kubo_tol, hw, 					&
+									eF_min, eF_max, T_kelvin			
 	complex(dp)					::	i_eta_smr, phi_laser
 
 
@@ -136,17 +138,24 @@ module input_paras
 				![mep]
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
 				call CFG_add_get(my_cfg,	"MEP%do_write_mep_bands"		,	do_write_mep_bands	,	"write mep tensor band resolved"	)
-				![Fermi]
-				call CFG_add_get(my_cfg,	"Kubo%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO"		)
-				call CFG_add_get(my_cfg,	"Kubo%hw"						,	hw					,	"energy of incoming light"			)
-				call CFG_add_get(my_cfg,	"Kubo%laser_phase"				,	laser_phase			,	"euler angle of phase shift of driving E-field")
-				call CFG_add_get(my_cfg,	"Kubo%eFermi"					,	eFermi				,	"set the Fermi energy"				)
-				call CFG_add_get(my_cfg,	"Kubo%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
-				call CFG_add_get(my_cfg,	"Kubo%eta_smearing"				,	eta					,	"smearing for optical conductivty"	)
 				!
+				![Fermi]
+				call CFG_add_get(my_cfg,	"Fermi%N_eF"					,	N_eF				,	"number of fermi energys to test"	)
+				call CFG_add_get(my_cfg,	"Fermi%eF_min"					,	eF_min				,	"minimum fermi energy( in eV)"		)
+				call CFG_add_get(my_cfg,	"Fermi%eF_max"					,	eF_max				,	"maximum fermi energy( in eV)"		)
+				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
+				call CFG_add_get(my_cfg,	"Fermi%eta_smearing"			,	eta					,	"smearing for optical conductivty"	)
+				call CFG_add_get(my_cfg,	"Fermi%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO formulas"	)
+				!
+				![Laser]
+				call CFG_add_get(my_cfg,	"Laser%hw"						,	hw					,	"energy of incoming light"			)
+				call CFG_add_get(my_cfg,	"Laser%laser_phase"				,	laser_phase			,	"euler angle of phase shift of driving E-field")
+
+
 				! 	unit conversion
 				hw			=	hw 		/ 	aUtoEv
-				eFermi		= 	eFermi	/	aUtoEv
+				eF_min		= 	eF_min	/	aUtoEv
+				eF_max		=	eF_max	/	aUtoEv
 				eta			=	eta		/	aUtoEv
 				!
 				!	derived constants
@@ -172,13 +181,16 @@ module input_paras
 				write(*,*)					"[mep]"
 				write(*,'(a,i4)')			"	val bands=",valence_bands
 				write(*,*)					"	do_write_mep_bands=",do_write_mep_bands
-				write(*,*)					"[Kubo] # E_h (Hartree)"
+				write(*,*)					"[Kubo]"
 				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
 				write(*,*)					"	kuboTol=",kubo_tol
 				write(*,*)					"	hw=",hw*aUtoEv," (eV)" 
 				write(*,*)					"	laser_phase= pi * ",laser_phase
 				write(*,*)					"	phi_laser( exp(i*laser_phase))=",phi_laser
-				write(*,*)					"	eFermi=",eFermi*aUtoEv," (eV)"
+				write(*,*)					"[Fermi]"
+				write(*,*)					"	n_eF=",n_eF
+				write(*,*)					"	eF_min=",eF_min*aUtoEv," (eV)"
+				write(*,*)					"	eF_max=",eF_max*aUtoEv," (eV)"
 				write(*,*)					"	T_kelvin=",T_kelvin," (K)"
 				write(*,*)					"	eta=",eta*aUtoEv," (eV)"
 				write(*,*)					"	i_eta_smr=",i_eta_smr," (Hartree\)"
@@ -218,6 +230,7 @@ module input_paras
 		if( input_exist) then
 			if(use_mpi) then
 				!ROOT BCAST
+				!						todo rewrite with the mpi_comm mpi_bcast_tens routines
 				call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
@@ -237,10 +250,13 @@ module input_paras
 				![KUBO]
 				call MPI_BCAST(		kubo_tol		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)	
 				call MPI_BCAST(		hw				,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-				call MPI_BCAST(		eFermi			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		phi_laser		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				![FERMI]
+				call MPI_BCAST(		N_eF			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		eF_min			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		eF_max			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		i_eta_smr		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-				call MPI_BCAST(		phi_laser		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			end if
 			!
 			!UNIT CELL VOLUME
