@@ -1,28 +1,15 @@
 module statistics
-	use constants, 		only:			dp, kBoltz_Eh_K
-
+	use constants, 		only:			dp, aUtoEv, kBoltz_Eh_K
+	!
 	implicit none
 
 	public					::			fd_stat,		fd_stat_deriv, 			&
-										fd_get_N_el, fd_count_el
+										fd_get_N_el
 	private
 
 contains
 
 
-	pure subroutine fd_count_el(en_k, eFermi, T_kelvin, el_count, sum_loc, n_el_min, n_el_max)
-		real(dp),		intent(in)					::		en_k(:), eFermi, T_kelvin
-		real(dp),		intent(out)					::		el_count
-		real(dp),		intent(inout)				::		sum_loc, n_el_min, n_el_max
-		!
-		el_count			=	fd_get_N_el(en_k, eFermi, T_kelvin)
-		sum_loc				=	sum_loc		+	el_count
-		!		!
-		if(	el_count	<	n_el_min	)		n_el_min	= 	el_count
-		if( el_count	>	n_el_max	)		n_el_max	=	el_count
-		!
-		return
-	end subroutine
 
 
 
@@ -33,7 +20,6 @@ contains
 		T_smear			=	kBoltz_Eh_K		*	T_kelvin
 		!
 		if(T_smear < 1e-6_dp ) T_smear = 1e-6_dp
-
 		!
 		fd_stat		 	= 	1.0_dp	/	(		1.0_dp	+	exp(	(e_band	- e_fermi)	/	(T_smear))				)
 		!
