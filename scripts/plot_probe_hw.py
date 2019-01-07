@@ -122,7 +122,7 @@ class HW_probe:
 		return 		mep_tens, mep_cs, mep_lc, mep_ic, ahc_tens, ahc_kubo_tens, ohc_kubo_tens, SeCnd_opt_tens, optA_tens, optS_tens
 
 
-	def save_attach_subData(		self, hw,
+	def save_attach_subData(		self, work_dir, hw,
 									mep_tens, mep_cs, mep_lc, mep_ic,	
 									ahc_tens, ahc_kubo_tens, ohc_kubo_tens,	
 									SeCnd_opt_tens, optA_tens, optS_tens
@@ -150,30 +150,30 @@ class HW_probe:
 		if len(ahc_tens)	is 3:
 			self.hw_ahc_data.append(				[hw, ahc_tens]			)
 		else:
-			print("[save_attach_subData]: 	WARNING  wrong ahc length in "+str(work_dir))
+			print("[save_attach_subData]: 	WARNING  wrong ahc length in "+					str(work_dir)		)
 		if len(ahc_kubo_tens) is 3:
 			self.hw_ahc_kubo_data.append(			[hw, ahc_kubo_tens]		)
 		else:
-			print("[save_attach_subData]: 	WARNING  wrong ahc kubo length in "+str(work_dir))
+			print("[save_attach_subData]: 	WARNING  wrong ahc kubo length in "+			str(work_dir)		)
 		if len(ohc_kubo_tens) is 3:
 			self.hw_ohc_data.append(				[hw, ohc_kubo_tens]		)
 		else:
-			print("[save_attach_subData]: 	WARNING  wrong ohc kubo length in "+str(work_dir))
+			print("[save_attach_subData]: 	WARNING  wrong ohc kubo length in "+			str(work_dir)		)
 		#--------------------------
 		#	OPTICAL
 		#
 		if len(SeCnd_opt_tens)	is 3:
 			self.hw_2ndPhoto_data.append(			[hw,	SeCnd_opt_tens]		)
 		else:
-			print("[save_attach_subData]: 	WARNING  wrong 2nd photo length in "+str(work_dir))
+			print("[save_attach_subData]: 	WARNING  wrong 2nd photo length in "+			str(work_dir)		)
 		if len(optA_tens)	is 3:
 			self.hw_optA_data.append(			[hw,	optA_tens]		)
 		else:
-			print("[save_attach_subData]: 	WARNING  wrong opt asymm tens length in "+str(work_dir))
+			print("[save_attach_subData]: 	WARNING  wrong opt asymm tens length in "+		str(work_dir)		)
 		if len(optS_tens)	is 3:
 			self.hw_optS_data.append(			[hw,	optS_tens]		)
 		else:
-			print("[save_attach_subData]: 	WARNING  wrong opt ssymm tens length in "+str(work_dir))
+			print("[save_attach_subData]: 	WARNING  wrong opt ssymm tens length in "+		str(work_dir)		)
 
 
 
@@ -200,7 +200,7 @@ class HW_probe:
 				print("[read_hw]: found subdir ="+str(entry.path)+' assoc. hw='+str(hw))
 				mep_tens, mep_cs, mep_lc, mep_ic,	ahc_tens, ahc_kubo_tens, ohc_kubo_tens,	SeCnd_opt_tens, optA_tens, optS_tens	=	self.read_subdirectory(work_dir)
 				#
-				self.save_attach_subData(	hw, mep_tens, mep_cs, mep_lc, mep_ic,	ahc_tens, ahc_kubo_tens, ohc_kubo_tens,	SeCnd_opt_tens, optA_tens, optS_tens	)
+				self.save_attach_subData( work_dir,	hw, mep_tens, mep_cs, mep_lc, mep_ic,	ahc_tens, ahc_kubo_tens, ohc_kubo_tens,	SeCnd_opt_tens, optA_tens, optS_tens	)
 				#
 				print("----------------------------------------------------------------------")
 				print("")
@@ -560,6 +560,10 @@ class HW_probe:
 		print("")	
 
 
+
+
+
+
 	def plot_opt(self):
 		print("^")
 		print("^")
@@ -567,6 +571,8 @@ class HW_probe:
 		print("		PLOT HALL LIKE")
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		print("[plot_opt]: 	WARNING this function is not implemented yet (ToDo!)	")
+		#		MAYBE JUST ADD THIS TO HALL LIKE, THEN ITS EASIER TO COMPARE ALL DATA!!!!!!
+		#
 
 	
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
