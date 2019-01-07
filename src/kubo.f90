@@ -149,7 +149,9 @@ contains
 			.or.	abs(i_eta_smr)		< 1e-5_dp	&	!)	'[kubo_opt_tens]:	WARNING i_eta_smr is very small: ', i_eta_smr
 			.or.	abs(T_kelvin)		< 1e-3_dp	&
 		)then
-			if(allocated(A_ka))	write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
+			if(allocated(A_ka))	then
+				write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
+			end if
 		else
 			if(allocated(A_ka)) then
 				opt_herm	=	get_hermitian(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
