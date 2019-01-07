@@ -14,6 +14,7 @@ module mpi_comm
 							!routines
 							mpi_ki_selector,						&
 							!mpi_init_glob,							&
+							mpi_bcast_tens,							&
 							mpi_reduce_tens
 
 
@@ -25,15 +26,20 @@ module mpi_comm
 !		module procedure z2_allo_init_glob
 !	end interface mpi_init_glob
 
+	interface mpi_bcast_tens
+		module procedure i0_mpi_bcast_tens
+	end interface
+
 	interface mpi_reduce_tens
 		module procedure i0_mpi_reduce_tens
+		module procedure d1_mpi_reduce_tens
 		module procedure d2_mpi_reduce_tens
 		module procedure d3_mpi_reduce_tens
 		module procedure z2_mpi_reduce_tens
 	end interface mpi_reduce_tens
 
 
-
+	
 
 
 
@@ -89,8 +95,29 @@ contains
 
 
 
+
 !private	interface subs
 	!
+!------------------------------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------------------------------------
+!
+!				mpi_bcast_tens INTERFACE
+!
+!			performs broadcast if more then single mpi thread available
+!------------------------------------------------------------------------------------------------------------
+
+	subroutine i0_mpi_bcast_tens(	i0)	
+		integer,					intent(inout)		::	i0
+		!
+		if(mpi_nProcs > 1 ) then
+			call MPI_BCAST(	i0,		1,		MPI_INTEGER,	mpi_root_id,	MPI_COMM_WORLD,		ierr			)
+			if( ierr /= 0)	stop  "[mpi_comm/i0_mpi_bcast_tens]: (MPI_BCAST) failed"
+		end if
+		!
+		return
+	end subroutine
+
 !------------------------------------------------------------------------------------------------------------
 !------------------------------------------------------------------------------------------------------------
 !------------------------------------------------------------------------------------------------------------
@@ -105,6 +132,7 @@ contains
 		!
 		if(mpi_nProcs > 1) then
 			call MPI_REDUCE(	loc_int,	glob_int,	1,	MPI_INTEGER,	MPI_SUM,	mpi_root_id,	MPI_COMM_WORLD, ierr)
+			if(ierr /= 0)	stop "[mpi_comm/i0_mpi_reduce_tens]: (MPI_REDUCE) failed"
 		else
 			glob_int = loc_int
 		end if
@@ -112,64 +140,89 @@ contains
 		return
 	end subroutine
 
+
+
+	subroutine d1_mpi_reduce_tens(	loc_tens, glob_tens)
+		real(dp),							intent(in)		::	loc_tens(:)
+		real(dp),		allocatable,		intent(inout)	::	glob_tens(:)
+		integer												::	package_size
+		!	
+		if(	mpi_id == mpi_root_id	)	allocate(	glob_tens(	size(loc_tens))		)
+		!
+		!
+		if(	mpi_nProcs >1) then
+			package_size	=	size(loc_tens)
+			call MPI_REDUCE(	loc_tens,	glob_tens,	package_size,	MPI_DOUBLE_PRECISION,	MPI_SUM, mpi_root_id, MPI_COMM_WORLD, ierr)
+			if(ierr /= 0)	stop "[mpi_comm/d1_mpi_reduce_tens]: (MPI_REDUCE) failed"
+		else
+			glob_tens	=	loc_tens
+		end if
+		!
+		return
+	end subroutine
+
+
 	subroutine d2_mpi_reduce_tens( loc_tens, glob_tens)	
-		real(dp),		allocatable,		intent(inout)	::	loc_tens(:,:)
+		real(dp),							intent(in)		::	loc_tens(:,:)
 		real(dp),		allocatable,		intent(inout)	::	glob_tens(:,:)
 		integer												::	package_size
 		!
-		if(	allocated(loc_tens)	)	then
-			allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2)	))
-			glob_tens=	0.0_dp
-
-			if(	mpi_nProcs > 1) then
-				package_size	=	size(loc_tens,1)	* size(loc_tens,2)
-				call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
-			else
-				glob_tens	=	loc_tens
-			end if
+		allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2)	))
+		glob_tens=	0.0_dp
+		!
+		!
+		if(	mpi_nProcs > 1) then
+			package_size	=	size(loc_tens,1)	* size(loc_tens,2)
+			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
+			if(ierr /= 0)	stop "[mpi_comm/d2_mpi_reduce_tens]: (MPI_REDUCE) failed"
+		else
+			glob_tens	=	loc_tens
 		end if
+		!
 		!
 		return
 	end subroutine	
 
 
 	subroutine d3_mpi_reduce_tens( loc_tens, glob_tens)	
-		real(dp),		allocatable,		intent(inout)	::	loc_tens(:,:,:)
+		real(dp),							intent(in)		::	loc_tens(:,:,:)
 		real(dp),		allocatable,		intent(inout)	::	glob_tens(:,:,:)
 		integer												::	package_size
 		!
-		if(	allocated(loc_tens)	)	then
-			allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2), size(loc_tens,3)	))
-			glob_tens	= 0.0_dp
-			!
-			if( mpi_nProcs > 1) then
-				package_size	=	size(loc_tens,1)	* size(loc_tens,2) * size(loc_tens,3)
-				call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
-			else
-				glob_tens	=	loc_tens
-			end if
+		allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2), size(loc_tens,3)	))
+		glob_tens	= 0.0_dp
+		!
+		!
+		if( mpi_nProcs > 1) then
+			package_size	=	size(loc_tens,1)	* size(loc_tens,2) * size(loc_tens,3)
+			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
+			if(ierr /= 0)	stop "[mpi_comm/d3_mpi_reduce_tens]: (MPI_REDUCE) failed"
+		else
+			glob_tens	=	loc_tens
 		end if
+		!
 		!
 		return
 	end subroutine	
 
 
 	subroutine z2_mpi_reduce_tens( loc_tens, glob_tens)	
-		complex(dp),		allocatable,		intent(inout)	::	loc_tens(:,:)
+		complex(dp),							intent(in)		::	loc_tens(:,:)
 		complex(dp),		allocatable,		intent(inout)	::	glob_tens(:,:)
 		integer													::	package_size
 		!
-		if(	allocated(loc_tens)	)	then
-			allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2)	))
-			glob_tens	=	cmplx(	0.0_dp, 0.0_dp,	dp)
-			!
-			if( mpi_nProcs > 1) then
-				package_size	=	size(loc_tens,1)	* size(loc_tens,2)
-				call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_COMPLEX , MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
-			else
-				glob_tens	=	loc_tens
-			end if
+		allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2)	))
+		glob_tens	=	cmplx(	0.0_dp, 0.0_dp,	dp)
+		!
+		!
+		if( mpi_nProcs > 1) then
+			package_size	=	size(loc_tens,1)	* size(loc_tens,2)
+			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_COMPLEX , MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
+		if(ierr /= 0)	stop "[mpi_comm/z2_mpi_reduce_tens]: (MPI_REDUCE) failed"
+		else
+			glob_tens	=	loc_tens
 		end if
+		!
 		!
 		return
 	end subroutine	
@@ -178,108 +231,6 @@ contains
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-!
-!------------------------------------------------------------------------------------------------------------
-!------------------------------------------------------------------------------------------------------------
-!------------------------------------------------------------------------------------------------------------
-!
-!				allo_glob_arr INTERFACE
-!------------------------------------------------------------------------------------------------------------
-
-
-
-
-!	subroutine	d2_allo_init_glob(	loc_arr, glob_arr)
-!		!	loc:	sum over local k-pts 		(k-pts of this mpi node)
-!		!	glob:	sum over complete 1st BZ	(k-pts on all mpi nodes)
-!		real(dp),		allocatable,	intent(in)			::	loc_arr(:,:)
-!		real(dp),		allocatable,	intent(inout)		::	glob_arr(:,:)
-!		!
-!		if(allocated(loc_arr))		then
-!			!
-!			allocate(		glob_arr(	size(loc_arr,1),	size(loc_arr,2)					))
-!			if(mpi_id == mpi_root_id) 	then
-!				if(	 mpi_nProcs ==	1 ) then	!SERIAL MODE - cpy local to global
-!					glob_arr	=	loc_arr
-!				else if(mpi_nprocs > 1) then	!PARALLEL MODE - init global containers to zero
-!					glob_arr	=	0.0_dp
-!				else
-!					stop "[d_allo_glob_arr]:	detected negative mpi_nprocs!"
-!				end if
-!			end if
-!		end if
-!		!
-!		return
-!	end subroutine
-!
-!
-!	subroutine d3_allo_init_glob(	loc_arr, glob_arr)
-!		!	loc:	sum over local k-pts 		(k-pts of this mpi node)
-!		!	glob:	sum over complete 1st BZ	(k-pts on all mpi nodes)
-!		real(dp),		allocatable,	intent(in)			::	loc_arr(:,:,:)
-!		real(dp),		allocatable,	intent(inout)		::	glob_arr(:,:,:)
-!		!
-!		if(allocated(loc_arr))		then
-!			!
-!			allocate(	glob_arr(	size(loc_arr,1),	size(loc_arr,2), 	size(loc_arr,3)		))
-!			if(mpi_id == mpi_root_id) 	then
-!				if(	 mpi_nProcs ==	1 ) then	!SERIAL MODE - cpy local to global
-!					glob_arr	=	loc_arr
-!				else if(mpi_nprocs > 1) then	!PARALLEL MODE - init global containers to zero
-!					glob_arr	=	0.0_dp
-!				else
-!					stop "[d_allo_glob_arr]:	detected negative mpi_nprocs!"
-!				end if
-!			end if
-!		end if
-!		!
-!		return
-!	end subroutine
-!
-!
-!	subroutine	z2_allo_init_glob(	loc_arr, glob_arr)
-!		!	loc:	sum over local k-pts 		(k-pts of this mpi node)
-!		!	glob:	sum over complete 1st BZ	(k-pts on all mpi nodes)
-!		complex(dp),		allocatable,	intent(in)			::	loc_arr(:,:)
-!		complex(dp),		allocatable,	intent(inout)		::	glob_arr(:,:)
-!		!
-!		if(allocated(loc_arr))		then
-!			allocate(		glob_arr(	size(loc_arr,1),	size(loc_arr,2)						))
-!			!
-!			if(mpi_id == mpi_root_id) 	then
-!				if(	 mpi_nProcs ==	1 ) then	!SERIAL MODE - cpy local to global
-!					glob_arr	=	loc_arr
-!				else if(mpi_nprocs > 1) then	!PARALLEL MODE - init global containers to zero
-!					glob_arr	=	cmplx(	0.0_dp,	0.0_dp, dp)
-!				else
-!					stop "[d_allo_glob_arr]:	detected negative mpi_nprocs!"
-!				end if
-!			end if
-!		end if
-!		!
-!		return
-!	end subroutine
-!------------------------------------------------------------------------------------------------------------
-!------------------------------------------------------------------------------------------------------------
 
 
 
