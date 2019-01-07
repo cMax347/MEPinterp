@@ -100,7 +100,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 #		MEPinterp CFG FILE
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,			
-							kubo_tol, hw, laser_phase ,eFermi, Tkelvin,eta_smearing,  	 
+							kubo_tol, hw, laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,  	 
 							plot_bands,	debug_mode, do_gauge_trafo, R_vect_float	, do_write_velo,	do_write_mep_bands,								
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro		
 						):
@@ -135,25 +135,28 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 		outfile.write('    '	+	'doGaugeTrafo= '	+	str(do_gauge_trafo)		+	'\n')
 		outfile.write('    '	+	'mp_grid= '			+	str(mp_grid[0]) +' '+str(mp_grid[1])+' '+str(mp_grid[2])		+	'\n')
 		outfile.write('    '	+	'seed_name= '		+	seed_name			+	'\n')
-		#outfile.write('    '	+	'use_interp_kpt= '	+	use_interp_kpt		+	'\n')
-		#outfile.write('    '	+	'do_gauge_trafo= '	+	do_gauge_trafo		+	'\n')
 		outfile.write('\n')
 		#
 		#
 		outfile.write('[MEP]\n')
 		outfile.write('    '	+	'valence_bands= '	+	str(valence_bands)	+	'\n')
 		outfile.write('    '	+	'do_write_mep_bands= '+	str(do_write_mep_bands)+'\n')
+		outfile.write('\n')
 		#
 		#
-		outfile.write('[Kubo]\n')
-		outfile.write('    '	+	'kuboTol= '			+	str(kubo_tol)		+	'\n')
-		outfile.write('    '	+	'hw= '				+	str(hw)				+	'\n')
-		outfile.write('    '	+	'laser_phase= '		+	str(laser_phase)	+	'\n')
-		outfile.write('    '	+	'eFermi= '			+	str(eFermi)			+	'\n')
+		outfile.write('[Fermi]\n')
+		outfile.write('    '	+	'N_eF= '			+	str(N_eF)			+	'\n')
+		outfile.write('    '	+	'eF_min= '			+	str(eF_min)			+	'\n')
+		outfile.write('    '	+	'eF_max= '			+	str(eF_max)			+	'\n')
 		outfile.write('    '	+	'Tkelvin= '			+	str(Tkelvin)		+	'\n')
 		outfile.write('    '	+	'eta_smearing= '	+	str(eta_smearing)	+	'\n')
+		outfile.write('    '	+	'kuboTol= '			+	str(kubo_tol)		+	'\n')
+		outfile.write('\n')
 		#
-
+		#
+		outfile.write('[Laser]\n')
+		outfile.write('    '	+	'hw= '				+	str(hw)				+	'\n')
+		outfile.write('    '	+	'laser_phase= '		+	str(laser_phase)	+	'\n')
 
 
 
@@ -167,7 +170,7 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 #		PUBLIC FUNCTION
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_grid ,						
- 							kubo_tol, hw,laser_phase, eFermi, Tkelvin, eta_smearing, 	
+ 							kubo_tol, hw,laser_phase,  N_eF, eF_min, eF_max, Tkelvin, eta_smearing, 	
  							plot_bands='F', debug_mode='F' ,do_gauge_trafo='T',	 R_vect_float='F',
  							do_write_velo='F',	do_write_mep_bands='F',			
  							do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'		
@@ -200,14 +203,14 @@ def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_g
 		print("[write_tb_input]:	wrote "+target_path+'/'+seed_name+'_r.dat')
 
 	# now write the input files for postw90 & mepInterp
-	write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
-	print("[write_tb_input]: wrote pw90 input file")
+	#write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
+	#print("[write_tb_input]: wrote pw90 input file")
 
 	#
 	
 	#	write mepInterp
 	write_mepInterp_input(	 root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,	
-							kubo_tol, hw, laser_phase,eFermi, Tkelvin,eta_smearing, 							
+							kubo_tol, hw, laser_phase, N_eF, eF_min, eF_max, Tkelvin,eta_smearing, 							
 							plot_bands, debug_mode, do_gauge_trafo,	R_vect_float,
 							do_write_velo, do_write_mep_bands,							
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro							
