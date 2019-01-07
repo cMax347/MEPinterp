@@ -147,7 +147,7 @@ contains
 		real(dp),		allocatable,		intent(inout)	::	glob_tens(:)
 		integer												::	package_size
 		!	
-		if(	mpi_id == mpi_root_id	)	allocate(	glob_tens(	size(loc_tens))		)
+		allocate(	glob_tens(	size(loc_tens))		)
 		!
 		!
 		if(	mpi_nProcs >1) then
