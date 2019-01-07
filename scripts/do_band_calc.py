@@ -66,7 +66,7 @@ def do_band_calc(tb_model, use_pos_op, latt_sym_group='cub',kpath="Gamma 1000 X 
 	write_tb_input(	tb_model, use_pos_op, band_dir, phi, val_bands, mp_grid, 
 							kubo_tol=1e-3, 
 							hw=0.0,laser_phase=0, 
-							eFermi=0.0, Tkelvin=300.0, eta_smearing=3.0, 
+							 N_eF=3, eF_min=-3.0, eF_max=-.5, Tkelvin=300.0, eta_smearing=3.0, 
 							plot_bands='T', 
 							debug_mode='T',
 							do_gauge_trafo=gauge_velos, 

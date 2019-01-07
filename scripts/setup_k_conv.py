@@ -33,7 +33,7 @@ class conv_run:
 
 	def add_jobs(	self, 	
 					tb_model, use_pos_op, phi, val_bands, mp_dens_per_dim, 
-					kubo_tol, hw, laser_phase, eFermi, Tkelvin, eta_smearing,
+					kubo_tol, hw, laser_phase,  n_eF, eF_min, eF_max,  Tkelvin, eta_smearing,
 					debug_mode, do_gauge_trafo='T',	R_vect_float='F', do_write_velo='F',
 					do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 				):
@@ -47,7 +47,7 @@ class conv_run:
 
 
 			job = MEP_worker(	tb_model, use_pos_op, self.root_dir, work_dir, phi, val_bands, mp_grid, 
-								kubo_tol, hw, laser_phase, eFermi, Tkelvin, eta_smearing, 
+								kubo_tol, hw, laser_phase, n_eF, eF_min, eF_max, Tkelvin, eta_smearing, 
 								debug_mode, do_gauge_trafo,	R_vect_float,	do_write_velo,
 								do_mep, do_kubo, do_ahc, do_opt, do_gyro	
 							)
@@ -80,7 +80,9 @@ laser_phase		=	1.0
 
 
 #FERMI SMEARING
-eFermi			=	-3.0	
+n_eF			=	2 
+eF_min			=	0.0
+eF_max			=	0.0	
 Tkelvin			=	300.0	
 
 
@@ -113,7 +115,7 @@ for phi in phi_lst:
 	cluster_calc 	= 	conv_run(root_dir+'_phi'+str(phi))
 	#
 	cluster_calc.add_jobs(	tb_model, use_pos_op, phi,	val_bands,	mp_dens, 
-							kubo_tol, hw, laser_phase, eFermi, Tkelvin, eta_smearing, 
+							kubo_tol, hw, laser_phase,  n_eF, eF_min, eF_max,  Tkelvin, eta_smearing, 
 							debug_mode, do_gauge_trafo, R_vect_float, do_write_velo,
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro	
 						)

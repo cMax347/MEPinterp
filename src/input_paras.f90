@@ -181,7 +181,7 @@ module input_paras
 				write(*,*)					"[mep]"
 				write(*,'(a,i4)')			"	val bands=",valence_bands
 				write(*,*)					"	do_write_mep_bands=",do_write_mep_bands
-				write(*,*)					"[Kubo]"
+				write(*,*)					"[Fermi]"
 				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
 				write(*,*)					"	kuboTol=",kubo_tol
 				write(*,*)					"	hw=",hw*aUtoEv," (eV)" 

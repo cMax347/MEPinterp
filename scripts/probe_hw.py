@@ -14,7 +14,7 @@ class hw_job:
 #
 #
 	def __init__(		self, tb_model, use_pos_op,  phi_pi, val_bands, mp_grid, gamma_scale, kubo_tol, 	
-						laser_phase, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
+						laser_phase, n_eF, eF_min, eF_max, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
 						do_r_vect_float='T',
 						do_write_velo='F', do_write_mep_bands='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
@@ -27,7 +27,9 @@ class hw_job:
 		self.gamma_scale	=	gamma_scale
 		self.kubo_tol		= 	kubo_tol
 		self.laser_phase	=	laser_phase
-		self.eFermi			= 	eFermi 
+		self.n_eF			=	n_eF
+		self.eF_min			=	eF_min
+		self.eF_max			=	eF_max
 		self.Tkelvin		= 	Tkelvin 
 		self.eta_smearing	= 	eta_smearing
 		self.debug_mode		= 	debug_mode 
@@ -91,7 +93,9 @@ class hw_job:
 						self.kubo_tol,
 						hw,
 						self.laser_phase,
-						self.eFermi,
+						self.n_eF,
+						self.eF_min,
+						self.eF_max,
 						self.Tkelvin,
 						self.eta_smearing,
 						self.debug_mode,
@@ -175,7 +179,9 @@ tb_system = hw_job(		#parameter space probe density:
 								gamma_scale			=	1.0					,
 								kubo_tol			=	1e-5				, 
 								laser_phase			=	1.0					,
-								eFermi				=	-3.0				, 
+								n_eF				=	1					,
+								eF_min 				=	0.0					,
+								eF_max				=	0.0					,
 								Tkelvin				=	10.0				,
 								eta_smearing		=	0.1					, 
 								#additional fortran controllers
