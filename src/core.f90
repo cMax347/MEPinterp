@@ -718,7 +718,7 @@ contains
 	subroutine print_core_info(n_ki_loc, n_ki_glob, eF_min, delta_eF, eF_final_idx)
 		integer,		intent(in)		::	n_ki_loc, n_ki_glob
 		real(dp),		intent(in)		::	eF_min, delta_eF
-		integer,		intent(out)		::	eF_final_idx
+		integer,		intent(in)		::	eF_final_idx
 		character(len=60)				::	gauge_label
 		!
 		if(do_gauge_trafo)	then
