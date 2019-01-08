@@ -32,7 +32,8 @@ module core
 								seed_name,										&
 								kubo_tol,										&
 								hw, phi_laser, 									&
-								N_eF, eF_min, eF_max, T_kelvin, i_eta_smr
+								N_eF, eF_min, eF_max, T_kelvin, i_eta_smr,		&
+								out_dir
 	!
 	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
 								kspace_allocator,								&
@@ -146,8 +147,8 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get		FERMI ENERGY VECTOR
 		!----------------------------------------------------------------------------------------------------------------------------------
-		delta_eF 	=	(	eF_max -	eF_min	)	/	real(N_eF,dp)
-		!
+						delta_eF	=	0.0_dp
+		if ( N_eF > 1)	delta_eF 	=	(	eF_max -	eF_min	)	/	real(N_eF -1 ,dp)
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	loop	k-space
@@ -180,7 +181,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						do eF_idx = 1, 	N_eF
 							!
-							eF_tmp	=	eF_min	+	(eF_idx-1)	*	delta_eF
+							eF_tmp	=	eF_min	+	real(eF_idx-1,dp)	*	delta_eF
 							!
 							!----------------------------------------------------------------------------------------------------------------------------------
 							!	KUBO MEP (MEP with fermi_dirac)
@@ -235,8 +236,7 @@ contains
 							!	COUNT ELECTRONS
 							!----------------------------------------------------------------------------------------------------------------------------------
 							Ne_loc_sum(	eF_idx	)	=	Ne_loc_sum(	eF_idx )	+	fd_get_N_el(	en_k, eF_tmp,	T_kelvin)
-						end do
-						!
+						end do						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	WRITE VELOCITIES
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -306,7 +306,7 @@ contains
 		integer,							intent(in)			::	Ne_sys
 		real(dp)												::	opt_error, opt_ef, new_error, ne_sys_re
 		real(dp),		allocatable								::	Ne_glob_sum(:)
-		integer													::	eF_idx
+		integer													::	eF_idx, occ_file
 		!
 		!^^^^^^^^^^^^
 		!	get sum over (mpi-parallel) k-pts
@@ -318,11 +318,19 @@ contains
 		!
 		!
 		if(	mpi_id	==	mpi_root_id) 	then
-			write(*,*)		""
-			write(*,*)		""
+			write(*,*)		"~"
+			write(*,*)		"~"
+			write(*,*)		"~"
+			write(*,*)		"~"
 			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:^^^^^^^	FERMI SELECTOR   ^^^^^^^^^^^^^^^^^^^^^^^"
 			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:	select eF s.t. 	N_el(eF)= N_el "
 			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+			
+			!	
+			!^^^^^^^^^^^^
+			!	init file to write occupation numbers
+			open(newunit=occ_file, file = out_dir//'occ.dat', form='formatted', action='write',	access='stream', status='replace')
+
 
 			!^^^^^^^^^^^^
 			!	get initial minimum
@@ -334,43 +342,49 @@ contains
 			!
 			!^^^^^^^^^^^^
 			!	get optimal Fermi energy
-			write(*,'(a,i3,a,i5,a)')	"[#",mpi_id,";fermi_selector]: the system is expected to have	N_el,sys :=	",Ne_sys," electrons"
+			write(*,'(a,i3,a,i5,a)')	"[#",mpi_id,";fermi_selector]: the system is expected to have	N_el,sys :=	",Ne_sys," electron(s)"
 			write(*,'(a,i3,a,a)')		"[#",mpi_id,";fermi_selector]: now try to find ",&
 											"a optimal Fermi energy value s.t. N_el( e_fermi) == N_el,sys .. "
 			write(*,*)				"..."
-			if(	size(Ne_glob_sum) > 1	) then
-				write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:	#eF 	|	N_el(#eF)	|	abs( N_el(#eF) - N_el )	"
-				write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]: ----------------------------------------------------"
-				write(*,'(a,i3,a,i5,a,f8.4,a,a)')	"[#",mpi_id,";fermi_selector]:	",	&
-																		0,"		",2.0_dp,"		","(electrons in system)"
-				write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]: ----------------------------------------------------"
+			write(*,*)				"..."
+			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:	#eF 	| eF (eV)	 |  N_el(#eF)	|	error abs( N_el(#eF) - N_el )	"
+			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"
+			write(*,'(a,i3,a,i5,a,a,a,i5,a,a)')	"[#",mpi_id,";fermi_selector]:	",	&
+																	0,"	|	"," -  ","     |", valence_bands ," 		 |		","(electron(s) in system)"
+			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:         -------------------------------------------------------------    "
+			!
+			!
+			do eF_idx	=	1, size(	Ne_glob_sum	)
+				!
+				!	get new error
+				new_error	=	abs(	Ne_glob_sum(eF_idx)	-	ne_sys_re	)
+				!
+				!	output
+				write(occ_file,'(f16.8,a,f16.8)')	(eF_min 	+ 	(eF_idx - 1) * delta_eF		) *	 aUtoEv,"	",	Ne_glob_sum(eF_idx)
+				write(*,'(a,i3,a,i5,a,f12.6,a,f12.6,a,e16.8)',advance='no')	"[#",mpi_id,";fermi_selector]:	",	&
+										eF_idx," |	   ",  (eF_min + (eF_idx-1)* delta_eF)*aUtoEv,"  | ",Ne_glob_sum(eF_idx),"	 |	",new_error
+				!
+				!	optimal?!
+				if(		new_error		<	opt_error	) then
+					opt_idx		=	eF_idx
+					opt_error	=	new_error
+					opt_ef		=	eF_min + (opt_idx-1) * delta_eF
+					write(*,'(a)')	"		(new optimal fermi energy found!)"
+				else
+					write(*,*)	" "
+				end if
 				!
 				!
-				do eF_idx	=	1, size(	Ne_glob_sum	)
-					!
-					!
-					new_error	=	abs(	Ne_glob_sum(eF_idx)	-	ne_sys_re	)
-					write(*,'(a,i3,a,i5,a,f8.4,a,e16.8)',advance='no')	"[#",mpi_id,";fermi_selector]:	",	&
-																		eF_idx,"		",Ne_glob_sum(eF_idx),"		",new_error
-					!
-					if(		new_error		<	opt_error	) then
-						opt_idx		=	eF_idx
-						opt_error	=	new_error
-						opt_ef		=	eF_min + (opt_idx-1) * delta_eF
-						write(*,'(a,e8.4,a,e8.4,a)')	" (new optimal fermi energy=",opt_ef* aUtoEv,"eV found!, error=",opt_error,")!"
-					else
-						write(*,*)	" "
-					end if
-					!
-					!
-				end do
-				!
-				write(*,*)				"..."
-				write(*,*)	"[#",mpi_id,";fermi_selector]: determined optimal fermi energy eF_optimal=",&
-									opt_ef* aUtoEv," eV with abs( N_el(eF_optimal) - N_el )=",opt_error
-				write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-				write(*,*)	"\n"
-			end if
+			end do
+			!
+			close(occ_file)
+			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"		
+			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"		
+			write(*,*)				"..."
+			write(*,*)	"[#",mpi_id,";fermi_selector]: determined optimal fermi energy eF_optimal=",&
+								opt_ef* aUtoEv," eV with abs( N_el(eF_optimal) - N_el )=",opt_error
+			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+			write(*,*)	"\n"
 		end if
 		!
 		!
