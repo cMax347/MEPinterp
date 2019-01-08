@@ -221,6 +221,16 @@ contains
 		!	start at 1 convention
 		get_rel_kpt	=	get_rel_kpt + 1
 		!
+		!
+		!	debug check	
+		if	(					get_rel_kpt 		< 				0 						&
+					.or.		get_rel_kpt 		> 	mp_grid(1)*mp_grid(2)*mp_grid(3)	) 	then
+			!
+			stop "get_rel_kpt failed"
+		end if
+
+
+
 		return
 	end function
 

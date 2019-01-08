@@ -4,7 +4,7 @@ module input_paras
 	use mpi
 #endif
 	use matrix_math,				only:		crossP
-	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv
+	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv, kBoltz_Eh_K
 	use mpi_comm,					only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
 	use k_space,					only:		set_recip_latt, set_mp_grid
 
@@ -150,8 +150,7 @@ module input_paras
 				![Laser]
 				call CFG_add_get(my_cfg,	"Laser%hw"						,	hw					,	"energy of incoming light"			)
 				call CFG_add_get(my_cfg,	"Laser%laser_phase"				,	laser_phase			,	"euler angle of phase shift of driving E-field")
-
-
+				!
 				! 	unit conversion
 				hw			=	hw 		/ 	aUtoEv
 				eF_min		= 	eF_min	/	aUtoEv
@@ -163,37 +162,59 @@ module input_paras
 				phi_laser	=	cmplx(cos(pi_dp*laser_phase),sin(pi_dp*laser_phase),dp)
 				!
 				!
+				!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 				write(*,*)					""
 				write(*,*)					"**********************init_parameter interpretation******************************"
 				write(*,*)					"parallelization with ",mpi_nProcs," MPI threads"
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
-				write(*,*)					"[methods]"
-				write(*,*)					"	plot_bands=",plot_bands
-				write(*,*)					"	debug_mode=",debug_mode	
-				write(*,*)					"	do_write_velo=",do_write_velo	
+				write(*,*)					"[jobs]"
+				write(*,*)					"	plot_bands="		,	plot_bands
+				write(*,*)					"	debug_mode="		,	debug_mode	
+				write(*,*)					"	do_write_velo="		,	do_write_velo	
+				write(*,*)					"	do_mep"				,	do_mep
+				write(*,*)					"	do_kubo"			,	do_kubo	
+				write(*,*)					"	do_ahc"				,	do_ahc		
+				write(*,*)					"	do_opt"				,	do_opt
+				write(*,*)					"	do_gyro"			,	do_gyro	
+				!	------------------------------------------
 				write(*,*)					"[unitCell] # a_0 (Bohr radii)	"
-				write(*,*)					"	a1=",a1(1:3)
-				write(*,*)					"	a2=",a2(1:3)
-				write(*,*)					"	a3=",a3(1:3)
-				write(*,*)					"	a0=",a0
+				write(*,*)					"	a1="				,	a1(1:3)
+				write(*,*)					"	a2="				,	a2(1:3)
+				write(*,*)					"	a3="				,	a3(1:3)
+				write(*,*)					"	a0="				,	a0
+				!	------------------------------------------
 				write(*,*)					"[wannInterp]"
-				write(*,*)					"	seed_name=",seed_name
+				write(*,*)					"	do_gauge_trafo="	,	do_gauge_trafo
+				write(*,*)					"	mp_grid="			,	mp_grid(1:3)	
+				write(*,*)					"	seed_name="			,	seed_name
+				!	------------------------------------------
 				write(*,*)					"[mep]"
-				write(*,'(a,i4)')			"	val bands=",valence_bands
-				write(*,*)					"	do_write_mep_bands=",do_write_mep_bands
+				write(*,'(a,i4)')			"	val bands="			,	valence_bands
+				write(*,*)					"	do_write_mep_bands=",	do_write_mep_bands
+				!	------------------------------------------
 				write(*,*)					"[Fermi]"
-				write(*,*)					"	do_gauge_trafo=",do_gauge_trafo
-				write(*,*)					"	kuboTol=",kubo_tol
-				write(*,*)					"	hw=",hw*aUtoEv," (eV)" 
-				write(*,*)					"	laser_phase= pi * ",laser_phase
-				write(*,*)					"	phi_laser( exp(i*laser_phase))=",phi_laser
-				write(*,*)					"[Fermi]"
-				write(*,*)					"	n_eF=",n_eF
-				write(*,*)					"	eF_min=",eF_min*aUtoEv," (eV)"
-				write(*,*)					"	eF_max=",eF_max*aUtoEv," (eV)"
-				write(*,*)					"	T_kelvin=",T_kelvin," (K)"
-				write(*,*)					"	eta=",eta*aUtoEv," (eV)"
-				write(*,*)					"	i_eta_smr=",i_eta_smr," (Hartree\)"
+				write(*,*)					"	n_eF="				,	n_eF
+				write(*,*)					"	eF_min="			,	eF_min*aUtoEv							,	" (eV)"
+				write(*,*)					"	eF_max="			,	eF_max*aUtoEv							,	" (eV)"
+				write(*,'(a,f8.4,a)',advance='no')	"	T_kelvin="	,	T_kelvin								,	" (K)"
+				if(	T_kelvin < 1e-2_dp)	 then
+					write(*,'(a)')			"	WARNING , too small temperature value (<1e-2). WARNING Fermi Dirac will assume T=0 (stepfunction)"
+				else
+					write(*,*)				"thermal smearing :"	,	kBoltz_Eh_K *	T_kelvin / aUtoEv		,	" (eV)"
+				end if
+				write(*,*)					"	eta="				,	eta*aUtoEv								,	" (eV)"
+				write(*,*)					"	i_eta_smr="			,	i_eta_smr								,	" (Hartree)"
+				write(*,*)					"	kuboTol="			,	kubo_tol
+				!	------------------------------------------
+				write(*,*)					"[Laser]"
+				write(*,*)					"	hw="				,	hw*aUtoEv								,	" (eV)" 
+				write(*,*)					"	laser_phase_angle="	,	laser_phase								,	" *pi"
+				write(*,*)					"	laser phase="		,	phi_laser								, 	" exp( i * laser_phase_angle )"
+				!	------------------------------------------
+				!	------------------------------------------					
+				!	------------------------------------------
+				
+				
 				write(*,*)					"*********************************************************************************"		
 				!
 				!make the output folder

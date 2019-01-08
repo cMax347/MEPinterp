@@ -7,6 +7,12 @@ module statistics
 										fd_get_N_el
 	private
 
+
+	save
+
+
+	real(dp),	parameter	::			min_temp	= 1e-2_dp
+
 contains
 
 
@@ -17,16 +23,29 @@ contains
 		real(dp), 		intent(in)			::	e_band, e_fermi, T_kelvin
 		real(dp)							::	T_smear
 		!
-		T_smear			=	kBoltz_Eh_K		*	T_kelvin
+		fd_stat		=	0.0_dp
 		!
-		if(T_smear < 1e-6_dp ) T_smear = 1e-6_dp
+		if(	 T_kelvin > min_temp ) 				then
+			!
+			!	FINITE TEMPERATURE
+			T_smear			=	kBoltz_Eh_K		*	T_kelvin
+			fd_stat		 	= 	1.0_dp	/	(	1.0_dp	+	exp(	(e_band	- e_fermi)	/	(T_smear)))
+			!
+			!
+		else if(	e_band < e_fermi	)  		then
+			!	
+			!	ZERO TEMPERATURE
+			fd_stat	=	1.0_dp
+		end if
 		!
-		fd_stat		 	= 	1.0_dp	/	(		1.0_dp	+	exp(	(e_band	- e_fermi)	/	(T_smear))				)
 		!
 		return
 	end function
 
 
+
+
+	
 
 
 	real(dp) pure function fd_get_N_el(en_k, e_fermi, T_kelvin)
@@ -36,7 +55,7 @@ contains
 		fd_get_N_el	=	0.0_dp
 		!
 		do n = 1, size(en_k)
-			fd_get_N_el	=	fd_get_N_el	+	fd_stat(en_k(n),e_fermi, T_kelvin)
+			fd_get_N_el	=	fd_get_N_el	+	fd_stat(en_k(n),	e_fermi, T_kelvin)
 		end do
 		!
 		return
@@ -56,12 +75,15 @@ contains
         !	utility_w0gauss = 0.0_dp
        	!endif
        	!
+       	fd_stat_deriv		=	0.0_dp	
        	!
-       	T_smear			=	kBoltz_Eh_K		*	T_kelvin
-       	x				=	(e_band	- e_fermi) / T_smear
-       	!
-       	!
-       	fd_stat_deriv	=	1.00_dp 	/ 		(	2.00_dp + exp( x ) + exp( -x ) 			)
+       	if(	T_kelvin > min_temp	)								then
+       		T_smear			=	kBoltz_Eh_K		*	T_kelvin
+       		x				=	(e_band	- e_fermi) / T_smear
+       		!
+       		!
+       		fd_stat_deriv	=	1.00_dp 	/ 	(	2.00_dp + exp( x ) + exp( -x ) 	)
+       	end if
 
 		return
 	end function	
