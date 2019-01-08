@@ -617,7 +617,6 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------	
 		!
 		allocate(	Ne_loc_sum(	N_eF	)		)
-		write(*,*)	"[#",mpi_id,";allo_core_loc_arrays]	n_ef=",n_ef," and Ne_loc_sum)=",size(Ne_loc_sum)
 		Ne_loc_sum	=	0.0_dp
 		!
 		!
