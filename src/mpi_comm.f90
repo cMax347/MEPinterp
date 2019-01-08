@@ -15,7 +15,8 @@ module mpi_comm
 							mpi_ki_selector,						&
 							!mpi_init_glob,							&
 							mpi_bcast_tens,							&
-							mpi_reduce_tens
+							mpi_reduce_sum,						&
+							mpi_allreduce_sum
 
 
 
@@ -30,15 +31,17 @@ module mpi_comm
 		module procedure i0_mpi_bcast_tens
 	end interface
 
-	interface mpi_reduce_tens
-		module procedure i0_mpi_reduce_tens
-		module procedure d1_mpi_reduce_tens
-		module procedure d2_mpi_reduce_tens
-		module procedure d3_mpi_reduce_tens
-		module procedure z2_mpi_reduce_tens
-	end interface mpi_reduce_tens
+	interface mpi_reduce_sum
+		module procedure i0_mpi_reduce_sum
+		module procedure d1_mpi_reduce_sum
+		module procedure d2_mpi_reduce_sum
+		module procedure d3_mpi_reduce_sum
+		module procedure z2_mpi_reduce_sum
+	end interface mpi_reduce_sum
 
-
+	interface mpi_allreduce_sum
+		module procedure i0_mpi_allreduce_sum
+	end interface mpi_allreduce_sum
 	
 
 
@@ -98,6 +101,30 @@ contains
 
 !private	interface subs
 	!
+
+!------------------------------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------------------------------------
+!
+!				mpi_bcast_tens INTERFACE
+!
+!			performs broadcast if more then single mpi thread available
+!------------------------------------------------------------------------------------------------------------
+
+	subroutine i0_mpi_allreduce_sum( i0_loc, i0_glob)	
+		integer,					intent(in)		::	i0_loc
+		integer,					intent(out)		::	i0_glob
+		!
+		if(mpi_nProcs > 1 ) then
+			call MPI_ALLREDUCE(	i0_loc, 	i0_glob,		1,		MPI_INTEGER,	MPI_SUM,	MPI_COMM_WORLD,		ierr)
+			if( ierr /= 0)	stop  "[mpi_comm/i0_mpi_allreduce_sum]: (MPI_ALLREDUCE) failed"
+		else
+			i0_glob	=	i0_loc
+		end if
+		!
+		return
+	end subroutine
+
 !------------------------------------------------------------------------------------------------------------
 !------------------------------------------------------------------------------------------------------------
 !------------------------------------------------------------------------------------------------------------
@@ -122,17 +149,17 @@ contains
 !------------------------------------------------------------------------------------------------------------
 !------------------------------------------------------------------------------------------------------------
 !
-!				mpi_reduce_tens INTERFACE
+!				mpi_reduce_sum INTERFACE
 !
 !			performs reduction if source is allocated
 !------------------------------------------------------------------------------------------------------------
-	subroutine i0_mpi_reduce_tens(	loc_int,	glob_int)
+	subroutine i0_mpi_reduce_sum(	loc_int,	glob_int)
 		integer,							intent(in)		::	loc_int
 		integer,							intent(out)		::	glob_int		
 		!
 		if(mpi_nProcs > 1) then
 			call MPI_REDUCE(	loc_int,	glob_int,	1,	MPI_INTEGER,	MPI_SUM,	mpi_root_id,	MPI_COMM_WORLD, ierr)
-			if(ierr /= 0)	stop "[mpi_comm/i0_mpi_reduce_tens]: (MPI_REDUCE) failed"
+			if(ierr /= 0)	stop "[mpi_comm/i0_mpi_reduce_sum]: (MPI_REDUCE) failed"
 		else
 			glob_int = loc_int
 		end if
@@ -142,19 +169,19 @@ contains
 
 
 
-	subroutine d1_mpi_reduce_tens(	loc_tens, glob_tens)
+	subroutine d1_mpi_reduce_sum(	loc_tens, glob_tens)
 		real(dp),							intent(in)		::	loc_tens(:)
 		real(dp),		allocatable,		intent(inout)	::	glob_tens(:)
 		integer												::	package_size
 		!	
 		allocate(	glob_tens(	size(loc_tens,1))		)
-		write(*,*)	"[d1_mpi_reduce_tens]: allocated 1d real(dp) tensor with size ",size(loc_tens,1)
+		write(*,*)	"[d1_mpi_reduce_sum]: allocated 1d real(dp) tensor with size ",size(loc_tens,1)
 		!
 		!
 		if(	mpi_nProcs >1) then
 			package_size	=	size(loc_tens)
 			call MPI_REDUCE(	loc_tens,	glob_tens,	package_size,	MPI_DOUBLE_PRECISION,	MPI_SUM, mpi_root_id, MPI_COMM_WORLD, ierr)
-			if(ierr /= 0)	stop "[mpi_comm/d1_mpi_reduce_tens]: (MPI_REDUCE) failed"
+			if(ierr /= 0)	stop "[mpi_comm/d1_mpi_reduce_sum]: (MPI_REDUCE) failed"
 		else
 			glob_tens	=	loc_tens
 		end if
@@ -163,7 +190,7 @@ contains
 	end subroutine
 
 
-	subroutine d2_mpi_reduce_tens( loc_tens, glob_tens)	
+	subroutine d2_mpi_reduce_sum( loc_tens, glob_tens)	
 		real(dp),							intent(in)		::	loc_tens(:,:)
 		real(dp),		allocatable,		intent(inout)	::	glob_tens(:,:)
 		integer												::	package_size
@@ -175,7 +202,7 @@ contains
 		if(	mpi_nProcs > 1) then
 			package_size	=	size(loc_tens,1)	* size(loc_tens,2)
 			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
-			if(ierr /= 0)	stop "[mpi_comm/d2_mpi_reduce_tens]: (MPI_REDUCE) failed"
+			if(ierr /= 0)	stop "[mpi_comm/d2_mpi_reduce_sum]: (MPI_REDUCE) failed"
 		else
 			glob_tens	=	loc_tens
 		end if
@@ -185,7 +212,7 @@ contains
 	end subroutine	
 
 
-	subroutine d3_mpi_reduce_tens( loc_tens, glob_tens)	
+	subroutine d3_mpi_reduce_sum( loc_tens, glob_tens)	
 		real(dp),							intent(in)		::	loc_tens(:,:,:)
 		real(dp),		allocatable,		intent(inout)	::	glob_tens(:,:,:)
 		integer												::	package_size
@@ -197,7 +224,7 @@ contains
 		if( mpi_nProcs > 1) then
 			package_size	=	size(loc_tens,1)	* size(loc_tens,2) * size(loc_tens,3)
 			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
-			if(ierr /= 0)	stop "[mpi_comm/d3_mpi_reduce_tens]: (MPI_REDUCE) failed"
+			if(ierr /= 0)	stop "[mpi_comm/d3_mpi_reduce_sum]: (MPI_REDUCE) failed"
 		else
 			glob_tens	=	loc_tens
 		end if
@@ -207,7 +234,7 @@ contains
 	end subroutine	
 
 
-	subroutine z2_mpi_reduce_tens( loc_tens, glob_tens)	
+	subroutine z2_mpi_reduce_sum( loc_tens, glob_tens)	
 		complex(dp),							intent(in)		::	loc_tens(:,:)
 		complex(dp),		allocatable,		intent(inout)	::	glob_tens(:,:)
 		integer													::	package_size
@@ -219,7 +246,7 @@ contains
 		if( mpi_nProcs > 1) then
 			package_size	=	size(loc_tens,1)	* size(loc_tens,2)
 			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_COMPLEX , MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
-		if(ierr /= 0)	stop "[mpi_comm/z2_mpi_reduce_tens]: (MPI_REDUCE) failed"
+		if(ierr /= 0)	stop "[mpi_comm/z2_mpi_reduce_sum]: (MPI_REDUCE) failed"
 		else
 			glob_tens	=	loc_tens
 		end if
