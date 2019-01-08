@@ -175,7 +175,7 @@ contains
 		integer												::	package_size
 		!	
 		allocate(	glob_tens(	size(loc_tens,1))		)
-		write(*,*)	"[d1_mpi_reduce_sum]: allocated 1d real(dp) tensor with size ",size(loc_tens,1)
+		!write(*,*)	"[d1_mpi_reduce_sum]: allocated 1d real(dp) tensor with size ",size(loc_tens,1)
 		!
 		!
 		if(	mpi_nProcs >1) then
