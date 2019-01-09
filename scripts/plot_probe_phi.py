@@ -364,11 +364,7 @@ def plot_data(root_dir):
 
 
 
-if len(sys.argv) <	2:
-	print("please pass a folder to plot")
-else:
-	root_dir	=	sys.argv[1]
-	plot_data(root_dir)
+
 
 
 
