@@ -232,7 +232,42 @@ class HW_probe:
 
 
 
-	
+	def set_mep_units(self, units,scale):
+		unit_conv	=	1.0
+		unit_str	=	r'[$e^2$/$\hbar$]'
+		unit_dsc	=	'raw atomic units'
+		#
+		if units 	== 				'SI':
+			scale		=	2.434135e-4
+			unit_str	=	'[S]'
+			unit_dsc	=	'MEP in SI has units of conductivity [S]=[A/V]'
+		elif units	==			'cgs':
+			scale		=	0.09170124
+			unit_str	=	'[-]'
+			unit_dsc	=	'MEP is dimensionless quantity in cgs unit system'	
+		#
+		print("[set_mep_units]: MEP	unit id '"+units+"' was interpreted as "+unit_str+" the scale factor will be "+str(unit_conv))
+		#
+		return scale, unit_str, unit_dsc 	 
+
+
+	def set_hall_units(self,units,scale):
+		unit_dsc	=	"atomic units"
+		unit_str	=	r'$e^2$/ ($\hbar a_0$)'
+		#
+		if units == "scale":
+			unit_dsc	=	"use the scale given as function argument (sort of a wildcard)"
+			unit_str	=	"-"
+		elif units == "SI":
+			au_to_S_cm		=	4.599848 * 10**4
+			scale		=	au_to_S_cm
+			unit_str		=	"[S/cm]"
+			unit_dsc		=	"SI units"	
+		#
+		print('[set_hall_units]:  chooen units "'+units+'" with dim '+unit_str+'" and  descriptor: "'+unit_dsc+'" '	)
+		#
+		return scale, unit_str, unit_dsc 
+
 
 	def plot_mep(self, units='au', scale=1.0, plot_contributions=True,plot_band_res=False, label_size=14, xtick_size=12, ytick_size=12):
 		print("^")
@@ -274,18 +309,8 @@ class HW_probe:
 				phi_plot_bands.append(mep_band[0])
 				mep_band_data.append(mep_band[1])
 		#
-		print("[plot_mep]:	fortran output is expected to be in atomic units	(dimensionless)")
-		#
-		if units 	== 				'SI':
-			unit_conv	=	2.434135e-4
-			unit_str	=	'[S]'
-		elif units	==			'cgs':
-			unit_conv	=	7.297352726e-3 
-			unit_str	=	'[cgs units - not implemented properly]'
-		else							:
-			unit_conv	=	1.0
-			unit_str	=	'[-]'
-		print("[plot_mep]:	unit id '"+units+"' was interpreted as "+unit_str+" the scale factor will be "+str(unit_conv))
+		scale, unit_str, unit_dsc 	=	self.set_mep_units(units,scale)
+		
 		#		
 		#
 		if plot_contributions:
@@ -457,6 +482,7 @@ class HW_probe:
 		ohc_kubo_data	= []
 		#
 
+		scale, unit_str, unit_dsc	=	self.set_hall_units(units,scale)
 
 		for hw in self.hw_lst:
 			hw_plot.append(hw)
@@ -468,10 +494,7 @@ class HW_probe:
 			ohc_kubo_data.append(					ohc_tens[1]				)
 		#
 		#
-		if units == "swag lord":
-			unit_str	=	"swag lord"
-		else:
-			unit_str	=	"arb. unit"
+		
 		#
 		#
 		dim_str	= []
@@ -544,7 +567,7 @@ class HW_probe:
 				#plt.tick_params(axis='x',which='minor', direction='in', labelsize=xtick_size)
 
 				#Y-AXIS
-				plt.ylabel(r'$\sigma_{'+dim_str[i]+dim_str[j]+'}$ ( '+unit_str+')',	fontsize=label_size)
+				plt.ylabel(r'$\sigma_{'+dim_str[i]+dim_str[j]+'}$' +	unit_str,	fontsize=label_size)
 				#ax.set_ylim([mep_min,mep_max])
 				plt.tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 
@@ -607,21 +630,21 @@ def plot_hw(root_dir):
 		#
 		#	~~~~~~~~~~~~~~~~~~~~~~~~
 		#
-		try:
-			myTest.plot_mep(	units="au",
-								scale=1.0,
-								plot_contributions=True,
-								plot_band_res=False,
-								label_size=14, xtick_size=12, ytick_size=12
-							)
-		except:
-			print("[plot_hw]:	WARNING unknown error occured while ploting mep tensors ")
+		#try:
+		myTest.plot_mep(	units="SI",
+							scale=1.0,
+							plot_contributions=True,
+							plot_band_res=False,
+							label_size=14, xtick_size=12, ytick_size=12
+						)
+		#except:
+		#	print("[plot_hw]:	WARNING unknown error occured while ploting mep tensors ")
 		#
 		print("...")
 		print('[plot_hw]:	plotted mep tensors')
 		#	~~~~~~~~~~~~~~~~~~~~~~~~
 		#
-		myTest.plot_hall_like(		units			=		'au'		, 
+		myTest.plot_hall_like(		units			=		'asdf'		, 
 									scale			=		1.0			, 
 									plot_ahc		=		True		, 
 									plot_ahc_kubo	= 		True		, 

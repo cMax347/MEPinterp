@@ -66,7 +66,7 @@ def do_band_calc(tb_model, use_pos_op, latt_sym_group='cub',kpath="Gamma 1000 X 
 	write_tb_input(	tb_model, use_pos_op, band_dir, phi, val_bands, mp_grid, 
 							kubo_tol=1e-3, 
 							hw=0.0,laser_phase=0, 
-							 N_eF=3, eF_min=-3.0, eF_max=-.5, Tkelvin=300.0, eta_smearing=3.0, 
+							 N_eF=1, eF_min=0.0, eF_max=0, Tkelvin=300.0, eta_smearing=3.0, 
 							plot_bands='T', 
 							debug_mode='T',
 							do_gauge_trafo=gauge_velos, 
@@ -83,10 +83,15 @@ def do_band_calc(tb_model, use_pos_op, latt_sym_group='cub',kpath="Gamma 1000 X 
 	k_file	= band_dir+'/kpts'
 	en_file	= band_dir+'/out/eBands.dat'
 	pdf_file= band_dir+'/bands.pdf'
+	target_dir_lst	=	[]
 	if os.path.isfile(k_file) and os.path.isfile(en_file):
-		plot_bandstruct(k_file,en_file, pdf_file, label_size=14, y_tick_size=12, plot_in_ev=True)
+		target_dir_lst.append(band_dir)
 	else:
 		print('[do_band_calc]: could not plot bandstructure since not all input files ("',k_file,'", "',en_file,'"") were found')
+	#
+	#
+	#def plot_bandstruct(target_dir_lst, id_str, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
+	plot_bandstruct(target_dir_lst, '', pdf_file, label_size=14, y_tick_size=12, plot_in_ev=True)
 
 
 	os.chdir(root_dir)
@@ -100,7 +105,7 @@ do_band_calc(	tb_model		=	'FeMn3q'									,
 				kpath			=	'Gamma 1000 X 1000 M 1000 Gamma 1000 R'		, 
 				phi				=	0.0											, 
 				gauge_velos		=	False										,
-				write_velos		=	True										,
+				write_velos		=	False										,
 			)
 
 

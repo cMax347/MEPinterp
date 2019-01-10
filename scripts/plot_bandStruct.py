@@ -1,5 +1,6 @@
 import numpy as np
 import re
+import os
 import matplotlib.pyplot as plt
 
 au_to_ev	= 27.21139
@@ -55,52 +56,98 @@ def sort_energies(en_data):
 
 
 
+def get_en_plot(en_data):
+	#sort energies by kpt and band index
+	en_plot = sort_energies(en_data)
+	nBands =	len(en_plot[0])
+	#plot each band
+	
+	#
+	return nBands, en_plot
 
-def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
+
+def read_data(target_dir):
+	k_plot		=	[]
+	en_data		=	[]
+	k_ticks		=	[]
+	k_labels	=	[]
+	#
+	kpt_file	=	target_dir	+	'/kpts'
+	en_file		=	target_dir 	+	'/out/eBands.dat'
+	#
+	if os.path.isfile(	kpt_file):
+		kpt_data 	= np.genfromtxt(kpt_file, skip_header=1, usecols= (0,1,2)	)
+		#linspace for plotting
+		k_plot		= np.linspace(	0.0,1.0,len(kpt_data)		)
+		print('[plot_bandstruct/read_data]: found '+str(len(kpt_data))+' kpts')	
+		high_symm_points	=	get_high_symm_points(kpt_file)	
+		print('[plot_bandstruct/read_data]: high symm pts:'+str(high_symm_points))
+		#
+		#
+		for symm_point in high_symm_points:
+			k_ticks.append(		k_plot[		symm_point[0]	]		)
+			k_labels.append(				symm_point[1]			)
+		#
+	else:
+		print("[plot_bandstruct/read_data]: ERROR did not find kpt_file "+kpt_file)
+		stop
+	if os.path.isfile(	en_file):	
+		en_data		= np.genfromtxt(en_file,  skip_header=3, usecols=(0,1,2,3,4)	)
+	else:
+		print("[plot_bandstruct/pread_data]: ERROR did not find en_file "+en_file)
+		stop
+	return 	k_plot, k_ticks, k_labels, en_data
+
+
+
+def plot_bandstruct(target_dir_lst, id_str, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
 
 	#kpt_data = np.genfromtxt(kpt_file,skip_header=1,dtype=(float,float,float,float,str), missing_values='',filling_values='none')
 
-	kpt_data 	= np.genfromtxt(kpt_file, skip_header=1, usecols= (0,1,2)	)
 
-	en_data		= np.genfromtxt(en_file, skip_header=3, usecols=(0,1,2,3,4)	)
+	print("[plot_bandstruct]: hello there! will search for data id: "+id_str)
 
-
-	print('found '+str(len(kpt_data))+' kpts')	
-	high_symm_points	=	get_high_symm_points(kpt_file)	
-	print('high symm pts:'+str(high_symm_points))
-
-	#linspace for plotting
-	k_plot		= np.linspace(	0.0,1.0,len(kpt_data)		)
-
-	#map high symmetry points to the linspace
-	k_labels	= []
-	k_ticks		= []
-	for symm_point in high_symm_points:
-		k_ticks.append(		k_plot[		symm_point[0]	]		)
-		k_labels.append(				symm_point[1]			)
-
-	#sort energies by kpt and band index
-	en_plot = sort_energies(en_data)
-
-	
-	
-	nBands =	len(en_plot[0])
-	print('detected nBands='+str(nBands))
-
-
+	#this should be a unique identifier
+	id_lst		=	[]
 
 	#PLOTTING
 	fig, ax  = plt.subplots(1,1) 
 
-	#plot each band
-	for band in range(nBands):
-		en_band = []
-		for idx,kpt in enumerate(k_plot):
-			en_band.append(	en_plot[idx][band]	)
-		if plot_in_ev:
-			en_band	= np.array(en_band) * au_to_ev
 
-		plt.plot(k_plot, en_band, '-',color='black')
+	for next_dir in target_dir_lst:
+		if os.path.isdir(next_dir):
+			print("[plot_bandstruct]:	NEW FOLDER FOUND	",next_dir)
+			#
+			#	print info on next_dir
+			id_label	=	''
+			try:
+				id_lst.append(	float(next_dir.split(id_str)[1])	)
+				id_label	=	str(id_lst[-1])
+				print("[plot_bandstruct]: intepreted as "+str(id_str)+"="+id_label)
+			except:
+				print("[plot_bandstruct]: could not id the folder "+next_dir)
+			#
+			#
+			k_plot, k_ticks, k_labels, en_data		=	read_data(next_dir)
+			#
+			plot_color	=	'black'	
+			line_style	=	'-'			
+			#
+			#
+			nBands,	en_plot	=	get_en_plot(en_data)
+			print('[plot_bandstruct]: detected nBands='+str(nBands))
+			for band in range(nBands):
+				en_band = []
+				for idx,kpt in enumerate(k_plot):
+					en_band.append(	en_plot[idx][band]	)
+				if plot_in_ev:
+					en_band	= np.array(en_band) * au_to_ev
+				if band == 0:
+					plt.plot(k_plot, en_band, line_style,color=plot_color, label=id_label)
+				else:
+					plt.plot(k_plot, en_band, line_style, color=plot_color)
+		else:
+			print("[plot_bandstruct]: WARNING expected folder ",next_dir," was not found!")
 
 	#x-axis
 	ax.set_xlim([k_plot[0],k_plot[-1]])
@@ -123,6 +170,8 @@ def plot_bandstruct(kpt_file, en_file, pdf_out_file, label_size=14, y_tick_size=
 		plt.ylabel(r'$E \,(eV)$',fontsize=label_size)
 	else:
 		plt.ylabel(r'$E \,(E_h)$',fontsize=label_size)
+
+	plt.legend()
 
 	#save file
 	plt.tight_layout()
