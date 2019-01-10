@@ -100,7 +100,19 @@ def read_data(target_dir):
 
 
 
-def plot_bandstruct(target_dir_lst, id_str, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
+def check_length(length, lst, default):
+		orig_length	=	len(lst)
+		if not (orig_length == length):
+			print('[plot_bandstruct/check_length]: lst length was not of size '+str(length)+'	(lst has actual size '+str(orig_length)+')')
+			print('[plot_bandstruct/check_length]: lst will be overwritten with default value = '+str(default))
+			lst	=	[]
+			for i in range(length):
+				lst.append(default)
+		if not (len(lst) ==  orig_length):
+			print('[plot_bandstruct/check_length]: new lst size:'+str(len(lst)))
+		return lst
+
+def plot_bandstruct(target_dir_lst, id_str,line_style, plot_color, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
 
 	#kpt_data = np.genfromtxt(kpt_file,skip_header=1,dtype=(float,float,float,float,str), missing_values='',filling_values='none')
 
@@ -109,14 +121,17 @@ def plot_bandstruct(target_dir_lst, id_str, pdf_out_file, label_size=14, y_tick_
 
 	#this should be a unique identifier
 	id_lst		=	[]
+	line_style	=	check_length(len(target_dir_lst),	line_style,			"-"	)
+	plot_color	=	check_length(len(target_dir_lst),	plot_color,		"black"	)
+
 
 	#PLOTTING
 	fig, ax  = plt.subplots(1,1) 
 
 
-	for next_dir in target_dir_lst:
+	for dir_idx, next_dir in enumerate(target_dir_lst):
 		if os.path.isdir(next_dir):
-			print("[plot_bandstruct]:	NEW FOLDER FOUND	",next_dir)
+			print("[plot_bandstruct]:	NEW FOLDER FOUND	",next_dir," dir idx"+str(dir_idx))
 			#
 			#	print info on next_dir
 			id_label	=	''
@@ -130,8 +145,8 @@ def plot_bandstruct(target_dir_lst, id_str, pdf_out_file, label_size=14, y_tick_
 			#
 			k_plot, k_ticks, k_labels, en_data		=	read_data(next_dir)
 			#
-			plot_color	=	'black'	
-			line_style	=	'-'			
+			#plot_color	=	'black'	
+			#line_style	=	'-'			
 			#
 			#
 			nBands,	en_plot	=	get_en_plot(en_data)
@@ -143,9 +158,9 @@ def plot_bandstruct(target_dir_lst, id_str, pdf_out_file, label_size=14, y_tick_
 				if plot_in_ev:
 					en_band	= np.array(en_band) * au_to_ev
 				if band == 0:
-					plt.plot(k_plot, en_band, line_style,color=plot_color, label=id_label)
+					plt.plot(k_plot, en_band, line_style[dir_idx],color=plot_color[dir_idx], label=id_label)
 				else:
-					plt.plot(k_plot, en_band, line_style, color=plot_color)
+					plt.plot(k_plot, en_band, line_style[dir_idx], color=plot_color[dir_idx])
 		else:
 			print("[plot_bandstruct]: WARNING expected folder ",next_dir," was not found!")
 
