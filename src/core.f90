@@ -725,7 +725,8 @@ contains
 													"]: ...finished interpolating (",n_ki_loc,"/",n_ki_glob,") kpts "//gauge_label
 		!
 		if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		write(*,'(a,i3,a,f8.4,a)')	"[#",mpi_id,";print_core_info]: choosen fermi energy	", 	(eF_min + (eF_final_idx-1)	* delta_eF) * aUtoEv," eV." 
+		write(*,'(a,i3,a,f8.4,a)')	"[#",mpi_id,";print_core_info]: choosen fermi energy	", &	
+										(eF_min + (eF_final_idx-1)	* delta_eF) * aUtoEv," eV." 
 		!
 		!
 		return
