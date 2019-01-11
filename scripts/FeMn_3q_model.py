@@ -508,12 +508,14 @@ def get_FeMn3q_tb(fpath, verbose=False):
 	ay[1]	=	2./np.sqrt(3.)
 	az[2]	=	np.sqrt(2./3.)
 
-
+	
 	#
 	try:
-		if np.abs(test_model.intra_t/	test_model.inter_t) > 1e-4: 
-			az[2]	=	az[2]	* (test_model.intra_t/	test_model.inter_t)	
-			print("[get_FeMn3q_tb]:	scaled az lattice constant by factor t1/t2="+str(	test_model.intra_t/	test_model.inter_t	)			)
+		if np.abs(test_model.inter_t) > 1e-7: 
+			delta	=	np.sqrt(np.abs(			test_model.intra_t	/	test_model.inter_t			))
+			#
+			az[2]	=	az[2]	* delta
+			print("[get_FeMn3q_tb]:	scaled az lattice constant by factor delta=t1/t2="+str(	delta	)+"	(t2="+str(test_model.inter_t)+"eV)"			)
 		else:
 			print("[get_FeMn3q_tb]:	az lattice constant was not changed! az="+str(az[2]))
 	except:

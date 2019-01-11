@@ -36,11 +36,14 @@ def sort_energies(en_data):
 	en_plot = []
 	k_old	= []
 	for idx, en_val	in enumerate(en_data):
+		id	= int(en_val[0])
 		kpt = en_val[1:4]
 		en 	= en_val[4]
+		#print('[sort_energies]:	new kpt:'+str(kpt)," new en:"+str(en))
 
 		#init k_old & append first value
 		if idx == 0:
+			id_old 	= id 
 			k_old	= kpt
 			en_plot.append( [])
 
@@ -48,6 +51,8 @@ def sort_energies(en_data):
 		if np.linalg.norm(kpt -k_old) > 1e-8:
 			en_plot.append([])
 			k_old = kpt
+			if id == id_old:
+				print("[plot_bandstruct/sort_energies]: WARNING unexpected new kpt found")
 			#print('new k_old=',k_old,' idx=',idx)
 		#append value to second dimension
 		en_plot[-1].append(en)
@@ -112,7 +117,7 @@ def check_length(length, lst, default):
 			print('[plot_bandstruct/check_length]: new lst size:'+str(len(lst)))
 		return lst
 
-def plot_bandstruct(target_dir_lst, id_str,line_style, plot_color, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
+def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
 
 	#kpt_data = np.genfromtxt(kpt_file,skip_header=1,dtype=(float,float,float,float,str), missing_values='',filling_values='none')
 
@@ -137,7 +142,7 @@ def plot_bandstruct(target_dir_lst, id_str,line_style, plot_color, pdf_out_file,
 			id_label	=	''
 			try:
 				id_lst.append(	float(next_dir.split(id_str)[1])	)
-				id_label	=	str(id_lst[-1])
+				id_label	=	id_formula+'='+str(id_lst[-1])
 				print("[plot_bandstruct]: intepreted as "+str(id_str)+"="+id_label)
 			except:
 				print("[plot_bandstruct]: could not id the folder "+next_dir)
@@ -174,7 +179,7 @@ def plot_bandstruct(target_dir_lst, id_str,line_style, plot_color, pdf_out_file,
 	
 
 	#y-axis
-	ax.set_ylim([-12.3,6.3])
+	ax.set_ylim([-14,6.3])
 	ax.set_yticks([0.],minor=True)
 	ax.set_yticks([-12,-9,-6,-3,0,3,6],minor=False)
 	plt.tick_params(axis='y', which='major',left=True,right=True, direction='in',labelsize=y_tick_size)
