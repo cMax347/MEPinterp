@@ -13,7 +13,10 @@ class hw_job:
 #		------------------------------------------------------------------------------
 #
 #
-	def __init__(		self, tb_model, use_pos_op,  phi_pi, val_bands, mp_grid, gamma_scale, kubo_tol, 	
+	def __init__(		self, tb_model, use_pos_op,  
+						phi_pi, val_bands, 
+						t_hopp, delta, J_ex, lmbd_R,
+						mp_grid, gamma_scale, kubo_tol, 	
 						laser_phase, n_eF, eF_min, eF_max, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
 						do_r_vect_float='T',
 						do_write_velo='F', do_write_mep_bands='F',
@@ -23,6 +26,10 @@ class hw_job:
 		self.use_pos_op		=	use_pos_op
 		self.phi_pi			=	phi_pi
 		self.val_bands		= 	val_bands
+		self.t_hopp			=	t_hopp
+		self.delta			=	delta
+		self.J_ex			=	J_ex
+		self.lmbd_R			=	lmbd_R
 		self.mp_grid		= 	mp_grid
 		self.gamma_scale	=	gamma_scale
 		self.kubo_tol		= 	kubo_tol
@@ -83,12 +90,17 @@ class hw_job:
 			print("")
 			print("")
 			print('[probe_hw_space]: init new MEP_worker (hw='+str(hw)+')')
+			#
 			worker = MEP_worker(	self.tb_model,
 						self.use_pos_op,
 						self.root_dir,
 						work_dir, 
 						self.phi_pi, 						#give  phi_rel*pi to calculation
-						self.val_bands, 
+						self.val_bands,
+						self.t_hopp,
+						self.delta,
+						self.J_ex,
+						self.lmbd_R, 
 						self.mp_grid, 
 						self.kubo_tol,
 						hw,
@@ -109,6 +121,11 @@ class hw_job:
 						self.do_opt,
 						self.do_gyro
 					)
+			#
+			#write 3Q input file
+			worker.write_3Q_input(self.t_hopp, self.delta, self.J_ex, self.lmbd_R)
+			print("[probe_hw_space]: wrote 3q input "+str())
+
 			#run calc
 			worker.run(mpi_np=mpi_np)
 			print('[probe_hw_space]: curr. calculation finished, try to collect data ...')
@@ -171,18 +188,23 @@ class hw_job:
 tb_system = hw_job(		#parameter space probe density:
 								tb_model			=	'FeMn3q'			,
 								use_pos_op			=	False				,
-								#sys para
+								#souza sys para
 								phi_pi				=	0					,
-								val_bands			=	2					, 
+								val_bands			=	1					, 
+								#3Q sys paras:
+								t_hopp				=	1.0					, 
+								delta				=	0.9					, 
+								J_ex				=	1.0					, 
+								lmbd_R				=	0.2					,
 								#numerical parameters
 								mp_grid				=	[16,16,16]			, 
 								gamma_scale			=	1.0					,
 								kubo_tol			=	1e-5				, 
 								laser_phase			=	1.0					,
 								n_eF				=	1					,
-								eF_min 				=	0.0					,
-								eF_max				=	0.0					,
-								Tkelvin				=	10.0				,
+								eF_min 				=	-5.0				,
+								eF_max				=	-4.5				,
+								Tkelvin				=	0.0					,
 								eta_smearing		=	0.1					, 
 								#additional fortran controllers
 								debug_mode			=	False				, 
@@ -190,8 +212,8 @@ tb_system = hw_job(		#parameter space probe density:
 								do_r_vect_float		=	True				,
 								do_write_velo		=	False				,
 								do_write_mep_bands	=	True				,
-								do_mep				=	'F'					, 
-								do_kubo				=	'F'					, 
+								do_mep				=	'T'					, 
+								do_kubo				=	'T'					, 
 								do_ahc				=	'T'					, 
 								do_opt				=	'T'					, 
 								do_gyro				=	'T'

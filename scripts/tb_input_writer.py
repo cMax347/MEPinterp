@@ -97,7 +97,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#		MEPinterp CFG FILE
+#		CFG FILE	WRITERS
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,			
 							kubo_tol, hw, laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,  	 
@@ -160,6 +160,36 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 
 
 
+def write_FeMn_3Q_inp(
+				inp3Q_file, t1_hopp, delta, J_ex, lmbd_R=0,
+				phiA	=	0.0		,		thetaA	=	0.0,
+				phiB	=	30.0	,		thetaB	=	-109.47122063449069,
+				phiC	=	270.0	,		thetaC	=	-109.47122063449069,
+				phiD	=	150.0	,		thetaD	=	-109.47122063449069
+					):
+	#
+	if os.path.isfile(inp3Q_file):	os.remove(inp3Q_file)
+	#
+	#	setup interlayer hopping t2_hopp
+	if np.abs( (delta)**2 ) > 1e-4:
+		t2_hopp	= t1_hopp / (delta)**2
+	else:
+		t2_hopp	= t1_hopp
+	#
+	hopp_str	=	str(t1_hopp)+" "+str(t2_hopp)+" "+str(J_ex)+"		"+"    ! t1, t2, lambda\n"
+	#
+	#	write inp_params_3q file
+	with open(inp3Q_file,'w') as config_file:
+		config_file.write("16 16 16                     ! Nkx, Nky, Nkz for BZ integration	\n")
+		config_file.write(hopp_str)
+		config_file.write(	"   "	+	str(phiA)	+	"   "	+	str(thetaA) +	"               ! phiA, thetaA for spin A	\n")
+		config_file.write(	"   "	+	str(phiB)	+	"   "	+	str(thetaB) +	"               ! phiB, thetaB for spin B	\n")
+		config_file.write(	"   "	+	str(phiC)	+	"   "	+	str(thetaC) +	"               ! phiC, thetaC for spin C	\n")
+		config_file.write(	"   "	+	str(phiD)	+	"   "	+	str(thetaD) +	"               ! phiD, thetaD for spin A	\n")
+		config_file.write(" -5.0 -3.0  200               ! Efmin, Efmax, NEf		\n")
+		config_file.write(" F                            ! k-path instead?			\n")
+		config_file.write(" 2000                         ! Nk for k-path			\n")
+		config_file.write(	"   "	+	str(lmbd_R)+	"               ! Rashba SOC strength in eV (additional para by max merte)\n")
 
 #
 #
@@ -185,7 +215,7 @@ def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_g
 	elif tb_model == 'FeMn3q':
 		print("[write_tb_input]:	FeMn 3Q TB MODEL SELECTED")
 		config_file =	root_dir+'/inp_params_3q'
-		nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_FeMn3q_tb(config_file,verbose=True)
+		nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_FeMn3q_tb(config_file, verbose=True)
 	elif tb_model == 'w90':
 			print("[write_tb_input]:	USE EXISTING W90 FILES (NOT IMPLEMENTED YET)")
 			#	todo check if w90 files are present & consistent
@@ -223,35 +253,6 @@ def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_g
 #	print("[write_FeMn3q_tb_input]:	Implement me!!!")
 
 
-def write_FeMn_3Q_inp(
-				inp3Q_file, t1_hopp, delta, J_ex,
-				phiA	=	0.0		,		thetaA	=	0.0,
-				phiB	=	30.0	,		thetaB	=	-109.47122063449069,
-				phiC	=	270.0	,		thetaC	=	-109.47122063449069,
-				phiD	=	150.0	,		thetaD	=	-109.47122063449069
-					):
-	#
-	if os.path.isfile(inp3Q_file):	os.remove(inp3Q_file)
-	#
-	#	setup interlayer hopping t2_hopp
-	if np.abs( (delta)**2 ) > 1e-4:
-		t2_hopp	= t1_hopp / (delta)**2
-	else:
-		t2_hopp	= t1_hopp
-	#
-	hopp_str	=	str(t1_hopp)+" "+str(t2_hopp)+" "+str(J_ex)+"		"+"    ! t1, t2, lambda\n"
-	#
-	#	write inp_params_3q file
-	with open(inp3Q_file,'w') as config_file:
-		config_file.write("16 16 16                     ! Nkx, Nky, Nkz for BZ integration	\n")
-		config_file.write(hopp_str)
-		config_file.write(	"   "	+	str(phiA)	+	"   "	+	str(thetaA) +	"               ! phiA, thetaA for spin A	\n")
-		config_file.write(	"   "	+	str(phiB)	+	"   "	+	str(thetaB) +	"               ! phiB, thetaB for spin B	\n")
-		config_file.write(	"   "	+	str(phiC)	+	"   "	+	str(thetaC) +	"               ! phiC, thetaC for spin C	\n")
-		config_file.write(	"   "	+	str(phiD)	+	"   "	+	str(thetaD) +	"               ! phiD, thetaD for spin A	\n")
-		config_file.write(" -5.0 -3.0  200               ! Efmin, Efmax, NEf		\n")
-		config_file.write(" F                            ! k-path instead?			\n")
-		config_file.write(" 2000                         ! Nk for k-path			\n")
 
 
 #

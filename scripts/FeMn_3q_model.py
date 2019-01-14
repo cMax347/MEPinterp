@@ -12,8 +12,8 @@ conv_deg_to_rad	=	np.pi / 180.
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class FeMn_3q_model:
 	#
-	#
-	def __init__(self, fpath,	verbose=False):
+	#		CONSTRUCTOR
+	def __init__(self, fpath, 	verbose=False):
 		self.nWfs		=	8
 		self.nrpts		=	13
 		self.verbose	=	verbose
@@ -64,48 +64,87 @@ class FeMn_3q_model:
 				#-------------------------------------------------------------------------------------
 				#
 				elif idx == 1:
-					self.intra_t, self.inter_t, self.lmbda		=		np.fromstring(	line,		dtype=float, count=3, sep=" ")
+					self.intra_t, self.inter_t, self.lmbd_Ex		=		np.fromstring(	line,		dtype=float, count=3, sep=" ")
 				#-------------------------------------------------------------------------------------
 				#
 				elif idx >=2 and idx<=5:
 					phi, theta									= 		np.fromstring(	line,		dtype=float, count=2, sep=" ")		
 					self.phconv.append(		phi			* conv_deg_to_rad	)
 					self.thconv.append(		theta		* conv_deg_to_rad	)
+				elif idx == 9:
+					self.lmbd_R 									=		np.fromstring(	line,		dtype=float, count=1, sep= " ")
 				#-------------------------------------------------------------------------------------
 				#-------------------------------------------------------------------------------------
 				#-------------------------------------------------------------------------------------
 		
 		# set negative prefactor
-		self.intra_t	=	-	self.intra_t
-		self.inter_t	=	-	self.inter_t
+		self.intra_t		=	-	self.intra_t
+		self.inter_t		=	-	self.inter_t
 		#
-		self.lmbda		=		self.lmbda
-
+		self.lmbd_Ex		=		self.lmbd_Ex
+		self.lmbd_R			=		self.lmbd_R
+		
+		#
+		#
+		#	nearest neighbour INTRAlayer 
+		self.Rr_intra_12	=	np.array(	[ +	1./2.	, -	 3./4.		,	 .0	]	)
+		self.Rr_intra_13	=	np.array(	[ +	1.0		,	 .0			,	 .0	]	)
+		self.Rr_intra_14	=	np.array(	[ +	1/2.	, 	+ 3./4.		,	 .0	]	)
+		#
+		self.R_nn_lst.append( self.Rr_intra_12)
+		self.R_nn_lst.append(-self.Rr_intra_12)
+		self.R_nn_lst.append( self.Rr_intra_13)
+		self.R_nn_lst.append(-self.Rr_intra_13)
+		self.R_nn_lst.append( self.Rr_intra_14)
+		self.R_nn_lst.append(-self.Rr_intra_14)
+		#
+		#
+		#	nearest neighbour INTERlayer 
+		self.Rr_inter_12	=	np.array(	[	-1./2.	, -	1./4.	,	-	1.0 ]	)
+		self.Rr_inter_13	=	np.array(	[	  .0	, +	1./2.	,	-	1.0	]	)
+		self.Rr_inter_14	=	np.array(	[ +  1./2.	, -	1./4.	,	-	1.0	]	) 		
+		#
+		self.R_nn_lst.append( self.Rr_inter_12) 
+		self.R_nn_lst.append(-self.Rr_inter_12) 
+		self.R_nn_lst.append( self.Rr_inter_13) 
+		self.R_nn_lst.append(-self.Rr_inter_13) 
+		self.R_nn_lst.append( self.Rr_inter_14) 
+		self.R_nn_lst.append(-self.Rr_inter_14) 
+		#
 
 
 		self.v_print(	"	[FeMn_3q_model]:	initalized new param set from "+fpath			)
 		self.v_print(	"	[FeMn_3q_model]:	 summary"										)
 		self.v_print(	"		t1	    =	" + str(	self.intra_t		)	+ str("(eV)")		)
 		self.v_print(	"		t2	    =	" + str(	self.inter_t		)	+ str("(eV)")		)
-		self.v_print(	"		lmbda	=	" + str(	self.lmbda	)	+ str("(eV)")		)
+		self.v_print(	"		lmbda	=	" + str(	self.lmbd_Ex	)	+ str("(eV)")		)
 		self.v_print(	" 		# spin		|	phi(rad) 		| theta(rad) "					)
 		self.v_print(	"		------------------------------------------------------"			)
 		for  spin in range(4):
 			self.v_print("		  "+		str(spin+1)	+ "		|	"	+	str(self.phconv[spin])	+	"		|	"	+	str(self.thconv[spin])	)
 		self.v_print(	"		------------------------------------------------------"			)
 		self.v_print(	"		------------------------------------------------------"			)
-	#
-	#
-	#	----
-	def v_print(self,out_string):
-		#print only if verbose option is true
-		if self.verbose:	print(out_string)
 	
 
 
 
 
 
+
+
+
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#				HELPERS
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	#	----
+	def v_print(self,out_string):
+		#print only if verbose option is true
+		if self.verbose:	print(out_string)
+	
 
 
 	def tHopp_fill_zeros(self):
@@ -173,214 +212,17 @@ class FeMn_3q_model:
 
 
 
-
-
-
-
-
-	def set_right_left_cc(self,	R_left, R_right,	m, n, t_hopp):
-		if m>=n:
-			self.v_print("[FeMn_3q_model/set_right_left_cc]:	unexpected lower traingle values specified (m="+str(m)+",n="+str(n)+")")
-		if m> self.nWfs:
-			print("[FeMn_3q_model/set_right_left_cc]: m="+str(m)+" exeeds num_wann="+str(self.nWfs))
-			sys.exit()
-
-		if n> self.nWfs:
-			print("[FeMn_3q_model/set_right_left_cc]: m="+str(m)+" exeeds num_wann="+str(self.nWfs))
-			sys.exit()
-		
-		# add the hopping (left & right)
-		self.tHopp.append(		[	R_right[0]	,	R_right[1],	R_right[2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
-		self.tHopp.append(		[	R_left[ 0]	,	R_left[ 1],	R_left[ 2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
-		#	now add complex conjugates of both terms	
-		self.tHopp.append(		[	R_right[0]	,	R_right[1],	R_right[2]	, 	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
-		self.tHopp.append(		[	R_left[ 0]	,	R_left[ 1],	R_left[ 2]	, 	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
-
-
-
-	#
-	#
-	#	----
-	def setup_Ham(self):
-		#tHopp.append(	[ 0, 0, 0,			1,	2,			np.real(hopping[x][at1])	,   np.imag(hopping[x][at1])	])
-		#
-		#
+	def postProc_ham(self, nExchange, nIntra, nInter):
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-		#      EXCHANGE																|
+		#      CHECK NON-ZERO ENTRIES												|
 		#---------------------------------------------------------------------------
-		sintheta	= []
-		costheta	= []
-		phasphi		= []
-		for i in range(4):
-			sintheta.append(						np.sin( self.thconv[i] )							)
-			costheta.append(						np.cos(	self.thconv[i] )							)
-			phasphi.append(		np.cos(self.phconv[i])	 - 1j * np.sin(self.phconv[i])					) 	
-			#
-			z_upDw	=	self.lmbda 	* sintheta[i]	*	phasphi[i]
-			re_upDw	=	np.real(	z_upDw	)
-			im_upDw	=	np.imag(	z_upDw	)
-			#       do i=1,4 ! exchange
-			#        ham(i,i) = lambda*costheta(i)
-			#        ham(i+4,i+4) = -lambda*costheta(i)
-			#        ham(i,i+4) = lambda*phasphi(i)*sintheta(i)
-			#       enddo
-			self.tHopp.append(	[	0., 0., 0., 		i+1, i+1, 		self.lmbda 	* costheta[i]						, 	.0			]				)
-			self.tHopp.append(	[ 	0., 0., 0.,			i+5, i+5, 	-	self.lmbda	* costheta[i] 						, 	.0			]				)
-			#
-			self.tHopp.append(	[	0., 0., 0.,			i+1, i+5,			re_upDw										, 	im_upDw		]				)
-			#print("[FeMn_3q_model/setup_Ham]:	 exchange - added: "+str(self.tHopp[-1]))
-			self.tHopp.append(	[	0., 0., 0., 		i+5, i+1,			re_upDw										, - im_upDw		]				)
-			#print("[FeMn_3q_model/setup_Ham]: cc exchange - added: "+str(self.tHopp[-1]))
-		self.R_nn_lst.append([0.,0.,0.])
-
-		nExchange		= 	4*4
-		actual_size		=	len(self.tHopp)
-		if( nExchange != actual_size):
-			self.v_print("[FeMn_3q_model/setup_Ham]: the exchange list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nExchange))
-		else:
-			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	exhange entries")
-		#
-		#
-		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-		#      HOPPING																|
-		#---------------------------------------------------------------------------
-		#
-		#	JAN'S HOPPING SETUP			
-		#> 	1	do i=0,4,4 ! intra- and inter-layer hopping
-        #> 	2		ham(1+i,2+i)=ht1(1)+ht2(1)
-        #> 	3		ham(1+i,3+i)=ht1(2)+ht2(2)
-        #> 	4		ham(1+i,4+i)=ht1(3)+ht2(3)
-        #> 	5		ham(2+i,3+i)=ht1(3)+ht2(3)
-        #> 	6		ham(2+i,4+i)=ht1(2)+ht2(2)
-        #> 	7		ham(3+i,4+i)=ht1(1)+ht2(1)
-       	#> 	8	enddo
-       	#
-       	#
-		#	JAN'S SOURE CODE
-		#>	1		! intra-layer hopping	
-       	#>	2		ht1(1) = -2*t*cos(pi*kx-3./2.*pi*ky)		/(2*Pi)	=	cos(	1/2 kx	-	3/4 ky	)
-       	#>	3		ht1(2) = -2*t*cos(2.*pi*kx)					/(2*Pi)	=	cos(	1	kx				)
-       	#>	4		ht1(3) = -2*t*cos(pi*kx+3./2.*pi*ky)		/(2*Pi)	=	cos(	1/2 kx	+	3/4 ky	)
-
-       	#todo:	jans & mine are slightly different: 	jan uses 		3./2.*pi*ky 
-       	#												i use			sqrt(3.)/2.*pi*ky								
-
-       	#	in-plane hopping directions
-		#Rr_intra_12	=	[ +	1/2.	, +	 np.sqrt(3.)/4.		,	 .0	]
-		#Rl_intra_12	=	[ -	1/2.	, -	 np.sqrt(3.)/4.		,	 .0	]
-		##
-		#Rr_intra_13	=	[ +	1.0		,		 .0				,	 .0	]
-		#Rl_intra_13	=	[ - 1.0		,		 .0				,	 .0	]
-		##
-		#Rr_intra_14	=	[ +	1/2.	, - np.sqrt(3.)/4.		,	 .0	]
-		#Rl_intra_14	=	[ -	1/2.	, + np.sqrt(3.)/4.		,	 .0	]
-
-
-
-		Rr_intra_12	=	[ +	1./2.	, -	 3./4.		,	 .0	]
-		Rl_intra_12	=	[ -	1/2.	, +	 3./4.		,	 .0	]
-		#
-		Rr_intra_13	=	[ +	1.0		,		 .0				,	 .0	]
-		Rl_intra_13	=	[ - 1.0		,		 .0				,	 .0	]
-		#
-		Rr_intra_14	=	[ +	1/2.	, 	+ 3./4.		,	 .0	]
-		Rl_intra_14	=	[ -	1/2.	, 	- 3./4.		,	 .0	]
-
-
-		self.R_nn_lst.append( Rr_intra_12)
-		self.R_nn_lst.append( Rl_intra_12)
-		self.R_nn_lst.append( Rr_intra_13)
-		self.R_nn_lst.append( Rl_intra_13)
-		self.R_nn_lst.append( Rr_intra_14)
-		self.R_nn_lst.append( Rl_intra_14)
-		#
-		#
-		#	in-plane hopping strength
-		intra_hopp		=	np.array(	[np.real(self.intra_t),	 np.imag(self.intra_t)]	)
-		#
-		#
-		#	ADD INTRA-LAYER HOPPING
-		for i in range(0,8,4):
-			#
-			self.set_right_left_cc(		Rl_intra_12,	Rr_intra_12,		1+i, 2+i,	intra_hopp		)
-			self.set_right_left_cc(		Rl_intra_13,	Rr_intra_13,		1+i, 3+i,	intra_hopp		)
-			self.set_right_left_cc(		Rl_intra_14,	Rr_intra_14,		1+i, 4+i,	intra_hopp		)
-			#
-			self.set_right_left_cc(		Rl_intra_14,	Rr_intra_14,		2+i, 3+i,	intra_hopp		)
-			self.set_right_left_cc(		Rl_intra_13,	Rr_intra_13,		2+i, 4+i,	intra_hopp		)
-			self.set_right_left_cc(		Rl_intra_12,	Rr_intra_12,		3+i, 4+i,	intra_hopp		)
-
-		nIntra			= 	2*6*4			# spin i gives factor 2, set_right_left_cc is called 6 times and should set 4 values every time
-		actual_size		=	len(self.tHopp)- nExchange
-		if( nIntra != actual_size):
-			self.v_print("[FeMn_3q_model/setup_Ham]: the intralayer list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nIntra))
-		else:
-			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	intralayer entries")
-		#
-
-
-
-		# 	JAN'S SOURCE CODE
-       	#! inter-layer hopping
-       	#ht2(1) =-2*t2*cos(-pi*kx-pi/2.*ky-2.*pi*kz)	/(2*Pi)	=	cos( -	1/2 kx	-	1/4 ky	- 1 kz	)
-       	#ht2(2) =-2*t2*cos(          pi*ky-2.*pi*kz)	/(2*Pi)	=	cos(				1/2 ky	- 1 kz	)
-       	#ht2(3) =-2*t2*cos( pi*kx-pi/2.*ky-2.*pi*kz)	/(2*Pi)	=	cos(	1/2 kx	-	1/4 ky	- 1 kz	)
-       	#
-		#
-		#Rr_inter_12	=	[	-1./2.	, -	1./4.	,	-	1.0 ]
-		#Rl_inter_12	=	[	+1./2.	, +	1./4.	,	+	1.0 ]
-		##
-		#Rr_inter_13	=	[	  .0	, +	1./2.	,	-	1.0	]
-		#Rl_inter_13	=	[	  .0	, -	1./2.	,	+	1.0	]		
-		##		
-		#Rr_inter_14	=	[ +  1./2.	, -	1./4.	,	-	1.0	] 		
-		#Rl_inter_14	=	[ -  1./2.	, +	1./4.	,	+	1.0	] 		
-		
-
-		Rr_inter_12	=	[	-1./2.	, -	1./4.	,	-	1.0 ]
-		Rl_inter_12	=	[	+1./2.	, +	1./4.	,	+	1.0 ]
-		#
-		Rr_inter_13	=	[	  .0	, +	1./2.	,	-	1.0	]
-		Rl_inter_13	=	[	  .0	, -	1./2.	,	+	1.0	]		
-		#		
-		Rr_inter_14	=	[ +  1./2.	, -	1./4.	,	-	1.0	] 		
-		Rl_inter_14	=	[ -  1./2.	, +	1./4.	,	+	1.0	] 		
-
-		
-
-
-
-		self.R_nn_lst.append( Rr_inter_12) 
-		self.R_nn_lst.append( Rl_inter_12) 
-		self.R_nn_lst.append( Rr_inter_13) 
-		self.R_nn_lst.append( Rl_inter_13) 
-		self.R_nn_lst.append( Rr_inter_14) 
-		self.R_nn_lst.append( Rl_inter_14) 
-		#
-		#
-		#	out-of-plane hopping strength
-		inter_hopp		=	np.array(	[np.real(self.inter_t),	 np.imag(self.inter_t)]	)    	
-       	#
-		#	ADD INTER-LAYER HOPPING
-		for i in range(0,8,4):
-			self.set_right_left_cc(		Rl_inter_12,	Rr_inter_12,		1+i, 2+i,	inter_hopp		)
-			self.set_right_left_cc(		Rl_inter_13,	Rr_inter_13,		1+i, 3+i,	inter_hopp		)
-			self.set_right_left_cc(		Rl_inter_14,	Rr_inter_14,		1+i, 4+i,	inter_hopp		)
-			#
-			self.set_right_left_cc(		Rl_inter_14,	Rr_inter_14,		2+i, 3+i,	inter_hopp	 	)
-			self.set_right_left_cc(		Rl_inter_13,	Rr_inter_13,		2+i, 4+i,	inter_hopp	 	)
-			self.set_right_left_cc(		Rl_inter_12,	Rr_inter_12,		3+i, 4+i,	inter_hopp	 	)
-
-
-
-		nInter			=	2*6*4
 		actual_size		=	len(self.tHopp)- nExchange-nIntra
 		if( nIntra != actual_size):
 			self.v_print("[FeMn_3q_model/setup_Ham]: the interlayer list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nInter))
 		else:
 			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	interlayer entries")
 		#
-
+		#
 		expected_size	=	nExchange + nIntra + nInter
 		actual_size		= len(self.tHopp)
 		if(actual_size != expected_size):
@@ -400,46 +242,244 @@ class FeMn_3q_model:
 		if(actual_size != expected_size):
 			print("[FeMn_3q_model/get_FeMn3q_tb]: the hopping list has wrong size: got"+str(actual_size)+" expected:"+str(expected_size))
 			sys.exit()
+
+
+	def set_right_left_cc(self, R_right,	m, n, t_hopp):
+		if m>=n:
+			self.v_print("[FeMn_3q_model/set_right_left_cc]:	unexpected lower traingle values specified (m="+str(m)+",n="+str(n)+")")
+		if m> self.nWfs:
+			print("[FeMn_3q_model/set_right_left_cc]: m="+str(m)+" exeeds num_wann="+str(self.nWfs))
+			sys.exit()
+
+		if n> self.nWfs:
+			print("[FeMn_3q_model/set_right_left_cc]: m="+str(m)+" exeeds num_wann="+str(self.nWfs))
+			sys.exit()
+		
+		# add the hopping (left & right)
+		self.tHopp.append(		[	R_right[0]	,	R_right[1],	 R_right[2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
+		self.tHopp.append(		[ - R_right[0]	, -	R_right[1], -R_right[2]	, 	m,n		, 		t_hopp[0], + t_hopp[1]	]		)
+		#	now add complex conjugates of both terms	
+		self.tHopp.append(		[	R_right[0]	,	R_right[1],	R_right[2]	, 	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
+		self.tHopp.append(		[ - R_right[0]	, -	R_right[1], -R_right[2]	,  	n,m		, 		t_hopp[0], - t_hopp[1]	]		)
+
+
+
+	def rashba_helper(self, R_nn, i, j):
+		pre_fact	=	1j * self.lmbd_R
+		hR_ij		=	pre_fact * 	(	R_nn[1] + 1j * R_nn[0]	)	
+
+		if (i<=j):
+			#	hopping to nn. to the right	(second term: complex conjugate)
+			self.tHopp.append(		[		R_nn[0], R_nn[1], R_nn[2],			i, j,		np.real(hR_ij),  	np.imag(hR_ij) 			])
+			self.tHopp.append(		[		R_nn[0], R_nn[1], R_nn[2],			j, i,		np.real(hR_ij), -	np.imag(hR_ij) 			])
+			#
+			# 	hopping to nn. to the left 
+			self.tHopp.append(		[	-	R_nn[0], - R_nn[1], - R_nn[2],		i, j,		np.real(-hR_ij), 	np.imag(-hR_ij) 		])
+			self.tHopp.append(		[	-	R_nn[0], - R_nn[1], - R_nn[2],		j, i,		np.real(-hR_ij), -	np.imag(-hR_ij) 		])		
+		else:
+			#
+			#	debug message
+			print("[FeMn_3q_model/rashba_helper]: WARNING got unexpected lower diagonal element	i,j ="+str(i)+', '+str(j))
+
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#				HAMILTONIAN SETUP 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+	def add_exchange(self):
+		#
+		#
+		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		#      EXCHANGE																|
+		#---------------------------------------------------------------------------
+		sintheta	= []
+		costheta	= []
+		phasphi		= []
+		for i in range(4):
+			sintheta.append(						np.sin( self.thconv[i] )							)
+			costheta.append(						np.cos(	self.thconv[i] )							)
+			phasphi.append(		np.cos(self.phconv[i])	 - 1j * np.sin(self.phconv[i])					) 	
+			#
+			z_upDw	=	self.lmbd_Ex 	* sintheta[i]	*	phasphi[i]
+			re_upDw	=	np.real(	z_upDw	)
+			im_upDw	=	np.imag(	z_upDw	)
+			#       do i=1,4 ! exchange
+			#        ham(i,i) = lambda*costheta(i)
+			#        ham(i+4,i+4) = -lambda*costheta(i)
+			#        ham(i,i+4) = lambda*phasphi(i)*sintheta(i)
+			#       enddo
+			self.tHopp.append(	[	0., 0., 0., 		i+1, i+1, 		self.lmbd_Ex 	* costheta[i]						, 	.0			]				)
+			self.tHopp.append(	[ 	0., 0., 0.,			i+5, i+5, 	-	self.lmbd_Ex	* costheta[i] 						, 	.0			]				)
+			#
+			self.tHopp.append(	[	0., 0., 0.,			i+1, i+5,			re_upDw										, 	im_upDw		]				)
+			#print("[FeMn_3q_model/setup_Ham]:	 exchange - added: "+str(self.tHopp[-1]))
+			self.tHopp.append(	[	0., 0., 0., 		i+5, i+1,			re_upDw										, - im_upDw		]				)
+			#print("[FeMn_3q_model/setup_Ham]: cc exchange - added: "+str(self.tHopp[-1]))
+		self.R_nn_lst.append([0.,0.,0.])
+
+		nExchange		= 	4*4
+		actual_size		=	len(self.tHopp)
+		if( nExchange != actual_size):
+			self.v_print("[FeMn_3q_model/setup_Ham]: the exchange list has wrong number of entries: got"+ str(actual_size)+" expected:"+str(nExchange))
+		else:
+			self.v_print("[FeMn_3q_model/setup_Ham]:	set "+str(actual_size)+"	exhange entries")
+		#
+		return nExchange
+
+
+
+	def add_hopping(self):
+		#
+		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		#      HOPPING																|
+		#---------------------------------------------------------------------------
+		#
+		#	JAN'S HOPPING SETUP			
+		#> 	1	do i=0,4,4 ! intra- and inter-layer hopping
+       	#> 	2		ham(1+i,2+i)=ht1(1)+ht2(1)
+       	#> 	3		ham(1+i,3+i)=ht1(2)+ht2(2)
+       	#> 	4		ham(1+i,4+i)=ht1(3)+ht2(3)
+       	#> 	5		ham(2+i,3+i)=ht1(3)+ht2(3)
+       	#> 	6		ham(2+i,4+i)=ht1(2)+ht2(2)
+       	#> 	7		ham(3+i,4+i)=ht1(1)+ht2(1)
+       	#> 	8	enddo
+       	#
+       	#
+		#	JAN'S SOURE CODE
+		#>	1		! intra-layer hopping	
+       	#>	2		ht1(1) = -2*t*cos(pi*kx-3./2.*pi*ky)		/(2*Pi)	=	cos(	1/2 kx	-	3/4 ky	)
+       	#>	3		ht1(2) = -2*t*cos(2.*pi*kx)					/(2*Pi)	=	cos(	1	kx				)
+       	#>	4		ht1(3) = -2*t*cos(pi*kx+3./2.*pi*ky)		/(2*Pi)	=	cos(	1/2 kx	+	3/4 ky	)
+		#
+		#	in-plane hopping strength
+		intra_hopp		=	np.array(	[np.real(self.intra_t),	 np.imag(self.intra_t)]	)
+		#
+		#	ADD INTRA-LAYER HOPPING
+		for i in range(0,8,4):
+			#
+			self.set_right_left_cc(		self.Rr_intra_12,		1+i, 2+i,	intra_hopp		)
+			self.set_right_left_cc(		self.Rr_intra_13,		1+i, 3+i,	intra_hopp		)
+			self.set_right_left_cc(		self.Rr_intra_14,		1+i, 4+i,	intra_hopp		)
+			#
+			self.set_right_left_cc(		self.Rr_intra_14,		2+i, 3+i,	intra_hopp		)
+			self.set_right_left_cc(		self.Rr_intra_13,		2+i, 4+i,	intra_hopp		)
+			self.set_right_left_cc(		self.Rr_intra_12,		3+i, 4+i,	intra_hopp		)
+		#
+		nIntra			= 	2*6*4			# spin i gives factor 2, set_right_left_cc is called 6 times and should set 4 values every time
+		#
+		# 	JAN'S SOURCE CODE
+       	#! inter-layer hopping
+       	#ht2(1) =-2*t2*cos(-pi*kx-pi/2.*ky-2.*pi*kz)	/(2*Pi)	=	cos( -	1/2 kx	-	1/4 ky	- 1 kz	)
+       	#ht2(2) =-2*t2*cos(          pi*ky-2.*pi*kz)	/(2*Pi)	=	cos(				1/2 ky	- 1 kz	)
+       	#ht2(3) =-2*t2*cos( pi*kx-pi/2.*ky-2.*pi*kz)	/(2*Pi)	=	cos(	1/2 kx	-	1/4 ky	- 1 kz	)
+		#
+		#	out-of-plane hopping strength
+		inter_hopp		=	np.array(	[np.real(self.inter_t),	 np.imag(self.inter_t)]	)    	
+       	#
+		#	ADD INTER-LAYER HOPPING
+		for spin_flip in range(0,8,4):
+			self.set_right_left_cc(		self.Rr_inter_12,		1+spin_flip, 2+spin_flip,	inter_hopp		)
+			self.set_right_left_cc(		self.Rr_inter_13,		1+spin_flip, 3+spin_flip,	inter_hopp		)
+			self.set_right_left_cc(		self.Rr_inter_14,		1+spin_flip, 4+spin_flip,	inter_hopp		)
+			#
+			self.set_right_left_cc(		self.Rr_inter_14,		2+spin_flip, 3+spin_flip,	inter_hopp	 	)
+			self.set_right_left_cc(		self.Rr_inter_13,		2+spin_flip, 4+spin_flip,	inter_hopp	 	)
+			self.set_right_left_cc(		self.Rr_inter_12,		3+spin_flip, 4+spin_flip,	inter_hopp	 	)
+		nInter			=	2*6*4
+		#
+		#
+		return nIntra, nInter
+
+
+
+
+	def add_rashba(self):
+		#
+		#	Rashba ham given in 
+		#
+		#		see eq.(3)	in		Xiao et al. -  PRL 117, 267203 (2016)	
+		#
+		spin_flip	=	4
+		#
+		#	in-plane nearest neighbours
+		self.rashba_helper(	self.Rr_intra_12, 		1,		2	+ spin_flip			)
+		self.rashba_helper(	self.Rr_intra_13,		1,		3	+ spin_flip			)
+		self.rashba_helper(	self.Rr_intra_14,		1,		4	+ spin_flip			)
+		#
+		self.rashba_helper(	self.Rr_intra_14,		2,		3	+ spin_flip			)
+		self.rashba_helper(	self.Rr_intra_13,		2,		4	+ spin_flip			)
+		self.rashba_helper(	self.Rr_intra_12, 		3,		4	+ spin_flip			)
+		#
+		#
+		#	out of plane nearest neighbours
+		self.rashba_helper(self.Rr_inter_12,		 1,		2 	+ spin_flip			)
+		self.rashba_helper(self.Rr_inter_13,		 1,		3 	+ spin_flip			)
+		self.rashba_helper(self.Rr_inter_14,		 1,		4 	+ spin_flip			)
+		#
+		self.rashba_helper(self.Rr_inter_14,		 2,		3 	+ spin_flip			)
+		self.rashba_helper(self.Rr_inter_13,		 2,		4 	+ spin_flip			)
+		self.rashba_helper(self.Rr_inter_12,		 3,		4 	+ spin_flip			)
+		#
+		nRashba	=	2 * 6 * 4
+		return nRashba
+
+
+	def add_valley(self):
+		nValley	=	0
+		return nValley
+
+
+	def setup_Ham(self):
+		#
+		#	EXCHANGE
+		nExchange 		= 	self.add_exchange()
+		#
+		#	HOPPINGS
+		nIntra, nInter	=	self.add_hopping()
+		#
+		#	RASHBA SOC
+		nRashba			=	self.add_rashba()
+		#
+		#	VALLEY	TERM
+		nValley			=	self.add_valley()
+
+		#
+		#
+		#
+		self.postProc_ham(nExchange, nIntra, nInter)
+
 	
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#				POSITION OPERATOR SETUP 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -481,11 +521,11 @@ class FeMn_3q_model:
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #		INTERFACE																																   |
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def get_FeMn3q_tb(fpath, verbose=False):
+def get_FeMn3q_tb(fpath,  verbose=False):
 	print("[get_FeMn3q_tb]:	started..  FeMn3q model setup at " +			datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
 	#
 	#	READ INPUT FILE
-	test_model		=	FeMn_3q_model(fpath, verbose)
+	test_model		=	FeMn_3q_model(fpath, verbose=verbose)
 	#
 	#
 	#	HOPPING
@@ -550,7 +590,7 @@ def test(verbose=True):
 	print("")
 	#
 	#
-	nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_FeMn3q_tb(fpath, verbose)
+	nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_FeMn3q_tb(fpath, lambda_rashba= 0.01, verbose=verbose)
 	#
 	#
 	#

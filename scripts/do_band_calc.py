@@ -89,9 +89,10 @@ def do_band_calc(tb_model, use_pos_op, latt_sym_group='cub',kpath="Gamma 1000 X 
 	else:
 		print('[do_band_calc]: could not plot bandstructure since not all input files ("',k_file,'", "',en_file,'"") were found')
 	#
-	#
-	#def plot_bandstruct(target_dir_lst, id_str, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
-	plot_bandstruct(target_dir_lst, '', pdf_file, label_size=14, y_tick_size=12, plot_in_ev=True)
+
+	
+	#plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pdf_out_file, label_size=14, y_tick_size=12, plot_in_ev=False):
+	plot_bandstruct(target_dir_lst, '', '','-','black' ,pdf_file, label_size=14, y_tick_size=12, plot_in_ev=True)
 
 
 	os.chdir(root_dir)

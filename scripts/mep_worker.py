@@ -5,6 +5,7 @@ import sys, traceback
 import numpy as np
 from shutil 			import 	copy
 from tb_input_writer 	import 	write_tb_input
+from tb_input_writer	import 	write_FeMn_3Q_inp
 from plot_bandStruct 	import	plot_bandstruct
 from fortran_io			import	read_real_tens_file
 
@@ -14,10 +15,19 @@ from fortran_io			import	read_real_tens_file
 
 class MEP_worker:
 	"""class handeling a MEPinterp calculation"""
+	
 
+
+	def write_3Q_input(self, t_hopp, delta, J_ex, lmbd_R):
+		inp_file_3Q	=	self.work_dir+'/inp_params_3q'
+		#
+		write_FeMn_3Q_inp( inp_file_3Q	, t_hopp, delta, J_ex, lmbd_R)
+		print("[MEP_worker]: wrote 3q input to "+inp_file_3Q)
 
 	#constructor
-	def __init__(		self, tb_model, use_pos_op, root_dir, work_dir, phi, val_bands, mp_grid, 
+	def __init__(		self, tb_model, use_pos_op, root_dir, work_dir, phi, val_bands, 
+						t_hopp, delta, J_ex, lmbd_R,
+						mp_grid, 
 						kubo_tol=1e-3,  hw=0.0, laser_phase=1, n_eF=1 ,eF_min=0.0, eF_max=0.0, Tkelvin=0.0, eta_smearing=0.0, 
 						debug_mode='F', do_gauge_trafo='T',	R_vect_float='F',
 						do_write_velo='F', do_write_mep_bands='F',
@@ -27,8 +37,15 @@ class MEP_worker:
 		self.use_pos_op		=	use_pos_op
 		self.root_dir		=	root_dir
 		self.work_dir		=	work_dir
+		#
 		self.phi			=	phi
-		self.val_bands 		=	val_bands 
+		self.val_bands 		=	val_bands
+		#
+		self.t_hopp  		=	t_hopp	
+		self.delta   		=	delta
+		self.J_ex    		=	J_ex
+		self.lmbd_R  		=	lmbd_R
+		#
 		self.mp_grid		=	mp_grid
 		self.kubo_tol		=	kubo_tol
 		self.hw				=	hw	
@@ -38,12 +55,14 @@ class MEP_worker:
 		self.eF_max			=	eF_max
 		self.Tkelvin		=	Tkelvin
 		self.eta_smearing	=	eta_smearing
+		#
 		self.plot_bands		=	'F'	
 		self.debug_mode		=	debug_mode
 		self.do_gauge_trafo	=	do_gauge_trafo
 		self.R_vect_float	=	R_vect_float
 		self.do_write_velo	=	do_write_velo
 		self.do_write_mep_bands	=	do_write_mep_bands
+		#
 		self.do_mep			=	do_mep
 		self.do_kubo		=	do_kubo
 		self.do_ahc			=	do_ahc
@@ -52,6 +71,7 @@ class MEP_worker:
 		#
 		#
 		self.success		= False
+		print('[MEP_worker/init]: work dir=',self.work_dir)
 		self.band_dir		= self.work_dir+'/bands'
 		#
 		#
@@ -63,15 +83,19 @@ class MEP_worker:
 			os.makedirs(self.work_dir)
 			print('[mep_worker]: made dir '+self.work_dir)
 		except OSError:
-			sys.exit('[mep_worker]: could not makedirs '+str(self.work_dir)	)
+			print('[mep_worker]: could not makedirs '+str(self.work_dir)	)
 
 		#copy executables to target
 		copy(self.root_dir+'/../mepInterp',	self.work_dir)
 		copy(self.root_dir+'/../kptsgen.pl',self.work_dir)
 		
-		# copy existing input
-		if self.tb_model=='FeMn3q':
-			copy(self.root_dir+'/../inp_params_3q',	self.work_dir)
+		self.write_3Q_input(	t_hopp, delta, J_ex, lmbd_R	)
+		## copy existing input
+		#if self.tb_model=='FeMn3q':
+		#	#try:
+		#	#	copy(self.root_dir+'/../inp_params_3q',	self.work_dir)
+		#	#except:
+		#	#	print('ERROR file '+self.root_dir+'/../inp_params_3q not found')
 
 		#generate fortran input
 		write_tb_input(		self.tb_model, self.use_pos_op,	self.work_dir, 
@@ -87,7 +111,7 @@ class MEP_worker:
 
 
 
-
+	
 
 	#atributes
 	def print_info(self):
