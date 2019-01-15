@@ -263,6 +263,12 @@ class HW_probe:
 			scale		=	au_to_S_cm
 			unit_str		=	"[S/cm]"
 			unit_dsc		=	"SI units"	
+		elif units == "wx":
+			au_to_S_cm		=	4.599848 * 10**4
+		 	
+			scale			=	au_to_S_cm	/ 100.
+			unit_str		=	"[arb. u.]"
+			unit_dsc		=	"Units used by wanxiang in his paper. this should be the SI value divided by 100"	
 		#
 		print('[set_hall_units]:  chooen units "'+units+'" with dim '+unit_str+'" and  descriptor: "'+unit_dsc+'" '	)
 		#
@@ -456,7 +462,11 @@ class HW_probe:
 
 			
 
-	def plot_hall_like(	self, units='au', scale=1.0, plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, label_size=14, xtick_size=12, ytick_size=12):
+	def plot_hall_like(		self, units='au', scale=1.0, 
+							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
+							label_size=14, xtick_size=12, ytick_size=12,
+							re_bound=1, im_bound=1
+					):
 		print("^")
 		print("^")
 		print("-------------------------------------------------------------------------------")	
@@ -510,6 +520,12 @@ class HW_probe:
 		hw_max	=	max(self.hw_lst)
 		hw_min	=	min(self.hw_lst)
 
+
+		#	color code for the AHC plot
+		ahc_col		=	'black'
+		ohc_wx_col	=	'blue'
+		ohc_w90_col	=	'orange'	
+
 		#
 		#plot all 9 components of mep tensor
 		for i in range(0,3):
@@ -534,49 +550,74 @@ class HW_probe:
 				#
 				#
 				#do PLOT
-				fig, ax  = plt.subplots(1,1) 
+				fig, ax  = plt.subplots(2,1, sharex=True)
+				ax[0].set_title('optical Hall conductivity')
+				#
+				#		REAL PART
 				#
 				if plot_ahc:
 					try:
-						plt.plot(hw_plot, ahc_plot,'-', color='black',label=r'$ \: \: \:\: \;  \sigma ^{\mathrm{AHC}}$')
+						ax[0].plot(hw_plot, ahc_plot,'-', color=ahc_col,label=r'$ \: \: \:\: \;  \sigma ^{\mathrm{AHC}}$')
 					except:
 						print("[plot_hall_like]: 	WARNING could not plot AHC tensor")
+				if plot_ahc_kubo:
+					try:
+						ax[0].plot(hw_plot, RE_ahc_kubo_plot,		'^-', 	color=ohc_wx_col,		label=r'Wx'		)
+					except:
+						print("[plot_hall_like]: 	WARNING could not plot RE AHC_Kubo (wann guide) tensor")
+				if plot_ohc:
+					try:
+						ax[0].plot(hw_plot, RE_ohc_kubo_plot,		'x-', 	color=ohc_w90_col,		label=r'w90'		)
+					except:
+						print("[plot_hall_like]: 	WARNING could not plot RE AHC_Kubo (wanxiang) tensor")
+				#
+				#
+				#		IMAGINARY PART
 				#
 				if plot_ahc_kubo:
 					try:
-						plt.plot(hw_plot, RE_ahc_kubo_plot,		'^-', 	color='blue',		label=r'$ \Re  \; \sigma ^{\mathrm{OHC}}_\mathrm{WX} \; (\hbar \omega )$'		)
-						plt.plot(hw_plot, IM_ahc_kubo_plot,		'v-', 	color='orange',		label=r'$ \Im  \; \sigma ^{\mathrm{OHC}}_\mathrm{WX} \; (\hbar \omega $)'		)
+						ax[1].plot(hw_plot, IM_ahc_kubo_plot,		'v-', 	color=ohc_wx_col,		label=r'Wx'		)
 					except:
-						print("[plot_hall_like]: 	WARNING could not plot AHC_Kubo (wann guide) tensor")
-				#
+						print("[plot_hall_like]: 	WARNING could not plot IM AHC_Kubo (wann guide) tensor")
 				if plot_ohc:
 					try:
-						plt.plot(hw_plot, RE_ohc_kubo_plot,		'x-', 	color='red',		label=r'$ \Re  \; \sigma ^{\mathrm{OHC}}_\mathrm{w90} \; (\hbar \omega $)'		)
-						plt.plot(hw_plot, IM_ohc_kubo_plot,		'*-', 	color='green',		label=r'$\ Im  \; \sigma ^{\mathrm{OHC}}_\mathrm{w90} \; (\hbar \omega $)'		)
+						ax[1].plot(hw_plot, IM_ohc_kubo_plot,		'*-', 	color=ohc_w90_col,		label=r'w90'		)
 					except:
-						print("[plot_hall_like]: 	WARNING could not plot OHC_Kubo (wanxiang) tensor")
-				
-				plt.title('optical Hall conductivity')
-				#X-AXIS
+						print("[plot_hall_like]: 	WARNING could not plot IM OHC_Kubo (wanxiang) tensor")
+				#
+				#
+				#	LABELS & TITLES
+				#
+				ax[0].set_xticks(np.arange(hw_min, hw_max+1.0, 0.1), minor=True)
+				try:	
+					ax[0].set_xlim([hw_min, hw_max])
+					ax[0].set_ylim([- re_bound-.1, re_bound+.1 ])
+					ax[1].set_ylim([- im_bound-.1, im_bound+.5 ])
+					#
+					ax[0].set(ylabel=r'$\sigma^\mathrm{R}_{'+dim_str[i]+dim_str[j]+'}\; (\omega)\;$' +	unit_str)
+					ax[0].yaxis.label.set_size(label_size)
+					ax[1].set(ylabel=r'$\sigma^\mathrm{I}_{'+dim_str[i]+dim_str[j]+'}\; (\omega)\;$' +	unit_str)
+					ax[1].yaxis.label.set_size(label_size)
+				except:
+					print("[plot_hall_like]: labeling of plot failed")
+				#
 				plt.xlabel(r'$ \hbar \omega $ (eV)',	fontsize=label_size)
-				ax.set_xlim([hw_min, hw_max])
-				#ax.set_xticks(	np.array([0,1,2])	,	minor=False	)
-				#ax.set_xticks(	np.array([0.5,1.5])	,	minor=True	)
-				#ax.set_xticklabels(np.array([r'$0$',r'$\pi$',r'$2\pi$']))
-				#plt.tick_params(axis='x',which='major', direction='in',labelsize=xtick_size)
-				#plt.tick_params(axis='x',which='minor', direction='in', labelsize=xtick_size)
-
-				#Y-AXIS
-				plt.ylabel(r'$\sigma_{'+dim_str[i]+dim_str[j]+'}$' +	unit_str,	fontsize=label_size)
+				#
+				#
 				#ax.set_ylim([mep_min,mep_max])
-				plt.tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
-
+				ax[0].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
+				ax[0].tick_params(axis='x',which='both', direction='in',labelsize=xtick_size)
+				ax[1].tick_params(axis='x',which='both', direction='in',labelsize=xtick_size, top=True)
+				ax[1].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
+				#
 				plt.legend()
-
 				plt.tight_layout()
+				fig.subplots_adjust(hspace=0)
+				#
 				outFile_path	= self.plot_dir+'/hall_'+dim_str[i]+dim_str[j]+'.pdf'
 				plt.savefig(outFile_path)
 				plt.close()
+				#
 				print('[plot_hall_like]:	finished processing '+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+outFile_path	)
 		print("-------------------------------------------------------------------------------")
 		print("")
@@ -644,12 +685,14 @@ def plot_hw(root_dir):
 		print('[plot_hw]:	plotted mep tensors')
 		#	~~~~~~~~~~~~~~~~~~~~~~~~
 		#
-		myTest.plot_hall_like(		units			=		'asdf'		, 
+		myTest.plot_hall_like(		units			=		'wx'		, 
 									scale			=		1.0			, 
 									plot_ahc		=		True		, 
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		True		, 
-									label_size=14, xtick_size=12, ytick_size=12
+									label_size=14, xtick_size=12, ytick_size=12,
+									re_bound		=	35,
+									im_bound		=	10
 							)
 		print("...")
 		print('[plot_hw]:	plotted Hall like tensors')
