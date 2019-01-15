@@ -54,6 +54,7 @@ class FeMn_3q_model:
 		self.v_print(		'		|      S3       '			)
 		self.v_print(		'		O---x           '			)
 		#
+		self.lmbd_R	=	0
 		with open(fpath) as f_in:
 			for idx, line in enumerate(f_in):
 				#	
