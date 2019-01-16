@@ -1,6 +1,6 @@
 module k_space
 	use constants, 			only:		dp, pi_dp
-	use mpi_comm,			only:		mpi_id
+	use mpi_community,		only:		mpi_id
 	use matrix_math,		only:		crossP
 
 	implicit none

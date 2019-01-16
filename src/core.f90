@@ -11,7 +11,7 @@ module core
 #endif
 	use matrix_math,	only:	my_Levi_Civita
 	use constants,		only:	dp, aUtoEv
-	use mpi_comm,		only:	mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
+	use mpi_community,	only:	mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								mpi_ki_selector,								&
 								mpi_bcast_tens,									&
 								mpi_reduce_sum,									&

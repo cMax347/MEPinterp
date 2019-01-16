@@ -1,4 +1,4 @@
-module mpi_comm
+module mpi_community
 
 #ifdef USE_MPI
 	use mpi
@@ -265,4 +265,4 @@ contains
 
 
 
-end module mpi_comm
+end module mpi_community

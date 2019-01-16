@@ -4,7 +4,7 @@ module file_io
 #endif
 	use matrix_math,					only:		is_equal_vect, is_herm_mat	
 	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv
-	use mpi_comm,						only:		mpi_id, mpi_root_id, mpi_nProcs
+	use mpi_community,					only:		mpi_id, mpi_root_id, mpi_nProcs
 	use input_paras,					only:		w90_dir, 							&
 													out_dir,							& 
 													eig_out_dir,						&

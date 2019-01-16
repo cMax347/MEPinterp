@@ -5,7 +5,7 @@ module input_paras
 #endif
 	use matrix_math,				only:		crossP
 	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv, kBoltz_Eh_K
-	use mpi_comm,					only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
+	use mpi_community,				only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
 	use k_space,					only:		set_recip_latt, set_mp_grid
 
 

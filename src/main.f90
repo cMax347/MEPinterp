@@ -6,7 +6,7 @@ program MEPinterp
 #ifdef USE_MPI	
 	use mpi
 #endif
-	use mpi_comm,				only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
+	use mpi_community,			only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,			only:		init_parameters,	&
 											plot_bands
 	use core,					only:		core_worker

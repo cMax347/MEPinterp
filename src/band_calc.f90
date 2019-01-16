@@ -7,7 +7,7 @@ module band_calc
 	use mpi
 #endif
 	use constants,		only:			dp
-	use mpi_comm,		only:			mpi_root_id, mpi_id, mpi_nProcs, ierr
+	use mpi_community,	only:			mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,	only:			use_mpi, seed_name, a_latt, 					&
 										do_gauge_trafo, do_write_velo
 	use k_space,		only:			get_recip_latt										
