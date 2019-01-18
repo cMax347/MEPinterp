@@ -216,6 +216,7 @@ module input_paras
 				write(*,*)					"	N_hw="				,	N_hw										
 				write(*,*)					"	hw_min="			,	hw_min*aUtoEv							,	" (eV)" 
 				write(*,*)					"	hw_max="			,	hw_max*aUtoEv							,	" (eV)" 
+				write(*,*)					"	   2nd order E_field E^2 = E_a E^*_b phase shift (between a&b field):"
 				write(*,*)					"	laser_phase_angle="	,	laser_phase								,	" *pi"
 				write(*,*)					"	laser phase="		,	phi_laser								, 	" exp( i * laser_phase_angle )"
 				!	------------------------------------------
