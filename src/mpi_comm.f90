@@ -15,7 +15,7 @@ module mpi_community
 							mpi_ki_selector,						&
 							!mpi_init_glob,							&
 							mpi_bcast_tens,							&
-							mpi_reduce_sum,						&
+							mpi_reduce_sum,							&
 							mpi_allreduce_sum
 
 
@@ -37,6 +37,7 @@ module mpi_community
 		module procedure d2_mpi_reduce_sum
 		module procedure d3_mpi_reduce_sum
 		module procedure z2_mpi_reduce_sum
+		module procedure z3_mpi_reduce_sum
 	end interface mpi_reduce_sum
 
 	interface mpi_allreduce_sum
@@ -191,8 +192,8 @@ contains
 
 
 	subroutine d2_mpi_reduce_sum( loc_tens, glob_tens)	
-		real(dp),							intent(in)		::	loc_tens(:,:)
-		real(dp),		allocatable,		intent(inout)	::	glob_tens(:,:)
+		real(dp),							intent(in)		::	loc_tens(	:,:)
+		real(dp),		allocatable,		intent(inout)	::	glob_tens(	:,:)
 		integer												::	package_size
 		!
 		allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2)	))
@@ -213,8 +214,8 @@ contains
 
 
 	subroutine d3_mpi_reduce_sum( loc_tens, glob_tens)	
-		real(dp),							intent(in)		::	loc_tens(:,:,:)
-		real(dp),		allocatable,		intent(inout)	::	glob_tens(:,:,:)
+		real(dp),							intent(in)		::	loc_tens(	:,:,:)
+		real(dp),		allocatable,		intent(inout)	::	glob_tens(	:,:,:)
 		integer												::	package_size
 		!
 		allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2), size(loc_tens,3)	))
@@ -235,8 +236,8 @@ contains
 
 
 	subroutine z2_mpi_reduce_sum( loc_tens, glob_tens)	
-		complex(dp),							intent(in)		::	loc_tens(:,:)
-		complex(dp),		allocatable,		intent(inout)	::	glob_tens(:,:)
+		complex(dp),							intent(in)		::	loc_tens(	:,:)
+		complex(dp),		allocatable,		intent(inout)	::	glob_tens(	:,:)
 		integer													::	package_size
 		!
 		allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2)	))
@@ -246,7 +247,29 @@ contains
 		if( mpi_nProcs > 1) then
 			package_size	=	size(loc_tens,1)	* size(loc_tens,2)
 			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_COMPLEX , MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
-		if(ierr /= 0)	stop "[mpi_comm/z2_mpi_reduce_sum]: (MPI_REDUCE) failed"
+			if(ierr /= 0)	stop "[mpi_comm/z2_mpi_reduce_sum]: (MPI_REDUCE) failed"
+		else
+			glob_tens	=	loc_tens
+		end if
+		!
+		!
+		return
+	end subroutine	
+
+
+		subroutine z3_mpi_reduce_sum( loc_tens, glob_tens)	
+		complex(dp),							intent(in)		::	loc_tens(	:,:,:)
+		complex(dp),		allocatable,		intent(inout)	::	glob_tens(	:,:,:)
+		integer													::	package_size
+		!
+		allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2), size(loc_tens,3)	))
+		glob_tens	=	cmplx(	0.0_dp, 0.0_dp,	dp)
+		!
+		!
+		if( mpi_nProcs > 1) then
+			package_size	=	size(loc_tens,1)	* size(loc_tens,2) * size(loc_tens,3)
+			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_COMPLEX , MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
+			if(ierr /= 0)	stop "[mpi_comm/z3_mpi_reduce_sum]: (MPI_REDUCE) failed"
 		else
 			glob_tens	=	loc_tens
 		end if
