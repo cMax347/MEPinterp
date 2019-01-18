@@ -205,7 +205,7 @@ tb_system = hw_job(		#parameter space probe density:
 #	II.	probe hw between hw_min & hw_max
 tb_system.probe_hw_space(		hw_min			=		0		, 
 								hw_max			=		6		,	
-								n_hw			= 		7		,
+								n_hw			= 		61		,
 								plot_bandstruct =   	False	, 
 								dry_run			=		False	,
 								mpi_np			=		4
