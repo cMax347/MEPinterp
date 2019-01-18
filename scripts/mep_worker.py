@@ -123,18 +123,21 @@ class MEP_worker:
 
 	
 
-	def run(self,mpi_np=1,plot_bands=False):
+	def run(self, dry=False, mpi_np=1,plot_bands=False):
 		#execute calculation
 		
 		os.chdir(self.work_dir)
 
 		nK	= self.mp_grid[0]*self.mp_grid[1]*self.mp_grid[2]
 		print('['+str(datetime.datetime.now())+']start calculation (nK='+str(nK)+')....')
-		try:
-			os.system('mpirun -np '+str(mpi_np)+' ./mepInterp > mepINTERPOLATION.log')
-			self.success = True
-		except:
-			print('[mep_worker]: calculation could not be executed')
+		if not dry:
+			try:
+				os.system('mpirun -np '+str(mpi_np)+' ./mepInterp > mepINTERPOLATION.log')
+				self.success = True
+			except:
+				print('[mep_worker]: calculation could not be executed')
+		else:
+			print('[mep_worker]: dry run selected no computation done!')
 
 		os.chdir(self.root_dir)
 		print('['+str(datetime.datetime.now())+'] ...finished calculation')

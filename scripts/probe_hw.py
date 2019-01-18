@@ -1,7 +1,8 @@
 import numpy as np
 import datetime
 import os
-from mep_worker import MEP_worker 
+from mep_worker 	import MEP_worker 
+from slurm_sript 	import batch_script 
 import matplotlib.pyplot as plt
 
 
@@ -80,11 +81,21 @@ class hw_job:
 #	---------------
 #
 
-	def probe_hw_space(self,hw_min, hw_max, n_hw, mpi_np=1, plot_bandstruct=False):
+	def probe_hw_space(self,hw_min, hw_max, n_hw, dry_run=False, mpi_np=1, plot_bandstruct=False):
 		print('[probe_hw_space]: hw_min	= '+str(hw_min)+'	hw_max='+str(hw_max)+'	n_hw='+str(n_hw)	)
+		
+
+		if dry_run:
+			cluster_job	=	batch_script(self.root_dir)
+
+
 		for hw  in np.linspace(hw_min, hw_max, num = n_hw):		#iterate over relative phi (phi_rel = phi / np.pi)
 			work_dir =	self.root_dir+'/hw'+str(hw)		
 			#init current job
+
+			if dry_run:
+				cluster_job.add_subbdir(work_dir)
+
 			print("")
 			print("")
 			print("")
@@ -127,7 +138,7 @@ class hw_job:
 			print("[probe_hw_space]: wrote 3q input "+str())
 
 			#run calc
-			worker.run(mpi_np=mpi_np)
+			worker.run(dry=dry_run, mpi_np=mpi_np)
 			print('[probe_hw_space]: curr. calculation finished, try to collect data ...')
 			mep_tens, mep_cs, mep_lc, mep_ic, mep_bands = worker.get_mep_tens()
 			self.phi_tot_data.append(		[hw, mep_tens	]			)
@@ -224,6 +235,7 @@ tb_system.probe_hw_space(		hw_min			=		0		,
 								hw_max			=		6		,	
 								n_hw			= 		7		,
 								plot_bandstruct =   	True	, 
+								dry_run			=		True	,
 								mpi_np			=		4
 					)
 #
