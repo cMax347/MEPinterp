@@ -184,9 +184,9 @@ tb_system = hw_job(		#parameter space probe density:
 								gamma_scale			=	1.0					,
 								kubo_tol			=	1e-5				, 
 								laser_phase			=	1.0					,
-								n_eF				=	2					,
-								eF_min 				=	-5.0				,
-								eF_max				=	-4.5				,
+								n_eF				=	150					,
+								eF_min 				=	-5.5				,
+								eF_max				=	-4.0				,
 								Tkelvin				=	0.0					,
 								eta_smearing		=	0.1					, 
 								#additional fortran controllers
