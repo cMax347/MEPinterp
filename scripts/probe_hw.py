@@ -180,11 +180,11 @@ tb_system = hw_job(		#parameter space probe density:
 								J_ex				=	1.0					, 
 								lmbd_R				=	0.2					,
 								#numerical parameters
-								mp_grid				=	[16,16,16]			, 
+								mp_grid				=	[4,4,4]			, 
 								gamma_scale			=	1.0					,
 								kubo_tol			=	1e-5				, 
 								laser_phase			=	1.0					,
-								n_eF				=	1					,
+								n_eF				=	2					,
 								eF_min 				=	-5.0				,
 								eF_max				=	-4.5				,
 								Tkelvin				=	0.0					,
