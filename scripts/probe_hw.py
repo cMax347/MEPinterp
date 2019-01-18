@@ -78,7 +78,7 @@ class hw_job:
 
 	def probe_hw_space(self,hw_min, hw_max, n_hw, dry_run=False, mpi_np=1, plot_bandstruct=False):
 		print('[probe_hw_space]: hw_min	= '+str(hw_min)+'	hw_max='+str(hw_max)+'	n_hw='+str(n_hw)	)
-		
+		print('[probe_hw_space]: eF_min	= '+str(self.eF_min)+'	eF_max='+str(self.eF_max)+'	n_eF='+str(self.n_eF)	)
 
 		if dry_run:
 			#cluster_job	=	batch_script(self.root_dir)
@@ -130,7 +130,7 @@ class hw_job:
 		#
 		#write 3Q input file
 		worker.write_3Q_input(self.t_hopp, self.delta, self.J_ex, self.lmbd_R)
-		print("[probe_hw_space]: wrote 3q input "+str())
+		print("[probe_hw_space]: wrote 3q input ")
 		#
 		#run calc
 		worker.run(dry=dry_run, mpi_np=mpi_np)
@@ -184,7 +184,7 @@ tb_system = hw_job(		#parameter space probe density:
 								gamma_scale			=	1.0					,
 								kubo_tol			=	1e-5				, 
 								laser_phase			=	1.0					,
-								n_eF				=	150					,
+								n_eF				=	1					,
 								eF_min 				=	-5.5				,
 								eF_max				=	-4.0				,
 								Tkelvin				=	0.0					,
