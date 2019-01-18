@@ -2,7 +2,7 @@ import numpy as np
 import datetime
 import os
 from mep_worker 	import MEP_worker 
-from slurm_sript 	import batch_script 
+#from slurm_sript 	import batch_script 
 import matplotlib.pyplot as plt
 
 
@@ -67,11 +67,6 @@ class hw_job:
 					print(old_path+ ' exists already')
 
 		self.plot_dir		= 	self.root_dir+'/mep_tot_plots'
-		self.phi_tot_data 	= 	[]
-		self.phi_cs_data 	= 	[]
-		self.phi_lc_data 	= 	[]
-		self.phi_ic_data 	= 	[]
-		self.phi_bands_data	=	[]
 #
 #	---------------
 #
@@ -86,94 +81,71 @@ class hw_job:
 		
 
 		if dry_run:
-			cluster_job	=	batch_script(self.root_dir)
+			#cluster_job	=	batch_script(self.root_dir)
+			print("[probe_hw_space]	WARNING dry_run batch_script writer isnt implemented yet")
 
 
-		for hw  in np.linspace(hw_min, hw_max, num = n_hw):		#iterate over relative phi (phi_rel = phi / np.pi)
-			work_dir =	self.root_dir+'/hw'+str(hw)		
-			#init current job
 
-			if dry_run:
-				cluster_job.add_subbdir(work_dir)
+		#if dry_run:
+		#	cluster_job.add_subbdir(work_dir)
 
-			print("")
-			print("")
-			print("")
-			print("")
-			print('[probe_hw_space]: init new MEP_worker (hw='+str(hw)+')')
-			#
-			worker = MEP_worker(	self.tb_model,
-						self.use_pos_op,
-						self.root_dir,
-						work_dir, 
-						self.phi_pi, 						#give  phi_rel*pi to calculation
-						self.val_bands,
-						self.t_hopp,
-						self.delta,
-						self.J_ex,
-						self.lmbd_R, 
-						self.mp_grid, 
-						self.kubo_tol,
-						hw,
-						self.laser_phase,
-						self.n_eF,
-						self.eF_min,
-						self.eF_max,
-						self.Tkelvin,
-						self.eta_smearing,
-						self.debug_mode,
-						self.do_gauge_trafo,
-						self.do_r_vect_float,
-						self.do_write_velo,
-						self.do_write_mep_bands,
-						self.do_mep,
-						self.do_kubo,
-						self.do_ahc,
-						self.do_opt,
-						self.do_gyro
-					)
-			#
-			#write 3Q input file
-			worker.write_3Q_input(self.t_hopp, self.delta, self.J_ex, self.lmbd_R)
-			print("[probe_hw_space]: wrote 3q input "+str())
-
-			#run calc
-			worker.run(dry=dry_run, mpi_np=mpi_np)
-			print('[probe_hw_space]: curr. calculation finished, try to collect data ...')
-			mep_tens, mep_cs, mep_lc, mep_ic, mep_bands = worker.get_mep_tens()
-			self.phi_tot_data.append(		[hw, mep_tens	]			)
-			self.phi_cs_data.append(		[hw, mep_cs	]			)
-			self.phi_lc_data.append(		[hw, mep_lc	]			)
-			self.phi_ic_data.append(		[hw, mep_ic	]			)
-			self.phi_bands_data.append(		[hw, mep_bands ]			)
-			#plot bands
-			if plot_bandstruct:
-				try:
-					worker.plot_bands()
-				except:
-					print('[probe_hw_space]: could not plot bands')
-			print('[probe_hw_space]: finished  hw='+str(hw)+' MEP_worker')
+		print("")
+		print("")
+		print("")
+		print("")
+		print('[probe_hw_space]: init new MEP_worker ')
 		#
-		self.phi_tot_data 	= 	sorted(self.phi_tot_data)
-		self.phi_cs_data	=	sorted(self.phi_cs_data)
-		self.phi_lc_data	=	sorted(self.phi_lc_data)
-		self.phi_ic_data	=	sorted(self.phi_ic_data)
-		self.phi_bands_data	=	sorted(self.phi_bands_data)
+		worker = MEP_worker(	self.tb_model,
+					self.use_pos_op,
+					self.root_dir,
+					self.root_dir, 
+					self.phi_pi, 						#give  phi_rel*pi to calculation
+					self.val_bands,
+					self.t_hopp,
+					self.delta,
+					self.J_ex,
+					self.lmbd_R, 
+					self.mp_grid, 
+					self.kubo_tol,
+					n_hw,
+					hw_min,
+					hw_max,
+					self.laser_phase,
+					self.n_eF,
+					self.eF_min,
+					self.eF_max,
+					self.Tkelvin,
+					self.eta_smearing,
+					self.debug_mode,
+					self.do_gauge_trafo,
+					self.do_r_vect_float,
+					self.do_write_velo,
+					self.do_write_mep_bands,
+					self.do_mep,
+					self.do_kubo,
+					self.do_ahc,
+					self.do_opt,
+					self.do_gyro
+				)
+		#
+		#write 3Q input file
+		worker.write_3Q_input(self.t_hopp, self.delta, self.J_ex, self.lmbd_R)
+		print("[probe_hw_space]: wrote 3q input "+str())
+		#
+		#run calc
+		worker.run(dry=dry_run, mpi_np=mpi_np)
+		print('[probe_hw_space]: calulation finished ...')
+		#plot bands
+		if plot_bandstruct:
+			try:
+				worker.plot_bands()
+			except:
+				print('[probe_hw_space]: could not plot bands')
+		#
 		print("*")
 		print("*")
 		print("*")
 
-#
-#	---------------
-#
-	def print_results_container(self):
-		print('^^^^^raw data ^^^^^^^')
-		print('mep_bands :')
-		print(self.phi_bands_data)
-		#print(self.phi_bands_data[0][0])
-
-		print('phi_tot_data =',self.phi_tot_data)
-		print('------------------------------------')
 #
 #
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -234,13 +206,10 @@ tb_system = hw_job(		#parameter space probe density:
 tb_system.probe_hw_space(		hw_min			=		0		, 
 								hw_max			=		6		,	
 								n_hw			= 		7		,
-								plot_bandstruct =   	True	, 
-								dry_run			=		True	,
+								plot_bandstruct =   	False	, 
+								dry_run			=		False	,
 								mpi_np			=		4
 					)
-#
-#	III. show results in std out
-tb_system.print_results_container()
 #
 print("all done, by from probe_hw!")
 

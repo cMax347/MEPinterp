@@ -31,6 +31,7 @@ module file_io
 													write_en_global,					&
 													write_velo,							&
 													!-----------------------------------!
+													write_hw_list,						&
 													write_mep_bands,					&
 													write_mep_tensors,					&
 													write_kubo_mep_tensors,				&
@@ -213,6 +214,77 @@ module file_io
 		!
 		return
 	end subroutine
+
+
+
+
+	subroutine write_hw_list(n_hw, 	hw_min,	hw_max	)
+		integer,			intent(in)		::	n_hw
+		real(dp),			intent(in)		::	hw_min, hw_max
+		integer								::	hw_idx, hw_unit
+		real(dp)							::	hw_val, delta_hw
+		character(len=20)					::	fname
+		character(len=100)					::	info_string
+		!
+		fname 			=	out_dir//'hw_lst.txt'
+		info_string		=	'# List of Laser frequencies (in eV) used for calc. opt. responses, written at '//cTIME(time())
+		hw_unit			=	399
+		delta_hw		=	(	hw_max -	hw_min	)	/	real(N_hw -1,dp)
+		!
+		!
+		open(unit=hw_unit,	file=trim(fname), form='formatted', action='write', access='stream', status='replace')
+		write(hw_unit,*) info_string
+		!
+		do hw_idx = 1, n_hw
+			hw_val		=	hw_min 	+	real(hw_idx-1,dp)	* delta_hw
+			!
+			write(hw_unit,'(i7,a,f16.8)')	hw_idx,"	", hw_val * aUtoEv
+		end do
+		close(hw_unit)
+		!
+		write(*,'(a,i7,a)')		"[write_hw_list]: wrote ",n_hw," entries to ",fname
+		!
+		return
+	end subroutine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -409,18 +481,18 @@ module file_io
 	subroutine write_ahc_tensor(n_ki_glob, ahc_tens, velo_ahc_tens, ohc_tens)
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable,	intent(in)			::	ahc_tens(:,:)
-		complex(dp),allocatable,	intent(in)			::	velo_ahc_tens(:,:), ohc_tens(:,:)
-		character(len=12)								::	fname
-		character(len=70)								::	info_string
+		complex(dp),allocatable,	intent(in)			::	velo_ahc_tens(:,:,:), ohc_tens(:,:,:)
+		character(len=22)								::	fname
+		character(len=100)								::	info_string
 		character(len=7)								::	id_string
-		integer											::	row
+		integer											::	row,	hw_idx, n_hw
 		!
 		!
 		if(allocated(ahc_tens)) then
 			fname		=	'ahc_tens.dat'
 			info_string	=	'# anomalous Hall conductivity tensor, written '//cTIME(time())
 			id_string	=	'ahc'
-			call	write_tens_file(ahc_out_dir,	fname,	ahc_tens,	info_string,	id_string)
+			call	write_tens_file(ahc_out_dir,	trim(fname),	ahc_tens,	info_string,	id_string)
 			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor (curvature) on ",n_ki_glob," kpts:"
 			do row = 1, 3
 				write(*,*)	ahc_tens(row,:)
@@ -428,29 +500,41 @@ module file_io
 		end if
 		!
 		!
-		if(allocated(velo_ahc_tens)) then
-			fname		=	'ahc_velo.dat'
-			info_string	=	'# OHC via Wanxiang formula (Im(v**2)/(dE**2 - (hw+eta)**2 )) '//cTIME(time())
-			id_string	=	'ahcVELO'
-			call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens,	info_string,	id_string)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (wanxiang) tensor on ",n_ki_glob," kpts:"
-			do row = 1, 3
-				write(*,*)	velo_ahc_tens(row,:)
-			end do
+		n_hw		=	size(velo_ahc_tens,3)
+		!
+		do hw_idx 	= 1, n_hw
+			if(allocated(velo_ahc_tens)) then
+				id_string	=	'ahcVELO'
+				info_string	=	'# OHC via Wanxiang formula (Im(v**2)/(dE**2 - (hw+eta)**2 )) '//cTIME(time())
+				write(fname,format)		'ahc_velo.hw',hw_idx
+				
+				!
+				call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens(:,:,hw_idx),	info_string,	id_string)	
+			end if
+			!
+			if(allocated(ohc_tens)) then
+				id_string	=	'ohcVELO'
+				info_string	=	'# optical Hall conductivity tensor (via velocities, wann guide: eq.12.5) '//cTIME(time())
+				write(fname,format)		'ohc_kubo.hw',hw_idx
+				!
+				call	write_tens_file(ahc_out_dir,	fname,	ohc_tens(:,:,hw_idx),	info_string,	id_string)
+				!
+			
+			end if
+		end do
+		!
+		!	DEBUG
+		if(allocated(velo_ahc_tens) .and. allocated(ohc_tens)) then
+			if(size(velo_ahc_tens,3) /=	size(ohc_tens,3)	) then
+				write(*,*)	"[write_ahc_tensor]:	ERROR different hw_lst length detected "
+				stop "ahc hw lst inconsistency"
+			else
+				write(*,'(a,i3,a,i7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (Wanxiang) tensor at ",&
+																n_hw," frequencies on ",n_ki_glob," kpts"
+				write(*,'(a,i3,a,i7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (w90: velo) tensor at ",&
+																n_hw," frequencies on ",n_ki_glob," kpts"
+			end if
 		end if
-		!
-		!
-		if(allocated(ohc_tens)) then
-			fname		=	'ohc_kubo.dat'
-			info_string	=	'# optical Hall conductivity tensor (via velocities, wann guide: eq.12.5) '//cTIME(time())
-			id_string	=	'ohcVELO'
-			call	write_tens_file(ahc_out_dir,	fname,	ohc_tens,	info_string,	id_string)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (w90: velo) tensor on ",n_ki_glob," kpts"
-			do row = 1, 3
-				write(*,*)	ohc_tens(row,:)
-			end do
-		end if
-		!
 		!
 		return
 	end subroutine
@@ -458,39 +542,64 @@ module file_io
 
 	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm, photo_2nd)
 		integer,						intent(in)			::	n_ki_glob
-		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:),	a_symm(:,:)
-		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:)
-		character(len=13)									::	fname
-		character(len=90)									::	info_string
+		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:,:),	a_symm(:,:,:)
+		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:,:)
+		character(len=22)									::	fname
+		character(len=100)									::	info_string
 		character(len=4)									::	id_string
+		integer												::	n_hw, hw_idx
 		!
+		n_hw 	=	0
+		if( 	allocated(photo_2nd		))	n_hw	=	size(	photo_2nd	,	3)
+		if( 	allocated(a_symm		)) 	n_hw	=	size(	a_symm		,	3)
+		if( 	allocated(s_symm		)) 	n_hw	=	size(	s_symm		,	3)
 		!
-		if(allocated(s_symm)) then
-			fname		=	'opt_Ssymm.dat'
-			info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
-			id_string	=	'optS'
-			call 	write_tens_file(opt_out_dir,	fname,	s_symm,	info_string,	id_string)
-		end if
-		!
-		if(allocated(a_symm)) then
-			fname		=	'opt_Asymm.dat'
-			info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
-			id_string	=	'optA'
-			call 	write_tens_file(opt_out_dir,	fname,	a_symm,	info_string,	id_string)
+		if (n_hw > 0) then
+			do hw_idx	=	 1, n_hw	 
+				if(allocated(s_symm)) then
+					write(fname,format)		'opt_Ssymm.hw',hw_idx
+					info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
+					id_string	=	'optS'
+					call 	write_tens_file(opt_out_dir,	fname,	s_symm(:,:,hw_idx),	info_string,	id_string)
+				end if
+				!
+				if(allocated(a_symm)) then
+					write(fname,format)		'opt_Asymm.hw',hw_idx
+					info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
+					id_string	=	'optA'
+					call 	write_tens_file(opt_out_dir,	fname,	a_symm(:,:,hw_idx),	info_string,	id_string)
+					!
+					!
+					if(allocated(s_symm)) then
+						write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
+					end if
+				end if
+				!
+				if(allocated(photo_2nd))	then
+					write(fname,format)		'2nd_photo.hw',hw_idx
+					info_string	=	'seoncd order photconductivitc: J^c_photo = rho^c_ab . E^*_a E_b (PRB 97, 241118(R) (2018))'
+					id_string	=	"2phC"
+					call	write_tens_file(opt_out_dir,	fname,	photo_2nd(:,:,hw_idx),	info_string,	id_string)
+				end if
+			end do
 			!
-			!
-			if(allocated(s_symm)) then
-				write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated OPT tensor on ",n_ki_glob," kpts"
+			!	DEBUG
+			if(						allocated(	s_symm)		&
+							.and.	allocated(	a_symm)		&
+							.and.	allocated(	photo_2nd)	&			
+			)then
+				if(						size(s_symm,3)	/= size(a_symm,3)		&
+								.or.	size(a_symm,3)	/= size(photo_2nd,3)	&
+								.or.	size(s_symm,3)	/= size(photo_2nd,3)	&
+				) then
+					stop "[write_opt_tensors]:	inconsitent hw_lst"
+				else
+					write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses at ",	&
+											n_hw," laser frequencies on ",n_ki_glob," kpts"
+				end if
 			end if
 		end if
-		!
-		if(allocated(photo_2nd))	then
-			fname		=	'2nd_photo.dat'
-			info_string	=	'seoncd order photconductivitc: J^c_photo = rho^c_ab . E^*_a E_b (PRB 97, 241118(R) (2018))'
-			id_string	=	"2phC"
-			call	write_tens_file(opt_out_dir,	fname,	photo_2nd,	info_string,	id_string)
-		end if
-		!
+		!	
 		!
 		return
 	end subroutine	
@@ -498,10 +607,11 @@ module file_io
 
 	subroutine write_gyro_tensors(n_ki_glob, C_tens, D_tens, Dw_tens)
 		integer,					intent(in)		::	n_ki_glob
-		complex(dp),	allocatable, intent(in)				::	C_tens(:,:),	D_tens(:,:), Dw_tens(:,:)
-		character(len=13)									::	fname
-		character(len=70)									::	info_string
+		complex(dp),	allocatable, intent(in)				::	C_tens(:,:),	D_tens(:,:), Dw_tens(:,:,:)
+		character(len=22)									::	fname
+		character(len=100)									::	info_string
 		character(len=6)									::	id_string
+		integer												::	n_hw, hw_idx
 		!
 		if(allocated(C_tens)) then
 			fname		=	'gyro_C.dat'
@@ -518,10 +628,18 @@ module file_io
 		end if
 		!
 		if(allocated(Dw_tens)) then
-			fname		=	'gyro_Dw.dat'
-			info_string	=	'# the Dw tensor from arXiv:1710.03204v2, written '//cTIME(time())
+			n_hw		=	size(Dw_tens,3)
 			id_string	=	'gyroDw'
-			call	write_tens_file(gyro_out_dir,	fname,	Dw_tens,	info_string,	id_string)
+			!
+			do hw_idx = 1, n_hw
+				write(fname,format)		'gyro_Dw.hw',hw_idx
+				info_string	=	'# the Dw tensor from arXiv:1710.03204v2, written '//cTIME(time())
+				call	write_tens_file(gyro_out_dir,	fname,	Dw_tens(:,:,hw_idx),	info_string,	id_string)
+			end do
+			!
+			write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_gyro_tensors]:	wrote Dw tensor at ",	&
+											n_hw,	"laser frequencies on ",n_ki_glob," kpts"		
+			!
 		end if
 		!
 		!

@@ -28,7 +28,9 @@ class MEP_worker:
 	def __init__(		self, tb_model, use_pos_op, root_dir, work_dir, phi, val_bands, 
 						t_hopp, delta, J_ex, lmbd_R,
 						mp_grid, 
-						kubo_tol=1e-3,  hw=0.0, laser_phase=1, n_eF=1 ,eF_min=0.0, eF_max=0.0, Tkelvin=0.0, eta_smearing=0.0, 
+						kubo_tol=1e-3,  
+						n_hw=1, hw_min=0.0, hw_max=1.0, laser_phase=1, 
+						n_eF=1 ,eF_min=0.0, eF_max=0.0, Tkelvin=0.0, eta_smearing=0.0, 
 						debug_mode='F', do_gauge_trafo='T',	R_vect_float='F',
 						do_write_velo='F', do_write_mep_bands='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
@@ -48,7 +50,11 @@ class MEP_worker:
 		#
 		self.mp_grid		=	mp_grid
 		self.kubo_tol		=	kubo_tol
-		self.hw				=	hw	
+		#
+		self.n_hw			=	n_hw	
+		self.hw_min			=	hw_min
+		self.hw_max			=	hw_max		
+		#
 		self.laser_phase	=	laser_phase
 		self.n_eF			=	n_eF
 		self.eF_min			=	eF_min
@@ -100,7 +106,8 @@ class MEP_worker:
 		#generate fortran input
 		write_tb_input(		self.tb_model, self.use_pos_op,	self.work_dir, 
 							self.phi, self.val_bands, self.mp_grid, 					
-							self.kubo_tol, self.hw, self.laser_phase, 
+							self.kubo_tol, 
+							self.n_hw, self.hw_min, self.hw_max , self.laser_phase, 
 							self.n_eF, self.eF_min, self.eF_max, self.Tkelvin,	self.eta_smearing,	 
 							self.plot_bands, self.debug_mode, self.do_gauge_trafo, self.R_vect_float,
 							self.do_write_velo, self.do_write_mep_bands,

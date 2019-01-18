@@ -36,7 +36,7 @@ module input_paras
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
-												hw, phi_laser, 														&
+												N_hw, hw_min, hw_max, phi_laser, 									&
 												N_eF, eF_min, eF_max, T_kelvin, i_eta_smr
 
 
@@ -62,9 +62,9 @@ module input_paras
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_gyro
-	integer						::	N_eF
+	integer						::	N_eF, N_hw
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
-									kubo_tol, hw, 					&
+									kubo_tol, hw_min, hw_max,		&
 									eF_min, eF_max, T_kelvin			
 	complex(dp)					::	i_eta_smr, phi_laser
 
@@ -148,11 +148,17 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Fermi%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO formulas"	)
 				!
 				![Laser]
-				call CFG_add_get(my_cfg,	"Laser%hw"						,	hw					,	"energy of incoming light"			)
+				call CFG_add_get(my_cfg,	"Laser%N_hw"					,	N_hw					,	"points to probe in interval"	)
+				call CFG_add_get(my_cfg,	"Laser%hw_min"					,	hw_min					,	"min energy of incoming light"	)
+				call CFG_add_get(my_cfg,	"Laser%hw_max"					,	hw_max					,	"max energy of incoming light"	)
 				call CFG_add_get(my_cfg,	"Laser%laser_phase"				,	laser_phase			,	"euler angle of phase shift of driving E-field")
 				!
 				! 	unit conversion
-				hw			=	hw 		/ 	aUtoEv
+				hw_min			=	hw_min 		/ 	aUtoEv
+				hw_max			=	hw_max 		/ 	aUtoEv
+				!
+				N_hw			=	max(1,N_hw)
+				!
 				eF_min		= 	eF_min	/	aUtoEv
 				eF_max		=	eF_max	/	aUtoEv
 				eta			=	eta		/	aUtoEv
@@ -207,7 +213,9 @@ module input_paras
 				write(*,*)					"	kuboTol="			,	kubo_tol
 				!	------------------------------------------
 				write(*,*)					"[Laser]"
-				write(*,*)					"	hw="				,	hw*aUtoEv								,	" (eV)" 
+				write(*,*)					"	N_hw="				,	N_hw										
+				write(*,*)					"	hw_min="			,	hw_min*aUtoEv							,	" (eV)" 
+				write(*,*)					"	hw_max="			,	hw_max*aUtoEv							,	" (eV)" 
 				write(*,*)					"	laser_phase_angle="	,	laser_phase								,	" *pi"
 				write(*,*)					"	laser phase="		,	phi_laser								, 	" exp( i * laser_phase_angle )"
 				!	------------------------------------------
@@ -251,7 +259,7 @@ module input_paras
 		if( input_exist) then
 			if(use_mpi) then
 				!ROOT BCAST
-				!						todo rewrite with the mpi_comm mpi_bcast_tens routines
+				![FLAGS]		
 				call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
@@ -263,16 +271,18 @@ module input_paras
 				call MPI_BCAST(		do_ahc 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_opt 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_gyro 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-				!
+				![SYSTEM]
 				call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				![KUBO]
-				call MPI_BCAST(		kubo_tol		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)	
-				call MPI_BCAST(		hw				,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		hw_min			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)			
+				call MPI_BCAST(		hw_max			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		n_hw			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		phi_laser		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				![FERMI]
+				call MPI_BCAST(		kubo_tol		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)	
 				call MPI_BCAST(		N_eF			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		eF_min			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		eF_max			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)

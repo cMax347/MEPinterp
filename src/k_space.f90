@@ -16,11 +16,13 @@ module k_space
 	save
 
 	interface normalize_k_int
-		module procedure d_scalar_normalize_k_int
-		module procedure z_scalar_normalize_k_int
-		module procedure d_matrix_normalize_k_int
-		module procedure d3_tenso_normalize_k_int
-		module procedure z_matrix_normalize_k_int
+		module procedure d0_tens_normalize_k_int
+		module procedure d2_tens_normalize_k_int
+		module procedure d3_tens_normalize_k_int
+		!
+		module procedure z0_tens_normalize_k_int
+		module procedure z2_tens_normalize_k_int
+		module procedure z3_tens_normalize_k_int
 	end interface normalize_k_int
 
 
@@ -41,43 +43,7 @@ contains
 !			int 	Vcell / (2pi)^3		d^3k  		---->		1 /( N_k)	sum_k
 !
 !-----------------------------------------------------------------------------------
-	subroutine z_matrix_normalize_k_int(mat)
-		complex(dp),	allocatable,	intent(inout)	::	mat(:,:)
-		integer							:: 	n_k
-		!
-		if(allocated(mat))	then
-			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
-		end if
-		!
-		return
-	end subroutine
-	
-	subroutine d3_tenso_normalize_k_int(tens)	
-		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
-		integer						:: 	n_k
-		!
-		if(allocated(tens)) then
-			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
-		end if
-		!
-		return
-	end subroutine
-
-	subroutine d_matrix_normalize_k_int(mat)
-		real(dp),	allocatable,	intent(inout)	::	mat(:,:)
-		integer						:: 	n_k
-		!
-		if(allocated(mat)) then
-			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
-		end if
-		!
-		return
-	end subroutine
-
-	subroutine d_scalar_normalize_k_int(scalar)
+	subroutine d0_tens_normalize_k_int(scalar)
 		real(dp),	intent(inout)	::	scalar
 		integer						::	n_k
 		!
@@ -89,8 +55,34 @@ contains
 		!
 		return
 	end subroutine
-
-	subroutine z_scalar_normalize_k_int(scalar)
+!------
+	subroutine d2_tens_normalize_k_int(tens)
+		real(dp),	allocatable,	intent(inout)	::	tens(:,:)
+		integer						:: 	n_k
+		!
+		if(allocated(tens)) then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!------
+	subroutine d3_tens_normalize_k_int(tens)	
+		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
+		integer						:: 	n_k
+		!
+		if(allocated(tens)) then
+			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!~~~~~~~~~~~~~~~~~~~~~~~~~~
+!------
+!^^^^^^^^^^^^^^^^^^^^^^^^^
+	subroutine z0_tens_normalize_k_int(scalar)
 		complex(dp),	intent(inout)	::	scalar
 		integer							::	n_k
 		!
@@ -101,6 +93,40 @@ contains
 		!
 		return
 	end subroutine
+!------
+	subroutine z2_tens_normalize_k_int(tens)
+		complex(dp),	allocatable,	intent(inout)	::	tens(:,:)
+		integer							:: 	n_k
+		!
+		if(allocated(tens))	then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!------
+	subroutine z3_tens_normalize_k_int(tens)
+		complex(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
+		integer							:: 	n_k
+		!
+		if(allocated(tens))	then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+	
+
+
+
+
+
+
+
+
+
 
 
 
