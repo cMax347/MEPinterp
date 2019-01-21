@@ -37,7 +37,9 @@ module core
 	!
 	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
 								kspace_allocator,								&
+								get_kpt_idx,									&
 								get_rel_kpt,									&
+								check_kpt_idx,									&
 								normalize_k_int
 	!								
 	use wann_interp,	only:	get_wann_interp
@@ -146,7 +148,7 @@ contains
 		end if
 		call read_tb_basis(			seed_name, R_vect,		H_tb, r_tb					)
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
-		call print_basis_info()
+		call print_interp_mode()
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	setup inner loops
@@ -163,107 +165,110 @@ contains
 			do kiy = 1, mp_grid(2)
 				do kix = 1, mp_grid(1)
 					!
+					!	fold 3D index(kix,kiy,kiz) into 1D index (ki)	
+					ki	=	get_kpt_idx(kix,kiy,kiz)
 					!
-					ki	=	get_rel_kpt(kix, kiy, kiz, kpt)
 					if( mpi_ki_selector(ki, num_kpts)	) then
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	INTERPOLATE	K-POINT
 						!----------------------------------------------------------------------------------------------------------------------------------
-						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
-						!
-						!----------------------------------------------------------------------------------------------------------------------------------
-						!	MEP
-						!----------------------------------------------------------------------------------------------------------------------------------
-						if(	do_mep	)	then	
-							mep_bands_ic_loc	=	mep_bands_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
-							mep_bands_lc_loc	=	mep_bands_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
-							mep_bands_cs_loc 	=	mep_bands_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
-						end if
-						!
-						!
-						!
-						!
-						!----------------------------------------------------------------------------------------------------------------------------------
-						!	LOOP FERMI ENERGIES
-						!----------------------------------------------------------------------------------------------------------------------------------
-						do eF_idx = 1, 	N_eF
-							eF_tmp	=	eF_min	+	real(eF_idx-1,dp)	*	delta_eF
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	COUNT ELECTRONS
-							!----------------------------------------------------------------------------------------------------------------------------------
-							Ne_loc_sum(	eF_idx	)	=	Ne_loc_sum(	eF_idx )	+	fd_get_N_el(	en_k, eF_tmp,	T_kelvin)
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	KUBO MEP (MEP with fermi_dirac)
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_kubo	)						then
-								kubo_mep_ic_loc(:,:,eF_idx)	=	kubo_mep_ic_loc(:,:,eF_idx) +	kubo_mep_IC(eF_tmp, T_kelvin, V_ka, en_k, ic_skipped)
-								kubo_mep_lc_loc(:,:,eF_idx)	=	kubo_mep_lc_loc(:,:,eF_idx) +	kubo_mep_LC(eF_tmp, T_kelvin, V_ka, en_k, lc_skipped)
-								kubo_mep_cs_loc(:,:,eF_idx)	=	kubo_mep_cs_loc(:,:,eF_idx) +	kubo_mep_CS(eF_tmp, T_kelvin, 	en_k, A_ka, Om_kab)
-							end if
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	AHC
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_ahc	) kubo_ahc_loc(:,:,eF_idx)	=	kubo_ahc_loc(:,:,eF_idx)	+ 	kubo_ahc_tens(en_k,	Om_kab,   eF_tmp, T_kelvin)
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	GYROTROPIC TENSORS (CURRENTS)
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_gyro	)								then	
-								gyro_C_loc(:,:,eF_idx)		=	gyro_C_loc(:,:,eF_idx)		+	get_gyro_C(en_k, V_ka, eF_tmp, T_kelvin)
-								gyro_D_loc(:,:,eF_idx)		=	gyro_D_loc(:,:,eF_idx)		+ 	get_gyro_D(en_k, V_ka, Om_kab, eF_tmp, T_kelvin)
-							end if
-							!
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	LOOP LASER FREQUENCY
-							!----------------------------------------------------------------------------------------------------------------------------------
-							do hw_idx = 1, 	n_hw
-								hw_tmp	=	hw_min	+ 	real(hw_idx-1,dp)	*	delta_hw
-								!
-								!----------------------------------------------------------------------------------------------------------------------------------
-								!	OPTICAL CONDUCTIVITY (via velocities - KUBO GREENWOOD)
-								!----------------------------------------------------------------------------------------------------------------------------------
-								if(	do_ahc ) then
-								 velo_ahc_loc(:,:,hw_idx,eF_idx)	= 		velo_ahc_loc(:,:,hw_idx,eF_idx)	&	
-								 										+	velo_ahc_tens(en_k, V_ka, hw_tmp, eF_tmp, T_kelvin, i_eta_smr)
-								 !								---------------------
-								 kubo_ohc_loc(:,:,hw_idx,eF_idx)	= 		kubo_ohc_loc(:,:,hw_idx,eF_idx)	&
-								 										+	kubo_ohc_tens(en_k, V_ka, hw_tmp, eF_tmp, T_kelvin, i_eta_smr)
-								end if
-								!
-								!----------------------------------------------------------------------------------------------------------------------------------
-								!	OPTICAL CONDUCTIVITY (via conn)	& 	2nd order photo conductivity
-								!----------------------------------------------------------------------------------------------------------------------------------
-								if(		do_opt	)														then
-									call kubo_opt_tens(hw_tmp, eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
-									kubo_opt_s_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_s_loc(:,:,hw_idx,eF_idx)	+	tempS							
-									kubo_opt_a_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_a_loc(:,:,hw_idx,eF_idx)	+	tempA
-									!
-									photo2_cond_loc(:,:,hw_idx,eF_idx)	=	photo2_cond_loc(:,:,hw_idx,eF_idx)	+	photo_2nd_cond(hw_tmp, phi_laser, eF_tmp, &
-								 																			T_kelvin, i_eta_smr, en_k, V_ka)
-								end if
-								!
-								!----------------------------------------------------------------------------------------------------------------------------------
-								!	GYROTROPIC TENSOR (FREQ DEP. PART)
-								!----------------------------------------------------------------------------------------------------------------------------------
-								if(do_gyro)	gyro_Dw_loc(:,:,hw_idx,eF_idx)		=	gyro_Dw_loc(:,:,hw_idx,eF_idx)		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
-							end do	!	end hw loop
-						end do	!	end eF loop
-						!
-						!----------------------------------------------------------------------------------------------------------------------------------
-						!	WRITE VELOCITIES
-						!----------------------------------------------------------------------------------------------------------------------------------
-						if(		allocated(V_ka)	.and. do_write_velo		) 		call write_velo(ki, V_ka)
-						!----------------------------------------------------------------------------------------------------------------------------------
-						!----------------------------------------------------------------------------------------------------------------------------------
-						!----------------------------------------------------------------------------------------------------------------------------------
+					!	kpt	=	get_rel_kpt(ki,	kix,kiy,kiz)
+					!	call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
+					!	!
+					!	!----------------------------------------------------------------------------------------------------------------------------------
+					!	!	MEP
+					!	!----------------------------------------------------------------------------------------------------------------------------------
+					!	if(	do_mep	)	then	
+					!		mep_bands_ic_loc	=	mep_bands_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
+					!		mep_bands_lc_loc	=	mep_bands_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
+					!		mep_bands_cs_loc 	=	mep_bands_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
+					!	end if
+					!	!
+					!	!
+					!	!
+					!	!
+					!	!----------------------------------------------------------------------------------------------------------------------------------
+					!	!	LOOP FERMI ENERGIES
+					!	!----------------------------------------------------------------------------------------------------------------------------------
+					!	do eF_idx = 1, 	N_eF
+					!		eF_tmp	=	eF_min	+	real(eF_idx-1,dp)	*	delta_eF
+					!		!
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		!	COUNT ELECTRONS
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		Ne_loc_sum(	eF_idx	)	=	Ne_loc_sum(	eF_idx )	+	fd_get_N_el(	en_k, eF_tmp,	T_kelvin)
+					!		!
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		!	KUBO MEP (MEP with fermi_dirac)
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		if(		do_kubo	)						then
+					!			kubo_mep_ic_loc(:,:,eF_idx)	=	kubo_mep_ic_loc(:,:,eF_idx) +	kubo_mep_IC(eF_tmp, T_kelvin, V_ka, en_k, ic_skipped)
+					!			kubo_mep_lc_loc(:,:,eF_idx)	=	kubo_mep_lc_loc(:,:,eF_idx) +	kubo_mep_LC(eF_tmp, T_kelvin, V_ka, en_k, lc_skipped)
+					!			kubo_mep_cs_loc(:,:,eF_idx)	=	kubo_mep_cs_loc(:,:,eF_idx) +	kubo_mep_CS(eF_tmp, T_kelvin, 	en_k, A_ka, Om_kab)
+					!		end if
+					!		!
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		!	AHC
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		if(		do_ahc	) kubo_ahc_loc(:,:,eF_idx)	=	kubo_ahc_loc(:,:,eF_idx)	+ 	kubo_ahc_tens(en_k,	Om_kab,   eF_tmp, T_kelvin)
+					!		!
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		!	GYROTROPIC TENSORS (CURRENTS)
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		if(		do_gyro	)								then	
+					!			gyro_C_loc(:,:,eF_idx)		=	gyro_C_loc(:,:,eF_idx)		+	get_gyro_C(en_k, V_ka, eF_tmp, T_kelvin)
+					!			gyro_D_loc(:,:,eF_idx)		=	gyro_D_loc(:,:,eF_idx)		+ 	get_gyro_D(en_k, V_ka, Om_kab, eF_tmp, T_kelvin)
+					!		end if
+					!		!
+					!		!
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		!	LOOP LASER FREQUENCY
+					!		!----------------------------------------------------------------------------------------------------------------------------------
+					!		do hw_idx = 1, 	n_hw
+					!			hw_tmp	=	hw_min	+ 	real(hw_idx-1,dp)	*	delta_hw
+					!			!
+					!			!----------------------------------------------------------------------------------------------------------------------------------
+					!			!	OPTICAL CONDUCTIVITY (via velocities - KUBO GREENWOOD)
+					!			!----------------------------------------------------------------------------------------------------------------------------------
+					!			if(	do_ahc ) then
+					!			 velo_ahc_loc(:,:,hw_idx,eF_idx)	= 		velo_ahc_loc(:,:,hw_idx,eF_idx)	&	
+					!			 										+	velo_ahc_tens(en_k, V_ka, hw_tmp, eF_tmp, T_kelvin, i_eta_smr)
+					!			 !								---------------------
+					!			 kubo_ohc_loc(:,:,hw_idx,eF_idx)	= 		kubo_ohc_loc(:,:,hw_idx,eF_idx)	&
+					!			 										+	kubo_ohc_tens(en_k, V_ka, hw_tmp, eF_tmp, T_kelvin, i_eta_smr)
+					!			end if
+					!			!
+					!			!----------------------------------------------------------------------------------------------------------------------------------
+					!			!	OPTICAL CONDUCTIVITY (via conn)	& 	2nd order photo conductivity
+					!			!----------------------------------------------------------------------------------------------------------------------------------
+					!			if(		do_opt	)														then
+					!				call kubo_opt_tens(hw_tmp, eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
+					!				kubo_opt_s_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_s_loc(:,:,hw_idx,eF_idx)	+	tempS							
+					!				kubo_opt_a_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_a_loc(:,:,hw_idx,eF_idx)	+	tempA
+					!				!
+					!				photo2_cond_loc(:,:,hw_idx,eF_idx)	=	photo2_cond_loc(:,:,hw_idx,eF_idx)	+	photo_2nd_cond(hw_tmp, phi_laser, eF_tmp, &
+					!			 																			T_kelvin, i_eta_smr, en_k, V_ka)
+					!			end if
+					!			!
+					!			!----------------------------------------------------------------------------------------------------------------------------------
+					!			!	GYROTROPIC TENSOR (FREQ DEP. PART)
+					!			!----------------------------------------------------------------------------------------------------------------------------------
+					!			if(do_gyro)	gyro_Dw_loc(:,:,hw_idx,eF_idx)		=	gyro_Dw_loc(:,:,hw_idx,eF_idx)		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
+					!		end do	!	end hw loop
+					!	end do	!	end eF loop
+					!	!
+					!	!----------------------------------------------------------------------------------------------------------------------------------
+					!	!	WRITE VELOCITIES
+					!	!----------------------------------------------------------------------------------------------------------------------------------
+					!	if(		allocated(V_ka)	.and. do_write_velo		) 		call write_velo(ki, V_ka)
+					!	!----------------------------------------------------------------------------------------------------------------------------------
+					!	!----------------------------------------------------------------------------------------------------------------------------------
+					!	!----------------------------------------------------------------------------------------------------------------------------------
 						!
 						n_ki_loc = n_ki_loc + 1
+						call print_progress(n_ki_loc, mp_grid)
 					end if
 					!
 					!
@@ -316,6 +321,7 @@ contains
 !----------------------------------------------------------------------------------------------------------------------------------
 !	HELPERS
 !----------------------------------------------------------------------------------------------------------------------------------	
+
 	
 	integer function fermi_selector(	n_ki_glob,	Ne_loc_sum, eF_min, delta_eF, Ne_sys	) result(opt_idx)
 		integer,							intent(in)			::	n_ki_glob
@@ -469,7 +475,7 @@ contains
 		!-----------------------------------------------------------------------------------------------------------
 		!			COMMUNICATION (k-pts)
 		!-----------------------------------------------------------------------------------------------------------
-		write(*,'(a,i3,a)') "[#",mpi_id,"; core_worker]:  now start reduction"
+		write(*,'(a,i3,a,a)') "[#",mpi_id,"; core_worker/",cTIME(time()),"]:  now start reduction"
 		!
 		!	***********				SUM OVER NODES				******************************************************
 		call mpi_reduce_sum(	n_ki_loc,				n_ki_glob		)
@@ -542,7 +548,7 @@ contains
 			write(*,*)				""
 			write(*,*)				""
 			write(*,*)				"..."					
-			write(*,'(a,i3,a,i8,a)') "[#",mpi_id,"; core_worker]: collected tensors from",mpi_nProcs," mpi-threads"
+			write(*,'(a,i3,a,a,a,i8,a)') "[#",mpi_id,"; core_worker",cTIME(time()),"]: collected tensors from",mpi_nProcs," mpi-threads"
 		end if
 	
 		!
@@ -705,7 +711,7 @@ contains
 !----------------------------------------------------------------------------------------------------------------------------------
 !	PRINTERS
 	!----------------------------------------------------------------------------------------------------------------------------------
-	subroutine print_basis_info()
+	subroutine print_interp_mode()
 		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		if(mpi_id == mpi_root_id) then
 			write(*,*)	"*"
@@ -724,6 +730,7 @@ contains
 			write(*,*)	"----------------------------------------------------------------"
 			write(*,*)	"----------------------------------------------------------------"
 			write(*,*)	"----------------------------------------------------------------"
+			write(*,*)	"***^^^^	-	BZ INTEGRATION LOOP	-	^^^^***"
 		end if
 		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		write(*,'(a,i3,a,a,a,i4,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
@@ -732,6 +739,44 @@ contains
 		!
 		return
 	end subroutine
+	!
+	!
+	subroutine print_progress(n_ki_cnt, mp_grid)
+		integer,		intent(in)		::	n_ki_cnt, mp_grid(3)
+		integer							::	i
+		real(dp)						::	n_ki_tot, delta
+		character(len=17)				::	final_msg
+		!
+		!
+		final_msg	=	'.  **finished**'
+		n_ki_tot	=	real(mp_grid(1)*mp_grid(2)*mp_grid(3),dp)	/	real(mpi_nProcs,dp)
+		!
+		do i = 1, 10
+			delta		=	(real(n_ki_tot,dp)	*0.1_dp* real(i,dp)	 )	- real(n_ki_cnt,dp)
+			!
+			if (abs(delta)	< 0.49_dp	)	then
+				!
+				write(*,'(a,i3,a,a,a,i8,a,f6.1,a)',advance="no")		"[#",mpi_id,";core_worker/",&
+										cTIME(time()),"	: done with #",n_ki_cnt," kpts (progress:~",10.0_dp*real(i,dp),"%)"
+				!
+				!
+				if( i==10 )		then
+					write(*,'(a)')	final_msg
+				else
+					write(*,'(a)')	"."	
+				end if
+			end if
+		end do
+
+		if(	n_ki_cnt > n_ki_tot)	write(*,'(a,i3,a,i8,a,i8)')	"[#",mpi_id,";core]: warning n_ki_cnt=",&
+																	n_ki_cnt," which exceeds n_ki_tot=",n_ki_tot
+		!
+		!
+		return
+	end subroutine
+
+
+
 	!
 	!
 	subroutine print_core_info(n_ki_loc, n_ki_glob, eF_min, delta_eF, eF_final_idx)
@@ -749,7 +794,7 @@ contains
 													"]: ...finished interpolating (",n_ki_loc,"/",n_ki_glob,") kpts "//gauge_label
 		!
 		if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		write(*,'(a,i3,a,f8.4,a)')	"[#",mpi_id,";print_core_info]: choosen fermi energy	", &	
+		write(*,'(a,i3,a,a,a,f8.4,a)')	"[#",mpi_id,";core_worker/",cTIME(time()),"]: choosen fermi energy	", &	
 										(eF_min + (eF_final_idx-1)	* delta_eF) * aUtoEv," eV." 
 		!
 		!

@@ -7,6 +7,8 @@ module k_space
 
 	public						::		set_mp_grid,		get_mp_grid,		&
 										set_recip_latt, 	get_recip_latt,		&
+										get_kpt_idx,							&
+										check_kpt_idx,							&
 										get_rel_kpt,							&		
 										get_bz_vol,								&
 										kspace_allocator,						&
@@ -231,32 +233,49 @@ contains
 
 
 
-	integer function get_rel_kpt(qix, qiy, qiz, kpt)
+	integer pure function get_kpt_idx(qix, qiy, qiz)
 		integer,	intent(in)	::	qix, qiy, qiz
-		real(dp),	intent(out)	::	kpt(3)
 		!
-		if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
-			kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
-			kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
-			kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+		!	use start at 0 convention and ad 1 to switch to array starts at 1 convention
+		get_kpt_idx	=	1	+	(qix-1) + mp_grid(2)	* ( (qiy-1) + mp_grid(3) * (qiz-1)	)
+		!
+		return
+	end function
+
+
+	function get_rel_kpt(qi_idx, qix,qiy,qiz) result(kpt)
+		integer,	intent(in)	::	qi_idx, qix, qiy, qiz
+		real(dp),	allocatable	::	kpt(:)
+		!
+		if(check_kpt_idx(qi_idx, qix,qiy,qiz))	then
+			allocate(kpt(3))
+			!
+			if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
+				kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
+				kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
+				kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+			end if
+		else 
+			stop "[get_rel_kpt]: got illegal kpt idx"
 		end if
 		!
-		!	start at 0 convention
-		get_rel_kpt	=	(qix-1) + mp_grid(2)	* ( (qiy-1) + mp_grid(3) * (qiz-1)	)
 		!
-		!	start at 1 convention
-		get_rel_kpt	=	get_rel_kpt + 1
-		!
+		return
+	end function
+
+
+	logical function check_kpt_idx(	qi_idx	,qix,qiy,qiz)
+		integer,	intent(in)	::	qi_idx, qix, qiy, qiz
 		!
 		!	debug check	
-		if	(					get_rel_kpt 		< 				0 						&
-					.or.		get_rel_kpt 		> 	mp_grid(1)*mp_grid(2)*mp_grid(3)	) 	then
+		if	(					qi_idx 		< 				0 						&
+					.or.		qi_idx		> 	mp_grid(1)*mp_grid(2)*mp_grid(3)	) 	then
 			!
-			stop "get_rel_kpt failed"
+			stop "[check_kpt_idx]: ERROR - idx out of bounds"
 		end if
-
-
-
+		!
+		check_kpt_idx	=	(	qi_idx	-	get_kpt_idx(qix,qiy,qiz) )	==	0
+		!
 		return
 	end function
 
