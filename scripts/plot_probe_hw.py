@@ -374,8 +374,8 @@ class HW_probe:
 				ax[0].set_xticks(np.arange(hw_min, hw_max+1.0, 0.1), minor=True)
 				try:	
 					ax[0].set_xlim([hw_min, hw_max])
-					ax[0].set_ylim([- re_bound-.1, re_bound+.1 ])
-					ax[1].set_ylim([- im_bound-.1, im_bound+.5 ])
+					ax[0].set_ylim([- re_bound , re_bound  ])
+					ax[1].set_ylim([- im_bound , im_bound  ])
 					#
 					ax[0].set(ylabel=r'$\sigma^\mathrm{R}_{'+dim_str[i]+dim_str[j]+'}\; (\omega)\;$' +	unit_str)
 					ax[0].yaxis.label.set_size(label_size)
@@ -395,7 +395,7 @@ class HW_probe:
 				#
 				plt.legend()
 				plt.tight_layout()
-				fig.subplots_adjust(hspace=0)
+				fig.subplots_adjust(hspace=0.01)
 				#
 				outFile_path	= self.plot_dir+'/hall_'+dim_str[i]+dim_str[j]+'.pdf'
 				plt.savefig(outFile_path)
