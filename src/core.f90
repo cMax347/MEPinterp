@@ -475,8 +475,6 @@ contains
 		!-----------------------------------------------------------------------------------------------------------
 		!			COMMUNICATION (k-pts)
 		!-----------------------------------------------------------------------------------------------------------
-		write(*,'(a,i3,a,a)') "[#",mpi_id,"; core_worker/",cTIME(time()),"]:  now start reduction"
-		!
 		!	***********				SUM OVER NODES				******************************************************
 		call mpi_reduce_sum(	n_ki_loc,				n_ki_glob		)
 		!
@@ -795,7 +793,7 @@ contains
 		!
 		if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		write(*,'(a,i3,a,a,a,f8.4,a)')	"[#",mpi_id,";core_worker/",cTIME(time()),"]: choosen fermi energy	", &	
-										(eF_min + (eF_final_idx-1)	* delta_eF) * aUtoEv," eV." 
+										(eF_min + (eF_final_idx-1)	* delta_eF) * aUtoEv," eV. Now start reduction of response tensors..." 
 		!
 		!
 		return
