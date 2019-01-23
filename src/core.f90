@@ -745,16 +745,17 @@ contains
 		real(dp)						::	n_ki_tot, delta
 		character(len=17)				::	final_msg
 		!
+		n_ki_tot	=	real(mp_grid(1)*mp_grid(2)*mp_grid(3),dp)	/	real(mpi_nProcs,dp)
+		!
 		!	PRINT AFTER K LOOP
-		if(	n_ki_cnt == 99 ) then
+		if(	n_ki_cnt == 999 ) then
 			write(*,'(a,i3,a,a,a,i8,a,f6.1,a)')		"[#",mpi_id,";core_worker/",&
-										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",0.0_dp,"%)"
+										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",real(n_ki_cnt+1,dp)/n_ki_tot,"%)"
 		end if
 		!
 		!
 		!	PRINT EVERY 10%
 		final_msg	=	'.  **finished**'
-		n_ki_tot	=	real(mp_grid(1)*mp_grid(2)*mp_grid(3),dp)	/	real(mpi_nProcs,dp)
 		!
 		do i = 1, 10
 			delta		=	(real(n_ki_tot,dp)	*0.1_dp* real(i,dp)	 )	- real(n_ki_cnt+1,dp)
