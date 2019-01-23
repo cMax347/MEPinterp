@@ -962,7 +962,7 @@ module file_io
 		mpi_unit	= 	100 + mpi_id	+ mpi_nProcs
 
 		open(unit=mpi_unit, file=seed_name//'_hr.dat',	form='formatted', action='read', access='sequential', status='old')
-		write(*,'(a,i3,a,i3)')				 		"[#",mpi_id,";read_hr_file]: 	will open _hr file on unit=",mpi_unit
+		!write(*,'(a,i3,a,i3)')				 		"[#",mpi_id,";read_hr_file]: 	will open _hr file on unit=",mpi_unit
 		!read header
 		read(mpi_unit,*)
 		read(mpi_unit,*)	f_nwfs
@@ -995,7 +995,7 @@ module file_io
 			end if
 
 
-			stop '[read_hr_file]: issue reading Wigner Seitz degeneracy (idx/=f_nSC) in  _hr.dat file'
+			stop '[read_hr_file]: ERROR issue reading Wigner Seitz degeneracy (idx/=f_nSC) in  _hr.dat file'
 		end if
 		!
 		!read body
