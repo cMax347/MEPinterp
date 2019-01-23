@@ -6,7 +6,7 @@ module input_paras
 	use matrix_math,				only:		crossP
 	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv, kBoltz_Eh_K
 	use mpi_community,				only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
-	use k_space,					only:		set_recip_latt, set_mp_grid
+	use k_space,					only:		set_recip_latt, set_mp_grid, print_kSpace_info
 
 
 
@@ -300,15 +300,13 @@ module input_paras
 			!SETUP K-SPACE
 			call set_recip_latt(a_latt)
 			call set_mp_grid(mp_grid)
+			call print_kSpace_info()
 		end if
 		!
 		init_parameters	=	input_exist
 		!
 		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		if(mpi_id	== mpi_root_id)		then
-			write(*,*)	""
-			write(*,'(a,i3,a)')	"[#",mpi_id,";init_parameters]: ...input paramaters broadcasted, k-space setup complete!"
-		end if
+		!
 		!
 		return 
 	end function
