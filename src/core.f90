@@ -244,11 +244,9 @@ contains
 								!	OPTICAL CONDUCTIVITY (via conn)	& 	2nd order photo conductivity
 								!----------------------------------------------------------------------------------------------------------------------------------
 								if(		do_opt	)														then
-									if allocated(A_ka) then
-										call kubo_opt_tens(hw_tmp, eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
-										kubo_opt_s_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_s_loc(:,:,hw_idx,eF_idx)	+	tempS							
-										kubo_opt_a_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_a_loc(:,:,hw_idx,eF_idx)	+	tempA
-									end if
+									call kubo_opt_tens(hw_tmp, eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
+									kubo_opt_s_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_s_loc(:,:,hw_idx,eF_idx)	+	tempS							
+									kubo_opt_a_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_a_loc(:,:,hw_idx,eF_idx)	+	tempA
 									!
 									photo2_cond_loc(:,:,hw_idx,eF_idx)	=	photo2_cond_loc(:,:,hw_idx,eF_idx)	+	photo_2nd_cond(hw_tmp, phi_laser, eF_tmp, &
 								 																			T_kelvin, i_eta_smr, en_k, V_ka)
@@ -748,9 +746,9 @@ contains
 		character(len=17)				::	final_msg
 		!
 		!	PRINT AFTER K LOOP
-		if(	n_ki_cnt == 0 ) then
-			write(*,'(a,i3,a,a,a,i8,a)')		"[#",mpi_id,";core_worker/",&
-										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress: 1st kpt)."
+		if(	n_ki_cnt == 99 ) then
+			write(*,'(a,i3,a,a,a,i8,a,f6.1,a)')		"[#",mpi_id,";core_worker/",&
+										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",0.0_dp,"%)"
 		end if
 		!
 		!
