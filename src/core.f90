@@ -745,7 +745,14 @@ contains
 		real(dp)						::	n_ki_tot, delta
 		character(len=17)				::	final_msg
 		!
+		!	PRINT AFTER K LOOP
+		if(	n_ki_cnt == 0 ) then
+			write(*,'(a,i3,a,a,a,i8,a)')		"[#",mpi_id,";core_worker/",&
+										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress: 1st kpt)."
+		end if
 		!
+		!
+		!	PRINT EVERY 10%
 		final_msg	=	'.  **finished**'
 		n_ki_tot	=	real(mp_grid(1)*mp_grid(2)*mp_grid(3),dp)	/	real(mpi_nProcs,dp)
 		!
@@ -755,7 +762,7 @@ contains
 			if (abs(delta)	< 0.49_dp	)	then
 				!
 				write(*,'(a,i3,a,a,a,i8,a,f6.1,a)',advance="no")		"[#",mpi_id,";core_worker/",&
-										cTIME(time()),"	: done with #",n_ki_cnt," kpts (progress:~",10.0_dp*real(i,dp),"%)"
+										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",10.0_dp*real(i,dp),"%)"
 				!
 				!
 				if( i==10 )		then
@@ -765,7 +772,8 @@ contains
 				end if
 			end if
 		end do
-
+		!
+		!	PRINT DEBUG
 		if(	n_ki_cnt > n_ki_tot)	write(*,'(a,i3,a,i8,a,i8)')	"[#",mpi_id,";core]: warning n_ki_cnt=",&
 																	n_ki_cnt," which exceeds n_ki_tot=",n_ki_tot
 		!
