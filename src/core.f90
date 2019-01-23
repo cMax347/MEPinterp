@@ -750,7 +750,7 @@ contains
 		n_ki_tot	=	real(mp_grid(1)*mp_grid(2)*mp_grid(3),dp)	/	real(mpi_nProcs,dp)
 		!
 		do i = 1, 10
-			delta		=	(real(n_ki_tot,dp)	*0.1_dp* real(i,dp)	 )	- real(n_ki_cnt,dp)
+			delta		=	(real(n_ki_tot,dp)	*0.1_dp* real(i,dp)	 )	- real(n_ki_cnt+1,dp)
 			!
 			if (abs(delta)	< 0.49_dp	)	then
 				!
