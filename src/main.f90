@@ -40,13 +40,10 @@ program MEPinterp
 	!
 	!
 	!FINALIZE
-#ifdef USE_MPI
-	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
-	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	all done, by by'
 #ifdef USE_MPI	
 	call MPI_FINALIZE(ierr)
-#endif	
+#endif
+	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	all done, by by'	
 	!
 	!
 	stop
