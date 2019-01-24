@@ -24,7 +24,7 @@ program MEPinterp
     call MPI_COMM_RANK (MPI_COMM_WORLD, 	mpi_id			, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, 	mpi_nProcs		, ierr)
 #endif
-	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	welcome to mepInterp'S
+	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	welcome to mepInterp'
 	!
 	!
     !BODY
