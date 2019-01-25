@@ -314,6 +314,7 @@ class HW_probe:
 		for i in range(0,3):
 			for j in range(0,3):
 				#COLLECT a_ij(phi=0:n_phi)
+				zero_plot			= []
 				ahc_plot		 	= []
 				RE_ahc_kubo_plot	= []
 				IM_ahc_kubo_plot	= []
@@ -322,6 +323,7 @@ class HW_probe:
 				#				
 				for ahc_tens in ahc_data:
 					ahc_plot.append(						scale * np.real(	ahc_tens[i][j]		)				)
+					zero_plot.append(								0												)
 				for ahc_K_tens in ahc_kubo_data:
 					RE_ahc_kubo_plot.append(				scale * np.real(	ahc_K_tens[i][j]	)				)
 					IM_ahc_kubo_plot.append(				scale * np.imag(	ahc_K_tens[i][j]	)				)
@@ -359,6 +361,7 @@ class HW_probe:
 				#
 				if plot_ahc_kubo:
 					try:
+						ax[1].plot(hw_plot, zero_plot,'-',color='black')
 						ax[1].plot(hw_plot, IM_ahc_kubo_plot,		'v-', 	color=ohc_wx_col, markersize=marker_size,		label=r'Wx'		)
 					except:
 						print("[plot_hall_like]: 	WARNING could not plot IM AHC_Kubo (wann guide) tensor")
@@ -374,8 +377,8 @@ class HW_probe:
 				ax[0].set_xticks(np.arange(hw_min, hw_max+1.0, 0.1), minor=True)
 				try:	
 					ax[0].set_xlim([hw_min, hw_max])
-					ax[0].set_ylim([- re_bound , re_bound  ])
-					ax[1].set_ylim([- im_bound , im_bound  ])
+					#ax[0].set_ylim([- re_bound , re_bound  ])
+					#ax[1].set_ylim([- im_bound , im_bound  ])
 					#
 					ax[0].set(ylabel=r'$\sigma^\mathrm{R}_{'+dim_str[i]+dim_str[j]+'}\; (\omega)\;$' +	unit_str)
 					ax[0].yaxis.label.set_size(label_size)
@@ -459,7 +462,7 @@ def plot_hw(root_dir):
 									plot_ahc		=		True		, 
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		True		, 
-									label_size=14, xtick_size=12, ytick_size=12, marker_size=4,
+									label_size=14, xtick_size=12, ytick_size=12, marker_size=2,
 									re_bound		=	35,
 									im_bound		=	10
 							)
