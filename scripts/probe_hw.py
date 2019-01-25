@@ -180,13 +180,13 @@ tb_system = hw_job(		#parameter space probe density:
 								J_ex				=	1.0					, 
 								lmbd_R				=	0.2					,
 								#numerical parameters
-								mp_grid				=	[4,4,4]			, 
+								mp_grid				=	[32,32,32]			, 
 								gamma_scale			=	1.0					,
 								kubo_tol			=	1e-5				, 
 								laser_phase			=	1.0					,
 								n_eF				=	1					,
-								eF_min 				=	-5.5				,
-								eF_max				=	-4.0				,
+								eF_min 				=	0				,
+								eF_max				=	0				,
 								Tkelvin				=	0.0					,
 								eta_smearing		=	0.1					, 
 								#additional fortran controllers
@@ -203,9 +203,9 @@ tb_system = hw_job(		#parameter space probe density:
 					)				
 #
 #	II.	probe hw between hw_min & hw_max
-tb_system.probe_hw_space(		hw_min			=		0		, 
+tb_system.probe_hw_space(		hw_min			=		0.1		, 
 								hw_max			=		6		,	
-								n_hw			= 		61		,
+								n_hw			= 		60		,
 								plot_bandstruct =   	False	, 
 								dry_run			=		False	,
 								mpi_np			=		4
