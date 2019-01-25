@@ -64,31 +64,29 @@ contains
 		!		VIA VELOCITIES
 		real(dp),		intent(in)		::	en_k(:), hw, eFermi, T_kelvin
 		complex(dp), 	intent(in)		::	v_kab(:,:,:), i_eta_smr
-		complex(dp)						::	o_ahc(3,3), en_denom, delta_fd,  Om_ab(3,3)	
+		complex(dp)						::	o_ahc(3,3), en_denom, delta_fd
 		integer							::	n, l, j
 		!
 		o_ahc	=	0.0_dp
 		!
-		do n = 1, size(en_k)
-			Om_ab	= 	0.0_dp
-			!
-			!	get curvature of band n
+		do n = 1, size(en_k)			
 			do l = 1, size(en_k)
-				en_denom	= 	(	en_k(n) - en_k(l)			)**2 		-		 (		hw + i_eta_smr		)**2	
 				!
 				!
-				if(		(l /= n) .and.	abs(en_denom) > kubo_tol 		)  then
-					delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
+				if( l/=n ) then
+					en_denom	= 	(	en_k(n) - en_k(l)			)**2 		-		 (		hw + i_eta_smr		)**2	
 					!
-					do j = 1, 3
-						Om_ab(:,j)	= 	Om_ab(:,j) 	+	 delta_fd * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/		en_denom		
-					end do
+					if(		abs(en_denom) > kubo_tol 		)  then
+						delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
+						!
+						do j = 1, 3
+							o_ahc(:,j)	= 	o_ahc(:,j) 	+	 delta_fd * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/		en_denom		
+						end do
+					end if
 				end if
 				!
+				!
 			end do
-			!
-			!
-			o_ahc	=	o_ahc	+ 	Om_ab 	*		fd_stat(en_k(n),	eFermi, T_kelvin)	
 		end do
 		!
 		!
