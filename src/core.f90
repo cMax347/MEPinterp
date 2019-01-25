@@ -750,7 +750,7 @@ contains
 		!	PRINT AFTER K LOOP
 		if(	n_ki_cnt == 499 ) then
 			write(*,'(a,i3,a,a,a,i8,a,f6.1,a)')		"[#",mpi_id,";core_worker/",&
-										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",real(n_ki_cnt+1,dp)/n_ki_tot,"%)"
+					cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",100.0_dp*real(n_ki_cnt+1,dp)/n_ki_tot,"%)"
 		end if
 		!
 		!
