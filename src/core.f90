@@ -84,11 +84,11 @@ contains
 		!	cs	: chern - simons term	
 		!
 		real(dp)							::	delta_eF, eF_tmp,						&
-												delta_hw, hw_tmp,						&
+												delta_hw, 								&
 												kpt(3),	recip_latt(3,3)
 												!local sum targets:
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
-												Ne_loc_sum(:),							&
+												Ne_loc_sum(:), hw_lst(:),				&
 												!
 												mep_bands_ic_loc(	:,:,:),	 			&
 												mep_bands_lc_loc(	:,:,:),				&
@@ -122,6 +122,7 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	allocate
 		!----------------------------------------------------------------------------------------------------------------------------------
+		allocate(	hw_lst(	n_hw	)	)
 		call allo_core_loc_arrays(		Ne_loc_sum,																		&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,							&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
@@ -156,7 +157,17 @@ contains
 						delta_eF	=	0.0_dp
 						delta_hw	=	0.0_dp
 		if ( N_eF > 1)	delta_eF 	=	(	eF_max -	eF_min	)	/	real(N_eF -1,dp)
-		if ( N_hw > 1)	delta_hw	=	(	hw_max -	hw_min	)	/	real(N_hw -1,dp)
+		if ( N_hw > 1)	then
+			delta_hw	=	(	hw_max -	hw_min	)	/	real(N_hw -1,dp)
+			!
+			do hw_idx = 1, 	n_hw
+				hw_lst(hw_idx)	=	hw_min	+ 	real(hw_idx-1,dp)	*	delta_hw
+			end do
+		else
+			hw_lst		=	hw_min
+		end if
+
+
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	loop	k-space
@@ -227,29 +238,30 @@ contains
 							!	LOOP LASER FREQUENCY
 							!----------------------------------------------------------------------------------------------------------------------------------
 							do hw_idx = 1, 	n_hw
-								hw_tmp	=	hw_min	+ 	real(hw_idx-1,dp)	*	delta_hw
+								hw_lst(hw_idx)	=	hw_min	+ 	real(hw_idx-1,dp)	*	delta_hw
 								!
 								!----------------------------------------------------------------------------------------------------------------------------------
 								!	OPTICAL CONDUCTIVITY (via velocities - KUBO GREENWOOD)
 								!----------------------------------------------------------------------------------------------------------------------------------
 								if(	do_ahc ) then
 								 velo_ahc_loc(:,:,hw_idx,eF_idx)	= 		velo_ahc_loc(:,:,hw_idx,eF_idx)	&	
-								 										+	velo_ahc_tens(en_k, V_ka, hw_tmp, eF_tmp, T_kelvin, i_eta_smr)
+								 										+	velo_ahc_tens(en_k, V_ka, hw_lst(hw_idx), eF_tmp, T_kelvin, i_eta_smr)
 								 !								---------------------
 								 kubo_ohc_loc(:,:,hw_idx,eF_idx)	= 		kubo_ohc_loc(:,:,hw_idx,eF_idx)	&
-								 										+	kubo_ohc_tens(en_k, V_ka, hw_tmp, eF_tmp, T_kelvin, i_eta_smr)
+								 										+	kubo_ohc_tens(en_k, V_ka, hw_lst(hw_idx), eF_tmp, T_kelvin, i_eta_smr)
 								end if
 								!
 								!----------------------------------------------------------------------------------------------------------------------------------
 								!	OPTICAL CONDUCTIVITY (via conn)	& 	2nd order photo conductivity
 								!----------------------------------------------------------------------------------------------------------------------------------
 								if(		do_opt	)														then
-									call kubo_opt_tens(hw_tmp, eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
+									call kubo_opt_tens(hw_lst(hw_idx), eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
 									kubo_opt_s_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_s_loc(:,:,hw_idx,eF_idx)	+	tempS							
 									kubo_opt_a_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_a_loc(:,:,hw_idx,eF_idx)	+	tempA
 									!
-									photo2_cond_loc(:,:,hw_idx,eF_idx)	=	photo2_cond_loc(:,:,hw_idx,eF_idx)	+	photo_2nd_cond(hw_tmp, phi_laser, eF_tmp, &
-								 																			T_kelvin, i_eta_smr, en_k, V_ka)
+									photo2_cond_loc(:,:,hw_idx,eF_idx)	=	photo2_cond_loc(:,:,hw_idx,eF_idx)	&	
+																+	photo_2nd_cond(hw_lst(hw_idx), phi_laser, eF_tmp, &
+								 													T_kelvin, i_eta_smr, en_k, V_ka)
 								end if
 								!
 								!----------------------------------------------------------------------------------------------------------------------------------
