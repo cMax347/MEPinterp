@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 class Phi_probe:
 
 	def __init__(		self,n_phi, val_bands, mp_grid, gamma_scale, kubo_tol, 	
-						hw, eFermi, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
+						hw, n_eF, eF_min, eF_max, Tkelvin, eta_smearing,debug_mode, do_gauge_trafo='T' ,
 						do_write_velo='F', do_write_mep_bands='F',
 						do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'
 						):
@@ -21,7 +21,9 @@ class Phi_probe:
 		self.gamma_scale	=	gamma_scale
 		self.kubo_tol		= 	kubo_tol
 		self.hw				= 	hw 
-		self.eFermi			= 	eFermi 
+		self.n_eF			=	n_eF
+		self.eF_min			=	eF_min
+		self.eF_max			=	eF_max
 		self.Tkelvin		= 	Tkelvin 
 		self.eta_smearing	= 	eta_smearing
 		self.debug_mode		= 	debug_mode 
@@ -79,7 +81,9 @@ class Phi_probe:
 									self.mp_grid, 
 									self.kubo_tol,
 									self.hw,
-									self.eFermi,
+									self.n_eF,
+									self.eF_min,
+									self.eF_max,
 									self.Tkelvin,
 									self.eta_smearing,
 									self.debug_mode,
@@ -145,7 +149,7 @@ class Phi_probe:
 
 
 def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
-					kubo_tol=1e-3, hw=0.001, eFermi=0.0, Tkelvin=11.0, eta_smearing=0.2, 
+					kubo_tol=1e-3, hw=0.001, n_eF=1,	eF_min=0.0, eF_max=0.0, Tkelvin=11.0, eta_smearing=0.2, 
 					plot_bandstruct	=	False, 
 					plot_orb_cont	=	True,
 					plot_band_res	=	False,
@@ -160,7 +164,7 @@ def probe_phi(		n_phi, val_bands, mp_grid,mpi_np=1, gamma_scale=1,
 					do_gyro			=	'F'	
 				):
 	phi_job	= Phi_probe(	n_phi, val_bands, mp_grid, gamma_scale, 
-							kubo_tol, hw, eFermi, Tkelvin, eta_smearing,
+							kubo_tol, hw, n_eF,	eF_min, eF_max, Tkelvin, eta_smearing,
 							debug_mode, do_gauge_trafo, do_write_velo, do_write_mep_bands,
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro	
 						)
@@ -185,7 +189,9 @@ probe_phi(		#parameter space probe density:
 				gamma_scale			=	1.0					,
 				kubo_tol			=	1e-5				, 
 				hw					=	0.0					, 
-				eFermi				=	0.0					, 
+				n_eF				=	1					,
+				eF_min 				=	0.0					,
+				eF_max				=	0.0					,
 				Tkelvin				=	10.0				,
 				eta_smearing		=	0.1					, 
 				#set properties of plots

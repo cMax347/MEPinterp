@@ -6,7 +6,7 @@ program MEPinterp
 #ifdef USE_MPI	
 	use mpi
 #endif
-	use mpi_comm,				only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
+	use mpi_community,			only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,			only:		init_parameters,	&
 											plot_bands
 	use core,					only:		core_worker
@@ -23,8 +23,8 @@ program MEPinterp
 	call MPI_INIT( ierr )
     call MPI_COMM_RANK (MPI_COMM_WORLD, 	mpi_id			, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, 	mpi_nProcs		, ierr)
-	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	welcome to mepInterp'
 #endif
+	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	welcome to mepInterp'
 	!
 	!
     !BODY
@@ -40,13 +40,10 @@ program MEPinterp
 	!
 	!
 	!FINALIZE
-#ifdef USE_MPI
-	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
-	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	all done, by by'
 #ifdef USE_MPI	
 	call MPI_FINALIZE(ierr)
-#endif	
+#endif
+	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	all done, by by'	
 	!
 	!
 	stop

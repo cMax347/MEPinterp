@@ -1,26 +1,31 @@
 module k_space
 	use constants, 			only:		dp, pi_dp
-	use mpi_comm,			only:		mpi_id
+	use mpi_community,		only:		mpi_id
 	use matrix_math,		only:		crossP
 
 	implicit none
 
 	public						::		set_mp_grid,		get_mp_grid,		&
 										set_recip_latt, 	get_recip_latt,		&
+										get_kpt_idx,							&
+										check_kpt_idx,							&
 										get_rel_kpt,							&		
 										get_bz_vol,								&
 										kspace_allocator,						&
-										normalize_k_int
+										normalize_k_int,						&
+										print_kSpace_info
 	private	
 
 	save
 
 	interface normalize_k_int
-		module procedure d_scalar_normalize_k_int
-		module procedure z_scalar_normalize_k_int
-		module procedure d_matrix_normalize_k_int
-		module procedure d3_tenso_normalize_k_int
-		module procedure z_matrix_normalize_k_int
+		module procedure d0_tens_normalize_k_int
+		module procedure d2_tens_normalize_k_int
+		module procedure d3_tens_normalize_k_int
+		!
+		module procedure z0_tens_normalize_k_int
+		module procedure z2_tens_normalize_k_int
+		module procedure z3_tens_normalize_k_int
 	end interface normalize_k_int
 
 
@@ -28,6 +33,18 @@ module k_space
 	real(dp)		::		recip_latt(3,3), bz_vol, unit_vol
 
 contains
+
+
+
+
+	subroutine print_kSpace_info()
+		write(*,'(a,i3,a,i4,a,i4,a,i4,a,a,f8.4,a)')	&
+							"[#",mpi_id,";k_space]: k-space setup done (mp_grid=",&
+							mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),"). ",&
+							"bz_vol=",bz_vol," (1/a0)"
+
+		return
+	end subroutine
 
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
@@ -41,43 +58,7 @@ contains
 !			int 	Vcell / (2pi)^3		d^3k  		---->		1 /( N_k)	sum_k
 !
 !-----------------------------------------------------------------------------------
-	subroutine z_matrix_normalize_k_int(mat)
-		complex(dp),	allocatable,	intent(inout)	::	mat(:,:)
-		integer							:: 	n_k
-		!
-		if(allocated(mat))	then
-			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
-		end if
-		!
-		return
-	end subroutine
-	
-	subroutine d3_tenso_normalize_k_int(tens)	
-		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
-		integer						:: 	n_k
-		!
-		if(allocated(tens)) then
-			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
-		end if
-		!
-		return
-	end subroutine
-
-	subroutine d_matrix_normalize_k_int(mat)
-		real(dp),	allocatable,	intent(inout)	::	mat(:,:)
-		integer						:: 	n_k
-		!
-		if(allocated(mat)) then
-			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		mat		=	mat		 /	(	unit_vol	* real(n_k,dp)	)
-		end if
-		!
-		return
-	end subroutine
-
-	subroutine d_scalar_normalize_k_int(scalar)
+	subroutine d0_tens_normalize_k_int(scalar)
 		real(dp),	intent(inout)	::	scalar
 		integer						::	n_k
 		!
@@ -89,8 +70,34 @@ contains
 		!
 		return
 	end subroutine
-
-	subroutine z_scalar_normalize_k_int(scalar)
+!------
+	subroutine d2_tens_normalize_k_int(tens)
+		real(dp),	allocatable,	intent(inout)	::	tens(:,:)
+		integer						:: 	n_k
+		!
+		if(allocated(tens)) then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!------
+	subroutine d3_tens_normalize_k_int(tens)	
+		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
+		integer						:: 	n_k
+		!
+		if(allocated(tens)) then
+			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!~~~~~~~~~~~~~~~~~~~~~~~~~~
+!------
+!^^^^^^^^^^^^^^^^^^^^^^^^^
+	subroutine z0_tens_normalize_k_int(scalar)
 		complex(dp),	intent(inout)	::	scalar
 		integer							::	n_k
 		!
@@ -101,6 +108,40 @@ contains
 		!
 		return
 	end subroutine
+!------
+	subroutine z2_tens_normalize_k_int(tens)
+		complex(dp),	allocatable,	intent(inout)	::	tens(:,:)
+		integer							:: 	n_k
+		!
+		if(allocated(tens))	then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!------
+	subroutine z3_tens_normalize_k_int(tens)
+		complex(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
+		integer							:: 	n_k
+		!
+		if(allocated(tens))	then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+	
+
+
+
+
+
+
+
+
+
 
 
 
@@ -137,8 +178,6 @@ contains
 		!	set the monkhorst pack grid
 		integer,		intent(in)		::	input_grid(3)
 		mp_grid	=	input_grid
-		write(*,'(a,i3,a,(20i5))') 	'[#',mpi_id,';set_mp_grid]: mp_grid set to ', mp_grid
-		!						TODO USE MPI_ID HERE AS WELL, ORE REMOVE MESSAGE, ELSE DOES NOT MAKE MUCH SENSE
 		return
 	end subroutine
 
@@ -175,16 +214,11 @@ contains
 		!
 		! BZ volume
 		bz_vol	=	dot_product(		crossP( b1(:), b2(:))	, b3(:)		)
-		write(*,'(a,i3,a,f6.3,a)') 	'[#',mpi_id,';set_recip_latt]: the 1st Brillouin zone volume is	 bz_vol=',bz_vol,'	(1/a_0)^3'
 		!
 		!	CPY TO TARGET 
 		recip_latt(1,:)	=	b1(:)
 		recip_latt(2,:)	=	b2(:)
 		recip_latt(3,:)	=	b3(:)
-		!write(*,*) 				'[set_recip_latt]: recip_latt set to (1/a_0) '
-		!write(*,*)				'	',	recip_latt(1,:)
-		!write(*,*)				'	',	recip_latt(2,:)
-		!write(*,*)				'	',	recip_latt(3,:)
 		!
 		return
 	end subroutine
@@ -205,21 +239,48 @@ contains
 
 
 
-	integer function get_rel_kpt(qix, qiy, qiz, kpt)
+	integer pure function get_kpt_idx(qix, qiy, qiz)
 		integer,	intent(in)	::	qix, qiy, qiz
-		real(dp),	intent(out)	::	kpt(3)
 		!
-		if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
-			kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
-			kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
-			kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+		!	use start at 0 convention and ad 1 to switch to array starts at 1 convention
+		get_kpt_idx	=	1	+	(qix-1) + mp_grid(2)	* ( (qiy-1) + mp_grid(3) * (qiz-1)	)
+		!
+		return
+	end function
+
+
+	function get_rel_kpt(qi_idx, qix,qiy,qiz) result(kpt)
+		integer,	intent(in)	::	qi_idx, qix, qiy, qiz
+		real(dp),	allocatable	::	kpt(:)
+		!
+		if(check_kpt_idx(qi_idx, qix,qiy,qiz))	then
+			allocate(kpt(3))
+			!
+			if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
+				kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
+				kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
+				kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+			end if
+		else 
+			stop "[get_rel_kpt]: ERROR got illegal kpt idx"
 		end if
 		!
-		!	start at 0 convention
-		get_rel_kpt	=	(qix-1) + mp_grid(2)	* ( (qiy-1) + mp_grid(3) * (qiz-1)	)
 		!
-		!	start at 1 convention
-		get_rel_kpt	=	get_rel_kpt + 1
+		return
+	end function
+
+
+	logical function check_kpt_idx(	qi_idx	,qix,qiy,qiz)
+		integer,	intent(in)	::	qi_idx, qix, qiy, qiz
+		!
+		!	debug check	
+		if	(					qi_idx 		< 				0 						&
+					.or.		qi_idx		> 	mp_grid(1)*mp_grid(2)*mp_grid(3)	) 	then
+			!
+			stop "[check_kpt_idx]: ERROR - idx out of bounds"
+		end if
+		!
+		check_kpt_idx	=	(	qi_idx	-	get_kpt_idx(qix,qiy,qiz) )	==	0
 		!
 		return
 	end function

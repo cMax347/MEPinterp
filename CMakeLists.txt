@@ -51,18 +51,22 @@ elseif ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
 
   message("intel compiler version: ${CMAKE_Fortran_COMPILER_VERSION}")
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_LESS "16.0.0.20161018")
-    #set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -openmp")
-    #set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -openmp")
+    set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -openmp")
+    set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -openmp")
 
-    set(CMAKE_Fortran_FLAGS "-mkl -fpp -O0 -g -traceback -check all -CB -check uninit -ftrapuv -debug all -openmp")
-    set(COVERAGE_LINK_FLAGS "-mkl -fpp -O0 -g -traceback -check all -CB -check uninit -ftrapuv -debug all -openmp")
+    #set(CMAKE_Fortran_FLAGS "-mkl -fpp -O0 -g -traceback -check all -CB -check uninit -ftrapuv -debug all -openmp")
+    #set(COVERAGE_LINK_FLAGS "-mkl -fpp -O0 -g -traceback -check all -CB -check uninit -ftrapuv -debug all -openmp")
 
 
 
     message("detected older intel compiler (openmp)")
   else()
-    set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 -qopenmp")
-    set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 -qopenmp")
+    message("machine = ${MACHINE}")
+    if("${MACHINE}" STREQUAL "jureca" )
+      message("I think I am on jureca !!!1!")
+    endif()
+    set(CMAKE_Fortran_FLAGS " -mkl -fpp -O3")      #-lmkl_intel_lp64
+    set(COVERAGE_LINK_FLAGS " -mkl -fpp -O3")    #-lmkl_intel_lp64
     message("detected newer intel compiler (qopenmp)")
   endif()
 #

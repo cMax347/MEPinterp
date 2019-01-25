@@ -64,31 +64,29 @@ contains
 		!		VIA VELOCITIES
 		real(dp),		intent(in)		::	en_k(:), hw, eFermi, T_kelvin
 		complex(dp), 	intent(in)		::	v_kab(:,:,:), i_eta_smr
-		complex(dp)						::	o_ahc(3,3), en_denom, delta_fd,  Om_ab(3,3)	
+		complex(dp)						::	o_ahc(3,3), en_denom, delta_fd
 		integer							::	n, l, j
 		!
 		o_ahc	=	0.0_dp
 		!
-		do n = 1, size(en_k)
-			Om_ab	= 	0.0_dp
-			!
-			!	get curvature of band n
+		do n = 1, size(en_k)			
 			do l = 1, size(en_k)
-				en_denom	= 	(	en_k(n) - en_k(l)			)**2 		-		 (		hw + i_eta_smr		)**2	
 				!
 				!
-				if(		(l /= n) .and.	abs(en_denom) > kubo_tol 		)  then
-					delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
+				if( l/=n ) then
+					en_denom	= 	(	en_k(n) - en_k(l)			)**2 		-		 (		hw + i_eta_smr		)**2	
 					!
-					do j = 1, 3
-						Om_ab(:,j)	= 	Om_ab(:,j) 	+	 delta_fd * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/		en_denom		
-					end do
+					if(		abs(en_denom) > kubo_tol 		)  then
+						delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
+						!
+						do j = 1, 3
+							o_ahc(:,j)	= 	o_ahc(:,j) 	+	 delta_fd * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/		en_denom		
+						end do
+					end if
 				end if
 				!
+				!
 			end do
-			!
-			!
-			o_ahc	=	o_ahc	+ 	Om_ab 	*		fd_stat(en_k(n),	eFermi, T_kelvin)	
 		end do
 		!
 		!
@@ -146,10 +144,12 @@ contains
 		opt_asymm	=	0.0_dp
 		!
 		if(			abs(hw)				< 1e-3_dp	&	!)	'[kubo_opt_tens]:	WARNING hw is very small: ',hw 
-			.or.	abs(i_eta_smr)		< 1e-3_dp	&	!)	'[kubo_opt_tens]:	WARNING i_eta_smr is very small: ', i_eta_smr
+			.or.	abs(i_eta_smr)		< 1e-5_dp	&	!)	'[kubo_opt_tens]:	WARNING i_eta_smr is very small: ', i_eta_smr
 			.or.	abs(T_kelvin)		< 1e-3_dp	&
 		)then
-			write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
+			if(allocated(A_ka))	then
+				write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
+			end if
 		else
 			if(allocated(A_ka)) then
 				opt_herm	=	get_hermitian(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
@@ -193,7 +193,7 @@ contains
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
 		complex(dp)						::	opt_herm(3,3)
-		integer							::	a, b, n, m 
+		integer							::	b, n, m 
 		real(dp)						::	f_mn, dE_mn, pre_fact
 		!
 		opt_herm	=	0.0_dp
@@ -205,9 +205,7 @@ contains
 				dE_mn	=					en_k(m)								-						en_k(n) 
 				!
 				do b = 1, 3
-					do a = 1, 3
-						opt_herm(a,b)	=	opt_herm(a,b)	+	f_mn * dE_mn * 			A_ka(a,n,m) * A_ka(b,m,n)		* delta_broad( dE_mn - hw	, i_eta_smr)
-					end do
+					opt_herm(:,b)	=	opt_herm(:,b)	+	f_mn * dE_mn * 			A_ka(:,n,m) * A_ka(b,m,n)		* delta_broad( dE_mn - hw	, i_eta_smr)
 				end do
 				!
 			end do
@@ -228,7 +226,7 @@ contains
 		complex(dp),	intent(in)		::	i_eta_smr	
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
 		complex(dp)						::	opt_aherm(3,3)
-		integer							::	a, b, n, m 
+		integer							::	b, n, m 
 		real(dp)						::	f_mn, dE_mn 
 		complex(dp)						::	pre_fact
 		!
@@ -241,9 +239,7 @@ contains
 				dE_mn	=				en_k(m) - en_k(n)	
 				!
 				do b = 1, 3
-					do a = 1,3 
-						opt_aherm(a,b)	=	opt_aherm(a,b)	+	f_mn * 	real(		dE_mn / (dE_mn - hw - i_eta_smr)	,dp	) *			A_ka(a,n,m) * A_ka(b,m,n)		
-					end do
+					opt_aherm(:,b)	=	opt_aherm(:,b)	+	f_mn * 	real(		dE_mn / (dE_mn - hw - i_eta_smr)	,dp	) *			A_ka(:,n,m) * A_ka(b,m,n)		
 				end do
 				!
 			end do
@@ -255,50 +251,6 @@ contains
 		!
 		return
 	end function
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

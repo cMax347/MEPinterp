@@ -252,8 +252,9 @@ contains
 			do kiy = 1, mp_grid(2)
 				do kix = 1, mp_grid(1)
 					!get kpt
-					n_ki	= n_ki	+ 1
-					ki_idx	= get_rel_kpt(kix, kiy, kiz, rel_kpt)
+					n_ki		= n_ki	+ 1
+					ki_idx		=get_kpt_idx(kix,kiy,kiz)
+					rel_kpt		= get_rel_kpt(ki_idx, kix,kiy,kiz)
 					abs_kpt(:)	= matmul(recip_latt,	rel_kpt)
 					!
 					!get f(kpt)
