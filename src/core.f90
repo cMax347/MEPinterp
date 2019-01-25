@@ -261,7 +261,7 @@ contains
 									!
 									photo2_cond_loc(:,:,hw_idx,eF_idx)	=	photo2_cond_loc(:,:,hw_idx,eF_idx)	&	
 																+	photo_2nd_cond(hw_lst(hw_idx), phi_laser, eF_tmp, &
-								 													T_kelvin, i_eta_smr, en_k, V_ka)
+								 														T_kelvin, i_eta_smr, en_k, V_ka)
 								end if
 								!
 								!----------------------------------------------------------------------------------------------------------------------------------
