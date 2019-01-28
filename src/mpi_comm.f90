@@ -37,6 +37,7 @@ module mpi_community
 		module procedure d2_mpi_reduce_sum
 		module procedure d3_mpi_reduce_sum
 		module procedure d4_mpi_reduce_sum
+		module procedure d5_mpi_reduce_sum
 		module procedure z2_mpi_reduce_sum
 		module procedure z3_mpi_reduce_sum
 	end interface mpi_reduce_sum
@@ -247,6 +248,27 @@ contains
 		!
 		if( mpi_nProcs > 1) then
 			package_size	=	size(loc_tens,1)	* size(loc_tens,2) * size(loc_tens,3)* size(loc_tens,4)
+			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
+			if(ierr /= 0)	stop "[mpi_comm/d3_mpi_reduce_sum]: (MPI_REDUCE) failed"
+		else
+			glob_tens	=	loc_tens
+		end if
+		!
+		!
+		return
+	end subroutine	
+
+	subroutine d5_mpi_reduce_sum( loc_tens, glob_tens)	
+		real(dp),							intent(in)		::	loc_tens(	:,:,:,:,:)
+		real(dp),		allocatable,		intent(inout)	::	glob_tens(	:,:,:,:,:)
+		integer												::	package_size
+		!
+		allocate(		glob_tens(	size(loc_tens,1), size(loc_tens,2), size(loc_tens,3), size(loc_tens,4), size(loc_tens,5)	))
+		glob_tens	= 0.0_dp
+		!
+		!
+		if( mpi_nProcs > 1) then
+			package_size	=	size(loc_tens,1)	* size(loc_tens,2) * size(loc_tens,3) * size(loc_tens,4) * size(loc_tens,5)
 			call MPI_REDUCE(	loc_tens,  glob_tens, package_size, 	MPI_DOUBLE_PRECISION, MPI_SUM, mpi_root_id, MPI_COMM_WORLD,	ierr)
 			if(ierr /= 0)	stop "[mpi_comm/d3_mpi_reduce_sum]: (MPI_REDUCE) failed"
 		else
