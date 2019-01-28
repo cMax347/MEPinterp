@@ -50,7 +50,7 @@ contains
 						do omega = -1, 1, 2
 							dE_nl_hw	=	dE_nl +	omega*hw_lst(hw) -	 i_eta_smr		
 							!
-							phot_cond(:,:,:,hw)	=	phot_cond(:,:,:,hw)	+	real(		v_nl_lm_nm(:,:,:)							&		
+							phot_cond(:,:,:,hw)	=	phot_cond(:,:,:,hw)	+	real(		phi_laser	*	v_nl_lm_nm(:,:,:)				&		
 																					/	( dE_nm * dE_nl_hw * hw_lst(hw)**2	) 	,dp)			
 						end do
 					end do
