@@ -76,7 +76,7 @@ contains
 					!
 					!
 					en_denom	= (	en_k(n) - en_k(l)			)**2 		-		 (		hw + i_eta_smr		)**2
-`					!
+					!
 					delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
 					!
 					do j = 1, 3
@@ -110,17 +110,21 @@ contains
 		!
 		do m = 1 , size(v_kab,3)
 			do n = 1, size(v_kab,2)
-				dE_mn 	=	en_k(m)	-	en_k(n)	
-				dFdE_mn	=	fd_stat(en_k(m), 		eFermi, T_kelvin)	- fd_stat(en_k(n), 		eFermi, T_kelvin)
-				!
-				if( dE_mn > kubo_tol) then
+				if(m/=n) then
+					!
+					!
+					dE_mn 	=	en_k(m)	-	en_k(n)	
+					dFdE_mn	=	fd_stat(en_k(m), 		eFermi, T_kelvin)	- fd_stat(en_k(n), 		eFermi, T_kelvin)
+					!
 					dFdE_mn	=	dFdE_mn	/	dE_mn
+					!
+					do j = 1, 3
+						z_ohc(:,j)	=	z_ohc(:,j)	 + 	i_dp * 	cmplx(dFdE_mn,0.0_dp,dp)	* v_kab(:,n,m) * v_kab(j,m,n)	&
+														/ 	(	cmplx(dE_mn - hw,0.0_dp,dp) - i_eta_smr	)
+					end do
+					!
+					!
 				end if
-				!
-				do j = 1, 3
-					z_ohc(:,j)	=	z_ohc(:,j)	 + 	i_dp * 	cmplx(dFdE_mn,0.0_dp,dp)	* v_kab(:,n,m) * v_kab(j,m,n)	&
-													/ 	(	cmplx(dE_mn - hw,0.0_dp,dp) - i_eta_smr	)
-				end do
 			end do
 		end do
 		!
