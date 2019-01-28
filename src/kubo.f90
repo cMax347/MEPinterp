@@ -6,7 +6,6 @@ module kubo
 	!
 	!
 	use constants,		only:	dp, i_dp, pi_dp, aUtoEv
-	use input_paras,	only:	kubo_tol
 	use statistics,		only:	fd_stat
 
 	implicit none

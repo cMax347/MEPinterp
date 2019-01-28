@@ -1,7 +1,6 @@
 module photo
 
 	use constants,		only:		dp, i_dp, pi_dp
-	use input_paras,	only:		kubo_tol
 	use statistics,		only:		fd_stat
 
 	implicit none

@@ -2,7 +2,6 @@ module kubo_mep
 	!
 	use constants,		only:	dp, i_dp, pi_dp
 	use matrix_math,	only:	my_Levi_Civita, convert_tens_to_vect
-	use input_paras,	only:	kubo_tol
 	use statistics,		only:	fd_stat
 	implicit none
 

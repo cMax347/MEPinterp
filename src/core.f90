@@ -30,7 +30,6 @@ module core
 								a_latt, 										&
 								valence_bands, 									&
 								seed_name,										&
-								kubo_tol,										&
 								hw_min, hw_max, n_hw, phi_laser, 				&
 								N_eF, eF_min, eF_max, T_kelvin, i_eta_smr,		&
 								out_dir
