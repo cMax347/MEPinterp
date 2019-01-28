@@ -22,6 +22,7 @@ module k_space
 		module procedure d0_tens_normalize_k_int
 		module procedure d2_tens_normalize_k_int
 		module procedure d3_tens_normalize_k_int
+		module procedure d4_tens_normalize_k_int
 		!
 		module procedure z0_tens_normalize_k_int
 		module procedure z2_tens_normalize_k_int
@@ -85,6 +86,18 @@ contains
 !------
 	subroutine d3_tens_normalize_k_int(tens)	
 		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
+		integer						:: 	n_k
+		!
+		if(allocated(tens)) then
+			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!------
+	subroutine d4_tens_normalize_k_int(tens)	
+		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:,:)
 		integer						:: 	n_k
 		!
 		if(allocated(tens)) then
