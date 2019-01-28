@@ -5,17 +5,18 @@ module kubo
 	!		http://www.wannier.org/doc/user_guide.pdf
 	!
 	!
-	use constants,		only:	dp, i_dp, pi_dp
+	use constants,		only:	dp, i_dp, pi_dp, aUtoEv
 	use input_paras,	only:	kubo_tol
 	use statistics,		only:	fd_stat
+
 	implicit none
 
 
 	private
 	public			::			kubo_ahc_tens,		&
-								kubo_ohc_tens,		&
 								velo_ahc_tens,		&
-								kubo_opt_tens	
+								kubo_opt_tens,		&
+								kubo_ohc_tens	
 
 
 
@@ -69,23 +70,21 @@ contains
 		!
 		o_ahc	=	0.0_dp
 		!
-		do n = 1, size(en_k)			
+		do n = 1, size(en_k)
 			do l = 1, size(en_k)
-				!
-				!
-				if( l/=n ) then
-					en_denom	= 	(	en_k(n) - en_k(l)			)**2 		-		 (		hw + i_eta_smr		)**2	
+				if(l/=n) then
 					!
-					if(		abs(en_denom) > kubo_tol 		)  then
-						delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
-						!
-						do j = 1, 3
-							o_ahc(:,j)	= 	o_ahc(:,j) 	+	 delta_fd * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/		en_denom		
-						end do
-					end if
+					!
+					en_denom	= (	en_k(n) - en_k(l)			)**2 		-		 (		hw + i_eta_smr		)**2
+`					!
+					delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
+					!
+					do j = 1, 3
+						o_ahc(:,j)	= 	o_ahc(:,j) 	+	 delta_fd * aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 	/		en_denom		
+					end do
+					!
+					!
 				end if
-				!
-				!
 			end do
 		end do
 		!
@@ -131,9 +130,12 @@ contains
 
 
 
+
 	subroutine kubo_opt_tens(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka, opt_symm, opt_asymm)	
 		!	see wann guide chapter 12
 		!		eq. (12.14) & (12.15)
+		!
+		!	via CONNECTION
 		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:) 
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp), allocatable,	intent(in)		::	A_ka(:,:,:)
@@ -144,12 +146,10 @@ contains
 		opt_asymm	=	0.0_dp
 		!
 		if(			abs(hw)				< 1e-3_dp	&	!)	'[kubo_opt_tens]:	WARNING hw is very small: ',hw 
-			.or.	abs(i_eta_smr)		< 1e-5_dp	&	!)	'[kubo_opt_tens]:	WARNING i_eta_smr is very small: ', i_eta_smr
+			.or.	abs(i_eta_smr)		< 1e-3_dp	&	!)	'[kubo_opt_tens]:	WARNING i_eta_smr is very small: ', i_eta_smr
 			.or.	abs(T_kelvin)		< 1e-3_dp	&
 		)then
-			if(allocated(A_ka))	then
-				write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
-			end if
+			write(*,*)	"[kubo_opt_tens]: 	WARNING opt_tens was set to zero; please make sure hw, i_eta_smr, T_kelvin are non zero"
 		else
 			if(allocated(A_ka)) then
 				opt_herm	=	get_hermitian(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
@@ -187,13 +187,14 @@ contains
 	end function
 
 
+
 	function get_hermitian(hw, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_herm)
 		!	wann guide eq. (12.10)
 		real(dp),		intent(in)		::	hw, e_fermi, T_kelvin, en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
 		complex(dp)						::	opt_herm(3,3)
-		integer							::	b, n, m 
+		integer							::	a, b, n, m 
 		real(dp)						::	f_mn, dE_mn, pre_fact
 		!
 		opt_herm	=	0.0_dp
@@ -205,7 +206,9 @@ contains
 				dE_mn	=					en_k(m)								-						en_k(n) 
 				!
 				do b = 1, 3
-					opt_herm(:,b)	=	opt_herm(:,b)	+	f_mn * dE_mn * 			A_ka(:,n,m) * A_ka(b,m,n)		* delta_broad( dE_mn - hw	, i_eta_smr)
+					do a = 1, 3
+						opt_herm(a,b)	=	opt_herm(a,b)	+	f_mn * dE_mn * 			A_ka(a,n,m) * A_ka(b,m,n)		* delta_broad( dE_mn - hw	, i_eta_smr)
+					end do
 				end do
 				!
 			end do
@@ -226,7 +229,7 @@ contains
 		complex(dp),	intent(in)		::	i_eta_smr	
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
 		complex(dp)						::	opt_aherm(3,3)
-		integer							::	b, n, m 
+		integer							::	a, b, n, m 
 		real(dp)						::	f_mn, dE_mn 
 		complex(dp)						::	pre_fact
 		!
@@ -239,7 +242,9 @@ contains
 				dE_mn	=				en_k(m) - en_k(n)	
 				!
 				do b = 1, 3
-					opt_aherm(:,b)	=	opt_aherm(:,b)	+	f_mn * 	real(		dE_mn / (dE_mn - hw - i_eta_smr)	,dp	) *			A_ka(:,n,m) * A_ka(b,m,n)		
+					do a = 1,3 
+						opt_aherm(a,b)	=	opt_aherm(a,b)	+	f_mn * 	real(		dE_mn / (dE_mn - hw - i_eta_smr)	,dp	) *			A_ka(a,n,m) * A_ka(b,m,n)		
+					end do
 				end do
 				!
 			end do
@@ -251,6 +256,50 @@ contains
 		!
 		return
 	end function
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
