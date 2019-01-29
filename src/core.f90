@@ -30,7 +30,6 @@ module core
 								a_latt, 										&
 								valence_bands, 									&
 								seed_name,										&
-								kubo_tol,										&
 								hw_min, hw_max, n_hw, phi_laser, 				&
 								N_eF, eF_min, eF_max, T_kelvin, i_eta_smr,		&
 								out_dir
@@ -98,13 +97,13 @@ contains
 												kubo_mep_ic_loc(	:,:,:),				&
 												kubo_mep_lc_loc(	:,:,:),				&
 												kubo_mep_cs_loc(	:,:,:),				&
-												photo2_cond_loc(  :,:,:,:)
+												photo2_cond_loc(:, :,:,:,:)
 												!
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_kab(:,:,:,:),			&
 												V_ka(:,:,:),							&
 												!
-												tempS(:,:), 	tempA(:,:),				&
+												tempS(:,:,:), 	tempA(:,:,:),			&
 												!
 												velo_ahc_loc(	  :,:,:,:),				&
 												kubo_ohc_loc(	  :,:,:,:),				&
@@ -223,7 +222,30 @@ contains
 							!----------------------------------------------------------------------------------------------------------------------------------
 							!	AHC
 							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_ahc	) kubo_ahc_loc(:,:,eF_idx)	=	kubo_ahc_loc(:,:,eF_idx)	+ 	kubo_ahc_tens(en_k,	Om_kab,   eF_tmp, T_kelvin)
+							if(		do_ahc	) then
+								kubo_ahc_loc(:,:,eF_idx)	=	kubo_ahc_loc(:,:,eF_idx)	+ 	kubo_ahc_tens(en_k,	Om_kab,   eF_tmp, T_kelvin)
+							
+								 velo_ahc_loc(:,:,:,eF_idx)	= 	velo_ahc_loc(:,:,:,eF_idx)	&	
+								 										+	velo_ahc_tens(en_k, V_ka, hw_lst, eF_tmp, T_kelvin, i_eta_smr)
+								 !								---------------------
+								 kubo_ohc_loc(:,:,:,eF_idx)	= 	kubo_ohc_loc(:,:,:,eF_idx)	&
+								 										+	kubo_ohc_tens(en_k, V_ka, hw_lst, eF_tmp, T_kelvin, i_eta_smr)
+							end if
+
+							!
+							!----------------------------------------------------------------------------------------------------------------------------------
+							!	OPTICAL CONDUCTIVITY (w90 version via Connection)
+							!----------------------------------------------------------------------------------------------------------------------------------
+							if(		do_opt	)														then
+									call kubo_opt_tens(hw_lst, eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
+									kubo_opt_s_loc(:,:,:,eF_idx)	=	kubo_opt_s_loc(:,:,:,eF_idx)	+	tempS							
+									kubo_opt_a_loc(:,:,:,eF_idx)	=	kubo_opt_a_loc(:,:,:,eF_idx)	+	tempA
+									!
+									photo2_cond_loc(:,:,:,:,eF_idx)	=	photo2_cond_loc(:,:,:,:,eF_idx)	&	
+																	+	photo_2nd_cond(hw_lst, phi_laser, eF_tmp, &
+								 														T_kelvin, i_eta_smr, en_k, V_ka)
+								end if
+
 							!
 							!----------------------------------------------------------------------------------------------------------------------------------
 							!	GYROTROPIC TENSORS (CURRENTS)
@@ -231,43 +253,10 @@ contains
 							if(		do_gyro	)								then	
 								gyro_C_loc(:,:,eF_idx)		=	gyro_C_loc(:,:,eF_idx)		+	get_gyro_C(en_k, V_ka, eF_tmp, T_kelvin)
 								gyro_D_loc(:,:,eF_idx)		=	gyro_D_loc(:,:,eF_idx)		+ 	get_gyro_D(en_k, V_ka, Om_kab, eF_tmp, T_kelvin)
+								gyro_Dw_loc(:,:,:,eF_idx)	=	gyro_Dw_loc(:,:,:,eF_idx)	+ 	get_gyro_Dw(hw_lst)	!dummy returns 0 currently!!!
 							end if
 							!
 							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	LOOP LASER FREQUENCY
-							!----------------------------------------------------------------------------------------------------------------------------------
-							do hw_idx = 1, 	n_hw
-								!
-								!----------------------------------------------------------------------------------------------------------------------------------
-								!	OPTICAL CONDUCTIVITY (via velocities - KUBO GREENWOOD)
-								!----------------------------------------------------------------------------------------------------------------------------------
-								if(	do_ahc ) then
-								 velo_ahc_loc(:,:,hw_idx,eF_idx)	= 		velo_ahc_loc(:,:,hw_idx,eF_idx)	&	
-								 										+	velo_ahc_tens(en_k, V_ka, hw_lst(hw_idx), eF_tmp, T_kelvin, i_eta_smr)
-								 !								---------------------
-								 kubo_ohc_loc(:,:,hw_idx,eF_idx)	= 		kubo_ohc_loc(:,:,hw_idx,eF_idx)	&
-								 										+	kubo_ohc_tens(en_k, V_ka, hw_lst(hw_idx), eF_tmp, T_kelvin, i_eta_smr)
-								end if
-								!
-								!----------------------------------------------------------------------------------------------------------------------------------
-								!	OPTICAL CONDUCTIVITY (via conn)	& 	2nd order photo conductivity
-								!----------------------------------------------------------------------------------------------------------------------------------
-								if(		do_opt	)														then
-									call kubo_opt_tens(hw_lst(hw_idx), eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
-									kubo_opt_s_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_s_loc(:,:,hw_idx,eF_idx)	+	tempS							
-									kubo_opt_a_loc(:,:,hw_idx,eF_idx)	=	kubo_opt_a_loc(:,:,hw_idx,eF_idx)	+	tempA
-									!
-									photo2_cond_loc(:,:,hw_idx,eF_idx)	=	photo2_cond_loc(:,:,hw_idx,eF_idx)	&	
-																+	photo_2nd_cond(hw_lst(hw_idx), phi_laser, eF_tmp, &
-								 														T_kelvin, i_eta_smr, en_k, V_ka)
-								end if
-								!
-								!----------------------------------------------------------------------------------------------------------------------------------
-								!	GYROTROPIC TENSOR (FREQ DEP. PART)
-								!----------------------------------------------------------------------------------------------------------------------------------
-								if(do_gyro)	gyro_Dw_loc(:,:,hw_idx,eF_idx)		=	gyro_Dw_loc(:,:,hw_idx,eF_idx)		+ 	get_gyro_Dw()	!dummy returns 0 currently!!!
-							end do	!	end hw loop
 						end do	!	end eF loop
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -306,7 +295,7 @@ contains
 										kubo_ahc_loc(		:,:,eF_idx), velo_ahc_loc(		:,:,:,eF_idx),	kubo_ohc_loc( :,:,:,eF_idx),		&
 										kubo_opt_s_loc(		:,:,:,eF_idx), kubo_opt_a_loc(	:,:,:,eF_idx),										&
 										gyro_C_loc(			:,:,eF_idx), gyro_D_loc(		:,:,eF_idx),	gyro_Dw_loc(  :,:,:,eF_idx),		&
-										photo2_cond_loc(  :,:,:,eF_idx)																			&
+										photo2_cond_loc( :,:,:,:,eF_idx)																		&
 							)
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -457,7 +446,7 @@ contains
 		real(dp),						intent(in)		::	mep_bands_ic_loc(:,:,:), mep_bands_lc_loc(:,:,:), mep_bands_cs_loc(:,:,:),	&
 															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),			&				
 															kubo_ahc_loc(:,:),															&									
-															photo2_cond_loc(:,:,:)
+															photo2_cond_loc(:,:,:,:)
 		complex(dp),					intent(in)		::	velo_ahc_loc(:,:,:),	kubo_ohc_loc(:,:,:),								&
 															kubo_opt_s_loc(:,:,:), kubo_opt_a_loc(:,:,:),								&
 															gyro_C_loc(:,:), gyro_D_loc(:,:), gyro_Dw_loc(:,:,:)		
@@ -470,7 +459,7 @@ contains
 															mep_sum_ic_glob(:,:), mep_sum_lc_glob(:,:), mep_sum_cs_glob(:,:),			&
 															kubo_mep_ic_glob(:,:), kubo_mep_lc_glob(:,:), kubo_mep_cs_glob(:,:),		&
 															kubo_ahc_glob(:,:),															&
-															photo2_cond_glob(:,:,:)
+															photo2_cond_glob(:,:,:,:)
 
 															
 															
@@ -641,9 +630,9 @@ contains
 															mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),		&
 															kubo_mep_ic_loc(:,:,:), kubo_mep_lc_loc(:,:,:), kubo_mep_cs_loc(:,:,:),		&				
 															kubo_ahc_loc(:,:,:),														&
-															photo2_cond_loc(:,:,:,:)									
+															photo2_cond_loc(:,:,:,:,:)									
 		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:,:,:), kubo_ohc_loc(:,:,:,:),								&
-															tempS(:,:), tempA(:,:), 													&
+															tempS(:,:,:), tempA(:,:,:), 													&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -687,11 +676,11 @@ contains
 		
 		!
 		if(	do_opt	)	then
-			allocate(	tempS(						3,3									)	)
-			allocate(	tempA(						3,3									)	)				
+			allocate(	tempS(						3,3,	n_hw						)	)
+			allocate(	tempA(						3,3,	n_hw						)	)				
 			allocate(	kubo_opt_s_loc(				3,3,	n_hw	,	n_eF			)	)
 			allocate(	kubo_opt_a_loc(				3,3,	n_hw	,	n_eF			)	)
-			allocate(	photo2_cond_loc(			3,3,	n_hw	,	n_eF 			)	)
+			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	n_eF 			)	)
 			!
 			kubo_opt_a_loc		=	0.0_dp
 			kubo_opt_s_loc		=	0.0_dp

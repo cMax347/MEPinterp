@@ -70,9 +70,12 @@ contains
 	end function
 
 
-	pure function get_gyro_Dw()	result(Dw_ab)
-		complex(dp)							::		Dw_ab(3,3)
+	pure function get_gyro_Dw(hw_lst)	result(Dw_ab)
+		real(dp),		intent(in)				::	hw_lst(:)
+		complex(dp),	allocatable				::		Dw_ab(:,:,:)
 		!
+		!
+		allocate(Dw_ab(3,3,size(hw_lst,1)))
 		Dw_ab	=	0.0_dp
 		!
 		return

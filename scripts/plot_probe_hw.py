@@ -221,17 +221,20 @@ class HW_probe:
 		unit_dsc	=	"atomic units"
 		unit_str	=	r'$e^2$/ ($\hbar a_0$)'
 		#
+		au_to_S 		=	3.874046 * 1e-5			#	(e**2/h)	-> (S) Siemens
+		au_to_cm		=	5.2917721 * 1e-9
+
+
+		au_to_S_cm		=	au_to_S	/ au_to_cm
+		#
 		if units == "scale":
 			unit_dsc	=	"use the scale given as function argument (sort of a wildcard)"
 			unit_str	=	"-"
 		elif units == "SI":
-			au_to_S_cm		=	4.599848 * 10**4
 			scale		=	au_to_S_cm
 			unit_str		=	"[S/cm]"
 			unit_dsc		=	"SI units"	
-		elif units == "wx":
-			au_to_S_cm		=	4.599848 * 10**4
-		 	
+		elif units == "wx":		 	
 			scale			=	au_to_S_cm	/ 100.
 			unit_str		=	"[arb. u.]"
 			unit_dsc		=	"Units used by wanxiang in his paper. this should be the SI value divided by 100"	

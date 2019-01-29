@@ -43,7 +43,9 @@ module file_io
 
 
 	interface write_tens_file
-		module procedure d_write_tens_file
+		module procedure d2_write_tens_file
+		module procedure d3_write_tens_file
+		!
 		module procedure z_write_tens_file
 	end interface write_tens_file
 
@@ -552,7 +554,7 @@ module file_io
 	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm, photo_2nd)
 		integer,						intent(in)			::	n_ki_glob
 		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:,:),	a_symm(:,:,:)
-		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:,:)
+		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:,:,:)
 		character(len=22)									::	fname
 		character(len=100)									::	info_string
 		character(len=4)									::	id_string
@@ -585,25 +587,13 @@ module file_io
 					write(fname,format)		'2nd_photo.hw',hw_idx
 					info_string	=	'seoncd order photconductivitc: J^c_photo = rho^c_ab . E^*_a E_b (PRB 97, 241118(R) (2018))'
 					id_string	=	"2phC"
-					call	write_tens_file(opt_out_dir,	fname,	photo_2nd(:,:,hw_idx),	info_string,	id_string, verbose)
+					call	write_tens_file(opt_out_dir,	fname,	photo_2nd(:,:,:,hw_idx),	info_string,	id_string, verbose)
 				end if
 			end do
 			!
-			!	DEBUG
-			if(						allocated(	s_symm)		&
-							.and.	allocated(	a_symm)		&
-							.and.	allocated(	photo_2nd)	&			
-			)then
-				if(						size(s_symm,3)	/= size(a_symm,3)		&
-								.or.	size(a_symm,3)	/= size(photo_2nd,3)	&
-								.or.	size(s_symm,3)	/= size(photo_2nd,3)	&
-				) then
-					stop "[write_opt_tensors]:	inconsitent hw_lst"
-				else
-					write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses at ",	&
-											n_hw," laser frequencies on ",n_ki_glob," kpts"
-				end if
-			end if
+			!
+			write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses at ",	&
+									n_hw," laser frequencies on ",n_ki_glob," kpts"
 		end if
 		!	
 		!
@@ -664,7 +654,7 @@ module file_io
 
 
 !private write helpers
-	subroutine d_write_tens_file(dir, fname,tens, info_string, id_string, verbose)
+	subroutine d2_write_tens_file(dir, fname,tens, info_string, id_string, verbose)
 		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
 		real(dp),			intent(in)		::	tens(3,3)
 		logical,			intent(in)		::	verbose
@@ -684,6 +674,37 @@ module file_io
 		!
 		return
 	end subroutine
+
+	subroutine d3_write_tens_file(dir, fname,tens, info_string, id_string, verbose)
+		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
+		real(dp),			intent(in)		::	tens(3,3,3)
+		logical,			intent(in)		::	verbose
+		integer								::	row, clm,dim, w_unit		!
+		character(len=1)					::	dim_str(3)
+		!
+		dim_str(1)	=	"x"
+		dim_str(2)	=	"y"
+		dim_str(3)	=	"z"
+		!
+		!write result to file
+		open(newunit=w_unit, file=dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
+			write(w_unit,*)	info_string
+			write(w_unit,*)	'begin '//id_string
+			do dim	=	1,3
+				write(w_unit,*)	dim_str(dim)
+				do row = 1, 3
+					write(w_unit,'(200(f16.8,a))')		(		tens(dim,row,clm), ' ', clm=1,3)
+				end do
+			end do
+			write(w_unit,*)	'end '//id_string
+		close(w_unit)
+		if(verbose)		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
+																fname," written  successfully!"
+		!
+		!
+		return
+	end subroutine
+
 
 
 	subroutine z_write_tens_file(dir, fname,tens, info_string, id_string, verbose)
