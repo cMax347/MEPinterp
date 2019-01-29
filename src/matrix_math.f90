@@ -13,7 +13,8 @@ module matrix_math
                                             is_skew_herm_mat,                       &
                                             convert_tens_to_vect,                   &
                                             blas_matmul,                            &
-                                            matrix_comm                                         
+                                            matrix_comm,                            &
+                                            get_linspace                                        
 
 
     interface crossP
@@ -69,6 +70,36 @@ module matrix_math
 
 
 !public:
+    pure subroutine get_linspace(min, max, n_mesh, linspace)
+        real(dp),                      intent(in)      ::   min, max
+        integer,                       intent(in)      ::   n_mesh
+        real(dp),   allocatable,       intent(out)     ::   linspace(:)
+        real(dp)                                       ::   delta
+        integer                                        ::   idx 
+        !
+        !
+        if( n_mesh > 1) then
+            !   
+            !   RETURN LIST
+            allocate(   linspace(n_mesh)  )
+            delta   =   (   max -   min)    /   real(n_mesh-1,dp)    
+            !
+            do idx  =   1, n_mesh
+                linspace(idx)   =       min     +  real(idx-1,dp)    * delta    
+            end do
+        else
+            !
+            !   RETURN SCALAR
+            allocate(   linspace(1) )  
+            linspace    =   min
+        end if
+        !
+        !
+        return
+    end subroutine
+
+
+
     integer pure function my_Levi_Civita(i,j,k)
         !Hard coded Levi Civita tensor
         integer,        intent(in)      :: i,j,k

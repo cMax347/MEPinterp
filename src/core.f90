@@ -9,7 +9,7 @@ module core
 #ifdef USE_MPI
 	use mpi
 #endif
-	use matrix_math,	only:	my_Levi_Civita
+	use matrix_math,	only:	my_Levi_Civita, get_linspace
 	use constants,		only:	dp, aUtoEv
 	use mpi_community,	only:	mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								mpi_ki_selector,								&
@@ -82,12 +82,11 @@ contains
 		!	ic	: itinerant current contribution
 		!	cs	: chern - simons term	
 		!
-		real(dp)							::	delta_eF, eF_tmp,						&
-												delta_hw, 								&
-												kpt(3),	recip_latt(3,3)
+		real(dp)							::	kpt(3),	recip_latt(3,3)
 												!local sum targets:
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
-												Ne_loc_sum(:), hw_lst(:),				&
+												Ne_loc_sum(:), 							&
+												ef_lst(:), hw_lst(:),					&
 												!
 												mep_bands_ic_loc(	:,:,:),	 			&
 												mep_bands_lc_loc(	:,:,:),				&
@@ -117,11 +116,13 @@ contains
 		integer								::	kix, kiy, kiz, ki, 						&
 												mp_grid(3), n_ki_loc,  n_ki_glob,		&
 												ic_skipped, lc_skipped,					& 
-												eF_idx, hw_idx
+												eF_idx
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	allocate
 		!----------------------------------------------------------------------------------------------------------------------------------
-		allocate(	hw_lst(	n_hw	)	)
+		call get_linspace( ef_min, ef_max, n_eF,			ef_lst)
+		call get_linspace( hw_min, hw_max, n_hw, 			hw_lst)	
+		!
 		call allo_core_loc_arrays(		Ne_loc_sum,																		&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,							&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
@@ -129,14 +130,7 @@ contains
 										tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
 									)													
-		!
-		!----------------------------------------------------------------------------------------------------------------------------------
-		!	get 	k-space
-		!----------------------------------------------------------------------------------------------------------------------------------
-		mp_grid				=	get_mp_grid()
-		n_ki_loc			= 	0
-		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
-		recip_latt			=	get_recip_latt()
+		
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get		TB	BASIS
@@ -147,26 +141,18 @@ contains
 			write(*,*)	"----------------------GET REAL SPACE BASIS---------------------------"
 		end if
 		call read_tb_basis(			seed_name, R_vect,		H_tb, r_tb					)
+		!
+		!----------------------------------------------------------------------------------------------------------------------------------
+		!	get 	k-space
+		!----------------------------------------------------------------------------------------------------------------------------------
+		mp_grid				=	get_mp_grid()
+		n_ki_loc			= 	0
+		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
+		recip_latt			=	get_recip_latt()
+		!
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
 		call print_interp_mode()
 		!
-		!----------------------------------------------------------------------------------------------------------------------------------
-		!	setup inner loops
-		!----------------------------------------------------------------------------------------------------------------------------------
-						delta_eF	=	0.0_dp
-						delta_hw	=	0.0_dp
-		if ( N_eF > 1)	delta_eF 	=	(	eF_max -	eF_min	)	/	real(N_eF -1,dp)
-		if ( N_hw > 1)	then
-			delta_hw	=	(	hw_max -	hw_min	)	/	real(N_hw -1,dp)
-			!
-			do hw_idx = 1, 	n_hw
-				hw_lst(hw_idx)	=	hw_min	+ 	real(hw_idx-1,dp)	*	delta_hw
-			end do
-		else
-			hw_lst		=	hw_min
-		end if
-
-
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	loop	k-space
@@ -203,33 +189,32 @@ contains
 						!	LOOP FERMI ENERGIES
 						!----------------------------------------------------------------------------------------------------------------------------------
 						do eF_idx = 1, 	N_eF
-							eF_tmp	=	eF_min	+	real(eF_idx-1,dp)	*	delta_eF
 							!
 							!----------------------------------------------------------------------------------------------------------------------------------
 							!	COUNT ELECTRONS
 							!----------------------------------------------------------------------------------------------------------------------------------
-							Ne_loc_sum(	eF_idx	)	=	Ne_loc_sum(	eF_idx )	+	fd_get_N_el(	en_k, eF_tmp,	T_kelvin)
+							Ne_loc_sum(	eF_idx	)	=	Ne_loc_sum(	eF_idx )	+	fd_get_N_el(	en_k, ef_lst(eF_idx),	T_kelvin)
 							!
 							!----------------------------------------------------------------------------------------------------------------------------------
 							!	KUBO MEP (MEP with fermi_dirac)
 							!----------------------------------------------------------------------------------------------------------------------------------
 							if(		do_kubo	)						then
-								kubo_mep_ic_loc(:,:,eF_idx)	=	kubo_mep_ic_loc(:,:,eF_idx) +	kubo_mep_IC(eF_tmp, T_kelvin, V_ka, en_k, ic_skipped)
-								kubo_mep_lc_loc(:,:,eF_idx)	=	kubo_mep_lc_loc(:,:,eF_idx) +	kubo_mep_LC(eF_tmp, T_kelvin, V_ka, en_k, lc_skipped)
-								kubo_mep_cs_loc(:,:,eF_idx)	=	kubo_mep_cs_loc(:,:,eF_idx) +	kubo_mep_CS(eF_tmp, T_kelvin, 	en_k, A_ka, Om_kab)
+								kubo_mep_ic_loc(:,:,eF_idx)	=	kubo_mep_ic_loc(:,:,eF_idx) +	kubo_mep_IC(ef_lst(eF_idx), T_kelvin, V_ka, en_k, ic_skipped)
+								kubo_mep_lc_loc(:,:,eF_idx)	=	kubo_mep_lc_loc(:,:,eF_idx) +	kubo_mep_LC(ef_lst(eF_idx), T_kelvin, V_ka, en_k, lc_skipped)
+								kubo_mep_cs_loc(:,:,eF_idx)	=	kubo_mep_cs_loc(:,:,eF_idx) +	kubo_mep_CS(ef_lst(eF_idx), T_kelvin, 	en_k, A_ka, Om_kab)
 							end if
 							!
 							!----------------------------------------------------------------------------------------------------------------------------------
 							!	AHC
 							!----------------------------------------------------------------------------------------------------------------------------------
 							if(		do_ahc	) then
-								kubo_ahc_loc(:,:,eF_idx)	=	kubo_ahc_loc(:,:,eF_idx)	+ 	kubo_ahc_tens(en_k,	Om_kab,   eF_tmp, T_kelvin)
+								kubo_ahc_loc(:,:,eF_idx)	=	kubo_ahc_loc(:,:,eF_idx)	+ 	kubo_ahc_tens(en_k,	Om_kab,   ef_lst(eF_idx), T_kelvin)
 							
 								 velo_ahc_loc(:,:,:,eF_idx)	= 	velo_ahc_loc(:,:,:,eF_idx)	&	
-								 										+	velo_ahc_tens(en_k, V_ka, hw_lst, eF_tmp, T_kelvin, i_eta_smr)
+								 										+	velo_ahc_tens(en_k, V_ka, hw_lst, ef_lst(eF_idx), T_kelvin, i_eta_smr)
 								 !								---------------------
 								 kubo_ohc_loc(:,:,:,eF_idx)	= 	kubo_ohc_loc(:,:,:,eF_idx)	&
-								 										+	kubo_ohc_tens(en_k, V_ka, hw_lst, eF_tmp, T_kelvin, i_eta_smr)
+								 										+	kubo_ohc_tens(en_k, V_ka, hw_lst, ef_lst(eF_idx), T_kelvin, i_eta_smr)
 							end if
 
 							!
@@ -237,12 +222,12 @@ contains
 							!	OPTICAL CONDUCTIVITY (w90 version via Connection)
 							!----------------------------------------------------------------------------------------------------------------------------------
 							if(		do_opt	)														then
-									call kubo_opt_tens(hw_lst, eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
+									call kubo_opt_tens(hw_lst, ef_lst(eF_idx), T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
 									kubo_opt_s_loc(:,:,:,eF_idx)	=	kubo_opt_s_loc(:,:,:,eF_idx)	+	tempS							
 									kubo_opt_a_loc(:,:,:,eF_idx)	=	kubo_opt_a_loc(:,:,:,eF_idx)	+	tempA
 									!
 									photo2_cond_loc(:,:,:,:,eF_idx)	=	photo2_cond_loc(:,:,:,:,eF_idx)	&	
-																	+	photo_2nd_cond(hw_lst, phi_laser, eF_tmp, &
+																	+	photo_2nd_cond(hw_lst, phi_laser, ef_lst(eF_idx), &
 								 														T_kelvin, i_eta_smr, en_k, V_ka)
 								end if
 
@@ -251,8 +236,8 @@ contains
 							!	GYROTROPIC TENSORS (CURRENTS)
 							!----------------------------------------------------------------------------------------------------------------------------------
 							if(		do_gyro	)								then	
-								gyro_C_loc(:,:,eF_idx)		=	gyro_C_loc(:,:,eF_idx)		+	get_gyro_C(en_k, V_ka, eF_tmp, T_kelvin)
-								gyro_D_loc(:,:,eF_idx)		=	gyro_D_loc(:,:,eF_idx)		+ 	get_gyro_D(en_k, V_ka, Om_kab, eF_tmp, T_kelvin)
+								gyro_C_loc(:,:,eF_idx)		=	gyro_C_loc(:,:,eF_idx)		+	get_gyro_C(en_k, V_ka, ef_lst(eF_idx), T_kelvin)
+								gyro_D_loc(:,:,eF_idx)		=	gyro_D_loc(:,:,eF_idx)		+ 	get_gyro_D(en_k, V_ka, Om_kab, ef_lst(eF_idx), T_kelvin)
 								gyro_Dw_loc(:,:,:,eF_idx)	=	gyro_Dw_loc(:,:,:,eF_idx)	+ 	get_gyro_Dw(hw_lst)	!dummy returns 0 currently!!!
 							end if
 							!
@@ -281,8 +266,8 @@ contains
 		!	GET FERMI ENERGY 
 		!----------------------------------------------------------------------------------------------------------------------------------
 		call mpi_allreduce_sum(	n_ki_loc,	n_ki_glob	)
-		eF_idx	=	fermi_selector(n_ki_glob,	Ne_loc_sum(:), eF_min, delta_eF,	valence_bands	)
-		call print_core_info(n_ki_loc, n_ki_glob, eF_min, delta_eF, eF_idx	)
+		eF_idx	=	fermi_selector(n_ki_glob,	Ne_loc_sum(:), eF_lst,	valence_bands	)
+		call print_core_info(n_ki_loc, n_ki_glob, ef_lst, eF_idx	)
 		!
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -313,8 +298,6 @@ contains
 	!
 	!
 
-
-
 !
 !----------------------------------------------------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------------------------------
@@ -323,10 +306,10 @@ contains
 !----------------------------------------------------------------------------------------------------------------------------------	
 
 	
-	integer function fermi_selector(	n_ki_glob,	Ne_loc_sum, eF_min, delta_eF, Ne_sys	) result(opt_idx)
+	integer function fermi_selector(	n_ki_glob,	Ne_loc_sum, eF_lst, Ne_sys	) result(opt_idx)
 		integer,							intent(in)			::	n_ki_glob
 		real(dp),  							intent(in)			::	Ne_loc_sum(:)
-		real(dp),							intent(in)			::	eF_min, delta_eF
+		real(dp),							intent(in)			::	ef_lst(:)
 		integer,							intent(in)			::	Ne_sys
 		real(dp)												::	opt_error, opt_ef, new_error, ne_sys_re
 		real(dp),		allocatable								::	Ne_glob_sum(:)
@@ -361,7 +344,7 @@ contains
 			ne_sys_re	=	real(Ne_sys,dp)
 			opt_idx		=	1
 			opt_error	=	abs(	Ne_glob_sum(1)	-	ne_sys_re	)
-			opt_ef		=	eF_min 
+			opt_ef		=	ef_lst(1) 
 			!
 			!
 			!^^^^^^^^^^^^
@@ -378,21 +361,21 @@ contains
 			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:         -------------------------------------------------------------    "
 			!
 			!
-			do eF_idx	=	1, size(	Ne_glob_sum	)
+			do eF_idx	=	1, size(	ef_lst,1	)
 				!
 				!	get new error
 				new_error	=	abs(	Ne_glob_sum(eF_idx)	-	ne_sys_re	)
 				!
 				!	output
-				write(occ_file,'(f16.8,a,f16.8)')	(eF_min 	+ 	(eF_idx - 1) * delta_eF		) *	 aUtoEv,"	",	Ne_glob_sum(eF_idx)
+				write(occ_file,'(f16.8,a,f16.8)')	ef_lst(ef_idx) *	 aUtoEv,"	",	Ne_glob_sum(eF_idx)
 				write(*,'(a,i3,a,i5,a,f12.6,a,f12.6,a,e16.8)',advance='no')	"[#",mpi_id,";fermi_selector]:	",	&
-										eF_idx," |	   ",  (eF_min + (eF_idx-1)* delta_eF)*aUtoEv,"  | ",Ne_glob_sum(eF_idx),"	 |	",new_error
+										eF_idx," |	   ",  ef_lst(ef_idx)*aUtoEv,"  | ",Ne_glob_sum(eF_idx),"	 |	",new_error
 				!
 				!	optimal?!
 				if(		new_error		<	opt_error	) then
 					opt_idx		=	eF_idx
 					opt_error	=	new_error
-					opt_ef		=	eF_min + (opt_idx-1) * delta_eF
+					opt_ef		=	ef_lst(opt_idx)
 					write(*,'(a)')	"		(new optimal fermi energy found!)"
 				else
 					write(*,*)	" "
@@ -786,9 +769,9 @@ contains
 
 	!
 	!
-	subroutine print_core_info(n_ki_loc, n_ki_glob, eF_min, delta_eF, eF_final_idx)
+	subroutine print_core_info(n_ki_loc, n_ki_glob, eF_lst, eF_final_idx)
 		integer,		intent(in)		::	n_ki_loc, n_ki_glob
-		real(dp),		intent(in)		::	eF_min, delta_eF
+		real(dp),		intent(in)		::	eF_lst(:)
 		integer,		intent(in)		::	eF_final_idx
 		character(len=60)				::	gauge_label
 		!
@@ -802,7 +785,7 @@ contains
 		!
 		if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		write(*,'(a,i3,a,a,a,f8.4,a)')	"[#",mpi_id,";core_worker/",cTIME(time()),"]: choosen fermi energy	", &	
-										(eF_min + (eF_final_idx-1)	* delta_eF) * aUtoEv," eV. Now start reduction of response tensors..." 
+										eF_lst(eF_final_idx) * aUtoEv," eV. Now start reduction of response tensors..." 
 		!
 		!
 		return
