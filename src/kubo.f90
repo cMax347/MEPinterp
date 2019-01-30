@@ -31,19 +31,33 @@ contains
 
 !public
 
-	pure function kubo_ahc_tens(en_k, Om_kab, eFermi, T_kelvin) result( o_ahc)
+	pure function kubo_ahc_tens(en_k, Om_kab, ef_lst, T_kelvin) result( o_ahc)
 		!	see wann guide chapter 12
 		!		eq. (12.16)
-		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin
-		complex(dp), allocatable,	intent(in)		::	Om_kab(:,:,:,:)
-		real(dp)						::	o_ahc(3,3)
-		integer							::	n
+		real(dp),						intent(in)		::	en_k(:), ef_lst(:), T_kelvin
+		complex(dp), 	allocatable,	intent(in)		::	Om_kab(:,:,:,:)
+		real(dp)										::	curv_nn(3,3)
+		real(dp),		allocatable						::	o_ahc(:,:,:), fd_lst(:)
+		integer											::	n, ef_idx, n_ef
 		!
+		n_ef	=	size(ef_lst,1)
+		allocate(		fd_lst(				n_ef	))
+		allocate(		o_ahc(	3,3		,	n_ef	))
 		o_ahc	=	0.0_dp
+		!
+
 		!
 		if(allocated(Om_kab)) then
 			do n = 1, size(en_k)
-				o_ahc	=	o_ahc	-	real(Om_kab(:,:,n,n),dp)		*	fd_stat(en_k(n),	eFermi, 	T_kelvin) 
+				curv_nn(:,:)	=	real(Om_kab(:,:,n,n),dp)
+				fd_lst			=	fd_stat(	en_k(n),	ef_lst,	T_kelvin)	
+				!
+				!
+				do ef_idx =1 ,size(ef_lst)
+					o_ahc(:,:,ef_idx)	=	o_ahc(:,:,ef_idx)	-	curv_nn(:,:)		*	fd_lst(ef_idx)
+				end do
+				!
+				! 
 			end do
 		end if
 		!
@@ -57,41 +71,55 @@ contains
 !				OPTICAL CONDUTCTIVITY (hw \non_eq 0)
 !	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	pure function velo_ahc_tens(en_k, v_kab, hw_lst, eFermi, T_kelvin, i_eta_smr) result( o_ahc)
+	pure function velo_ahc_tens(en_k, v_kab, hw_lst, ef_lst, T_kelvin, i_eta_smr) result( o_ahc)
 		!
 		!	use Wanxiangs expression to calculate the ohc
 		!
 		!		VIA VELOCITIES
-		real(dp),		intent(in)		::	en_k(:), hw_lst(:), eFermi, T_kelvin
+		real(dp),		intent(in)		::	en_k(:), hw_lst(:), ef_lst(:), T_kelvin
 		complex(dp), 	intent(in)		::	v_kab(:,:,:), i_eta_smr
-		complex(dp)	,	allocatable		::	o_ahc(:,:,:)
-		real(dp)						::	v_nm_mn(3,3), delta_fd, en_denom
-		integer							::	n, l, j, hw
+		complex(dp)	,	allocatable		::	o_ahc(:,:,:,:), vv_dE_hw(:,:,:)
+		real(dp),		allocatable		::	ef_n_lst(:), ef_l_lst(:), d_ef_lst(:)
+		real(dp)						::	dE_sqr, v_nm_mn(3,3)
+		integer							::	n, l, j, hw, n_ef, n_hw, ef_idx
 		!
+		n_hw	=	size(	hw_lst,	1)
+		n_ef	=	size(	ef_lst,	1)
 		!
-		allocate(	o_ahc(3,3,size(hw_lst))			)
+		allocate(		ef_n_lst(						n_ef	)	)
+		allocate(		ef_l_lst(						n_ef	)	)
+		allocate(		d_ef_lst(						n_ef	)	)
+		allocate(		vv_dE_hw(	3,3		,	n_hw			)	)
+		allocate(	o_ahc(			3,3		,	n_hw,	n_ef	)	)
 		o_ahc	=	0.0_dp
 		!
 		do n = 1, size(en_k)
+			ef_n_lst		=	fd_stat(		en_k(n),		ef_lst, T_kelvin)
 			do l = 1, size(en_k)
+				!
+				!
 				if(l/=n) then
+					ef_l_lst		=	fd_stat(		en_k(l),		ef_lst,	T_kelvin)
+					d_ef_lst		=	ef_n_lst	-	ef_l_lst
+					dE_sqr			= 	(en_k(n) 	- 	en_k(l)		)**2 	
 					!
-					!
-					en_denom		= 	(	en_k(n) - en_k(l)			)**2 	
-					delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
-					!
+					!	loop real space direction
 					do j = 1, 3
 						v_nm_mn(:,j)	=	aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 
 					end do
-					v_nm_mn			=	delta_fd * v_nm_mn
 					!
-					!
-					do hw = 1, size(hw_lst,1)
-						o_ahc(:,:,hw)	= 	o_ahc(:,:,hw) 	+	 v_nm_mn(:,:)	/		(	en_denom	- (		hw_lst(hw) + i_eta_smr		)**2	)	
+					!	loop fermi energies
+					do ef_idx = 1, n_ef
+						!	loop frequencies
+						do hw =1, size(hw_lst)
+							vv_dE_hw(:,:,hw)	=	 v_nm_mn(:,:)	/	(	dE_sqr	- (	hw_lst(hw) + i_eta_smr	)**2	)	
+						end do
+						!	
+						o_ahc(:,:,:,ef_idx)		=	o_ahc(:,:,:,ef_idx)		+	d_ef_lst(ef_idx)	*	vv_dE_hw(:,:,:)
 					end do
-					!
-					!
 				end if
+				!
+				!
 			end do
 		end do
 		!
@@ -102,39 +130,53 @@ contains
 
 
 
-	pure function kubo_ohc_tens(en_k, v_kab, hw_lst, eFermi, T_kelvin, i_eta_smr)	result(z_ohc)
+	pure function kubo_ohc_tens(en_k, v_kab, hw_lst, ef_lst, T_kelvin, i_eta_smr)	result(z_ohc)
 		!
 		!		calculates wann guide (12.5) explicitly
 		!	
 		!	via VELOCITIES
-		real(dp),		intent(in)		::	en_k(:), hw_lst(:), eFermi, T_kelvin
+		real(dp),		intent(in)		::	en_k(:), hw_lst(:), ef_lst(:), T_kelvin
 		complex(dp),	intent(in)		::	v_kab(:,:,:), i_eta_smr
-		complex(dp), 	allocatable		::	z_ohc(:,:,:) 
+		complex(dp), 	allocatable		::	z_ohc(:,:,:,:), vv_dE_hw(:,:,:) 
+		real(dp), 		allocatable		::	ef_m_lst(:), ef_n_lst(:), dFdE_mn(:) 
 		complex(dp)						::	v_nm_mn(3,3)
-		integer							::	n,	m, j, hw
-		real(dp)						::	dFdE_mn, dE_mn
+		real(dp)						::	dE_mn
+		integer							::	n, m, j, n_ef, n_hw, ef_idx, hw_idx
 		!
-		allocate(	z_ohc(3,3,	size(hw_lst,1)		))
+		n_ef	=	size(ef_lst)
+		n_hw	=	size(hw_lst)
+		!
+		allocate(		ef_m_lst(					n_ef	))
+		allocate(		ef_n_lst(					n_ef	))
+		allocate(		dFdE_mn(					n_ef	))
+		allocate(		vv_dE_hw(	3,3,	n_hw			))
+		allocate(		z_ohc(		3,3,	n_hw,	n_ef	))
+		!
 		z_ohc	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
 		do m = 1 , size(v_kab,3)
+			ef_m_lst			=	fd_stat(	en_k(m),	ef_lst, T_kelvin)
 			do n = 1, size(v_kab,2)
+				!
+				!
 				if(m/=n) then
+					ef_n_lst	=	fd_stat(	en_k(n),	ef_lst, T_kelvin)
+					dFdE_mn		=	ef_m_lst	- 	ef_n_lst
+					dE_mn 		=	en_k(m)		-	en_k(n)
+					dFdE_mn		=	dFdE_mn		/	dE_mn
 					!
-					!
-					dE_mn 	=	en_k(m)	-	en_k(n)	
-					dFdE_mn	=	fd_stat(en_k(m), 		eFermi, T_kelvin)	- fd_stat(en_k(n), 		eFermi, T_kelvin)
-					dFdE_mn	=	dFdE_mn	/	dE_mn
-					!
+					!	loop real space direction
 					do j = 1, 3
 						v_nm_mn(:,j)	=	v_kab(:,n,m) * v_kab(j,m,n)
 					end do
-					v_nm_mn				=	v_nm_mn	*	dFdE_mn
 					!
-					!
-					do hw = 1, size(hw_lst)
-						z_ohc(:,:,hw)	=	z_ohc(:,:,hw)	 + 			i_dp * 	v_nm_mn(:,:)					&
-																	/ 	(	dE_mn - hw_lst(hw) - i_eta_smr	)
+					!	loop fermi energies
+					do ef_idx = 1, n_ef
+						!	loop frequencies
+						do hw_idx = 1, size(hw_lst)
+							vv_dE_hw(:,:,hw_idx)	=	i_dp * v_nm_mn(:,:)	/	(	dE_mn - hw_lst(hw_idx) - i_eta_smr	)
+						end do
+						z_ohc(:,:,:,ef_idx)			=	vv_dE_hw(:,:,:) * dFdE_mn(ef_idx)
 					end do
 					!
 					!
