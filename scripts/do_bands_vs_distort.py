@@ -64,7 +64,7 @@ def prepare_calc(		target_dir, tb_model, use_pos_op, val_bands, main_exe, kpt_ge
 		phi = 0.0			#generic does not matter here
 		write_tb_input(	tb_model, use_pos_op, target_dir, phi, val_bands, mp_grid, 
 								kubo_tol=1e-3, 
-								hw=0.0,laser_phase=0, 
+								n_hw=1, hw_min=0.0,hw_max=0.0,laser_phase=0, 
 								 N_eF=1, eF_min=0.0, eF_max=0, Tkelvin=300.0, eta_smearing=3.0, 
 								plot_bands='T', 
 								debug_mode='T',
