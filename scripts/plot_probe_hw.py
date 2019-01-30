@@ -221,8 +221,8 @@ class HW_probe:
 		unit_dsc	=	"atomic units"
 		unit_str	=	r'$e^2$/ ($\hbar a_0$)'
 		#
-		au_to_S 		=	3.874046 * 1e-5			#	(e**2/h)	-> (S) Siemens
-		au_to_cm		=	5.2917721 * 1e-9
+		au_to_S 		=	2.4341348e-4	#3.874046 * 1e-5			#	(e**2/h)	-> (S) Siemens
+		au_to_cm		=	5.2917721e-9	# * 1e-9
 
 
 		au_to_S_cm		=	au_to_S	/ au_to_cm
@@ -231,12 +231,12 @@ class HW_probe:
 			unit_dsc	=	"use the scale given as function argument (sort of a wildcard)"
 			unit_str	=	"-"
 		elif units == "SI":
-			scale		=	au_to_S_cm
+			scale			=	scale * au_to_S_cm
 			unit_str		=	"[S/cm]"
 			unit_dsc		=	"SI units"	
 		elif units == "wx":		 	
-			scale			=	au_to_S_cm	/ 100.
-			unit_str		=	"[arb. u.]"
+			scale			=	scale *au_to_S_cm	/ 100.
+			unit_str		=	r'[$10^2$ S/cm]'
 			unit_dsc		=	"Units used by wanxiang in his paper. this should be the SI value divided by 100"	
 		#
 		print('[set_hall_units]:  chooen units "'+units+'" with dim '+unit_str+'" and  descriptor: "'+unit_dsc+'" '	)
@@ -378,10 +378,15 @@ class HW_probe:
 				#	LABELS & TITLES
 				#
 				ax[0].set_xticks(np.arange(hw_min, hw_max+1.0, 0.1), minor=True)
+				ax[0].set_yticks(np.arange(-re_bound, re_bound, 0.1), minor=True)
+				ax[1].set_yticks(np.arange(-im_bound, im_bound, 0.2), minor=True)
+
 				try:	
 					ax[0].set_xlim([hw_min, hw_max])
-					#ax[0].set_ylim([- re_bound , re_bound  ])
-					#ax[1].set_ylim([- im_bound , im_bound  ])
+					ax[0].set_ylim([- re_bound , re_bound  ])
+					ax[1].set_ylim([- im_bound , im_bound  ])
+					
+
 					#
 					ax[0].set(ylabel=r'$\sigma^\mathrm{R}_{'+dim_str[i]+dim_str[j]+'}\; (\omega)\;$' +	unit_str)
 					ax[0].yaxis.label.set_size(label_size)
@@ -394,10 +399,10 @@ class HW_probe:
 				#
 				#
 				#ax.set_ylim([mep_min,mep_max])
-				ax[0].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
+				ax[0].tick_params(axis='y',which='both', direction='in',labelsize=ytick_size)
 				ax[0].tick_params(axis='x',which='both', direction='in',labelsize=xtick_size)
 				ax[1].tick_params(axis='x',which='both', direction='in',labelsize=xtick_size, top=True)
-				ax[1].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
+				ax[1].tick_params(axis='y',which='both', direction='in',labelsize=ytick_size)
 				#
 				plt.legend()
 				plt.tight_layout()
@@ -466,8 +471,8 @@ def plot_hw(root_dir):
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		True		, 
 									label_size=14, xtick_size=12, ytick_size=12, marker_size=2,
-									re_bound		=	35,
-									im_bound		=	10
+									re_bound		=	2.5,
+									im_bound		=	4.5
 							)
 		print("...")
 		print('[plot_hw]:	plotted Hall like tensors')
