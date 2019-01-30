@@ -14,6 +14,14 @@ module statistics
 	end interface fd_stat
 
 
+	interface fd_get_N_el
+		module procedure	d0_fd_get_N_el
+		module procedure	d1_fd_get_N_el
+	end interface fd_get_N_el		
+
+
+
+
 	save
 
 
@@ -79,21 +87,44 @@ contains
 
 
 
-	
 
-
-	real(dp) pure function fd_get_N_el(en_k, e_fermi, T_kelvin)
+	pure function d0_fd_get_N_el(en_k, e_fermi, T_kelvin)	result(N_el)
 		real(dp),		intent(in)			::	en_k(:), e_fermi, T_kelvin
+		real(dp)							::	N_el
 		integer								::	n
 		!
-		fd_get_N_el	=	0.0_dp
+		N_el	=	0.0_dp
 		!
 		do n = 1, size(en_k)
-			fd_get_N_el	=	fd_get_N_el	+	fd_stat(en_k(n),	e_fermi, T_kelvin)
+			N_el	=	N_el	+	fd_stat(en_k(n),	e_fermi, T_kelvin)
 		end do
 		!
 		return
 	end function
+
+
+	pure function d1_fd_get_N_el(en_k, ef_lst, T_kelvin)	result(N_el_lst)
+		real(dp),		intent(in)			::	en_k(:), ef_lst(:), T_kelvin
+		real(dp),		allocatable			::	N_el_lst(:)
+		integer								::	n
+		!
+		allocate(	N_el_lst( size(ef_lst,1))		)
+		N_el_lst	=	0.0_dp
+		!
+		do n = 1, size(en_k)
+			N_el_lst(:)	=	N_el_lst(:)		+	fd_stat(en_k(n),	ef_lst(:), T_kelvin)
+		end do
+		!
+		return
+	end function
+
+
+
+
+
+
+
+
 
 
 
