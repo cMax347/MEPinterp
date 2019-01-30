@@ -8,6 +8,12 @@ module statistics
 	private
 
 
+	interface fd_stat
+		module procedure	d0_fd_stat
+		module procedure	d1_fd_stat
+	end interface fd_stat
+
+
 	save
 
 
@@ -19,25 +25,53 @@ contains
 
 
 
-	real(dp) pure function fd_stat(e_band, e_fermi,	T_kelvin) 
+	real(dp) pure function d0_fd_stat(e_band, e_fermi,	T_kelvin) 
 		real(dp), 		intent(in)			::	e_band, e_fermi, T_kelvin
 		real(dp)							::	T_smear
 		!
-		fd_stat		=	0.0_dp
+		d0_fd_stat		=	0.0_dp
 		!
 		if(	 T_kelvin > min_temp ) 				then
 			!
 			!	FINITE TEMPERATURE
 			T_smear			=	kBoltz_Eh_K		*	T_kelvin
-			fd_stat		 	= 	1.0_dp	/	(	1.0_dp	+	exp(	(e_band	- e_fermi)	/	(T_smear)))
+			d0_fd_stat		 	= 	1.0_dp	/	(	1.0_dp	+	exp(	(e_band	- e_fermi)	/	(T_smear)))
 			!
 			!
 		else if(	e_band < e_fermi	)  		then
 			!	
 			!	ZERO TEMPERATURE
-			fd_stat	=	1.0_dp
+			d0_fd_stat	=	1.0_dp
 		end if
 		!
+		!
+		return
+	end function
+
+
+	pure function d1_fd_stat(e_band, ef_lst, T_kelvin)	result(fd_lst)
+		real(dp),					intent(in)		::	e_band, ef_lst(:), T_kelvin
+		real(dp),	allocatable						::	fd_lst(:)
+		real(dp)									::	T_smear
+		integer										::	ef_idx
+		!
+		allocate(	fd_lst(size(ef_lst,1))		)
+		fd_lst	=	0.0_dp
+		!
+		if(T_kelvin > min_temp )	then
+			!
+			!	T/=0		FERMI-DIRAC SMEARING
+			T_smear			=	kBoltz_Eh_K		*	T_kelvin
+			do ef_idx	=	1, size(ef_lst,1)
+				fd_lst(ef_idx)	=	1.0_dp /	(	1.0_dp + exp(	( e_band	- ef_lst(ef_idx) )	/	T_smear	))
+			end do
+		else
+			!
+			!	T==0		STEPFUNCTION
+			do ef_idx	=	1, size(ef_lst,1)
+				if(	e_band < ef_lst(ef_idx)	)		fd_lst(ef_idx)	=	1.0_dp
+			end do
+		end if
 		!
 		return
 	end function
