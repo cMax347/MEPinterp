@@ -541,26 +541,26 @@ def get_FeMn3q_tb(fpath,  verbose=False):
 	
 	#
 	#	LATTICE
-	a0 	= 1.0
+	a0 	= 6.8597 			#	Bohr
 	ax	= np.zeros(3)
 	ay 	= np.zeros(3)
 	az	= np.zeros(3)
 	ax[0]	=	1.
-	ay[1]	=	2./np.sqrt(3.)
-	az[2]	=	np.sqrt(2./3.)
+	ay[1]	=	1.		#2./np.sqrt(3.)
+	az[2]	=	1.		#np.sqrt(2./3.)
 
 	
 	#
-	try:
-		if np.abs(test_model.inter_t) > 1e-7: 
-			delta	=	np.sqrt(np.abs(			test_model.intra_t	/	test_model.inter_t			))
-			#
-			az[2]	=	az[2]	* delta
-			print("[get_FeMn3q_tb]:	scaled az lattice constant by factor delta=t1/t2="+str(	delta	)+"	(t2="+str(test_model.inter_t)+"eV)"			)
-		else:
-			print("[get_FeMn3q_tb]:	az lattice constant was not changed! az="+str(az[2]))
-	except:
-			print("[get_FeMn3q_tb]:	WARNING failed to scale az, az set to "+str(az[2]))
+	#try:
+	#	if np.abs(test_model.inter_t) > 1e-7: 
+	#		delta	=	np.sqrt(np.abs(			test_model.intra_t	/	test_model.inter_t			))
+	#		#
+	#		az[2]	=	az[2]	* delta
+	#		print("[get_FeMn3q_tb]:	scaled az lattice constant by factor delta=t1/t2="+str(	delta	)+"	(t2="+str(test_model.inter_t)+"eV)"			)
+	#	else:
+	#		print("[get_FeMn3q_tb]:	az lattice constant was not changed! az="+str(az[2]))
+	#except:
+	#		print("[get_FeMn3q_tb]:	WARNING failed to scale az, az set to "+str(az[2]))
 	#
 	#
 	print("[get_FeMn3q_tb]:	..finished FeMn3q model setup (TODO: PROPER LATTICE SETUP !) at " +	datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
