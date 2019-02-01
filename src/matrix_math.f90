@@ -3,7 +3,8 @@ module matrix_math
 	implicit none
 
 	private
-	public						::			my_Levi_Civita, crossP,                 &
+	public						::			my_Levi_Civita,get_levi_civita,         &
+                                            crossP,                 &
                                             zheevr_wrapper,                         &
                                             zheevd_wrapper,                         &
                                             zheevx_wrapper,                         &
@@ -58,11 +59,12 @@ module matrix_math
 
 
 
-
+    save
 
 
 
     integer,        parameter   ::  dp              = kind(0.d0)
+
 
 	contains
 
@@ -119,6 +121,25 @@ module matrix_math
         !
         return
     end function 
+
+
+    pure subroutine get_levi_civita(lc_tens)
+        integer,    intent(out)   ::  lc_tens(3,3,3)
+        !
+        lc_tens         =    0
+        !
+        lc_tens(1,2,3)  =   +1
+        lc_tens(2,3,1)  =   +1
+        lc_tens(3,1,2)  =   +1
+        !
+        lc_tens(1,3,2) =   -1
+        lc_tens(3,2,1) =   -1
+        lc_tens(2,1,3) =   -1        
+        !
+        return
+    end subroutine
+
+
 
 
 
