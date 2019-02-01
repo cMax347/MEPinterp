@@ -1,7 +1,7 @@
 module mep_niu
 	use constants,		only:		dp
 	use input_paras,	only:		kubo_tol,	valence_bands
-	use matrix_math,	only:		my_Levi_Civita,			& 
+	use matrix_math,	only:		get_levi_civita,			& 
 									convert_tens_to_vect
 
 	implicit none
@@ -49,11 +49,15 @@ contains
 		real(dp),			intent(in)		::	En(:)
 		real(dp),			allocatable		::	F3(:,:,:)
 		integer								::	n0, n, neglected, tot, 		&
-												j, k, l
+												j, k, l, leviC(3,3,3)
 		real(dp) 							::	pre_fact, velo_nom(3), en_denom
 		!
 		neglected	= 0
 		tot 		= 0
+		!
+		call get_levi_civita(leviC)
+
+
 		!
 		allocate(	F3(3,3,valence_bands)	)
 		F3	= 0.0_dp
@@ -70,7 +74,7 @@ contains
 			 			do j = 1, 3
 			 				do k = 1, 3
 			 					do l = 1, 3
-			 						pre_fact	=	real(			my_Levi_Civita(j,k,l)						,dp)	
+			 						pre_fact	=	real(			leviC(j,k,l)						,dp)	
 			 						!
 			 						!	
 			 						if(		 abs(pre_fact) 	> 1e-1_dp	) then
@@ -102,11 +106,12 @@ contains
 		real(dp),			allocatable		::	F2(:,:,:)
 		integer								::	n0, m, n, 		&
 												j, k, l,		&
-												neglected, tot
+												neglected, tot, leviC(3,3,3)
 		real(dp) 							::	pre_fact, velo_nom(3), en_denom
 		!
 		neglected	= 0
 		tot 		= 0
+		call get_levi_civita(leviC)
 		!
 		allocate(	F2(3,3,valence_bands)	)
 		!
@@ -125,7 +130,7 @@ contains
 				 			do j = 1, 3
 				 				do k = 1, 3
 				 					do l = 1, 3
-				 						pre_fact	= 	- real(my_Levi_Civita(j,k,l),dp)
+				 						pre_fact	= 	- real(leviC(j,k,l),dp)
 				 						!
 				 						!
 				 						if(		 abs(pre_fact) 	> 1e-1_dp	) then
