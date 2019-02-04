@@ -37,8 +37,14 @@ if ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     message("found MPI lib, set USE_MPI preprocessor macro")
   endif(MPI_FOUND)
   #
-  set(CMAKE_Fortran_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-  set(COVERAGE_LINK_FLAGS "-Og -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  find_package(OpenMP)
+  if (OpenMP_FOUND) 
+    add_definitions(-DUSE_OMP)
+    message("found MPI lib, set USE_OMP preprocessor macro")
+  endif(OpenMP_FOUND)
+
+  set(CMAKE_Fortran_FLAGS "-Og -fopenmp -omp -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  set(COVERAGE_LINK_FLAGS "-Og -fopenmp -omp -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
 #
 #-------------------------------------------------------------------------------------
 #       INTEL COMPILER (mpiifort)
@@ -65,8 +71,8 @@ elseif ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     if("${MACHINE}" STREQUAL "jureca" )
       message("I think I am on jureca !!!1!")
     endif()
-    set(CMAKE_Fortran_FLAGS " -mkl -fpp -O3")      #-lmkl_intel_lp64
-    set(COVERAGE_LINK_FLAGS " -mkl -fpp -O3")    #-lmkl_intel_lp64
+    set(CMAKE_Fortran_FLAGS " -mkl -qopenmp -fpp -O3")      #-lmkl_intel_lp64
+    set(COVERAGE_LINK_FLAGS " -mkl -qopenmp -fpp -O3")    #-lmkl_intel_lp64
     message("detected newer intel compiler (qopenmp)")
   endif()
 #
