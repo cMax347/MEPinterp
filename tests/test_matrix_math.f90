@@ -1,6 +1,6 @@
 program test_matrix_math 
 	use constants,		only:				dp, fp_acc
-	use matrix_math,	only:				my_Levi_Civita, 	&
+	use matrix_math,	only:				get_levi_civita, 	&
 											crossP,				&
 											is_equal_vect,		&
 											is_equal_mat,		&
@@ -77,6 +77,9 @@ contains
 !
 !
 	logical function test_levi_civita()
+		integer				::	my_Levi_Civita(3,3,3)
+		!
+		call get_levi_civita(my_Levi_Civita)
 		!
 		test_levi_civita	= 							(	my_Levi_Civita(1,2,3) ==  1	)	
 		test_levi_civita 	= test_levi_civita .and.	(	my_Levi_Civita(2,3,1) ==  1	)
@@ -90,8 +93,6 @@ contains
 		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(1,2,2) == 0	)
 		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(2,1,2) == 0	)
 		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(1,1,1) == 0	)
-		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(-1,2,3)== 0	)
-		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(4,1,2) == 0	)
 		!
 		return
 	end function

@@ -3,19 +3,19 @@ module matrix_math
 	implicit none
 
 	private
-	public						::			my_Levi_Civita,get_levi_civita,         &
-                                            crossP,                 &
-                                            zheevr_wrapper,                         &
-                                            zheevd_wrapper,                         &
-                                            zheevx_wrapper,                         &
-                                            is_equal_vect,                          &
-                                            is_equal_mat,                           &
-                                            is_herm_mat,                            &
-                                            is_skew_herm_mat,                       &
-                                            convert_tens_to_vect,                   &
-                                            blas_matmul,                            &
-                                            matrix_comm,                            &
-                                            get_linspace                                        
+	public						::	    get_levi_civita,                        &
+                                        crossP,                                 &
+                                        zheevr_wrapper,                         &
+                                        zheevd_wrapper,                         &
+                                        zheevx_wrapper,                         &
+                                        is_equal_vect,                          &
+                                        is_equal_mat,                           &
+                                        is_herm_mat,                            &
+                                        is_skew_herm_mat,                       &
+                                        convert_tens_to_vect,                   &
+                                        blas_matmul,                            &
+                                        matrix_comm,                            &
+                                        get_linspace                                        
 
 
     interface crossP

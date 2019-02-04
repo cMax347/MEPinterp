@@ -85,10 +85,6 @@ class hw_job:
 			print("[probe_hw_space]	WARNING dry_run batch_script writer isnt implemented yet")
 
 
-
-		#if dry_run:
-		#	cluster_job.add_subbdir(work_dir)
-
 		print("")
 		print("")
 		print("")

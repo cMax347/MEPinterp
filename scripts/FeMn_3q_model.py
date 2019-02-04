@@ -1,6 +1,7 @@
 import numpy as np
 import 	datetime
 import sys
+from FeMn_latt_OPT import FeMn_latt_OPT  
 #
 #
 #	parameter to convert from degrees to radiants
@@ -282,7 +283,12 @@ class FeMn_3q_model:
 			#	debug message
 			print("[FeMn_3q_model/rashba_helper]: WARNING got unexpected lower diagonal element	i,j ="+str(i)+', '+str(j))
 
-
+	def get_delta(self):
+		if np.abs(self.inter_t) > 1e-4:
+			delta 	=	np.sqrt(np.abs(self.intra_t/self.inter_t))
+		else:
+			delta	=	1
+		return delta 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -536,33 +542,21 @@ def get_FeMn3q_tb(fpath,  verbose=False):
 	#	POSITION
 	#test_model.setup_Pos()
 	#print("pos setup done")
+	strain						=	test_model.get_delta()
+	tol							= 	1e-15
+	dist_latt					=	FeMn_latt_OPT(strain)
+	x_opt, opt_vol, opt_latt	=	dist_latt.optimize_lattice(tol)
 
-	
-	
-	#
-	#	LATTICE
-	a0 	= 6.8597 			#	Bohr
-	ax	= np.zeros(3)
-	ay 	= np.zeros(3)
-	az	= np.zeros(3)
-	ax[0]	=	1.
-	ay[1]	=	1.		#2./np.sqrt(3.)
-	az[2]	=	1.		#np.sqrt(2./3.)
 
-	
-	#
-	#try:
-	#	if np.abs(test_model.inter_t) > 1e-7: 
-	#		delta	=	np.sqrt(np.abs(			test_model.intra_t	/	test_model.inter_t			))
-	#		#
-	#		az[2]	=	az[2]	* delta
-	#		print("[get_FeMn3q_tb]:	scaled az lattice constant by factor delta=t1/t2="+str(	delta	)+"	(t2="+str(test_model.inter_t)+"eV)"			)
-	#	else:
-	#		print("[get_FeMn3q_tb]:	az lattice constant was not changed! az="+str(az[2]))
-	#except:
-	#		print("[get_FeMn3q_tb]:	WARNING failed to scale az, az set to "+str(az[2]))
-	#
-	#
+	print('[get_FeMn3q_tb]: optimized lattice (delta='+str(strain)+'):')
+	print(opt_latt[0])
+	print(opt_latt[1])
+	print(opt_latt[2])
+
+	a0 	= 	1.0 			#	Bohr
+	ax	=	opt_latt[0]
+	ay	=	opt_latt[1]
+	az	=	opt_latt[2]
 	print("[get_FeMn3q_tb]:	..finished FeMn3q model setup (TODO: PROPER LATTICE SETUP !) at " +	datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y"))
 	#
 	return test_model.nWfs, test_model.nrpts, test_model.tHopp, test_model.rHopp, ax, ay, az, a0
@@ -574,7 +568,7 @@ def get_FeMn3q_tb(fpath,  verbose=False):
 #		TESTING																																	   |
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def test(verbose=True):
-	fpath 	= '/Users/merte/bin/tbmodel_3qstate/inp_params_3q'
+	fpath 	= './inp_params_3q'
 	#
 	#
 	print("*")
@@ -591,7 +585,7 @@ def test(verbose=True):
 	print("")
 	#
 	#
-	nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_FeMn3q_tb(fpath, lambda_rashba= 0.01, verbose=verbose)
+	nWfs, nrpts, tHopp, rHopp, ax, ay, az, a0	=	get_FeMn3q_tb(fpath,  verbose=verbose)
 	#
 	#
 	#
@@ -609,9 +603,9 @@ def test(verbose=True):
 	print("[FeMn_3q_model/test]:			nrpts="	+	str(	nrpts			))
 	print("	"	)
 	print("LATTICE")
-	print("ax=	",a0*ax,"	(arb. units)")
-	print("ay=	",a0*ay,"	(arb. units)")
-	print("az=	",a0*az,"	(arb. units)")
+	print("ax=	",a0*ax,"	(Bohr)")
+	print("ay=	",a0*ay,"	(Bohr)")
+	print("az=	",a0*az,"	(Bohr)")
 
 
 	print("[FeMn_3q_model/test]:			tHopp (len="+str(len(tHopp))+"): [eV]")
@@ -632,7 +626,7 @@ def test(verbose=True):
 #
 #
 #UNCOMMENT TO TEST THIS SCRIPT
-#test(verbose	=	True)
+#test(verbose	=	False)
 
 
 

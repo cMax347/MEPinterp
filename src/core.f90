@@ -9,14 +9,14 @@ module core
 #ifdef USE_MPI
 	use mpi
 #endif
-	use matrix_math,	only:	my_Levi_Civita, get_linspace
+	use matrix_math,	only:	get_linspace
 	use constants,		only:	dp, aUtoEv
 	use mpi_community,	only:	mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								mpi_ki_selector,								&
 								mpi_bcast_tens,									&
 								mpi_reduce_sum,									&
 								mpi_allreduce_sum
-	use statistics,		only:	fd_get_N_el
+	use statistics,		only:	fd_stat, fd_get_N_el
 	use input_paras,	only:	use_mpi,										&
 								do_gauge_trafo,									&
 								do_mep,											&
@@ -87,6 +87,7 @@ contains
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
 												Ne_loc_sum(:), 							&
 												ef_lst(:), hw_lst(:),					&
+												fd_distrib(:,:),						&
 												!
 												mep_bands_ic_loc(	:,:,:),	 			&
 												mep_bands_lc_loc(	:,:,:),				&
@@ -102,7 +103,7 @@ contains
 												A_ka(:,:,:), Om_kab(:,:,:,:),			&
 												V_ka(:,:,:),							&
 												!
-												tempS(:,:,:), 	tempA(:,:,:),			&
+												tempS(:,:,:,:), tempA(:,:,:,:),			&
 												!
 												velo_ahc_loc(	  :,:,:,:),				&
 												kubo_ohc_loc(	  :,:,:,:),				&
@@ -115,8 +116,7 @@ contains
 												!
 		integer								::	kix, kiy, kiz, ki, 						&
 												mp_grid(3), n_ki_loc,  n_ki_glob,		&
-												ic_skipped, lc_skipped,					& 
-												eF_idx
+												eF_idx, wf_idx
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	allocate
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -151,6 +151,7 @@ contains
 		recip_latt			=	get_recip_latt()
 		!
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
+		allocate(		fd_distrib(		n_eF,	size(en_k,1) 		))
 		call print_interp_mode()
 		!
 		!
@@ -174,9 +175,12 @@ contains
 						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
-						!	COUNT ELECTRONS
+						!	FERMI SETUP
 						!----------------------------------------------------------------------------------------------------------------------------------
 						Ne_loc_sum(	:	)	=	Ne_loc_sum(	: )	+	fd_get_N_el(	en_k, ef_lst(:),	T_kelvin)
+						do wf_idx = 1, size(en_k)
+							fd_distrib(:,wf_idx)	=	fd_stat(	en_k(wf_idx),	ef_lst(:),	T_kelvin	)
+						end do
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
@@ -191,13 +195,14 @@ contains
 						!	KUBO MEP (MEP with fermi_dirac)
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_kubo	)	then
-
-							!			---------------------------------
-
-							!			---------------------------------
-
-							!			---------------------------------
-
+							kubo_mep_ic_loc(:,:,:)	=	kubo_mep_ic_loc(:,:,:) 	&
+														+	kubo_mep_IC(en_k, V_ka,fd_distrib)
+							!			---------------------------------	
+							kubo_mep_lc_loc(:,:,:)	=	kubo_mep_lc_loc(:,:,:)	&
+														+	kubo_mep_LC(en_k, V_ka,fd_distrib)
+							!			---------------------------------							
+							kubo_mep_cs_loc(:,:,:)	=	kubo_mep_cs_loc(:,:,:)	&
+														+	kubo_mep_CS(A_ka, Om_kab,fd_distrib)
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -205,20 +210,25 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_ahc )	then
 							kubo_ahc_loc(:,:,:)		=	kubo_ahc_loc(:,:,:)		&
-														+ 	kubo_ahc_tens(en_k,	Om_kab,   ef_lst(:), T_kelvin)
+														+ 	kubo_ahc_tens(en_k,	Om_kab,   fd_distrib)
 							!			---------------------------------
 							velo_ahc_loc(:,:,:,:)	= 	velo_ahc_loc(:,:,:,:)	&	
-								 							+	velo_ahc_tens(en_k, V_ka, hw_lst(:), ef_lst(:), T_kelvin, i_eta_smr)
+								 							+	velo_ahc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_eta_smr)
 							!			---------------------------------
 							kubo_ohc_loc(:,:,:,:)	= 	kubo_ohc_loc(:,:,:,:)	&
-								 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), ef_lst(:), T_kelvin, i_eta_smr)
+								 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_eta_smr)
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPTICAL CONDUCTIVITY (w90 version via Connection)
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_opt	)	then
-
+									call kubo_opt_tens(en_k, A_ka, hw_lst, fd_distrib, i_eta_smr,  	tempS, tempA)
+									kubo_opt_s_loc(:,:,:,:)		=	kubo_opt_s_loc(:,:,:,:)	+	tempS							
+									kubo_opt_a_loc(:,:,:,:)		=	kubo_opt_a_loc(:,:,:,:)	+	tempA
+									!			---------------------------------
+									photo2_cond_loc(:,:,:,:,:)	=	photo2_cond_loc(:,:,:,:,:)	&	
+												+	photo_2nd_cond(en_k, V_ka, hw_lst, phi_laser, fd_distrib, i_eta_smr )
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -243,29 +253,6 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						do eF_idx = 1, 	N_eF
 							
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	KUBO MEP (MEP with fermi_dirac)
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_kubo	)						then
-								kubo_mep_ic_loc(:,:,eF_idx)	=	kubo_mep_ic_loc(:,:,eF_idx) +	kubo_mep_IC(ef_lst(eF_idx), T_kelvin, V_ka, en_k, ic_skipped)
-								kubo_mep_lc_loc(:,:,eF_idx)	=	kubo_mep_lc_loc(:,:,eF_idx) +	kubo_mep_LC(ef_lst(eF_idx), T_kelvin, V_ka, en_k, lc_skipped)
-								kubo_mep_cs_loc(:,:,eF_idx)	=	kubo_mep_cs_loc(:,:,eF_idx) +	kubo_mep_CS(ef_lst(eF_idx), T_kelvin, 	en_k, A_ka, Om_kab)
-							end if
-							
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	OPTICAL CONDUCTIVITY (w90 version via Connection)
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_opt	)														then
-									call kubo_opt_tens(hw_lst, ef_lst(eF_idx), T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
-									kubo_opt_s_loc(:,:,:,eF_idx)	=	kubo_opt_s_loc(:,:,:,eF_idx)	+	tempS							
-									kubo_opt_a_loc(:,:,:,eF_idx)	=	kubo_opt_a_loc(:,:,:,eF_idx)	+	tempA
-									!
-									photo2_cond_loc(:,:,:,:,eF_idx)	=	photo2_cond_loc(:,:,:,:,eF_idx)	&	
-																	+	photo_2nd_cond(hw_lst, phi_laser, ef_lst(eF_idx), &
-								 														T_kelvin, i_eta_smr, en_k, V_ka)
-								end if
-
 							!
 							!----------------------------------------------------------------------------------------------------------------------------------
 							!	GYROTROPIC TENSORS (CURRENTS)
@@ -671,7 +658,7 @@ contains
 															kubo_ahc_loc(:,:,:),														&
 															photo2_cond_loc(:,:,:,:,:)									
 		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:,:,:), kubo_ohc_loc(:,:,:,:),								&
-															tempS(:,:,:), tempA(:,:,:), 													&
+															tempS(:,:,:,:), tempA(:,:,:,:), 													&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -715,8 +702,8 @@ contains
 		
 		!
 		if(	do_opt	)	then
-			allocate(	tempS(						3,3,	n_hw						)	)
-			allocate(	tempA(						3,3,	n_hw						)	)				
+			allocate(	tempS(						3,3,	n_hw	,	n_eF			)	)
+			allocate(	tempA(						3,3,	n_hw	,	n_eF			)	)				
 			allocate(	kubo_opt_s_loc(				3,3,	n_hw	,	n_eF			)	)
 			allocate(	kubo_opt_a_loc(				3,3,	n_hw	,	n_eF			)	)
 			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	n_eF 			)	)
