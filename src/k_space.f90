@@ -89,7 +89,6 @@ contains
 		real(dp),	allocatable,	intent(inout)	::	tens(:,:,:)
 		integer						:: 	n_k
 		!
-		write(*,*)	"[d3_tens_norm]:	unit_vol=",unit_vol
 		if(allocated(tens)) then
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
