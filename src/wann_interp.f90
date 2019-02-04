@@ -28,7 +28,6 @@ module wann_interp
 
 
 
-
 	implicit none
 
 
@@ -149,7 +148,8 @@ module wann_interp
 		if(use_pos_op)	Om_kab	= 0.0_dp	
 		!
 		!
-		!sum real space cells
+		!$OMP PARALLEL default(private)	shared(H_real, r_real, a_latt, R_frac, kpt_abs)
+		!$OMP DO REDUCTION(+: H_k, H_ka, A_ka, Om_kab)
 		do sc = 1, size(R_frac,2)
 			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
 			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
@@ -178,7 +178,9 @@ module wann_interp
 			end do
 			!
 			!
-		end do		
+		end do
+		!$OMP END DO
+		!$OMP END PARALLEL		
 		!
 		!
 		if(debug_mode) 	then
