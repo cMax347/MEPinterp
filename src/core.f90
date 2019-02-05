@@ -9,6 +9,7 @@ module core
 #ifdef USE_MPI
 	use mpi
 #endif
+	use omp_lib
 	use matrix_math,	only:	get_linspace
 	use constants,		only:	dp, aUtoEv
 	use mpi_community,	only:	mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
@@ -736,6 +737,7 @@ contains
 !	PRINTERS
 	!----------------------------------------------------------------------------------------------------------------------------------
 	subroutine print_interp_mode()
+		integer				::	omp_nThreads, omp_id
 		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		if(mpi_id == mpi_root_id) then
 			write(*,*)	"*"
@@ -757,8 +759,18 @@ contains
 			write(*,*)	"***^^^^	-	BZ INTEGRATION LOOP	-	^^^^***"
 		end if
 		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		write(*,'(a,i5,a,a,a,i4,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
-											"]:  I start interpolating now (nValence=",valence_bands,")...."
+
+
+		!$OMP PARALLEL	
+			omp_nThreads	=	omp_get_num_threads()
+			omp_id			=	omp_get_thread_num()
+			if(omp_id	==	0	) then
+				write(*,'(a,i5,a,a,a,i3,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
+													"]:  I start interpolating now (#OMP THREADS=",omp_nThreads,")...."
+			end if
+		!$OMP END PARALLEL
+
+		
 		!
 		!
 		return

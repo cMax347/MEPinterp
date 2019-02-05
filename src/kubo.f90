@@ -5,6 +5,7 @@ module kubo
 	!		http://www.wannier.org/doc/user_guide.pdf
 	!
 	!
+	!use omp_lib
 	use constants,		only:	dp, i_dp, pi_dp, aUtoEv
 	use statistics,		only:	fd_stat
 
@@ -31,28 +32,36 @@ contains
 
 !public
 
-	pure function kubo_ahc_tens(en_k, Om_kab, fd_distrib) result( o_ahc)
+	function kubo_ahc_tens(en_k, Om_kab, fd_distrib) result( o_ahc)
 		!	see wann guide chapter 12
 		!		eq. (12.16)
 		real(dp),						intent(in)		::	en_k(:), fd_distrib(:,:)
 		complex(dp), 	allocatable,	intent(in)		::	Om_kab(:,:,:,:)
 		real(dp)										::	curv_nn(3,3)
 		real(dp),		allocatable						::	o_ahc(:,:,:)
-		integer											::	n, ef_idx, n_ef
+		integer											::	n, ef_idx, n_ef, n_wf
 		!
+		n_wf	=	size(en_k,1)
 		n_ef	=	size(fd_distrib,1)
 		allocate(		o_ahc(	3,3		,	n_ef	))
 		o_ahc	=	0.0_dp
 		!
 		!
 		if(allocated(Om_kab)) then
-			do n = 1, size(en_k)
+			!$OMP PARALLEL  DO 									&
+			!$OMP DEFAULT(	none							)	&	
+			!$OMP PRIVATE( 	curv_nn, ef_idx					)	&
+			!$OMP SHARED(	n_wf, n_ef, Om_kab, fd_distrib	)	&
+			!----
+			!$OMP 	REDUCTION( + : o_ahc	)
+			do n = 1, n_wf
 				curv_nn(:,:)	=	real(Om_kab(:,:,n,n),dp)
 				!
 				do ef_idx =1 ,n_ef
 					o_ahc(:,:,ef_idx)	=	o_ahc(:,:,ef_idx)	-	curv_nn(:,:)	*	fd_distrib(ef_idx,n)
 				end do
 			end do
+			!$OMP END PARALLEL DO
 		end if
 		!
 		!
@@ -65,7 +74,7 @@ contains
 !				OPTICAL CONDUTCTIVITY (hw \non_eq 0)
 !	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	pure function velo_ahc_tens(en_k, v_kab, hw_lst, fd_distrib, i_eta_smr) result( o_ahc)
+	function velo_ahc_tens(en_k, v_kab, hw_lst, fd_distrib, i_eta_smr) result( o_ahc)
 		!
 		!	use Wanxiangs expression to calculate the ohc
 		!
@@ -86,6 +95,10 @@ contains
 		allocate(	o_ahc(			3,3		,	n_hw,	n_ef	)	)
 		o_ahc	=	0.0_dp
 		!
+		!$OMP  PARALLEL DO DEFAULT(NONE)  											&
+		!$OMP PRIVATE(l, d_ef_lst, dE_sqr, j, v_nm_mn, hw_idx, vv_dE_hw, ef_idx)	&
+		!$OMP SHARED(fd_distrib, en_k, v_kab, hw_lst, n_wf, n_hw, n_ef, i_eta_smr) 	&
+		!$OMP REDUCTION(+: o_ahc)
 		do n = 1, n_wf
 			do l = 1, n_wf
 				if(l/=n) then
@@ -100,7 +113,6 @@ contains
 					end do
 					!
 					!	LOOP HW
-					vv_dE_hw	=	cmplx(0.0_dp,0.0_dp,dp)
 					do hw_idx =1, n_hw
 						vv_dE_hw(:,:,hw_idx)	=	 v_nm_mn(:,:)	/	(	dE_sqr	- (	hw_lst(hw_idx) + i_eta_smr	)**2	)	
 					end do
@@ -114,6 +126,7 @@ contains
 				!
 			end do
 		end do
+		!$OMP END PARALLEL DO
 		!
 		!
 		return
@@ -122,7 +135,7 @@ contains
 
 
 
-	pure function kubo_ohc_tens(en_k, v_kab, hw_lst, fd_distrib, i_eta_smr)	result(z_ohc)
+	function kubo_ohc_tens(en_k, v_kab, hw_lst, fd_distrib, i_eta_smr)	result(z_ohc)
 		!
 		!		calculates wann guide (12.5) explicitly
 		!	
@@ -144,14 +157,18 @@ contains
 		allocate(		z_ohc(		3,3,	n_hw,	n_ef	))
 		!
 		z_ohc	=	cmplx(0.0_dp, 0.0_dp, dp)
+!		$OMP  PARALLEL DO DEFAULT(NONE)  												&
+!		$OMP PRIVATE(n, dfdE_mn, dE_mn, j, v_nm_mn, vv_dE_hw, hw_idx, ef_idx)			&
+!		$OMP SHARED(fd_distrib, en_k, v_kab, hw_lst, n_wf, n_hw, n_ef, i_eta_smr) 		&
+!		$OMP REDUCTION(+: z_ohc)
 		do m = 1 , n_wf
 			do n = 1, n_wf
 				if(m/=n) then
 					!
 					!	dE	BANDS
 					dfdE_mn		=	fd_distrib(:,m)	-	fd_distrib(:,n)
-					dE_mn 		=	en_k(m)		-	en_k(n)
-					dfdE_mn		=	dfdE_mn		/	dE_mn
+					dE_mn 		=	en_k(m)			-	en_k(n)
+					dfdE_mn		=	dfdE_mn			/	dE_mn
 					!
 					!	loop real space direction
 					do j = 1, 3
@@ -161,16 +178,17 @@ contains
 					!	LOOP HW
 					vv_dE_hw	=	cmplx(0.0_dp,0.0_dp,dp)
 					do hw_idx = 1, n_hw
-						vv_dE_hw(:,:,hw_idx)	=	i_dp * v_nm_mn(:,:)	/	(	dE_mn - hw_lst(hw_idx) - i_eta_smr	)
+						vv_dE_hw(:,:,hw_idx)	=	v_nm_mn(:,:)	/	(	dE_mn - hw_lst(hw_idx) - i_eta_smr	)
 					end do
 					!
 					!	LOOP FERMI LEVEL
 					do ef_idx = 1, n_ef
-						z_ohc(:,:,:,ef_idx)		=	z_ohc(:,:,:,ef_idx)	+ 	vv_dE_hw(:,:,:) * dFdE_mn(ef_idx)
+						z_ohc(:,:,:,ef_idx)		=	z_ohc(:,:,:,ef_idx)	+ 	i_dp * 	vv_dE_hw(:,:,:) * dfdE_mn(ef_idx)
 					end do
 				end if
 			end do
 		end do
+!		$OMP END PARALLEL DO
 		!
 		return
 	end function

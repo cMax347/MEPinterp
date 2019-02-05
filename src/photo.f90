@@ -2,6 +2,7 @@ module photo
 
 	use constants,		only:		dp, i_dp, pi_dp
 	use statistics,		only:		fd_stat
+	use omp_lib
 
 	implicit none
 
@@ -12,7 +13,7 @@ module photo
 contains
 
 
-	pure function photo_2nd_cond(en_k, V_ka, hw_lst, phi_laser, fd_distrib, i_eta_smr) result(phot_cond)
+	function photo_2nd_cond(en_k, V_ka, hw_lst, phi_laser, fd_distrib, i_eta_smr) result(phot_cond)
 		!
 		!	implementation of Yang et al., PRB 97 241118(R) (2018)    EQ(1)
 		!	"PHOTOGALVANIC EFFECT IN WEYL SEMIMETALS FROM FIRST PRINCIPLES"
@@ -22,7 +23,7 @@ contains
 		real(dp),		intent(in)			::	hw_lst(:), fd_distrib(:,:), en_k(:)
 		complex(dp),	intent(in)			::	V_ka(:,:,:), phi_laser, i_eta_smr
 		real(dp),		allocatable			::	phot_cond(:,:,:,:,:), tmp(:,:,:,:), df_ln(:)
-		complex(dp)							::	dE_nm, dE_nl,  dE_nl_hw, v_nl_lm_nm(3,3,3)
+		complex(dp)							::	dE_nm, dE_nl,  dE_nl_hw, vvv_nl_lm_mn(3,3,3)
 		integer								::	m, n, l, c, b, hw, omega, ef_idx, n_ef, n_hw, n_wf
 		!
 		n_ef	=	size(	fd_distrib	,	1)
@@ -35,7 +36,11 @@ contains
 		allocate(	phot_cond(		3,3,3,	n_hw,	n_ef	))
 		phot_cond	=	0.0_dp
 		!
-		!	LOOP STATES
+		!
+		!$OMP  PARALLEL DO DEFAULT(NONE)  																&
+		!$OMP PRIVATE(n, l,  dE_nm,df_ln, dE_nl, c, b, vvv_nl_lm_mn, tmp, hw, omega, dE_nl_hw, ef_idx)	&
+		!$OMP SHARED(n_wf, n_hw, n_ef, en_k, fd_distrib, V_ka, hw_lst, phi_laser, i_eta_smr) 			&
+		!$OMP REDUCTION(+: phot_cond)
 		do 	m = 1, n_wf
 			do n = 1, n_wf
 				dE_nm	=	cmplx(	en_k(n) - en_k(m)	,0.0_dp,dp) 	-	 i_eta_smr
@@ -47,7 +52,7 @@ contains
 					!	LOOP DIRECTIONS
 					do c = 1, 3
 						do b = 1, 3
-							v_nl_lm_nm(:,b,c)	=	V_ka(:,n,l) * (V_ka(b,l,m) * V_ka(c,m,n))
+							vvv_nl_lm_mn(:,b,c)	=	V_ka(:,n,l) * (V_ka(b,l,m) * V_ka(c,m,n))
 						end do
 					end do
 					!
@@ -57,19 +62,20 @@ contains
 						do omega = -1, 1, 2
 							dE_nl_hw	=	dE_nl +	omega*hw_lst(hw) -	 i_eta_smr		
 							!
-							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	real(		phi_laser	*	v_nl_lm_nm(:,:,:)				&		
+							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	real(		phi_laser	*	vvv_nl_lm_mn(:,:,:)				&		
 																					/	( dE_nm * dE_nl_hw * hw_lst(hw)**2	) 	,dp)			
 						end do
 					end do
 					!
 					!	LOOP FERMI LEVEL
 					do ef_idx = 1, n_ef
-						phot_cond(:,:,:,:,ef_idx)		=	tmp(:,:,:,:)	* df_ln(ef_idx)
+						phot_cond(:,:,:,:,ef_idx)		=	phot_cond(:,:,:,:,ef_idx)	+	tmp(:,:,:,:)	* df_ln(ef_idx)
 					end do
 					!
 				end do
 			end do
 		end do
+		!$OMP END PARALLEL DO
 		!
 		!
 		return

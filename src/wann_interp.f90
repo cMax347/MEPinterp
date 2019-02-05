@@ -24,7 +24,8 @@ module wann_interp
 	use input_paras,	only:		kubo_tol, debug_mode
 	use file_io,		only:		write_eig_binary,		&
 									write_ham_binary
-
+	use mpi_community,	only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
+	use omp_lib
 
 
 
@@ -132,8 +133,9 @@ module wann_interp
 		real(dp)												::	R_abs(3), kpt_abs(3), ft_angle
 		complex(dp)												::	ft_phase
 		logical													::	use_pos_op, do_en_grad
-		integer    												::	sc, a, b 
+		integer    												::	sc, a, b, n_sc 
 		!
+		n_sc	=	size(R_frac,2)
 		!jobs
 		do_en_grad		= allocated(H_ka)
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
@@ -148,25 +150,40 @@ module wann_interp
 		if(use_pos_op)	Om_kab	= 0.0_dp	
 		!
 		!
-		!$OMP PARALLEL default(private)	shared(H_real, r_real, a_latt, R_frac, kpt_abs)
-		!$OMP DO REDUCTION(+: H_k, H_ka, A_ka, Om_kab)
-		do sc = 1, size(R_frac,2)
+		!$OMP PARALLEL default(shared)	private( R_abs, ft_angle, ft_phase, a)
+		!$OMP DO REDUCTION(+: H_k, H_ka)
+		do sc = 1, n_sc
 			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
 			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
 			ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
 			!
-			!ft_phase	=	cmplx(1.0_dp, 0.0_dp, dp)
-			!
 			!Hamilton operator
-			H_k(:,:)				= 	H_k(:,:)			+	ft_phase 					* H_real(:,:,sc)	
+			H_k(:,:)				= 	H_k(:,:)			+	ft_phase						* H_real(:,:,sc)	
 			!
-			do a = 1, 3
-				!OPTIONAL energy gradients
-				if( do_en_grad)		then
-					H_ka(a,:,:) 		=	H_ka(a,:,:)		+	ft_phase * i_dp * R_abs(a) * H_real(:,:,sc)
-				end if
-				!OPTIONAL position operator
-				if( use_pos_op )	then
+			!OPTIONAL energy gradients
+			if( do_en_grad)		then
+				do a = 1, 3
+					H_ka(a,:,:) 	=	H_ka(a,:,:)			+	ft_phase 	* i_dp * R_abs(a) 	* H_real(:,:,sc)
+				end do
+			end if
+			!
+			!
+		end do
+		!$OMP END DO
+		!$OMP END PARALLEL	
+		!
+		!
+		!OPTIONAL position operator
+		if(	use_pos_op	)	then
+			!$OMP PARALLEL default(shared)	private( R_abs, ft_angle, ft_phase, a, b)
+			!$OMP DO REDUCTION(+: A_ka, Om_kab)
+			do sc = 1, n_sc
+				R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
+				ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
+				ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
+				!
+				!
+				do a = 1, 3
 					!connection
 					A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)
 					!curvature
@@ -174,13 +191,13 @@ module wann_interp
 						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * R_abs(a) * r_real(b,:,:,sc)
 						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * R_abs(b) * r_real(a,:,:,sc)
 					end do
-				end if 
+				end do
+				!
+				!
 			end do
-			!
-			!
-		end do
-		!$OMP END DO
-		!$OMP END PARALLEL		
+			!$OMP END DO
+			!$OMP END PARALLEL	
+		end if	
 		!
 		!
 		if(debug_mode) 	then
@@ -201,14 +218,15 @@ module wann_interp
 		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
 		complex(dp),					intent(out)		::		V_ka(:,:,:)
 		complex(dp)										::		eDiff
-		integer											::		m, n
+		integer											::		m, n, n_wf
 		!
+		n_wf		=	size(e_k,1)
 		V_ka		=	H_ka
 		!
 		!
 		if( allocated(A_ka)	) then
-			do m = 1, size(V_ka,3)
-				do n = 1, size(V_ka,2)
+			do m = 1, n_wf
+				do n = 1, n_wf
 					if(	n >	m )	then
 						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
 						!
@@ -274,23 +292,40 @@ module wann_interp
 		complex(dp),					intent(in)		::	U_k(:,:)
 		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
 		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		complex(dp),	allocatable						::	U_dag(:,:)
+		complex(dp),	allocatable						::	U_dag(:,:), tmp(:,:), M_in(:,:)
 		integer											::	a, b
 		!
-		allocate(	U_dag(size(U_k,1), size(U_k,2))		)
+		allocate(	U_dag(		size(U_k,1), size(U_k,2)	))
+		allocate(	tmp(		size(U_k,1), size(U_k,2)	))
+		allocate(	M_in(		size(U_k,1), size(U_k,2)	))
+
 		U_dag	=	conjg(	transpose(	U_k		))
 		!
 		!
 		do a = 1, 3
-										H_ka(a,:,:)		=	matmul(	matmul(U_dag,	H_ka(a,:,:))	, U_k	)
-			if( allocated(A_ka)		)	A_ka(a,:,:)		=	matmul(	matmul(U_dag,	A_ka(a,:,:))	, U_k	)
-
+			!
+			!	VELOCITIES
+										M_in			=	H_ka(a,:,:)
+										call	blas_matmul(	U_dag, M_in, 		tmp			)
+										call	blas_matmul(	tmp, U_k,			M_in		)
+										H_ka(a,:,:)		=	M_in(:,:)
+			!	CONNECTION
+			if( allocated(A_ka))then	
+										tmp				=	A_ka(a,:,:)
+										tmp(:,:)		=	matmul(	U_dag		,	tmp		)
+										A_ka(a,:,:)		=	matmul(	tmp			, 	U_k		)
+			end if
+			!	CURVATURE
 			if( allocated(Om_kab)	)then
 				do b = 1,3 
-										Om_kab(a,b,:,:)	=	matmul(	matmul(U_dag,	Om_kab(a,b,:,:))	, U_k)
+										tmp				=	Om_kab(a,b,:,:)
+										tmp				=	matmul(	U_dag		,	tmp		)
+										Om_kab(a,b,:,:)	=	matmul(	tmp			,	U_k		)	
 				end do
 			end if
+			!
 		end do
+		!
 		!
 		return
 	end subroutine	

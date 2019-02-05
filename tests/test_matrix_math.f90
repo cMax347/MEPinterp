@@ -273,7 +273,7 @@ contains
 !
 	logical function test_gauge_trafo()
 		complex(dp),	allocatable			::	M_W(:,:),				&
-												U(:,:)
+												U(:,:), tmp(:,:)
 		real(dp),		allocatable			::	eigVal(:)
 		real(dp)							::	acc
 		character(len=120)					::	msg
@@ -281,6 +281,7 @@ contains
 		test_gauge_trafo	=	.false.
 		!
 		allocate(	M_W(	smpl_size, smpl_size	)		)
+		allocate(	tmp(	smpl_size, smpl_size	)		)
 		allocate(	U(		smpl_size, smpl_size	)		)
 		allocate(	eigVal(	smpl_size		)		)
 		!
@@ -290,7 +291,8 @@ contains
 		call zheevd_wrapper(U,	eigVal)
 
 		!rotate M_W with U should yield diagonal matrix (matrix in H gauge)
-		M_W	=	blas_matmul(	blas_matmul(conjg(transpose(U)),M_W),	U)
+		call blas_matmul(	conjg(transpose(U)),	M_W,		tmp)
+		call blas_matmul(	tmp,					U,			M_W)
 		!
 		!
 		!todo: check now if M_H is diagonal with eival on diago
@@ -363,7 +365,7 @@ contains
 		call random_matrix(B)
 		!
 		C_intern	=	matmul(A,B)
-		C_blas		=	blas_matmul(A,B)
+		call	blas_matmul(A,B,C_blas)
 		!
 		test_d_blas_matmul	=	.false.
 		acc					= 	fp_acc
@@ -393,7 +395,7 @@ contains
 		call random_matrix(B)
 		!
 		C_intern	=	matmul(A,B)
-		C_blas		=	blas_matmul(A,B)
+		call	blas_matmul(A,B, C_blas)
 		!
 		!
 		test_z_blas_matmul	= .false.

@@ -3,6 +3,7 @@ program MEPinterp
 #ifdef __INTEL_COMPILER
 	use ifport !needed for time 
 #endif
+	use omp_lib
 #ifdef USE_MPI	
 	use mpi
 #endif
