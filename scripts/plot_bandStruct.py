@@ -207,12 +207,16 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 
 
 def unit_test():
-	plot_bandstruct('./kpts','./eBands.dat',
-					'./bands.pdf',
-					label_size=14,
-					y_tick_size=12,
-					plot_in_ev=False
-				)
+	target_dir_lst=[]
+	target_dir_lst.append('./')
+	plot_bandstruct(target_dir_lst, '', '','-','black' ,'./bands.pdf', label_size=14, y_tick_size=12, plot_in_ev=True)
+
+	#plot_bandstruct(['./'],'./kpts','./eBands.dat',
+	#				'./bands.pdf',
+	#				label_size=14,
+	#				y_tick_size=12,
+	#				plot_in_ev=False
+	#			)
 
 
 
