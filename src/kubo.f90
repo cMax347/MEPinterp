@@ -5,9 +5,11 @@ module kubo
 	!		http://www.wannier.org/doc/user_guide.pdf
 	!
 	!
-	!use omp_lib
+	use omp_lib
+	use input_paras,	only:	kubo_tol
 	use constants,		only:	dp, i_dp, pi_dp, aUtoEv
 	use statistics,		only:	fd_stat
+
 
 	implicit none
 
@@ -143,7 +145,7 @@ contains
 		real(dp),		intent(in)		::	en_k(:), hw_lst(:), fd_distrib(:,:)
 		complex(dp),	intent(in)		::	v_kab(:,:,:), i_eta_smr
 		complex(dp), 	allocatable		::	z_ohc(:,:,:,:), vv_dE_hw(:,:,:) 
-		real(dp), 		allocatable		::	dfdE_mn(:) 
+		real(dp), 		allocatable		::	df_mn(:) 
 		complex(dp)						::	v_nm_mn(3,3)
 		real(dp)						::	dE_mn
 		integer							::	n, m, j, n_ef, n_hw, n_wf, ef_idx, hw_idx
@@ -152,23 +154,23 @@ contains
 		n_hw	=	size(	hw_lst		,	1	)
 		n_wf	=	size(	en_k		,	1	)
 		!
-		allocate(		dfdE_mn(					n_ef	))
+		allocate(		df_mn(						n_ef	))
 		allocate(		vv_dE_hw(	3,3,	n_hw			))
 		allocate(		z_ohc(		3,3,	n_hw,	n_ef	))
 		!
 		z_ohc	=	cmplx(0.0_dp, 0.0_dp, dp)
-!		$OMP  PARALLEL DO DEFAULT(NONE)  												&
-!		$OMP PRIVATE(n, dfdE_mn, dE_mn, j, v_nm_mn, vv_dE_hw, hw_idx, ef_idx)			&
-!		$OMP SHARED(fd_distrib, en_k, v_kab, hw_lst, n_wf, n_hw, n_ef, i_eta_smr) 		&
-!		$OMP REDUCTION(+: z_ohc)
+		!
+		!$OMP  PARALLEL DO DEFAULT(NONE)  													&
+		!$OMP PRIVATE(n, df_mn, dE_mn, j, v_nm_mn, vv_dE_hw, hw_idx, ef_idx)				&
+		!$OMP SHARED(fd_distrib, en_k, v_kab, hw_lst, n_wf, n_hw, n_ef, kubo_tol, i_eta_smr)&
+		!$OMP REDUCTION(+: z_ohc)
 		do m = 1 , n_wf
 			do n = 1, n_wf
-				if(m/=n) then
-					!
-					!	dE	BANDS
-					dfdE_mn		=	fd_distrib(:,m)	-	fd_distrib(:,n)
-					dE_mn 		=	en_k(m)			-	en_k(n)
-					dfdE_mn		=	dfdE_mn			/	dE_mn
+				dE_mn 	=	en_k(m)	-	en_k(n)
+				!
+				!
+				if(	abs(dE_mn) > kubo_tol ) then 
+					df_mn		=	fd_distrib(:,m)	-	fd_distrib(:,n)
 					!
 					!	loop real space direction
 					do j = 1, 3
@@ -178,17 +180,17 @@ contains
 					!	LOOP HW
 					vv_dE_hw	=	cmplx(0.0_dp,0.0_dp,dp)
 					do hw_idx = 1, n_hw
-						vv_dE_hw(:,:,hw_idx)	=	v_nm_mn(:,:)	/	(	dE_mn - hw_lst(hw_idx) - i_eta_smr	)
+						vv_dE_hw(:,:,hw_idx)	=	v_nm_mn(:,:)	/	(	dE_mn * (dE_mn - hw_lst(hw_idx) - i_eta_smr))
 					end do
 					!
 					!	LOOP FERMI LEVEL
 					do ef_idx = 1, n_ef
-						z_ohc(:,:,:,ef_idx)		=	z_ohc(:,:,:,ef_idx)	+ 	i_dp * 	vv_dE_hw(:,:,:) * dfdE_mn(ef_idx)
+						z_ohc(:,:,:,ef_idx)		=	z_ohc(:,:,:,ef_idx)	+ 	i_dp * 	vv_dE_hw(:,:,:) * df_mn(ef_idx)
 					end do
 				end if
 			end do
 		end do
-!		$OMP END PARALLEL DO
+		!$OMP END PARALLEL DO
 		!
 		return
 	end function
