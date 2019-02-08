@@ -17,7 +17,7 @@ module core
 								mpi_bcast_tens,									&
 								mpi_reduce_sum,									&
 								mpi_allreduce_sum
-	use statistics,		only:	fd_stat, fd_get_N_el
+	use statistics,		only:	fd_stat, fd_stat_deriv, fd_get_N_el
 	use input_paras,	only:	use_mpi,										&
 								do_gauge_trafo,									&
 								do_mep,											&
@@ -88,7 +88,7 @@ contains
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
 												Ne_loc_sum(:), 							&
 												ef_lst(:), hw_lst(:),					&
-												fd_distrib(:,:),						&
+												fd_distrib(:,:), fd_deriv(:,:),			&
 												!
 												mep_bands_ic_loc(	:,:,:),	 			&
 												mep_bands_lc_loc(	:,:,:),				&
@@ -152,7 +152,11 @@ contains
 		recip_latt			=	get_recip_latt()
 		!
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
-		allocate(		fd_distrib(		n_eF,	size(en_k,1) 		))
+		!
+					allocate(		fd_distrib(		n_eF,	size(en_k,1) 		))
+		if(do_gyro) allocate(		fd_deriv(		n_ef,	size(en_k,1)		))
+		!
+		!
 		call print_interp_mode()
 		!
 		!
@@ -179,9 +183,12 @@ contains
 						!	FERMI SETUP
 						!----------------------------------------------------------------------------------------------------------------------------------
 						Ne_loc_sum(	:	)	=	Ne_loc_sum(	: )	+	fd_get_N_el(	en_k, ef_lst(:),	T_kelvin)
+						!
+						!$OMP PARALLEL DO DEFAULT(shared) 
 						do wf_idx = 1, size(en_k)
 							fd_distrib(:,wf_idx)	=	fd_stat(	en_k(wf_idx),	ef_lst(:),	T_kelvin	)
 						end do
+						!$OMP END PARALLEL DO
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
@@ -236,57 +243,13 @@ contains
 						!	GYROTROPIC TENSORS (CURRENTS)
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(		do_gyro	)								then	
-							!gyro_C_loc(:,:,eF_idx)		=	gyro_C_loc(:,:,eF_idx)		+	get_gyro_C(en_k, V_ka, ef_lst(eF_idx), T_kelvin)
-							!gyro_D_loc(:,:,eF_idx)		=	gyro_D_loc(:,:,eF_idx)		+ 	get_gyro_D(en_k, V_ka, Om_kab, ef_lst(eF_idx), T_kelvin)
-							!gyro_Dw_loc(:,:,:,eF_idx)	=	gyro_Dw_loc(:,:,:,eF_idx)	+ 	get_gyro_Dw(hw_lst)	!dummy returns 0 currently!!!
+							fd_deriv(:,:)	=	fd_stat_deriv(fd_distrib(:,:), T_kelvin)
+							!
+							gyro_C_loc(:,:,:)		=	gyro_C_loc(:,:,:)		+	get_gyro_C(V_ka, 					fd_deriv)
+							gyro_D_loc(:,:,:)		=	gyro_D_loc(:,:,:)		+ 	get_gyro_D(V_ka, Om_kab, 			fd_deriv)
+							! get_gyro_DW is dummy and returns 0 currently!!!
+							gyro_Dw_loc(:,:,:,:)	=	gyro_Dw_loc(:,:,:,:)	+ 	get_gyro_Dw(en_k, A_ka,		hw_lst, fd_deriv)	
 						end if
-
-
-
-
-
-						!
-						!
-						!
-						!
-						!----------------------------------------------------------------------------------------------------------------------------------
-						!	LOOP FERMI ENERGIES
-						!----------------------------------------------------------------------------------------------------------------------------------
-						do eF_idx = 1, 	N_eF
-							
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	GYROTROPIC TENSORS (CURRENTS)
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_gyro	)								then	
-								gyro_C_loc(:,:,eF_idx)		=	gyro_C_loc(:,:,eF_idx)		+	get_gyro_C(en_k, V_ka, ef_lst(eF_idx), T_kelvin)
-								gyro_D_loc(:,:,eF_idx)		=	gyro_D_loc(:,:,eF_idx)		+ 	get_gyro_D(en_k, V_ka, Om_kab, ef_lst(eF_idx), T_kelvin)
-								gyro_Dw_loc(:,:,:,eF_idx)	=	gyro_Dw_loc(:,:,:,eF_idx)	+ 	get_gyro_Dw(hw_lst)	!dummy returns 0 currently!!!
-							end if
-							!
-							!
-						end do	!	end eF loop
-						
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	WRITE VELOCITIES
