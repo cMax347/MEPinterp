@@ -243,17 +243,25 @@ contains
 
 
 !private:
-	real(dp) pure function delta_broad(eps, smr)
+	 function delta_broad(dE_mn, hw_lst,  smr)	result(d_broad)
 		!see wannier guide eq. (12.9)
 		! 'broadened delta-function'
-		real(dp),		intent(in)	::	eps		!	energy
-		complex(dp),	intent(in)	::	smr		!	smearing factor
+		real(dp),		intent(in)	::	dE_mn, hw_lst(:)		!	energy
+		complex(dp),	intent(in)	::	smr				!	smearing factor
+		complex(dp),	allocatable	::	d_broad(:)
+		complex(dp)					::	dE_smr
+		integer						::	n_hw, hw_idx
 		!
-		if(abs(eps-smr) > 1e-6_dp)	then
-			delta_broad		=	aimag(	1.0_dp/ ( eps - smr )			)			/	pi_dp
-		else
-			delta_broad		= 	aimag(1.0_dp / (1e-6_dp*i_dp)	)	/	pi_dp		!
-		end if
+		n_hw	=	size(hw_lst,1)
+		allocate(	d_broad(n_hw))
+		d_broad	=	cmplx(0.0_dp,0.0_dp,dp)
+		!
+		dE_smr	=	pi_dp * (dE_mn - smr )
+		!
+		do hw_idx = 1, n_hw
+			d_broad(hw_idx)		=	aimag(	1.0_dp	/ 	(dE_smr	-	pi_dp * hw_lst(hw_idx))	)			
+		end do
+		!
 		return
 	end function
 
@@ -264,7 +272,7 @@ contains
 		real(dp),		intent(in)		::	hw_lst(:), fd_distrib(:,:), en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
-		complex(dp),	allocatable		::	opt_herm(:,:,:,:), a_dE_hw(:,:,:)
+		complex(dp),	allocatable		::	opt_herm(:,:,:,:), a_dE_hw(:,:,:), d_broad(:)
 		real(dp),		allocatable		::	df_mn(:)
 		complex(dp)						::	a_nm_mn(3,3)
 		integer							::	n, m, b, 	&
@@ -278,42 +286,51 @@ contains
 		allocate(	df_mn(						n_ef	))
 		allocate(	a_dE_hw(	3,3,	n_hw			))
 		allocate(	opt_herm(	3,3,	n_hw,	n_ef	))
-
+		!
 		opt_herm	=	0.0_dp
 		!
+		!
+		!$OMP PARALLEL DO DEFAULT(none)												&
+		!$OMP PRIVATE(df_mn, dE_mn, b, a_nm_mn, d_broad, a_dE_hw, hw_idx, ef_idx )	&
+		!$OMP SHARED(n_wf, n_hw, n_ef,  hw_lst, fd_distrib, en_k, A_ka, i_eta_smr)	&
+		!$OMP REDUCTION(+: opt_herm)
 		do m = 1, n_wf
 			do n = 1, n_wf
 				if(n/=m) then
 					!
 					!	dE	BANDS				
-					df_mn(:)	=	fd_distrib(:,m)	-	fd_distrib(:,n)
-					dE_mn		=		en_k(m)		-	en_k(n) 
+					df_mn(:)				=	fd_distrib(:,m)	-	fd_distrib(:,n)
+					dE_mn					=		en_k(m)		-	en_k(n) 
+					! --
 					!
-					!	
+					!	LOOP DIRECTIONS
+					a_nm_mn					=	cmplx(0.0_dp,0.0_dp,dp)	
 					do b = 1, 3
-						a_nm_mn(:,b)	=	A_ka(:,n,m) * A_ka(b,m,n)
+						a_nm_mn(:,b)		=	A_ka(:,n,m) 	* 	A_ka(b,m,n)
 					end do
-					a_nm_mn				=	dE_mn		* a_nm_mn
+					a_nm_mn					=	dE_mn * a_nm_mn
+					! --
 					!
 					!	LOOP HW
-					a_dE_hw	=	cmplx(0.0_dp,0.0_dp,dp)
+					d_broad(:)				= 	delta_broad(dE_mn, hw_lst(:),  i_eta_smr)
+					a_dE_hw					=	cmplx(0.0_dp,0.0_dp,dp)
 					do hw_idx = 1, n_hw
-						a_dE_hw(:,:,hw_idx)	=	a_nm_mn(:,:)			&
-												* delta_broad( dE_mn - hw_lst(hw_idx)	, i_eta_smr)
+						a_dE_hw(:,:,hw_idx)	=	a_nm_mn(:,:) * d_broad(hw_idx)
 					end do
+					! --
 					!
 					!	LOOP FERMI LEVEL
 					do ef_idx = 1, n_ef
-						opt_herm(:,:,:,ef_idx)	=	opt_herm(:,:,:,ef_idx)	+	a_dE_hw(:,:,:)	* df_mn(ef_idx)
+						opt_herm(:,:,:,ef_idx)	=		opt_herm(:,:,:,ef_idx)		&
+													- pi_dp * a_dE_hw(:,:,:) * df_mn(ef_idx)
 					end do
-					!
+					! --
 				end if
 			end do
 		end do
+		!$OMP END PARALLEL DO
 		!
 		! 
-		opt_herm	=	cmplx(-	pi_dp,0.0_dp, dp)	* opt_herm
-		!
 		return
 	end function
 
@@ -342,17 +359,26 @@ contains
 		allocate(	opt_aherm(	3,3,	n_hw,	n_ef	))
 		opt_aherm	=	cmplx(0.0, 0.0, dp)
 		!
+		!$OMP PARALLEL DO DEFAULT(	none )												&
+		!$OMP PRIVATE(df_mn, dE_mn, b, a_nm_mn, a_dE_hw, hw_idx, ef_idx)			&
+		!$OMP SHARED(n_wf,n_hw,n_ef, fd_distrib, en_k, A_ka, hw_lst, i_eta_smr )	&
+		!$OMP REDUCTION(+: opt_aherm)													
 		do m = 1, n_wf
 			do n = 1, n_wf
 				if(n/=m) then
+					!
 					!	dE	BANDS
 					df_mn(:)	=	fd_distrib(:,m)		-	fd_distrib(:,n)
 					dE_mn		=		en_k(m) 		- 		en_k(n)	
+					! --
 					!
+					!	LOOP DIRECTIONS
+					a_nm_mn	=	0.0_dp
 					do b = 1, 3
 						a_nm_mn(:,b)	=	A_ka(:,n,m) * A_ka(b,m,n)	
 					end do
 					a_nm_mn		=	a_nm_mn  * dE_mn
+					! --
 					!
 					!	LOOP HW LASER
 					a_dE_hw		=	cmplx(0.0_dp,0.0_dp,dp)
@@ -360,17 +386,18 @@ contains
 						a_dE_hw(:,:,hw_idx)	=	a_nm_mn(:,:)							&
 												/	real(dE_mn - hw_lst(hw_idx) - i_eta_smr , dp)
 					end do
+					! --
 					!
 					!	LOOP FERMI LEVEL
 					do ef_idx = 1, n_ef
-						opt_aherm(:,:,:,ef_idx)	=	opt_aherm(:,:,:,ef_idx)	+ a_dE_hw(:,:,:)	* df_mn(ef_idx)
+						opt_aherm(:,:,:,ef_idx)	=	opt_aherm(:,:,:,ef_idx)	+ i_dp	* a_dE_hw(:,:,:)	* df_mn(ef_idx)
 					end do
+					! --
 					!
 				end if
 			end do
 		end do
-		!
-		opt_aherm	=	i_dp	*	opt_aherm
+		!$OMP END PARALLEL DO
 		!
 		return
 	end function
