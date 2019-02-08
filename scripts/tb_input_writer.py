@@ -166,7 +166,7 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 		outfile.write('    '	+	'hw_min= '			+	str(hw_min)  		+	'\n')
 		outfile.write('    '	+	'hw_max= '			+	str(hw_max)  		+	'\n')
 		outfile.write('    '	+	'laser_phase= '		+	str(laser_phase)	+	'\n')
-
+	print('[write_mepInterp_input]: wrote '+file_path+'input.cfg','w')
 
 
 def write_FeMn_3Q_inp(
