@@ -71,8 +71,8 @@ elseif ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     if("${MACHINE}" STREQUAL "jureca" )
       message("I think I am on jureca !!!1!")
     endif()
-    set(CMAKE_Fortran_FLAGS " -mkl -qopenmp -fpp -O3")      #-lmkl_intel_lp64
-    set(COVERAGE_LINK_FLAGS " -mkl -qopenmp -fpp -O3")    #-lmkl_intel_lp64
+    set(CMAKE_Fortran_FLAGS " -mkl -qopenmp -fpp -O3 -xMic-AVX512 ")      #-lmkl_intel_lp64
+    set(COVERAGE_LINK_FLAGS " -mkl -qopenmp -fpp -O3 -xMic-AVX512 ")    #-lmkl_intel_lp64
     message("detected newer intel compiler (qopenmp)")
   endif()
 #
