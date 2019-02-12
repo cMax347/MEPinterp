@@ -35,34 +35,54 @@ latt0 = np.array([
 vol = np.dot(   latt0[0,:], np.cross(latt0[1,:],latt0[2,:]))
 
 
+def print_v(msg,v):
+    if v:
+        print(msg)
 
 
+def dir_setup(base_dir, sub_dir,verbose=False):
+    #
+    #   force correct dir string format
+    if not (base_dir[-1] == '/'):
+        base_dir    =   base_dir+'/'
+    if not (sub_dir[-1] == '/'):
+        sub_dir    =   sub_dir+'/'
+    #
+    #
+    #   make sure the base folder exists
+    if not os.path.isdir(base_dir):
+        os.mkdir(base_dir)
+    #
+    #   make sure root dir is clean
+    root_dir     =   base_dir+sub_dir
+    if os.path.isdir(root_dir):
+        sh.rmtree(root_dir)
+        print_v('[FeMn_WX_setup]: removed old target folder: '+root_dir, verbose)
+    os.mkdir(root_dir)
+    #
+    #   create the w90 file container dir
+    w90_dir      =   root_dir+'w90files/'
+    os.mkdir(w90_dir)
+    #
+    return root_dir, w90_dir
 
-def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
+
+def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_order,
                     mp_grid, kubo_tol, valence_bands,
                     n_hw, hw_min, hw_max,  laser_phase ,
                     N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
                     plot_bands, debug_mode,
                     do_gauge_trafo, R_vect_float,
                     do_write_velo, do_write_mep_bands,
-                    do_mep, do_kubo, do_ahc, do_opt, do_gyro
+                    do_mep, do_kubo, do_ahc, do_opt, do_gyro,
+                    verbose=False
                 ):
 
-
-
-    root_folder     =   'strain{:.3f}/'.format(strain)
-    w90_folder      =   root_folder+'w90files/'
-
-    if os.path.isdir(root_folder):
-        sh.rmtree(root_folder)
-        print('[FeMn_WX_setup]: removed old target folder: '+root_folder)
-    os.mkdir(root_folder)
-    os.mkdir(w90_folder)
-
+    root_dir, w90_dir   =   dir_setup(  base_dir,   sub_dir)
 
     #
-    print(" ^^^^^^^^^^ FeMn TB model setup ^^^^^^^^^^^^^^^^^^")
-    print(" *\n *\n *\n")
+    print_v(" ^^^^^^^^^^ FeMn TB model setup ^^^^^^^^^^^^^^^^^^",verbose)
+    print_v(" *\n *\n *\n",verbose)
     #
     #-------------------------------------------------#
     # TB PARAMETERS                                   #
@@ -91,14 +111,14 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
     ndim = 3         # 3D system
 
     #
-    print('initial lattice :')
-    print(latt0)
-    print('vol = ',vol)
-    print("now apply strain=",strain,' ...\n')
+    print_v('initial lattice :', verbose)
+    print_v(latt0, verbose)
+    print_v('vol = '+str(vol), verbose)
+    print_v("now apply strain="+str(strain)+' ...\n', verbose)
     #
     latt_optimizer               =   FeMn_latt_OPT(strain)
     opt_x, opt_vol,  latt    =   latt_optimizer.optimize_lattice(1e-7)  # solve the strained lattice, by keeping constant volume
-    print("\n\n\n")
+    print_v("\n\n\n", verbose)
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -123,9 +143,9 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
             atoms_cart[i,j] = np.dot(atoms[i,:],latt[:,j])
             centroid_cart[j] = np.dot(centroid[:],latt[:,j])
     #
-    print('atoms cart:')
-    print(atoms_cart)
-    print("\n\n\n")
+    print_v('atoms cart:', verbose)
+    print_v(atoms_cart, verbose)
+    print_v("\n\n\n", verbose)
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     #
@@ -147,7 +167,7 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
     else:
         theta   = theta_3q
         phi     = phi_3q
-        print("[write_3q_HR]:   WARNING unknown spin_order ID ",spin_order," . Will use default (3Q state)")
+        print_v("[write_3q_HR]:   WARNING unknown spin_order ID "+spin_order+" . Will use default (3Q state)", verbose)
     #
     mag = np.zeros((natoms,ndim))
     for i in range(natoms):
@@ -224,7 +244,7 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
     #-------------------------------------------------#
     # WRITE LATTICE                                   #
     #-------------------------------------------------#
-    with open(w90_folder+'FeMn_d'+str(strain)+'.latt','w') as out_latt:
+    with open(w90_dir+'FeMn_d'+str(strain)+'.latt','w') as out_latt:
         out_latt.write( '#Created on ' +      datetime.date.today().strftime("%d%B%Y")
                         +' [TB FeMn python: '+str(spin_order)+' t='+str(t)+'(eV); strain='+str(strain)
                         +'] \n')
@@ -263,11 +283,11 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
     idx_r       =   0
 
 
-    out_fpath   =   w90_folder + seed_name   + '.dat'
+    out_fpath   =   w90_dir + seed_name   + '.dat'
     with open(out_fpath,'w') as out_file:
         #   ^^^^^^^^^^^^^^^^
         #      HEADER
-        print("[FeMn_WX_setup]: start writing ",out_fpath," file")
+        print_v("[FeMn_WX_setup]: start writing "+out_fpath+" file",verbose)
         out_file.write( 'Created with python on ' +      datetime.date.today().strftime("%d%B%Y")
                         +' [TB FeMn: '+str(spin_order)+' t='+str(t)+'(eV); strain='+str(strain)
                         +'] \n')
@@ -288,8 +308,8 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
         #
         #   ^^^^^^^^^^^^^^^^
         #       R-SPACE HAMILTONIAN
-        print("[FeMn_WX_setup]: start writing to body of file ",out_fpath)
-        print('\t write R_cell...')
+        print_v("[FeMn_WX_setup]: start writing to body of file "+out_fpath,verbose)
+        print_v('\t write R_cell...',verbose)
         for x in range(-ncells, ncells+1,1):    #= -ncells:ncells
             for y in range(-ncells, ncells+1,1):
                 for z in range(-ncells, ncells+1,1):
@@ -298,7 +318,7 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
                     R[2] = int(z)
                     idx_r = idx_r +1
                     R_cart[:] = x*latt[0,:] + y*latt[1,:] + z*latt[2,:]
-                    print("\t\t ... #",idx_r,': ',R_cart)
+                    print_v("\t\t ... #"+str(idx_r)+': '+str(R_cart),verbose)
                     for i in range(0,num_orb):  #= 1:num_orb
                         for j in range(0,num_orb):
                             HH = 0
@@ -354,7 +374,7 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
                             #
                             out_file.write(line)
         out_file.close()
-        print('wrote '+str(idx_r)+" cells to Hamiltonian")
+        print_v('wrote '+str(idx_r)+" cells to Hamiltonian",verbose)
 
         #
         #-------------------------------------------------#
@@ -367,7 +387,7 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
         az  =   latt[2,:]
         a0  =   1
 
-        file_path   =   root_folder
+        file_path   =   root_dir
         #def write_mepInterp_input(  file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,
         #                    kubo_tol, n_hw, hw_min, hw_max,  laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
         #                    plot_bands, debug_mode, do_gauge_trafo, R_vect_float    , do_write_velo,    do_write_mep_bands,
@@ -378,7 +398,7 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
                             file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,
                             kubo_tol, n_hw, hw_min, hw_max,  laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
                             plot_bands, debug_mode, do_gauge_trafo, R_vect_float    , do_write_velo,    do_write_mep_bands,
-                            do_mep, do_kubo, do_ahc, do_opt, do_gyro
+                            do_mep, do_kubo, do_ahc, do_opt, do_gyro, verbose
                         )
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -389,46 +409,68 @@ def write_3q_HR(    seed_name, t,strain, J_ex,Jz,tso, spin_order,
 
 
 
+def loop_strain(dmin, dmax, n_d):
+    base_dir    =   'newRun_'+datetime.date.today().strftime("%d%B%Y")
+    # 
+    print('setup FeMn model at different strain values')   
+    for strain in np.linspace(dmin,dmax,n_d):
+        #
+        print("\traw strain:\t",strain)
+        #   truncate everything after 3 digit
+        strain  =   strain * 1000
+        strain  =   np.trunc(strain)
+        strain  =   strain / 1000.
+        #
+        #   name of subdir where calc. will be perfomed in
+        sub_dir =   'd{:.3f}'.format(strain)
+        #
+        write_3q_HR(        base_dir    =   base_dir           ,
+                            sub_dir     =   sub_dir             ,
+                            seed_name   =    'wf1_hr'           ,
+                            t           =   -    1.0            ,
+                            strain      =       strain           ,
+                            J_ex        =   -    1.0             ,
+                            Jz          =         0             ,
+                            tso         =         0             ,
+                            spin_order  =       '3Q'            ,
+                            #
+                            mp_grid     =  [200,200,200]         ,
+                            kubo_tol    =           1e-5         ,
+                            valence_bands=          2            ,
+                            #
+                            n_hw=                   120           ,
+                            hw_min=                 0             ,
+                            hw_max=                 6             ,
+                            laser_phase=            1             ,
+                            #
+                            N_eF=                   1             ,
+                            eF_min=                 0             ,
+                            eF_max=                 0             ,
+                            Tkelvin=                0             ,
+                            eta_smearing=           0.1           ,
+                            #
+                            plot_bands=              False         ,
+                            debug_mode=              False         ,
+                            do_gauge_trafo=          True          ,
+                            R_vect_float=            False         ,
+                            do_write_velo=           False         ,
+                            do_write_mep_bands=      True          ,
+                            #
+                            do_mep=             True                ,
+                            do_kubo=            False                ,
+                            do_ahc=             True                ,
+                            do_opt=             False               ,
+                            do_gyro=            False               ,
+                            verbose=            False
+                    )
+        #
+        print("\tfinished setup of folder:\t\t->",sub_dir)
+    print('\nfinished setting up ./'+base_dir)
 
 
 
-write_3q_HR(        seed_name   =    'wf1_hr'           ,
-                    t           =   -    1.0             ,
-                    strain      =       0.90            ,
-                    J_ex        =   -    1.0             ,
-                    Jz          =         0             ,
-                    tso         =         0             ,
-                    spin_order  =       '3Q'            ,
-                    #
-                    mp_grid     =  [200,200,200]         ,
-                    kubo_tol    =           1e-5         ,
-                    valence_bands=          2            ,
-                    #
-                    n_hw=                   120           ,
-                    hw_min=                 0             ,
-                    hw_max=                 6             ,
-                    laser_phase=            1             ,
-                    #
-                    N_eF=                   1             ,
-                    eF_min=                 0             ,
-                    eF_max=                 0             ,
-                    Tkelvin=                0             ,
-                    eta_smearing=           0.1           ,
-                    #
-                    plot_bands=              False         ,
-                    debug_mode=              False         ,
-                    do_gauge_trafo=          True          ,
-                    R_vect_float=            False         ,
-                    do_write_velo=           False         ,
-                    do_write_mep_bands=      True          ,
-                    #
-                    do_mep=             True                ,
-                    do_kubo=            False                ,
-                    do_ahc=             True                ,
-                    do_opt=             False               ,
-                    do_gyro=            False
-            )
 
+loop_strain(0.9,1.1,5)
 
 
 
