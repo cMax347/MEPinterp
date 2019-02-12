@@ -64,6 +64,8 @@ def dir_setup(base_dir, sub_dir,verbose=False):
     w90_dir      =   root_dir+'w90files/'
     os.mkdir(w90_dir)
     #
+    os.mkdir(root_dir+'log/')
+    #
     return root_dir, w90_dir
 
 
