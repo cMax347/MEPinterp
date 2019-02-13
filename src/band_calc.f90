@@ -9,7 +9,9 @@ module band_calc
 	use constants,		only:			dp
 	use mpi_community,	only:			mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,	only:			use_mpi, seed_name, a_latt, 					&
-										do_gauge_trafo, do_write_velo
+										do_gauge_trafo, 								& 
+										atPos,											&
+										do_write_velo
 	use k_space,		only:			get_recip_latt										
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										read_tb_basis,									&
@@ -66,9 +68,9 @@ contains
 			!
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
-				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 						&
-										a_latt, recip_latt, R_vect, ki, rel_kpts(:,ki),		& 
-										en_k, V_ka, A_ka, Om_kab							&
+				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 								&
+										a_latt, recip_latt, atPos, R_vect, ki, rel_kpts(:,ki),		& 
+										en_k, V_ka, A_ka, Om_kab									&
 									)
 				call write_en_binary(ki,en_k)
 				if(do_write_velo)	call write_velo(ki,V_ka)

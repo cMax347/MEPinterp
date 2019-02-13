@@ -21,7 +21,8 @@ module wann_interp
 									is_equal_mat,			&
 									is_herm_mat,			&
 									is_skew_herm_mat		
-	use input_paras,	only:		kubo_tol, debug_mode
+	use input_paras,	only:		debug_mode,				&
+									kubo_tol
 	use file_io,		only:		write_eig_binary,		&
 									write_ham_binary
 	use mpi_community,	only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
@@ -47,8 +48,10 @@ module wann_interp
 
 
 !public:
-	subroutine get_wann_interp(		do_gauge_trafo, H_real, r_real, 					&
-									a_latt, recip_latt, R_frac, kpt_idx, kpt_rel, 		&
+	subroutine get_wann_interp(		do_gauge_trafo, 									&
+									H_real, r_real, 									&
+									a_latt, recip_latt, R_frac, atPos, 					&
+									kpt_idx, kpt_rel, 									&
 									e_k, V_ka, A_ka, Om_kab								&
 							)
 		!
@@ -67,7 +70,9 @@ module wann_interp
 		integer,						intent(in)				::	kpt_idx
 		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	& 
 																	R_frac(:,:), kpt_rel(3)	
+		real(dp),		allocatable,	intent(in)				::	atPos(:,:)
 		real(dp),						intent(out)				::	e_k(:)
+
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		
@@ -77,9 +82,11 @@ module wann_interp
 								allocate(	U_k(			size(H_real,1),		size(H_real,2)		)		)		
 		if(	allocated(V_ka)	)	allocate(	H_ka(	3	,	size(H_real,1),		size(H_real,2)	 	)		)
 		!
+		if(	(kpt_idx <= mpi_nProcs ) .and. allocated(atPos)) write(*,*)	"[",mpi_id,"get_wann_interp]: will use atomic positions in FT"
+		!
 		!
 		!ft onto k-space (W)-gauge
-		call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
+		call FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, atPos, kpt_rel, U_k,  H_ka, A_ka, Om_kab)
 		if(debug_mode) then	
 			call write_ham_binary(kpt_idx,	U_k)
 			call check_W_gauge_herm(kpt_rel, U_k, H_ka, A_ka, Om_kab)
@@ -115,7 +122,7 @@ module wann_interp
 
 
 !private:
-	subroutine FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
+	subroutine FT_R_to_k(H_real, r_real, a_latt, recip_latt, R_frac, atom_frac, kpt_rel, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)		EQ.(37)-(40)
@@ -128,20 +135,21 @@ module wann_interp
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		real(dp),						intent(in)				::	a_latt(3,3), recip_latt(3,3),	&
 																	R_frac(:,:), kpt_rel(3)	
+		real(dp),		allocatable,	intent(in)				::	atom_frac(:,:)
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
-		real(dp)												::	R_abs(3), kpt_abs(3), ft_angle
+		real(dp)												::	d_cart(3), kpt_cart(3), ft_angle
 		complex(dp)												::	ft_phase
 		logical													::	use_pos_op, do_en_grad
-		integer    												::	sc, a, b, n_sc 
+		integer    												::	sc, a, b, n_sc, n, m 
 		!
 		n_sc	=	size(R_frac,2)
 		!jobs
 		do_en_grad		= allocated(H_ka)
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
 		!
-		!get absolute kpt
-		kpt_abs		= 	matmul(	recip_latt	, kpt_rel	)	
+		!get cartolute kpt
+		kpt_cart		= 	matmul(	recip_latt	, kpt_rel	)	
 		!
 		!init
 						H_k		= 0.0_dp
@@ -150,23 +158,53 @@ module wann_interp
 		if(use_pos_op)	Om_kab	= 0.0_dp	
 		!
 		!
-		!$OMP PARALLEL default(shared)	private( R_abs, ft_angle, ft_phase, a)
-		!$OMP DO REDUCTION(+: H_k, H_ka)
+		!$OMP PARALLEL DEFAULT(none)						&
+		!$OMP PRIVATE( d_cart, ft_angle, ft_phase, a)		&
+		!$OMP SHARED(  H_real, r_real, H_k, H_ka, R_frac, a_latt, atom_frac, kpt_rel,kpt_cart, n_sc, do_en_grad)
+		!$OMP DO REDUCTION(+: H_k, H_ka)					
 		do sc = 1, n_sc
-			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
-			ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
 			!
-			!Hamilton operator
-			H_k(:,:)				= 	H_k(:,:)			+	ft_phase						* H_real(:,:,sc)	
-			!
-			!OPTIONAL energy gradients
-			if( do_en_grad)		then
-				do a = 1, 3
-					H_ka(a,:,:) 	=	H_ka(a,:,:)			+	ft_phase 	* i_dp * R_abs(a) 	* H_real(:,:,sc)
-				end do
+			if( allocated(atom_frac)) then	
+				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
+				!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
+				!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|																!|
+				do m = 1 , size(H_real,2)																					!|
+					do n = 1, size(H_real,1)																				!|
+						d_cart(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) +	atom_frac(:,m) - atom_frac(:,n) )			!|
+						!																									!|
+						ft_angle	=	dot_product(kpt_cart(1:3),	d_cart(1:3))											!|
+						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)									!|
+						!																									!|
+						!Hamilton operator																					!|
+						H_k(n,m)	=			H_k(n,m)		+	ft_phase						* H_real(n,m,sc)		!|	
+						!																									!|
+						!OPTIONAL energy gradients																			!|
+						if( do_en_grad)		then																			!|
+							H_ka(:,n,m) 	=	H_ka(:,n,m)		+	ft_phase 	* i_dp * d_cart(:) 	* H_real(n,m,sc)		!|
+						end if																								!|
+					end do																									!|
+				end do																										!|
+				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
+			else
+				!
+				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
+				!	NEGLECT ATOMIC POSITIONS																				!|
+				!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
+				!																											!|
+				d_cart(:)			=	matmul(	a_latt(:,:),	R_frac(:,sc)  )												!|	
+				ft_angle			=	dot_product(kpt_cart(1:3), d_cart(1:3))												!|	
+				ft_phase			= 	cmplx(	cos(ft_angle), sin(ft_angle), dp)											!|	
+				!Hamilton operator																							!|
+				H_k(:,:)			= 			H_k(:,:)		+	ft_phase						* H_real(:,:,sc)		!|
+				!																											!|
+				!OPTIONAL energy gradients																					!|
+				if( do_en_grad)		then																					!|
+					do a = 1, 3																								!|
+						H_ka(a,:,:) 	=		H_ka(a,:,:)		+	ft_phase 	* i_dp * d_cart(a) 	* H_real(:,:,sc)		!|
+					end do																									!|
+				end if																										!|
+				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
 			end if
-			!
 			!
 		end do
 		!$OMP END DO
@@ -175,33 +213,49 @@ module wann_interp
 		!
 		!OPTIONAL position operator
 		if(	use_pos_op	)	then
-			!$OMP PARALLEL default(shared)	private( R_abs, ft_angle, ft_phase, a, b)
-			!$OMP DO REDUCTION(+: A_ka, Om_kab)
-			do sc = 1, n_sc
-				R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-				ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
-				ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
+			if( allocated(atom_frac)	) then
+				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
+				!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
+				!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|
+				A_ka	=	0.0_dp																							!|
+				Om_kab	=	0.0_dp																							!|
+				write(*,'(a,i3,a)')	'[#',mpi_id,';FT_R_to_k]: WARNING can not handle the atom pos(conn&curv set zero)!!!!!!'!|	
+				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
+			else
 				!
-				!
-				do a = 1, 3
-					!connection
-					A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)
-					!curvature
-					do b = 1, 3
-						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * R_abs(a) * r_real(b,:,:,sc)
-						Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * R_abs(b) * r_real(a,:,:,sc)
-					end do
-				end do
-				!
-				!
-			end do
-			!$OMP END DO
-			!$OMP END PARALLEL	
+				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
+				!	NEGLECT ATOMIC POSITIONS																				!|
+				!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
+				!																											!|
+				!$OMP PARALLEL default(shared)	private( d_cart, ft_angle, ft_phase, a, b)									!|
+				!$OMP DO REDUCTION(+: A_ka, Om_kab)																			!|
+				do sc = 1, n_sc																								!|
+					d_cart(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )													!|
+					ft_angle	=	dot_product(kpt_cart(1:3),	d_cart(1:3))												!|
+					ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)										!|
+					!																										!|									
+					!																										!|	
+					do a = 1, 3																								!|									
+						!connection																							!|					
+						A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)			!|
+						!curvature																							!|	
+						do b = 1, 3																							!|	
+							Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * d_cart(a) * r_real(b,:,:,sc)			!|	
+							Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * d_cart(b) * r_real(a,:,:,sc)			!|	
+						end do																								!|
+					end do																									!|
+					!																										!|
+					!																										!|	
+				end do																										!|
+				!$OMP END DO																								!|
+				!$OMP END PARALLEL																							!|
+				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|				
+			end if	
 		end if	
 		!
 		!
 		if(debug_mode) 	then
-			call check_ft_phase(a_latt, R_frac, kpt_abs)
+			call check_ft_phase(a_latt, R_frac, kpt_cart)
 		end if
 		!
 		return
@@ -450,16 +504,16 @@ module wann_interp
 !	**************************************************************************************************************************************************
 !	**************************************************************************************************************************************************
 !
-	subroutine	check_ft_phase(a_latt, R_frac, kpt_abs)
-		real(dp),				intent(in)		::	a_latt(3,3), R_frac(:,:), kpt_abs(3)
-		real(dp)								::	R_abs(3), ft_angle
+	subroutine	check_ft_phase(a_latt, R_frac, kpt_cart)
+		real(dp),				intent(in)		::	a_latt(3,3), R_frac(:,:), kpt_cart(3)
+		real(dp)								::	d_cart(3), ft_angle
 		complex(dp)								::	ft_phase	
 		integer									::	sc	
 		!
 		ft_phase		=	cmplx(0.0_dp, 0.0_dp, dp)
 		do sc = 1, size(R_frac,2)
-			R_abs(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-			ft_angle	=	dot_product(kpt_abs(1:3),	R_abs(1:3))
+			d_cart(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
+			ft_angle	=	dot_product(kpt_cart(1:3),	d_cart(1:3))
 			ft_phase	=	ft_phase	+	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
 		end do
 		if(	aimag(ft_phase)	> 1e-6_dp	) write(*,*)	"[FT_R_to_k/DEBUG-MODE]: WARNING sum[ imag(ft_phase) ] =",aimag(ft_phase)," /=0"

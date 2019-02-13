@@ -99,7 +99,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #		CFG FILE	WRITERS
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,			
+def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, N_at, atPos, mp_grid, seed_name,			
 							kubo_tol, n_hw, hw_min, hw_max,  laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,  	 
 							plot_bands,	debug_mode, do_gauge_trafo, R_vect_float	, do_write_velo,	do_write_mep_bands,								
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro, verbose=True		
@@ -130,6 +130,23 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, mp_grid, see
 		outfile.write('    '	+	'a0= '				+	str(a0)				+	'\n')
 		outfile.write('\n')
 		#
+		outfile.write('[atoms]\n')
+		outfile.write('    '	+	'N_at= '			+	str(N_at)										+	'\n')
+		x_pos	= ' '
+		y_pos	= ' '
+		z_pos	= ' '
+		#try:
+		for at in range(N_at):
+			x_pos	=	x_pos + ' ' +	str(atPos[at,0])	
+			y_pos	=	y_pos + ' ' +	str(atPos[at,1])	
+			z_pos	=	z_pos + ' ' +	str(atPos[at,2])	
+		outfile.write('    '	+	'atPos_x='				+	x_pos	+	'\n')
+		outfile.write('    '	+	'atPos_y='				+	y_pos	+	'\n')
+		outfile.write('    '	+	'atPos_z='				+	z_pos	+	'\n')
+		#except:
+		#	print('[tb_input_writer/write_mepInterp_input]:	failed to write atPosititions to input (consider to add manually)')
+		#finally:
+		outfile.write('\n')
 		#
 		outfile.write('[wannInterp]\n')
 		outfile.write('    '	+	'doGaugeTrafo= '	+	str(do_gauge_trafo)		+	'\n')

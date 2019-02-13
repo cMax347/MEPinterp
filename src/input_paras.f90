@@ -33,6 +33,8 @@ module input_paras
 												use_R_float,														&
 												do_write_mep_bands,													&
 												do_mep, do_ahc, do_kubo, do_opt, do_gyro,							&
+												!atoms
+												N_at,	atPos,														&
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
@@ -56,17 +58,19 @@ module input_paras
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir
 	character(len=10)			::	gyro_out_dir	
-	logical						::	plot_bands, do_gauge_trafo, 	&
+	logical						::	plot_bands, 					&
+									do_gauge_trafo, 				&
 									use_R_float,					&
 									do_write_velo,					&
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_gyro
-	integer						::	N_eF, N_hw
+	integer						::	N_at, N_eF, N_hw
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
 									eF_min, eF_max, T_kelvin			
 	complex(dp)					::	i_eta_smr, phi_laser
+	real(dp),	allocatable		::	atPos(:,:)
 
 
 
@@ -87,6 +91,8 @@ module input_paras
 #ifdef USE_MPI
 		use_mpi = .true.
 #endif
+		init_parameters	=	.false.
+		!
 		if( 	.not. use_mpi 		.and.		 mpi_id	/= 0			)	then
 			 write(*,'(a,i3,a)')		'[#',mpi_id,';init_parameters]:	hello, I am an unexpected MPI thread !!!1!1!!!1!!1 '
 		end if
@@ -110,34 +116,41 @@ module input_paras
 				call CFG_add_get(my_cfg,	"jobs%debug_mode"				,	debug_mode			,	"switch aditional debug tests in code")
 				call CFG_add_get(my_cfg,	"jobs%R_vect_float"				,	use_R_float			,	"the R_cell vector is now real (else: integer)")
 				call CFG_add_get(my_cfg,	"jobs%do_write_velo"			,	do_write_velo		,	"write formatted velocity files at each kpt")
-				call CFG_add_get(my_cfg,	"jobs%do_mep"					,	do_mep				,	"switch response tensor calc")
-				call CFG_add_get(my_cfg,	"jobs%do_kubo"					,	do_kubo				,	"switch response tensor calc")
-				call CFG_add_get(my_cfg,	"jobs%do_ahc"					,	do_ahc				,	"switch response tensor calc")
-				call CFG_add_get(my_cfg,	"jobs%do_opt"					,	do_opt				,	"switch response tensor calc")
-				call CFG_add_get(my_cfg,	"jobs%do_gyro"					,	do_gyro				,	"switch response tensor calc")
-
-
-
+				call CFG_add_get(my_cfg,	"jobs%do_mep"					,	do_mep				,	"switch (on/off) this response tens calc")
+				call CFG_add_get(my_cfg,	"jobs%do_kubo"					,	do_kubo				,	"switch (on/off) this response tens calc")
+				call CFG_add_get(my_cfg,	"jobs%do_ahc"					,	do_ahc				,	"switch (on/off) this response tens calc")
+				call CFG_add_get(my_cfg,	"jobs%do_opt"					,	do_opt				,	"switch (on/off) this response tens calc")
+				call CFG_add_get(my_cfg,	"jobs%do_gyro"					,	do_gyro				,	"switch (on/off) this response tens calc")
+				!~~~~~~~~~~~~
+				!
 				![unitCell]
 				call CFG_add_get(my_cfg,	"unitCell%a1"      				,	a1(1:3)  	  		,	"a_x lattice vector"				)
 				call CFG_add_get(my_cfg,	"unitCell%a2"      				,	a2(1:3)  	  		,	"a_y lattice vector"				)
 				call CFG_add_get(my_cfg,	"unitCell%a3"      				,	a3(1:3)  	  		,	"a_z lattice vector"				)
 				call CFG_add_get(my_cfg,	"unitCell%a0"					,	a0					,	"lattice scaling factor "			)
+				!~~~~~~~~~~~~
 				!
-				a_latt(1,1:3)	= a1(1:3)
-				a_latt(2,1:3)	= a2(1:3)
-				a_latt(3,1:3)	= a3(1:3)
-				a_latt			=	a0 * a_latt
-				!
+				![atoms]
+				call CFG_add_get(my_cfg,	"atoms%N_at"					,	N_at				,	"number of atoms specified in input")
+				if(	N_at > 0) then 
+					allocate(	atPos(		3,	N_at)	)
+					call CFG_add_get(my_cfg,	"atoms%atPos_x"					,	atPos(1,:)			,	"array of x coord of relative pos"	)
+					call CFG_add_get(my_cfg,	"atoms%atPos_y"					,	atPos(2,:)			,	"array of y coord of relative pos"	)
+					call CFG_add_get(my_cfg,	"atoms%atPos_z"					,	atPos(3,:)			,	"array of z coord of relative pos"	)
+					write(*,*)	"[init_parameters]: read atPos of ",N_at," atoms "
+				end if
+				!~~~~~~~~~~~~
 				!
 				![wannInterp]
 				call CFG_add_get(my_cfg,	"wannInterp%doGaugeTrafo"		,	do_gauge_trafo		,	"switch (W)->(H) gauge trafo"		)
 				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
 				call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files"			)
+				!~~~~~~~~~~~~
 				!
 				![mep]
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
 				call CFG_add_get(my_cfg,	"MEP%do_write_mep_bands"		,	do_write_mep_bands	,	"write mep tensor band resolved"	)
+				!~~~~~~~~~~~~
 				!
 				![Fermi]
 				call CFG_add_get(my_cfg,	"Fermi%N_eF"					,	N_eF				,	"number of fermi energys to test"	)
@@ -146,12 +159,22 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
 				call CFG_add_get(my_cfg,	"Fermi%eta_smearing"			,	eta					,	"smearing for optical conductivty"	)
 				call CFG_add_get(my_cfg,	"Fermi%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO formulas"	)
+				!~~~~~~~~~~~~
 				!
 				![Laser]
 				call CFG_add_get(my_cfg,	"Laser%N_hw"					,	N_hw					,	"points to probe in interval"	)
 				call CFG_add_get(my_cfg,	"Laser%hw_min"					,	hw_min					,	"min energy of incoming light"	)
 				call CFG_add_get(my_cfg,	"Laser%hw_max"					,	hw_max					,	"max energy of incoming light"	)
 				call CFG_add_get(my_cfg,	"Laser%laser_phase"				,	laser_phase			,	"euler angle of phase shift of driving E-field")
+				!~~~~~~~~~~~~
+				!~~~~~~~~~~~~
+				!~~~~~~~~~~~~
+				!
+				!	lattice setup
+				a_latt(1,1:3)	= a1(1:3)
+				a_latt(2,1:3)	= a2(1:3)
+				a_latt(3,1:3)	= a3(1:3)
+				a_latt			=	a0 * a_latt
 				!
 				! 	unit conversion
 				hw_min			=	hw_min 		/ 	aUtoEv
@@ -169,62 +192,29 @@ module input_paras
 				!
 				!
 				!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+				write(*,*)					"*"
+				write(*,*)					"*"
+				write(*,*)					"parallelization with #",mpi_nProcs," MPI threads"
 				write(*,*)					""
 				write(*,*)					"**********************init_parameter interpretation******************************"
-				write(*,*)					"parallelization with ",mpi_nProcs," MPI threads"
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
-				write(*,*)					"[jobs]"
-				write(*,*)					"	plot_bands="		,	plot_bands
-				write(*,*)					"	debug_mode="		,	debug_mode	
-				write(*,*)					"	do_write_velo="		,	do_write_velo	
-				write(*,*)					"	do_mep"				,	do_mep
-				write(*,*)					"	do_kubo"			,	do_kubo	
-				write(*,*)					"	do_ahc"				,	do_ahc		
-				write(*,*)					"	do_opt"				,	do_opt
-				write(*,*)					"	do_gyro"			,	do_gyro	
-				!	------------------------------------------
-				write(*,*)					"[unitCell] # a_0 (Bohr radii)	"
-				write(*,*)					"	a1="				,	a1(1:3)
-				write(*,*)					"	a2="				,	a2(1:3)
-				write(*,*)					"	a3="				,	a3(1:3)
-				write(*,*)					"	a0="				,	a0
-				!	------------------------------------------
-				write(*,*)					"[wannInterp]"
-				write(*,*)					"	do_gauge_trafo="	,	do_gauge_trafo
-				write(*,*)					"	mp_grid="			,	mp_grid(1:3)	
-				write(*,*)					"	seed_name="			,	seed_name
-				!	------------------------------------------
-				write(*,*)					"[mep]"
-				write(*,'(a,i4)')			"	val bands="			,	valence_bands
-				write(*,*)					"	do_write_mep_bands=",	do_write_mep_bands
-				!	------------------------------------------
-				write(*,*)					"[Fermi]"
-				write(*,*)					"	n_eF="				,	n_eF
-				write(*,*)					"	eF_min="			,	eF_min*aUtoEv							,	" (eV)"
-				write(*,*)					"	eF_max="			,	eF_max*aUtoEv							,	" (eV)"
-				write(*,'(a,f8.4,a)',advance='no')	"	T_kelvin="	,	T_kelvin								,	" (K)"
+				!call CFG_write(my_cfg,	"stdout", hide_unused=.true.)	!writes all input vars to stdout
+				write(*,*)					"~~"
 				if(	T_kelvin < 1e-2_dp)	 then
 					write(*,'(a)')			"	WARNING , too small temperature value (<1e-2). WARNING Fermi Dirac will assume T=0 (stepfunction)"
 				else
 					write(*,*)				"thermal smearing :"	,	kBoltz_Eh_K *	T_kelvin / aUtoEv		,	" (eV)"
 				end if
-				write(*,*)					"	eta="				,	eta*aUtoEv								,	" (eV)"
-				write(*,*)					"	i_eta_smr="			,	i_eta_smr								,	" (Hartree)"
-				write(*,*)					"	kuboTol="			,	kubo_tol
-				!	------------------------------------------
-				write(*,*)					"[Laser]"
-				write(*,*)					"	N_hw="				,	N_hw										
-				write(*,*)					"	hw_min="			,	hw_min*aUtoEv							,	" (eV)" 
-				write(*,*)					"	hw_max="			,	hw_max*aUtoEv							,	" (eV)" 
-				write(*,*)					"	   2nd order E_field E^2 = E_a E^*_b phase shift (between a&b field):"
-				write(*,*)					"	laser_phase_angle="	,	laser_phase								,	" *pi"
-				write(*,*)					"	laser phase="		,	phi_laser								, 	" exp( i * laser_phase_angle )"
+
 				!	------------------------------------------
 				!	------------------------------------------					
 				!	------------------------------------------
 				
 				
 				write(*,*)					"*********************************************************************************"		
+				!call CFG_write(my_cfg, './input.log', hide_unused=.true.)
+				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: wrote input log file to input.log"
+				write(*,*)		""
 				!
 				!make the output folder
 				write(*,*)	"*"
@@ -277,6 +267,12 @@ module input_paras
 				call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				![ATOMS]
+				call MPI_BCAST(		N_at			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				if(	N_at > 0) then
+					if(	mpi_id /= mpi_root_id )		allocate(	atPos(3,N_at)	)
+					call MPI_BCAST(		atPos			,		3* N_at			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				end if
 				![KUBO]
 				call MPI_BCAST(		hw_min			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)			
 				call MPI_BCAST(		hw_max			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
@@ -304,8 +300,6 @@ module input_paras
 		end if
 		!
 		init_parameters	=	input_exist
-		!
-		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		!
 		!
 		return 

@@ -29,6 +29,7 @@ module core
 								do_gyro,										&
 								debug_mode,										&
 								a_latt, 										&
+								atPos,											&
 								valence_bands, 									&
 								seed_name,										&
 								hw_min, hw_max, n_hw, phi_laser, 				&
@@ -177,7 +178,10 @@ contains
 						!	INTERPOLATE	K-POINT
 						!----------------------------------------------------------------------------------------------------------------------------------
 						kpt	=	get_rel_kpt(ki,	kix,kiy,kiz)
-						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
+						call get_wann_interp(		do_gauge_trafo,									& 
+													H_tb, r_tb, a_latt, recip_latt, R_vect, atPos,  &
+													ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab 		&
+											)
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	FERMI SETUP

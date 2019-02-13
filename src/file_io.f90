@@ -125,28 +125,6 @@ module file_io
 	end subroutine
 
 
-	subroutine write_geninterp_kpt_file(seed_name, kpt_latt)
-		character(len=*),	intent(in)			::	seed_name
-		real(dp),			intent(in)			::	kpt_latt(:,:)	
-		integer									::	qi_idx, x		
-		!
-		open(unit=200, file = seed_name//'_geninterp.kpt', form='formatted', action='write',	access='stream', status='replace')
-		write(200,*)	'# fractional kpts created by MEPInterp, written '//cTIME(time())
-		write(200,*)	'frac'
-		write(200,*)	size(kpt_latt,2)
-		!
-		do qi_idx = 1, size(kpt_latt,2)
-			write(200,'(i3,a)',advance="no")	qi_idx, ' '
-			write(200,'(*(f16.8))')		(kpt_latt(x,qi_idx), x= 1, size(kpt_latt,1))
-		end do
-		close(200)
-		write(*,'(a,i3,a,a)')		'[#',mpi_id,'; write_geninterp_kpt_file]: wrote ',seed_name//'_geninterp.kpt file'
-		!
-		return
-	end subroutine
-
-
-
 	subroutine write_en_global(kpt_latt)
 		real(dp),	intent(in)			::	kpt_latt(:,:)
 		real(dp),	allocatable			::	ek_bands(:)

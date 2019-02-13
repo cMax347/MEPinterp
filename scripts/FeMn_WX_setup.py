@@ -382,22 +382,18 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
         #-------------------------------------------------#
         # WRITE WANNIER INTERPOLATION INPUT               #
         #-------------------------------------------------#
-
-
-        ax  =   latt[0,:]
-        ay  =   latt[1,:]
-        az  =   latt[2,:]
-        a0  =   1
-
         file_path   =   root_dir
-        #def write_mepInterp_input(  file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,
-        #                    kubo_tol, n_hw, hw_min, hw_max,  laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
-        #                    plot_bands, debug_mode, do_gauge_trafo, R_vect_float    , do_write_velo,    do_write_mep_bands,
-        #                    do_mep, do_kubo, do_ahc, do_opt, do_gyro
-        #                ):
-
+        #
+        ax      =   latt[0,:]
+        ay      =   latt[1,:]
+        az      =   latt[2,:]
+        a0      =   1
+        #
+        N_at    =   num_orb
+        atPos   =   np.append( atoms, atoms, axis=0)
+        #
         write_mepInterp_input(
-                            file_path,valence_bands, ax, ay, az, a0, mp_grid, seed_name,
+                            file_path,valence_bands, ax, ay, az, a0, N_at, atPos, mp_grid, seed_name,
                             kubo_tol, n_hw, hw_min, hw_max,  laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
                             plot_bands, debug_mode, do_gauge_trafo, R_vect_float    , do_write_velo,    do_write_mep_bands,
                             do_mep, do_kubo, do_ahc, do_opt, do_gyro, verbose
@@ -440,7 +436,7 @@ def loop_strain(dmin, dmax, n_d):
                             kubo_tol    =           1e-5         ,
                             valence_bands=          2            ,
                             #
-                            n_hw=                   120           ,
+                            n_hw=                   121           ,
                             hw_min=                 0             ,
                             hw_max=                 6             ,
                             laser_phase=            1             ,
