@@ -36,7 +36,7 @@ module core
 								N_eF, eF_min, eF_max, T_kelvin, i_eta_smr,		&
 								out_dir
 	!
-	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
+	use k_space,		only:	get_mp_grid, 									&
 								kspace_allocator,								&
 								get_kpt_idx,									&
 								get_rel_kpt,									&
@@ -84,7 +84,7 @@ contains
 		!	ic	: itinerant current contribution
 		!	cs	: chern - simons term	
 		!
-		real(dp)							::	kpt(3),	recip_latt(3,3)
+		real(dp)							::	kpt(3)
 												!local sum targets:
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
 												Ne_loc_sum(:), 							&
@@ -150,7 +150,6 @@ contains
 		mp_grid				=	get_mp_grid()
 		n_ki_loc			= 	0
 		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
-		recip_latt			=	get_recip_latt()
 		!
 		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
 		!
@@ -179,7 +178,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						kpt	=	get_rel_kpt(ki,	kix,kiy,kiz)
 						call get_wann_interp(		do_gauge_trafo,									& 
-													H_tb, r_tb, a_latt, recip_latt, R_vect, atPos,  &
+													H_tb, r_tb, a_latt, R_vect, atPos,  			&
 													ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab 		&
 											)
 						!

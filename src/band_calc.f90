@@ -12,7 +12,6 @@ module band_calc
 										do_gauge_trafo, 								& 
 										atPos,											&
 										do_write_velo
-	use k_space,		only:			get_recip_latt										
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										read_tb_basis,									&
 										write_en_binary, 								&
@@ -30,7 +29,6 @@ contains
 
 	subroutine band_worker()
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:), R_vect(:,:)
-		real(dp)							::	recip_latt(3,3)
 		integer								::	num_kpts, ki, k_per_mpi
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 				&
 												A_ka(:,:,:), Om_kab(:,:,:,:),				&
@@ -53,7 +51,6 @@ contains
 		if( read_kptsgen_pl_file(rel_kpts)	) then
 			!
 			!	get k-space
-			recip_latt	= get_recip_latt()
 			num_kpts	= size(rel_kpts,2)
 			k_per_mpi	= 0
 			!
@@ -69,7 +66,7 @@ contains
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
 				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 								&
-										a_latt, recip_latt, atPos, R_vect, ki, rel_kpts(:,ki),		& 
+										a_latt,  atPos, R_vect, ki, rel_kpts(:,ki),		& 
 										en_k, V_ka, A_ka, Om_kab									&
 									)
 				call write_en_binary(ki,en_k)
