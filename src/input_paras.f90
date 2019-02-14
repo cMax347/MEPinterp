@@ -198,7 +198,7 @@ module input_paras
 				write(*,*)					""
 				write(*,*)					"**********************init_parameter interpretation******************************"
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
-				call CFG_write(my_cfg,	"stdout", hide_unused=.true.)	!writes all input vars to stdout
+				!call CFG_write(my_cfg,	"stdout", hide_unused=.false.)	!writes all input vars to stdout
 				write(*,*)					"~~"
 				if(	T_kelvin < 1e-2_dp)	 then
 					write(*,'(a)')			"	WARNING , too small temperature value (<1e-2). WARNING Fermi Dirac will assume T=0 (stepfunction)"

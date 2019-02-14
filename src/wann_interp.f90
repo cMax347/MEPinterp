@@ -13,7 +13,7 @@ module wann_interp
 	!	the interpolation scheme from 
 	!			PRB 74, 195118 (2006) 
 	!	was used
-	use constants,		only:		dp, fp_acc, i_dp	
+	use constants,		only:		dp, fp_acc, i_dp, pi_dp	
 	use matrix_math,	only:		zheevd_wrapper, 		&
 									zheevx_wrapper,			&
 									matrix_comm,			& 
@@ -172,7 +172,7 @@ module wann_interp
 					do n = 1, size(H_real,1)																				!|
 						d_cart(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) +	atom_frac(:,m) - atom_frac(:,n) )			!|
 						!																									!|
-						ft_angle	=	dot_product(kpt_frac(1:3),	d_cart(1:3))											!|
+						ft_angle	=	2.0_dp * pi_dp * dot_product(kpt_frac(1:3),	d_cart(1:3))											!|
 						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)									!|
 						!																									!|
 						!Hamilton operator																					!|
@@ -192,7 +192,7 @@ module wann_interp
 				!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
 				!																											!|
 				d_cart(:)			=	matmul(	a_latt(:,:),	R_frac(:,sc)  )												!|	
-				ft_angle			=	dot_product(kpt_frac(1:3), d_cart(1:3))												!|	
+				ft_angle			=	2.0_dp * pi_dp * dot_product(kpt_frac(1:3), d_cart(1:3))												!|	
 				ft_phase			= 	cmplx(	cos(ft_angle), sin(ft_angle), dp)											!|	
 				!Hamilton operator																							!|
 				H_k(:,:)			= 			H_k(:,:)		+	ft_phase						* H_real(:,:,sc)		!|
@@ -231,7 +231,7 @@ module wann_interp
 				!$OMP DO REDUCTION(+: A_ka, Om_kab)																			!|
 				do sc = 1, n_sc																								!|
 					d_cart(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )													!|
-					ft_angle	=	dot_product(kpt_frac(1:3),	d_cart(1:3))												!|
+					ft_angle	=	2.0_dp * pi_dp * dot_product(kpt_frac(1:3),	d_cart(1:3))												!|
 					ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)										!|
 					!																										!|									
 					!																										!|	
