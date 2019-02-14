@@ -66,7 +66,7 @@ contains
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
 				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 								&
-										a_latt,  atPos, R_vect, ki, rel_kpts(:,ki),		& 
+										atPos, R_vect, ki, rel_kpts(:,ki),							& 
 										en_k, V_ka, A_ka, Om_kab									&
 									)
 				call write_en_binary(ki,en_k)

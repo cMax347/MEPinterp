@@ -50,7 +50,7 @@ module wann_interp
 !public:
 	subroutine get_wann_interp(		do_gauge_trafo, 									&
 									H_real, r_real, 									&
-									a_latt, R_frac, atPos, 					&
+									R_frac, atPos, 										&
 									kpt_idx, kpt_frac, 									&
 									e_k, V_ka, A_ka, Om_kab								&
 							)
@@ -68,11 +68,9 @@ module wann_interp
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		integer,						intent(in)				::	kpt_idx
-		real(dp),						intent(in)				::	a_latt(3,3),	& 
-																	R_frac(:,:), kpt_frac(3)	
+		real(dp),						intent(in)				::	R_frac(:,:), kpt_frac(3)	
 		real(dp),		allocatable,	intent(in)				::	atPos(:,:)
 		real(dp),						intent(out)				::	e_k(:)
-
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		
@@ -86,23 +84,13 @@ module wann_interp
 		!
 		!
 		!ft onto k-space (W)-gauge
-		call FT_R_to_k(H_real, r_real, a_latt, R_frac, atPos, kpt_frac, U_k,  H_ka, A_ka, Om_kab)
-		if(debug_mode) then	
-			call write_ham_binary(kpt_idx,	U_k)
-			call check_W_gauge_herm(kpt_frac, U_k, H_ka, A_ka, Om_kab)
-		end if	
+		call FT_R_to_k(H_real, r_real,  R_frac, atPos, kpt_frac, U_k,  H_ka, A_ka, Om_kab)
+		!
 		!
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
 		!
-		!debug
-		if(debug_mode)	then
-			if(allocated(H_ka))	call check_velo(U_k, H_ka)
-			call write_eig_binary(kpt_idx,	U_k)
-			!	call write_velo(kpt_idx, H_ka)
-			!	
-			!			
-		end if
+		
 		!
 		!rotate back to (H)-gauge
 		if( allocated(V_ka)	.and. do_gauge_trafo	)			call W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
@@ -122,7 +110,7 @@ module wann_interp
 
 
 !private:
-	subroutine FT_R_to_k(H_real, r_real, a_latt, R_frac, atom_frac, kpt_frac, H_k,	H_ka, A_ka, Om_kab)			
+	subroutine FT_R_to_k(H_real, r_real, R_frac, atom_frac, kpt_frac, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)		EQ.(37)-(40)
@@ -133,105 +121,155 @@ module wann_interp
 		!
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
-		real(dp),						intent(in)				::	a_latt(3,3), 	&
-																	R_frac(:,:), kpt_frac(3)	
+		real(dp),						intent(in)				::	R_frac(:,:), kpt_frac(3)	
 		real(dp),		allocatable,	intent(in)				::	atom_frac(:,:)
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
-		real(dp)												::	d_cart(3), ft_angle
-		complex(dp)												::	ft_phase
+		real(dp),		allocatable								::	delta_at(:,:,:)
+		real(dp)												::	delta_R(3), ft_angle, two_pi
+		complex(dp)												::	ft_phase, two_pi_i
 		logical													::	use_pos_op, do_en_grad
-		integer    												::	sc, a, b, n_sc, n, m 
+		integer    												::	sc, a, b, n_sc, n_wf, n, m 
 		!
 		n_sc	=	size(R_frac,2)
+		n_wf	=	size(H_real,1)
 		!jobs
 		do_en_grad		= allocated(H_ka)
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
 		!
-		!get cartolute kpt
-		!kpt_cart		= 	matmul(	recip_latt	, kpt_frac	)	
-		!
 		!init
-						H_k		= 0.0_dp
-		if(do_en_grad)	H_ka	= 0.0_dp
-		if(use_pos_op)	A_ka	= 0.0_dp
-		if(use_pos_op)	Om_kab	= 0.0_dp	
+						H_k		= 	0.0_dp
+		if(do_en_grad)	H_ka	= 	0.0_dp
+		if(use_pos_op)	A_ka	= 	0.0_dp
+		if(use_pos_op)	Om_kab	= 	0.0_dp
+		two_pi					=	2.0_dp * pi_dp
+		two_pi_i				=	cmplx(0.0_dp, two_pi, dp)
 		!
 		!
-		!$OMP PARALLEL DEFAULT(none)						&
-		!$OMP PRIVATE( d_cart, ft_angle, ft_phase, a)		&
-		!$OMP SHARED(  H_real, r_real, H_k, H_ka, R_frac, a_latt, atom_frac, kpt_frac, n_sc, do_en_grad)
-		!$OMP DO REDUCTION(+: H_k, H_ka)					
-		do sc = 1, n_sc
+		! I		INTERPOLATE HAM & VELO(s)
+		!
+		if( allocated(atom_frac)) then	
+			! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
+			!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
+			!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|																!|
+			!	---------		
+			allocate(	delta_at(3,n_wf,n_wf))
+			do n = 1, n_wf
+				do m = 1, n_wf
+					delta_at(:,n,m)	=	atom_frac(:,m) - atom_frac(:,n)	
+				end do
+			end do
+			!$OMP PARALLEL DEFAULT(none)							&
+			!$OMP PRIVATE( delta_R,  ft_angle, ft_phase, a,m,n)		&
+			!$OMP SHARED(  H_real, H_k, H_ka, R_frac,  delta_at, kpt_frac, n_sc, n_wf, do_en_grad, two_pi, two_pi_i)
+			!$OMP DO REDUCTION(+: H_k, H_ka)
+			do sc = 1, n_sc																								!|
+				do m = 1 , n_wf																							!|
+					do n = 1, n_wf																						!|
+						delta_R(:)	=	R_frac(:,sc) +	delta_at(:,n,m)						!	internal units			!|
+						!																								!|
+						ft_angle	=	two_pi * dot_product(kpt_frac(1:3),	delta_R(1:3))	!factor 2pi comes from		!|
+						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)	! using internanl units		!|
+						!																								!|
+						!Hamilton operator																				!|
+						H_k(n,m)	=			H_k(n,m)		+	ft_phase						* H_real(n,m,sc)	!|	
+						!																								!|
+						!OPTIONAL energy gradients																		!|
+						if( do_en_grad)		then																		!|
+							H_ka(:,n,m) 	=	H_ka(:,n,m)		+	ft_phase * two_pi_i	 * delta_R(:) 	* H_real(n,m,sc)!|
+						end if																							!|
+					end do																								!|
+				end do
+			end do
+			!$OMP END DO
+			!$OMP END PARALLEL
+			! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
 			!
-			if( allocated(atom_frac)) then	
-				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
-				!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
-				!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|																!|
-				do m = 1 , size(H_real,2)																					!|
-					do n = 1, size(H_real,1)																				!|
-						d_cart(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) +	atom_frac(:,m) - atom_frac(:,n) )			!|
-						!																									!|
-						ft_angle	=	2.0_dp * pi_dp * dot_product(kpt_frac(1:3),	d_cart(1:3))											!|
-						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)									!|
-						!																									!|
-						!Hamilton operator																					!|
-						H_k(n,m)	=			H_k(n,m)		+	ft_phase						* H_real(n,m,sc)		!|	
-						!																									!|
-						!OPTIONAL energy gradients																			!|
-						if( do_en_grad)		then																			!|
-							H_ka(:,n,m) 	=	H_ka(:,n,m)		+	ft_phase 	* i_dp * d_cart(:) 	* H_real(n,m,sc)		!|
-						end if																								!|
-					end do																									!|
-				end do																										!|
-				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
-			else
-				!
-				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
-				!	NEGLECT ATOMIC POSITIONS																				!|
-				!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
-				!																											!|
-				d_cart(:)			=	matmul(	a_latt(:,:),	R_frac(:,sc)  )												!|	
-				ft_angle			=	2.0_dp * pi_dp * dot_product(kpt_frac(1:3), d_cart(1:3))												!|	
-				ft_phase			= 	cmplx(	cos(ft_angle), sin(ft_angle), dp)											!|	
-				!Hamilton operator																							!|
-				H_k(:,:)			= 			H_k(:,:)		+	ft_phase						* H_real(:,:,sc)		!|
-				!																											!|
-				!OPTIONAL energy gradients																					!|
-				if( do_en_grad)		then																					!|
-					do a = 1, 3																								!|
-						H_ka(a,:,:) 	=		H_ka(a,:,:)		+	ft_phase 	* i_dp * d_cart(a) 	* H_real(:,:,sc)		!|
-					end do																									!|
-				end if																										!|
-				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
-			end if
 			!
-		end do
-		!$OMP END DO
-		!$OMP END PARALLEL	
+		else
+			!
+			! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
+			!	NEGLECT ATOMIC POSITIONS																				!|
+			!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
+			!	---------		
+			!$OMP PARALLEL DEFAULT(none)						&
+			!$OMP PRIVATE( delta_R,  ft_angle, ft_phase, a,m,n)		&
+			!$OMP SHARED(  H_real, H_k, H_ka, R_frac,  kpt_frac, n_sc, n_wf, do_en_grad, two_pi, two_pi_i)
+			!$OMP DO REDUCTION(+: H_k, H_ka)																						
+			do sc = 1, n_sc
+				ft_angle			=	two_pi * dot_product(kpt_frac(1:3), R_frac(:,sc))								!|	
+				ft_phase			= 	cmplx(	cos(ft_angle), sin(ft_angle), dp)										!|	
+				!Hamilton operator																						!|
+				H_k(:,:)			= 			H_k(:,:)		+	ft_phase						* H_real(:,:,sc)	!|
+				!																										!|
+				!OPTIONAL energy gradients																				!|
+				if( do_en_grad)		then																				!|
+					do a = 1, 3																							!|
+						H_ka(a,:,:) 	=		H_ka(a,:,:)		+	ft_phase * two_pi_i * 	R_frac(a,sc) * H_real(:,:,sc)!|
+					end do																								!|
+				end if																									!|
+			end do
+			!$OMP END DO
+			!$OMP END PARALLEL
+			! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
+		end if
 		!
 		!
-		!OPTIONAL position operator
-		if(	use_pos_op	)	then
+		! 
+		!
+		! II	INTERPOLATE CONN & CURV
+		!
+		if(use_pos_op) then
 			if( allocated(atom_frac)	) then
 				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
 				!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
 				!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|
-				A_ka	=	0.0_dp																							!|
-				Om_kab	=	0.0_dp																							!|
-				write(*,'(a,i3,a)')	'[#',mpi_id,';FT_R_to_k]: WARNING can not handle the atom pos(conn&curv set zero)!!!!!!'!|	
+				!	---------
+				!$OMP PARALLEL DEFAULT(none) &					
+				!$OMP PRIVATE(m,n, delta_R, ft_angle, ft_phase, a, b) &	
+				!$OMP Shared(n_sc, n_wf, A_ka, Om_kab, R_frac, delta_at, kpt_frac, r_real, two_pi, two_pi_i)	
+				!$OMP DO REDUCTION(+: A_ka, Om_kab)																											
+				do sc = 1, n_sc																								!|																				
+					do m = 1 , n_wf																							!|
+						do n = 1, n_wf																						!|
+							delta_R(:)	=	R_frac(:,sc) +	delta_at(:,n,m)								!	internal units	!|
+							!																								!|
+							ft_angle	=	two_pi * dot_product(kpt_frac(1:3),	delta_R(1:3))								!|
+							ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)								!|
+							!																								!|									
+							!																								!|	
+							do a = 1, 3																						!|									
+								!connection																					!|					
+								A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase				* r_real(a,:,:,sc)		!|
+								!curvature																					!|	
+								do b = 1, 3																					!|	
+									Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	&													!|	
+													 		+ 	ft_phase * two_pi_i * delta_R(a) 	* r_real(b,:,:,sc)		!|	
+									Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	& 													!|
+															- 	ft_phase * two_pi_i * delta_R(b) 	* r_real(a,:,:,sc)		!|	
+								end do																						!|
+							end do																							!|
+						end do																								!|
+					end do																									!|
+					!																										!|
+					!																							!~~~~~~~~~~~!|
+				end do 					
+				!$OMP END DO
+				!$OMP END PARALLEL 
 				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
-			else
 				!
+				!
+			else
 				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
 				!	NEGLECT ATOMIC POSITIONS																				!|
 				!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
-				!																											!|
-				!$OMP PARALLEL default(shared)	private( d_cart, ft_angle, ft_phase, a, b)									!|
-				!$OMP DO REDUCTION(+: A_ka, Om_kab)																			!|
+				!	---------
+				!$OMP PARALLEL DEFAULT(none) &					
+				!$OMP PRIVATE(ft_angle, ft_phase, a, b) &	
+				!$OMP Shared(n_sc, A_ka, Om_kab, R_frac, kpt_frac, r_real, two_pi, two_pi_i)	
+				!$OMP DO REDUCTION(+: A_ka, Om_kab)
 				do sc = 1, n_sc																								!|
-					d_cart(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )													!|
-					ft_angle	=	2.0_dp * pi_dp * dot_product(kpt_frac(1:3),	d_cart(1:3))												!|
+					ft_angle	=	two_pi * dot_product(kpt_frac(1:3),	R_frac(1:3,sc))										!|
 					ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)										!|
 					!																										!|									
 					!																										!|	
@@ -240,55 +278,69 @@ module wann_interp
 						A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)			!|
 						!curvature																							!|	
 						do b = 1, 3																							!|	
-							Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) + 	ft_phase * i_dp * d_cart(a) * r_real(b,:,:,sc)			!|	
-							Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:) - 	ft_phase * i_dp * d_cart(b) * r_real(a,:,:,sc)			!|	
+							Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	&															!|	
+											 		+ 	ft_phase * two_pi_i * R_frac(a,sc) * r_real(b,:,:,sc)				!|	
+							Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	& 															!|
+													- 	ft_phase * two_pi_i * R_frac(b,sc) * r_real(a,:,:,sc)				!|	
 						end do																								!|
 					end do																									!|
 					!																										!|
-					!																										!|	
-				end do																										!|
-				!$OMP END DO																								!|
-				!$OMP END PARALLEL																							!|
-				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|				
-			end if	
+					!																							!~~~~~~~~~~~!|
+				end do 																										
+				!$OMP END DO
+				!$OMP END PARALLEL
+				! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
+			end if
 		end if	
 		!
-		!
-		if(debug_mode) 	then
-			call check_ft_phase(a_latt, R_frac, kpt_frac)
-		end if
+		if(debug_mode) then	
+			call write_ham_binary(kpt_idx,	H_k)
+			call check_W_gauge_herm(kpt_frac, H_k, H_ka, A_ka, Om_kab)
+		end if	
 		!
 		return
 	end subroutine
 
 
 
-	pure subroutine get_velo(e_k, H_ka, A_ka, V_ka)
+
+
+
+
+	subroutine get_velo(en_k, H_ka, A_ka, V_ka)
 		!	calc the (H)-gauge velocity matrix
 		!
 		!	PRB 74, 195118 (2006) EQ.(31)
-		real(dp),						intent(in)		::		e_k(:)
+		real(dp),						intent(in)		::		en_k(:)
 		complex(dp),					intent(in)		::		H_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
 		complex(dp),					intent(out)		::		V_ka(:,:,:)
-		complex(dp)										::		eDiff
+		complex(dp)										::		cmplx_eDiff
 		integer											::		m, n, n_wf
 		!
-		n_wf		=	size(e_k,1)
-		V_ka		=	H_ka
+		n_wf		=	size(en_k,1)
 		!
 		!
 		if( allocated(A_ka)	) then
+			!	if CONNECTION given 
+			!	-> apply correction to H_Ka
+			!
+			!$OMP PARALLEL DO DEFAULT(none) &
+			!$OMP PRIVATE(n,cmplx_eDiff) &
+			!$OMP SHARED(n_wf, en_k, H_Ka, A_ka, V_Ka) 
 			do m = 1, n_wf
 				do n = 1, n_wf
 					if(	n >	m )	then
-						eDiff	=	cmplx(		e_k(m) - e_k(n),		0.0_dp,	dp)
+						cmplx_eDiff	=	cmplx(	0.0_dp	,	en_k(m) - en_k(n),	dp)
 						!
-						V_ka(:,n,m)	= V_ka(:,n,m)	- i_dp	* 	eDiff	* 	A_ka(:,n,m)
-						V_ka(:,m,n)	= V_ka(:,m,n)	+ i_dp	*	eDiff	*	A_ka(:,m,n)
+						V_ka(:,n,m)	= H_ka(:,n,m)	- cmplx_eDiff	* 	A_ka(:,n,m)
+						V_ka(:,m,n)	= H_ka(:,m,n)	+ cmplx_eDiff	*	A_ka(:,m,n)
 					end if
 				end do
 			end do
+			!$OMP END PARALLEL DO
+		else
+			V_ka		=	H_ka
 		end if
 		!
 		!
@@ -322,13 +374,22 @@ module wann_interp
 		complex(dp),	allocatable, 	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		complex(dp),	allocatable						::	D_ka(:,:,:) 
 		!
+		!
+		!debug (W)-gauge
+		if(debug_mode)	then
+			if(allocated(H_ka))	call check_velo(U_k, H_ka)
+			call write_eig_binary(kpt_idx,	U_k)
+		end if
+		!
+		!
 		!do 	(W) -> (Hbar)
 		call rotate_gauge(U_k, H_ka, 	A_ka, Om_kab )
-		!
 		if(debug_mode)	call check_Hbar_gauge_herm(H_ka, A_ka, Om_kab)
+		!
 		!
 		!conn/curv	 (Hbar) -> (H)
 		if( allocated(A_ka) )	then
+			!	need gauge covar deriv (remember A_ka is not gauge covariant)
 			allocate(		D_ka(	3,	size(H_ka,2),	size(H_ka,3))				)
 			!
 			!
@@ -504,23 +565,7 @@ module wann_interp
 !	**************************************************************************************************************************************************
 !	**************************************************************************************************************************************************
 !
-	subroutine	check_ft_phase(a_latt, R_frac, kpt_cart)
-		real(dp),				intent(in)		::	a_latt(3,3), R_frac(:,:), kpt_cart(3)
-		real(dp)								::	d_cart(3), ft_angle
-		complex(dp)								::	ft_phase	
-		integer									::	sc	
-		!
-		ft_phase		=	cmplx(0.0_dp, 0.0_dp, dp)
-		do sc = 1, size(R_frac,2)
-			d_cart(:)	=	matmul(	a_latt(:,:),	R_frac(:,sc) )
-			ft_angle	=	dot_product(kpt_cart(1:3),	d_cart(1:3))
-			ft_phase	=	ft_phase	+	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)
-		end do
-		if(	aimag(ft_phase)	> 1e-6_dp	) write(*,*)	"[FT_R_to_k/DEBUG-MODE]: WARNING sum[ imag(ft_phase) ] =",aimag(ft_phase)," /=0"
-		ft_phase		=	cmplx(0.0_dp, 0.0_dp, dp)	
-		!
-		return
-	end subroutine
+
 
 
 	logical function curv_is_herm( Om_kab, max_err)

@@ -178,7 +178,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						kpt	=	get_rel_kpt(ki,	kix,kiy,kiz)
 						call get_wann_interp(		do_gauge_trafo,									& 
-													H_tb, r_tb, a_latt, R_vect, atPos,  			&
+													H_tb, r_tb, R_vect, atPos,  					&
 													ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab 		&
 											)
 						!
