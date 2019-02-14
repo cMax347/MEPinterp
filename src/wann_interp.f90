@@ -80,25 +80,29 @@ module wann_interp
 								allocate(	U_k(			size(H_real,1),		size(H_real,2)		)		)		
 		if(	allocated(V_ka)	)	allocate(	H_ka(	3	,	size(H_real,1),		size(H_real,2)	 	)		)
 		!
-		if(	(kpt_idx <= mpi_nProcs ) .and. allocated(atPos)) write(*,*)	"[",mpi_id,"get_wann_interp]: will use atomic positions in FT"
+		if(			(kpt_idx <= mpi_nProcs)	& 
+			.and. 	allocated(atPos)		&
+		)then 
+					write(*,*)	"[",mpi_id,"get_wann_interp]: will use atomic positions in FT"
+		end if
 		!
 		!
 		!ft onto k-space (W)-gauge
-		call FT_R_to_k(H_real, r_real,  R_frac, atPos, kpt_frac, U_k,  H_ka, A_ka, Om_kab)
+		call FT_R_to_k(H_real, r_real,  R_frac, atPos, kpt_idx, kpt_frac, U_k,  H_ka, A_ka, Om_kab)
 		!
 		!
 		!get energies (H)-gauge
 		call zheevd_wrapper(U_k, e_k)
 		!
-		
 		!
 		!rotate back to (H)-gauge
-		if( allocated(V_ka)	.and. do_gauge_trafo	)			call W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
-		if(	allocated(V_ka)							)			call get_velo(e_k, H_ka, A_ka, 	V_ka)
+		if (allocated( V_ka)) then
+			if( do_gauge_trafo	)	call W_to_H_gaugeTRAFO(kpt_idx, e_k, U_k, H_ka, A_ka, Om_kab)
+			call get_velo(e_k, H_ka, A_ka, 	V_ka)
+			!	DEBUG
+			if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt_frac, A_ka, Om_kab, V_ka)
+		end if
 		!
-		!
-		!	DEBUG
-		if(debug_mode .and. do_gauge_trafo)	call check_H_gauge_herm(kpt_idx, kpt_frac, A_ka, Om_kab, V_ka)
 		!
 		return
 	end subroutine
@@ -110,7 +114,7 @@ module wann_interp
 
 
 !private:
-	subroutine FT_R_to_k(H_real, r_real, R_frac, atom_frac, kpt_frac, H_k,	H_ka, A_ka, Om_kab)			
+	subroutine FT_R_to_k(H_real, r_real, R_frac, atom_frac, kpt_idx, kpt_frac, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)		EQ.(37)-(40)
@@ -123,6 +127,7 @@ module wann_interp
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		real(dp),						intent(in)				::	R_frac(:,:), kpt_frac(3)	
 		real(dp),		allocatable,	intent(in)				::	atom_frac(:,:)
+		integer,						intent(in)				::	kpt_idx
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp),		allocatable								::	delta_at(:,:,:)
@@ -366,18 +371,19 @@ module wann_interp
 !	**************************************************************************************************************************************************
 !	**************************************************************************************************************************************************
 !
-	subroutine W_to_H_gaugeTRAFO(e_k, U_k, H_ka, A_ka, Om_kab)
+	subroutine W_to_H_gaugeTRAFO(kpt_idx, e_k, U_k, H_ka, A_ka, Om_kab)
 		!	see PRB 74, 195118 (2006) EQ. 21 - 31
+		integer,						intent(in)		::	kpt_idx
 		real(dp),						intent(in)		::	e_k(:) 
 		complex(dp),					intent(in)		::	U_k(:,:)
-		complex(dp),					intent(inout)	::	H_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout)	::	H_ka(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		complex(dp),	allocatable						::	D_ka(:,:,:) 
 		!
 		!
 		!debug (W)-gauge
 		if(debug_mode)	then
-			if(allocated(H_ka))	call check_velo(U_k, H_ka)
+			call check_velo(U_k, H_ka)
 			call write_eig_binary(kpt_idx,	U_k)
 		end if
 		!
@@ -733,7 +739,8 @@ module wann_interp
 	subroutine check_H_gauge_herm(kpt_idx, kpt_frac, A_ka, Om_kab, V_ka)
 		integer,						intent(in)			::	kpt_idx
 		real(dp),						intent(in)			::	kpt_frac(3)
-		complex(dp),	allocatable,	intent(in)			::	A_ka(:,:,:), Om_kab(:,:,:,:), 	V_ka(:,:,:)
+		complex(dp),	allocatable,	intent(in)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		complex(dp),					intent(in)			::	V_ka(:,:,:)
 		real(dp)											::	max_err
 		character(len=31)									::	k_string
 		character(len=24)									::	allo_lst
@@ -743,6 +750,13 @@ module wann_interp
 		write(k_string,'(a,f6.2,a,f6.2,a,f6.2,a)')	'( ',kpt_frac(1),', ',kpt_frac(2),', ',kpt_frac(3),') '
 		is_herm	= .true.
 		!
+		!	VELOCITY
+		allo_lst	=	trim(allo_lst) // "velo"
+		velo		=	velo_is_herm( V_ka, max_err )
+		is_herm 	=	is_herm .and. velo
+		if(.not. velo) 		write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]:	"								//	&
+														"WARNING (H)-gauge V_KA IS NOT hermitian at rel. kpt= "			//	&
+														k_string//"max_err=", max_err
 		!
 		!	CONNECTION
 		if(allocated(A_ka)) then
@@ -764,19 +778,6 @@ module wann_interp
 			is_herm =	is_herm .and. curv
 			if(.not. curv) 		write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]:	"						 		//	&
 															"WARNING (H)-gauge Om_kab IS NOT hermitian at rel. kpt= "		//	&
-															k_string//"max_err=", max_err
-		else
-			write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]: NOTE	curvature was not calculated"
-		end if
-		!
-		!
-		!	VELOCITY
-		if(allocated(V_ka)) then
-			allo_lst	=	trim(allo_lst) // "velo"
-			velo	=	velo_is_herm( V_ka, max_err )
-			is_herm =	is_herm .and. velo
-			if(.not. velo) 		write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]:	"								//	&
-															"WARNING (H)-gauge V_KA IS NOT hermitian at rel. kpt= "			//	&
 															k_string//"max_err=", max_err
 		else
 			write(*,'(a,f16.7)')	"[check_H_gauge_herm/DEBUG-MODE]: NOTE	curvature was not calculated"
