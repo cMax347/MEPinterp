@@ -28,7 +28,6 @@ module core
 								do_opt,											&
 								do_gyro,										&
 								debug_mode,										&
-								a_latt, 										&
 								atPos,											&
 								valence_bands, 									&
 								seed_name,										&
