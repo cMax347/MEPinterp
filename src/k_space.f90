@@ -67,7 +67,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
-		if(n_k > 0	)		scalar	= 	scalar	 /	(	unit_vol	* real(n_k,dp)	)
+		if(n_k > 0	)		scalar	= 	scalar	 /	abs(	unit_vol	* real(n_k,dp)	)
 		
 		!
 		return
@@ -79,7 +79,7 @@ contains
 		!
 		if(allocated(tens)) then
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -91,7 +91,7 @@ contains
 		!
 		if(allocated(tens)) then
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -103,7 +103,7 @@ contains
 		!
 		if(allocated(tens)) then
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -115,7 +115,7 @@ contains
 		!
 		if(allocated(tens)) then
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -130,7 +130,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
-		if(n_k > 0	)		scalar	= 	scalar	 /	(	unit_vol	* real(n_k,dp)	)
+		if(n_k > 0	)		scalar	= 	scalar	 /	abs(	unit_vol	* real(n_k,dp)	)
 		!
 		return
 	end subroutine
@@ -141,7 +141,7 @@ contains
 		!
 		if(allocated(tens))	then
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -153,7 +153,7 @@ contains
 		!
 		if(allocated(tens))	then
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
