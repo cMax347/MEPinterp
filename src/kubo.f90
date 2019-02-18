@@ -86,7 +86,7 @@ contains
 		complex(dp)	,	allocatable		::	o_ahc(:,:,:,:), vv_dE_hw(:,:,:)
 		real(dp),		allocatable		::	d_ef_lst(:)
 		real(dp)						::	dE_sqr, v_nm_mn(3,3)
-		integer							::	n, l, j, hw_idx, n_ef, n_hw, n_wf, ef_idx
+		integer							::	n, np, j, hw_idx, n_ef, n_hw, n_wf, ef_idx
 		!
 		n_hw	=	size(	hw_lst		,	1)
 		n_ef	=	size(	fd_distrib	,	1)
@@ -98,20 +98,20 @@ contains
 		o_ahc	=	0.0_dp
 		!
 		!$OMP  PARALLEL DO DEFAULT(NONE)  											&
-		!$OMP PRIVATE(l, d_ef_lst, dE_sqr, j, v_nm_mn, hw_idx, vv_dE_hw, ef_idx)	&
+		!$OMP PRIVATE(np, d_ef_lst, dE_sqr, j, v_nm_mn, hw_idx, vv_dE_hw, ef_idx)	&
 		!$OMP SHARED(fd_distrib, en_k, v_kab, hw_lst, n_wf, n_hw, n_ef, i_eta_smr) 	&
 		!$OMP REDUCTION(+: o_ahc)
 		do n = 1, n_wf
-			do l = 1, n_wf
-				if(l/=n) then
+			do np = 1, n_wf
+				if(np/=n) then
 					!
 					!	dE	BANDS
-					d_ef_lst	=	fd_distrib(:,n)		-	fd_distrib(:,l)
-					dE_sqr		= 	(	en_k(n) 		- 		en_k(l)	  )**2 	
+					d_ef_lst	=		fd_distrib(:,n)		-	fd_distrib(:,np)
+					dE_sqr		= 	(	en_k(	 n) 		- 		en_k(	 np)	 )**2 	
 					!
 					!	loop real space direction
 					do j = 1, 3
-						v_nm_mn(:,j)			=	aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 
+						v_nm_mn(:,j)			=	aimag(	v_kab(:,n,np) * v_kab(j,np,n)		) 
 					end do
 					!
 					!	LOOP HW
