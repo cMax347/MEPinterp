@@ -246,6 +246,9 @@ contains
 		recip_latt(2,:)	=	b2(:)
 		recip_latt(3,:)	=	b3(:)
 		!
+
+
+		!
 		return
 	end subroutine
 
@@ -283,9 +286,14 @@ contains
 			allocate(kpt(3))
 			!
 			if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
-				kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
-				kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
-				kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+				!kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
+				!kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
+				!kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+				!
+				!	Wx mesh:
+				kpt(1)	=	real(qix-1,dp) / real(mp_grid(1))
+				kpt(2)	=	real(qiy-1,dp) / real(mp_grid(2))
+				kpt(3)	=	real(qiz-1,dp) / real(mp_grid(3))
 			end if
 		else 
 			stop "[get_rel_kpt]: ERROR got illegal kpt idx"

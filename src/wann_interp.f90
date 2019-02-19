@@ -22,10 +22,11 @@ module wann_interp
 									is_herm_mat,			&
 									is_skew_herm_mat		
 	use input_paras,	only:		debug_mode,				&
-									kubo_tol
+									kubo_tol, a_latt
 	use file_io,		only:		write_eig_binary,		&
 									write_ham_binary
 	use mpi_community,	only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
+	use k_space,		only:		get_recip_latt
 	use omp_lib
 
 
@@ -51,7 +52,7 @@ module wann_interp
 	subroutine get_wann_interp(		do_gauge_trafo, 									&
 									H_real, r_real, 									&
 									R_frac, atPos, 										&
-									kpt_idx, kpt_frac, 									&
+									kpt_idx, kpt, 									&
 									e_k, V_ka, A_ka, Om_kab								&
 							)
 		!
@@ -68,7 +69,7 @@ module wann_interp
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		integer,						intent(in)				::	kpt_idx
-		real(dp),						intent(in)				::	R_frac(:,:), kpt_frac(3)	
+		real(dp),						intent(in)				::	R_frac(:,:), kpt(3)	
 		real(dp),		allocatable,	intent(in)				::	atPos(:,:)
 		real(dp),						intent(out)				::	e_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
@@ -88,7 +89,7 @@ module wann_interp
 		!
 		!
 		!ft onto k-space (W)-gauge
-		call FT_R_to_k(H_real, r_real,  R_frac, atPos, kpt_idx, kpt_frac, U_k,  H_ka, A_ka, Om_kab)
+		call FT_R_to_k(H_real, r_real,  R_frac, atPos, kpt_idx, kpt, U_k,  H_ka, A_ka, Om_kab)
 		!
 		!
 		!get energies (H)-gauge
@@ -100,7 +101,7 @@ module wann_interp
 			if( do_gauge_trafo	)	call W_to_H_gaugeTRAFO(kpt_idx, e_k, U_k, H_ka, A_ka, Om_kab)
 			call get_velo(e_k, H_ka, A_ka, 	V_ka)
 			!	DEBUG
-			if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt_frac, A_ka, Om_kab, V_ka)
+			if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt, A_ka, Om_kab, V_ka)
 		end if
 		!
 		!
@@ -114,7 +115,7 @@ module wann_interp
 
 
 !private:
-	subroutine FT_R_to_k(H_real, r_real, R_frac, atom_frac, kpt_idx, kpt_frac, H_k,	H_ka, A_ka, Om_kab)			
+	subroutine FT_R_to_k(H_real, r_real, R_frac, atom_frac, kpt_idx, kpt, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
 		!		PRB 74, 195118 (2006)		EQ.(37)-(40)
@@ -125,13 +126,13 @@ module wann_interp
 		!
 		complex(dp),					intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
-		real(dp),						intent(in)				::	R_frac(:,:), kpt_frac(3)	
+		real(dp),						intent(in)				::	R_frac(:,:), kpt(3)	
 		real(dp),		allocatable,	intent(in)				::	atom_frac(:,:)
 		integer,						intent(in)				::	kpt_idx
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp),		allocatable								::	delta_at(:,:,:)
-		real(dp)												::	delta_R(3), ft_angle, two_pi
+		real(dp)												::	dR(3), dR_cart(3),kpt_cart(3), recip_latt(3,3), ft_angle, two_pi
 		complex(dp)												::	ft_phase, two_pi_i
 		logical													::	use_pos_op, do_en_grad
 		integer    												::	sc, a, b, n_sc, n_wf, n, m 
@@ -147,9 +148,11 @@ module wann_interp
 		if(do_en_grad)	H_ka	= 	0.0_dp
 		if(use_pos_op)	A_ka	= 	0.0_dp
 		if(use_pos_op)	Om_kab	= 	0.0_dp
-		two_pi					=	2.0_dp * pi_dp
-		two_pi_i				=	cmplx(0.0_dp, two_pi, dp)
+		two_pi					=	2.0_dp 	* pi_dp
+		two_pi_i				=	i_dp	* two_pi
 		!
+		recip_latt(:,:)			=	get_recip_latt()
+		kpt_cart(:)				=	matmul(		transpose(recip_latt),	 kpt(:)		)
 		!
 		! I		INTERPOLATE HAM & VELO(s)
 		!
@@ -165,23 +168,26 @@ module wann_interp
 				end do
 			end do
 			!$OMP PARALLEL DEFAULT(none)							&
-			!$OMP PRIVATE( delta_R,  ft_angle, ft_phase, a,m,n)		&
-			!$OMP SHARED(  H_real, H_k, H_ka, R_frac,  delta_at, kpt_frac, n_sc, n_wf, do_en_grad, two_pi, two_pi_i)
+			!$OMP PRIVATE( dR, dR_cart, ft_angle, ft_phase, a,m,n)		&
+			!$OMP SHARED(  H_real, H_k, H_ka, R_frac,  delta_at, kpt,kpt_cart, n_sc, n_wf, do_en_grad, two_pi, two_pi_i, a_latt, recip_latt)
 			!$OMP DO REDUCTION(+: H_k, H_ka)
 			do sc = 1, n_sc																								!|
 				do m = 1 , n_wf																							!|
 					do n = 1, n_wf																						!|
-						delta_R(:)	=	R_frac(:,sc) +	delta_at(:,n,m)						!	internal units			!|
+						dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)				! in internal  coord				!|	
+						dR_cart(:)	=	matmul(transpose(a_latt),dR(:))				! in cartesian coord				!|
 						!																								!|
-						ft_angle	=	two_pi * dot_product(kpt_frac(1:3),	delta_R(1:3))	!factor 2pi comes from		!|
-						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)	! using internanl units		!|
-						!																								!|
+						!ft_angle	=	two_pi * dot_product(kpt(1:3),	dR(:))		!internal unites		!|
+						ft_angle	=	dot_product(kpt_cart,dR_cart)
+						!	
+						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)	!unit indepedent			!|																											!|
 						!Hamilton operator																				!|
 						H_k(n,m)	=			H_k(n,m)		+	ft_phase						* H_real(n,m,sc)	!|	
 						!																								!|
 						!OPTIONAL energy gradients																		!|
 						if( do_en_grad)		then																		!|
-							H_ka(:,n,m) 	=	H_ka(:,n,m)		+	ft_phase * two_pi_i	 * delta_R(:) 	* H_real(n,m,sc)!|
+																														!|
+							H_ka(:,n,m) 	=	H_ka(:,n,m)		+ ft_phase * i_dp *  dR_cart(:)	* H_real(n,m,sc)		!|
 						end if																							!|
 					end do																								!|
 				end do
@@ -198,11 +204,11 @@ module wann_interp
 			!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
 			!	---------		
 			!$OMP PARALLEL DEFAULT(none)						&
-			!$OMP PRIVATE( delta_R,  ft_angle, ft_phase, a,m,n)		&
-			!$OMP SHARED(  H_real, H_k, H_ka, R_frac,  kpt_frac, n_sc, n_wf, do_en_grad, two_pi, two_pi_i)
+			!$OMP PRIVATE( dR,  ft_angle, ft_phase, a,m,n)		&
+			!$OMP SHARED(  H_real, H_k, H_ka, R_frac,  kpt, n_sc, n_wf, do_en_grad, two_pi, two_pi_i)
 			!$OMP DO REDUCTION(+: H_k, H_ka)																						
 			do sc = 1, n_sc
-				ft_angle			=	two_pi * dot_product(kpt_frac(1:3), R_frac(:,sc))								!|	
+				ft_angle			=	two_pi * dot_product(kpt(1:3), R_frac(:,sc))								!|	
 				ft_phase			= 	cmplx(	cos(ft_angle), sin(ft_angle), dp)										!|	
 				!Hamilton operator																						!|
 				H_k(:,:)			= 			H_k(:,:)		+	ft_phase						* H_real(:,:,sc)	!|
@@ -231,15 +237,15 @@ module wann_interp
 				!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|
 				!	---------
 				!$OMP PARALLEL DEFAULT(none) &					
-				!$OMP PRIVATE(m,n, delta_R, ft_angle, ft_phase, a, b) &	
-				!$OMP Shared(n_sc, n_wf, A_ka, Om_kab, R_frac, delta_at, kpt_frac, r_real, two_pi, two_pi_i)	
+				!$OMP PRIVATE(m,n, dR, ft_angle, ft_phase, a, b) &	
+				!$OMP Shared(n_sc, n_wf, A_ka, Om_kab, R_frac, delta_at, kpt, r_real, two_pi, two_pi_i)	
 				!$OMP DO REDUCTION(+: A_ka, Om_kab)																											
 				do sc = 1, n_sc																								!|																				
 					do m = 1 , n_wf																							!|
 						do n = 1, n_wf																						!|
-							delta_R(:)	=	R_frac(:,sc) +	delta_at(:,n,m)								!	internal units	!|
+							dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)								!	internal units	!|
 							!																								!|
-							ft_angle	=	two_pi * dot_product(kpt_frac(1:3),	delta_R(1:3))								!|
+							ft_angle	=	two_pi * dot_product(kpt(1:3),	dR(1:3))								!|
 							ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)								!|
 							!																								!|									
 							!																								!|	
@@ -249,9 +255,9 @@ module wann_interp
 								!curvature																					!|	
 								do b = 1, 3																					!|	
 									Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	&													!|	
-													 		+ 	ft_phase * two_pi_i * delta_R(a) 	* r_real(b,:,:,sc)		!|	
+													 		+ 	ft_phase * two_pi_i * dR(a) 	* r_real(b,:,:,sc)		!|	
 									Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	& 													!|
-															- 	ft_phase * two_pi_i * delta_R(b) 	* r_real(a,:,:,sc)		!|	
+															- 	ft_phase * two_pi_i * dR(b) 	* r_real(a,:,:,sc)		!|	
 								end do																						!|
 							end do																							!|
 						end do																								!|
@@ -271,10 +277,10 @@ module wann_interp
 				!	---------
 				!$OMP PARALLEL DEFAULT(none) &					
 				!$OMP PRIVATE(ft_angle, ft_phase, a, b) &	
-				!$OMP Shared(n_sc, A_ka, Om_kab, R_frac, kpt_frac, r_real, two_pi, two_pi_i)	
+				!$OMP Shared(n_sc, A_ka, Om_kab, R_frac, kpt, r_real, two_pi, two_pi_i)	
 				!$OMP DO REDUCTION(+: A_ka, Om_kab)
 				do sc = 1, n_sc																								!|
-					ft_angle	=	two_pi * dot_product(kpt_frac(1:3),	R_frac(1:3,sc))										!|
+					ft_angle	=	two_pi * dot_product(kpt(1:3),	R_frac(1:3,sc))										!|
 					ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)										!|
 					!																										!|									
 					!																										!|	
@@ -300,7 +306,7 @@ module wann_interp
 		!
 		if(debug_mode) then	
 			call write_ham_binary(kpt_idx,	H_k)
-			call check_W_gauge_herm(kpt_frac, H_k, H_ka, A_ka, Om_kab)
+			call check_W_gauge_herm(kpt, H_k, H_ka, A_ka, Om_kab)
 		end if	
 		!
 		return
@@ -653,8 +659,8 @@ module wann_interp
 
 
 
-	subroutine check_W_gauge_herm(kpt_frac, H_k, H_ka, A_ka, Om_kab)
-		real(dp),						intent(in)		::		kpt_frac(3)
+	subroutine check_W_gauge_herm(kpt, H_k, H_ka, A_ka, Om_kab)
+		real(dp),						intent(in)		::		kpt(3)
 		complex(dp),					intent(in)		::		H_k(:,:)
 		complex(dp),	allocatable, 	intent(in)		::		H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:) 
 		real(dp)										::		max_err	
@@ -666,7 +672,7 @@ module wann_interp
 		!
 		warn_msg	=								'[check_w_gauge_herm/DEBUG-MODE]:	WARNING (W)-gauge '
 		max_string	=								' IS NOT hermitian(max_err='
-		write(k_string,'(a,f6.2,a,f6.2,a,f6.2,a)')	') at rel. kpt=( ',kpt_frac(1),', ',kpt_frac(2),', ',kpt_frac(3),')'
+		write(k_string,'(a,f6.2,a,f6.2,a,f6.2,a)')	') at rel. kpt=( ',kpt(1),', ',kpt(2),', ',kpt(3),')'
 		
 		!
 		!	CHECK HAMILTONIAN
@@ -736,9 +742,9 @@ module wann_interp
 	end subroutine
 
 
-	subroutine check_H_gauge_herm(kpt_idx, kpt_frac, A_ka, Om_kab, V_ka)
+	subroutine check_H_gauge_herm(kpt_idx, kpt, A_ka, Om_kab, V_ka)
 		integer,						intent(in)			::	kpt_idx
-		real(dp),						intent(in)			::	kpt_frac(3)
+		real(dp),						intent(in)			::	kpt(3)
 		complex(dp),	allocatable,	intent(in)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
 		complex(dp),					intent(in)			::	V_ka(:,:,:)
 		real(dp)											::	max_err
@@ -747,7 +753,7 @@ module wann_interp
 		logical												::	conn, curv, velo, is_herm
 		!
 		allo_lst	=	" "
-		write(k_string,'(a,f6.2,a,f6.2,a,f6.2,a)')	'( ',kpt_frac(1),', ',kpt_frac(2),', ',kpt_frac(3),') '
+		write(k_string,'(a,f6.2,a,f6.2,a,f6.2,a)')	'( ',kpt(1),', ',kpt(2),', ',kpt(3),') '
 		is_herm	= .true.
 		!
 		!	VELOCITY
