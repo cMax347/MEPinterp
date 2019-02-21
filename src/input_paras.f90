@@ -137,8 +137,7 @@ module input_paras
 					call CFG_add_get(my_cfg,	"atoms%atPos_x"					,	atPos(1,:)			,	"array of x coord of relative pos"	)
 					call CFG_add_get(my_cfg,	"atoms%atPos_y"					,	atPos(2,:)			,	"array of y coord of relative pos"	)
 					call CFG_add_get(my_cfg,	"atoms%atPos_z"					,	atPos(3,:)			,	"array of z coord of relative pos"	)
-					write(*,*)	"[init_parameters]: read atPos of ",N_at," atoms "
-				end if
+				end if 
 				!~~~~~~~~~~~~
 				!
 				![wannInterp]

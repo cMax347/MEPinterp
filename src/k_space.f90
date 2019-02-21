@@ -10,6 +10,7 @@ module k_space
 										get_kpt_idx,							&
 										check_kpt_idx,							&
 										get_rel_kpt,							&		
+										get_cart_kpt,							&
 										get_bz_vol,								&
 										kspace_allocator,						&
 										normalize_k_int,						&
@@ -33,6 +34,7 @@ module k_space
 
 	integer			::		mp_grid(3)
 	real(dp)		::		recip_latt(3,3), bz_vol, unit_vol
+	logical			::		recip_latt_set = .false.
 
 contains
 
@@ -40,11 +42,25 @@ contains
 
 
 	subroutine print_kSpace_info()
-		write(*,'(a,i3,a,i4,a,i4,a,i4,a,a,f8.4,a)')	&
-							"[#",mpi_id,";k_space]: k-space setup done (mp_grid=",&
-							mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),"). ",&
-							"bz_vol=",bz_vol," (1/a0)"
-
+		real(dp)		:: dV
+		
+		if( recip_latt_set) then
+			! debug BZ volume 
+			dV		=	bz_vol - 8.0_dp * pi_dp**3 / unit_vol
+			if(	abs(dV)	> 1e-1_dp) then
+				write(*,*)	"[set_recip_latt]: 	WARNING	KSPACE CORRUPTED!! bz_vol /= (8 pi**3/ unit_vol)"
+			else
+				write(*,'(a,i3,a,i4,a,i4,a,i4,a,a,f8.4,a,f8.4,a)')	&
+									"[#",mpi_id,";k_space]: k-space setup done (mp_grid=",&
+									mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),"). ",&
+									"unit_vol=,",unit_vol,",(a0**3) -> bz_vol=",bz_vol," (1/a0**3)"
+			end if
+		else
+			write(*,'(a,i3,a)')	&
+				"[#",mpi_id,";k_space]: ERROR reciprocal lattice was not initalized. Pls contact dev.."
+		end if
+		!
+		!
 		return
 	end subroutine
 
@@ -226,17 +242,18 @@ contains
 		real(dp)				::	a1(3), a2(3), a3(3),	&
 									b1(3), b2(3), b3(3)
 		!
+		recip_latt_set	=	.false.
 		!
-		a1(1:3)		=	a_latt(1,1:3)
-		a2(1:3)		=	a_latt(2,1:3)
-		a3(1:3)		=	a_latt(3,1:3)
+		a1(:)			=	a_latt(1,:)
+		a2(:)			=	a_latt(2,:)
+		a3(:)			=	a_latt(3,:)
 		!get Unit cell volume
-		unit_vol	=	dot_product(	crossP( a1(1:3) , a2(1:3)	)		,	a3(1:3)	)	 
+		unit_vol		=	dot_product(	crossP( a1(:) , a2(:)	)		,	a3(:)	)	 
 		!
 		!setup reciprocal lattice vectors
-		b1(1:3)	= 2.0_dp * pi_dp * crossP( a2(1:3) , a3(1:3) ) / unit_vol
-		b2(1:3)	= 2.0_dp * pi_dp * crossP( a3(1:3) , a1(1:3) ) / unit_vol
-		b3(1:3)	= 2.0_dp * pi_dp * crossP( a1(1:3) , a2(1:3) ) / unit_vol
+		b1(:)	= 2.0_dp * pi_dp * crossP( a2(:) , a3(:) ) / unit_vol
+		b2(:)	= 2.0_dp * pi_dp * crossP( a3(:) , a1(:) ) / unit_vol
+		b3(:)	= 2.0_dp * pi_dp * crossP( a1(:) , a2(:) ) / unit_vol
 		!
 		! BZ volume
 		bz_vol	=	dot_product(		crossP( b1(:), b2(:))	, b3(:)		)
@@ -245,9 +262,8 @@ contains
 		recip_latt(1,:)	=	b1(:)
 		recip_latt(2,:)	=	b2(:)
 		recip_latt(3,:)	=	b3(:)
-		!
-
-
+		recip_latt_set	=	.true.
+		! -----
 		!
 		return
 	end subroutine
@@ -286,14 +302,15 @@ contains
 			allocate(kpt(3))
 			!
 			if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
-				!kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
-				!kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
-				!kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+				!	mp mesh
+				kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
+				kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
+				kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
 				!
 				!	Wx mesh:
-				kpt(1)	=	real(qix-1,dp) / real(mp_grid(1))
-				kpt(2)	=	real(qiy-1,dp) / real(mp_grid(2))
-				kpt(3)	=	real(qiz-1,dp) / real(mp_grid(3))
+				!kpt(1)	=	real(qix-1,dp) / real(mp_grid(1))
+				!kpt(2)	=	real(qiy-1,dp) / real(mp_grid(2))
+				!kpt(3)	=	real(qiz-1,dp) / real(mp_grid(3))
 			end if
 		else 
 			stop "[get_rel_kpt]: ERROR got illegal kpt idx"
@@ -302,6 +319,27 @@ contains
 		!
 		return
 	end function
+
+
+	function get_cart_kpt(a_latt, kpt) result(kpt_cart)
+		!
+		!	use the a_latt instead of recip_latt
+		!
+		real(dp),		intent(in)	::	a_latt(3,3), kpt(3)
+		real(dp)					::	kpt_cart(3)
+		!
+		if(	recip_latt_set) then
+			!kpt_cart	=	matmul(	transpose(recip_latt), 	kpt	)
+			kpt_cart	=	matmul(	transpose(a_latt)	, 	kpt	) / (2.0_dp * pi_dp)
+		else
+			kpt_cart	=	0.0_dp
+			write(*,*)	"[kspace/get_cart_kpt]:	WARNING get_cart_kpt was called without lattice beeing set"
+		end if
+		!
+		return
+	end function
+
+
 
 
 	logical function check_kpt_idx(	qi_idx	,qix,qiy,qiz)

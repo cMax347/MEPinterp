@@ -66,7 +66,7 @@ contains
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
 				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 								&
-										atPos, R_vect, ki, rel_kpts(:,ki),							& 
+										R_vect, 	atPos	,  ki, rel_kpts(:,ki),							& 
 										en_k, V_ka, A_ka, Om_kab									&
 									)
 				call write_en_binary(ki,en_k)
@@ -104,7 +104,8 @@ contains
 		if( do_write_velo )		then
 			allocate(	V_ka(3,	size(H_tb,1), size(H_tb,2))		)
 			V_ka	=	0.0_dp
-			write(*,'(a,i3,a,i1,a,i3,a,i3,a)')	"[",mpi_id,"]V_ka allocated with size=	(",size(V_ka,1), "x",size(V_ka,2),"x",size(V_ka,3),")"
+			write(*,'(a,i3,a,i1,a,i3,a,i3,a)')	"[",mpi_id,"band_allocator]: V_ka allocated with size=	(",&
+													size(V_ka,1), "x",size(V_ka,2),"x",size(V_ka,3),")"
 		end if
 		!
 		!
