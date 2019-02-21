@@ -21,12 +21,13 @@ module wann_interp
 									is_equal_mat,			&
 									is_herm_mat,			&
 									is_skew_herm_mat		
-	use input_paras,	only:		debug_mode,				&
+	use input_paras,	only:		debug_mode,	atPos,			&
 									kubo_tol, a_latt
 	use file_io,		only:		write_eig_binary,		&
 									write_ham_binary
 	use mpi_community,	only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
-	use k_space,		only:		get_recip_latt
+	use mpi
+	use k_space,		only:		get_cart_kpt
 	use omp_lib
 
 
@@ -51,7 +52,7 @@ module wann_interp
 !public:
 	subroutine get_wann_interp(		do_gauge_trafo, 									&
 									H_real, r_real, 									&
-									R_frac, atPos, 										&
+									R_frac,	atPos,									&
 									kpt_idx, kpt, 									&
 									e_k, V_ka, A_ka, Om_kab								&
 							)
@@ -81,11 +82,6 @@ module wann_interp
 								allocate(	U_k(			size(H_real,1),		size(H_real,2)		)		)		
 		if(	allocated(V_ka)	)	allocate(	H_ka(	3	,	size(H_real,1),		size(H_real,2)	 	)		)
 		!
-		if(			(kpt_idx <= mpi_nProcs)	& 
-			.and. 	allocated(atPos)		&
-		)then 
-					write(*,*)	"[",mpi_id,"get_wann_interp]: will use atomic positions in FT"
-		end if
 		!
 		!
 		!ft onto k-space (W)-gauge
@@ -132,13 +128,15 @@ module wann_interp
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp),		allocatable								::	delta_at(:,:,:)
-		real(dp)												::	dR(3), dR_cart(3),kpt_cart(3), recip_latt(3,3), ft_angle, two_pi
-		complex(dp)												::	ft_phase, two_pi_i
+		real(dp)												::	dR(3), dR_cart(3),ft_angle, two_pi
+		complex(dp)												::	ft_phase
 		logical													::	use_pos_op, do_en_grad
 		integer    												::	sc, a, b, n_sc, n_wf, n, m 
 		!
 		n_sc	=	size(R_frac,2)
 		n_wf	=	size(H_real,1)
+		two_pi	=	2.0_dp 	* pi_dp
+
 		!jobs
 		do_en_grad		= allocated(H_ka)
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
@@ -148,46 +146,43 @@ module wann_interp
 		if(do_en_grad)	H_ka	= 	0.0_dp
 		if(use_pos_op)	A_ka	= 	0.0_dp
 		if(use_pos_op)	Om_kab	= 	0.0_dp
-		two_pi					=	2.0_dp 	* pi_dp
-		two_pi_i				=	i_dp	* two_pi
 		!
-		recip_latt(:,:)			=	get_recip_latt()
-		kpt_cart(:)				=	matmul(		transpose(recip_latt),	 kpt(:)		)
 		!
 		! I		INTERPOLATE HAM & VELO(s)
 		!
 		if( allocated(atom_frac)) then	
+			if(	kpt_idx <= mpi_nProcs	)then 
+				write(*,*)	"[",mpi_id,"FT_R_to_k]: will use TIGHT-B FT CONVENTION"
+			end if
 			! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
 			!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
 			!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|																!|
 			!	---------		
-			allocate(	delta_at(3,n_wf,n_wf))
+			allocate(	delta_at(size(atom_frac,1),size(atom_frac,2),size(atom_frac,2)))
 			do n = 1, n_wf
 				do m = 1, n_wf
 					delta_at(:,n,m)	=	atom_frac(:,m) - atom_frac(:,n)	
 				end do
 			end do
-			!$OMP PARALLEL DEFAULT(none)							&
-			!$OMP PRIVATE( dR, dR_cart, ft_angle, ft_phase, a,m,n)		&
-			!$OMP SHARED(  H_real, H_k, H_ka, R_frac,  delta_at, kpt,kpt_cart, n_sc, n_wf, do_en_grad, two_pi, two_pi_i, a_latt, recip_latt)
+			!$OMP PARALLEL DEFAULT(none)								&
+			!$OMP PRIVATE( 	dR, dR_cart, ft_angle, ft_phase, a,m,n)		&
+			!$OMP SHARED(  	n_sc, n_wf, R_frac, delta_at, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
 			!$OMP DO REDUCTION(+: H_k, H_ka)
 			do sc = 1, n_sc																								!|
 				do m = 1 , n_wf																							!|
 					do n = 1, n_wf																						!|
 						dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)				! in internal  coord				!|	
-						dR_cart(:)	=	matmul(transpose(a_latt),dR(:))				! in cartesian coord				!|
+							! in cartesian coord				!|
 						!																								!|
-						!ft_angle	=	two_pi * dot_product(kpt(1:3),	dR(:))		!internal unites		!|
-						ft_angle	=	dot_product(kpt_cart,dR_cart)
-						!	
-						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)	!unit indepedent			!|																											!|
+						ft_angle	=	two_pi * dot_product(	kpt(:),	dR(:)	)		! internal  coord				!|
+						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle),	dp	)	!unit indepedent				!|																											!|
 						!Hamilton operator																				!|
 						H_k(n,m)	=			H_k(n,m)		+	ft_phase						* H_real(n,m,sc)	!|	
 						!																								!|
 						!OPTIONAL energy gradients																		!|
 						if( do_en_grad)		then																		!|
-																														!|
-							H_ka(:,n,m) 	=	H_ka(:,n,m)		+ ft_phase * i_dp *  dR_cart(:)	* H_real(n,m,sc)		!|
+							dR_cart(:)		=	intern_to_cart( a_latt(:,:), dR(:)	)	! velo should have cart units	!|																			!|
+							H_ka(:,n,m) 	=	H_ka(:,n,m)		+ ft_phase * i_dp * dR_cart(:)	* H_real(n,m,sc)		!|
 						end if																							!|
 					end do																								!|
 				end do
@@ -198,25 +193,29 @@ module wann_interp
 			!
 			!
 		else
+			if(	kpt_idx <= mpi_nProcs	)then 
+				write(*,*)	"[",mpi_id,"FT_R_to_k]: will use WANNIER FT CONVENTION"
+			end if
 			!
 			! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
 			!	NEGLECT ATOMIC POSITIONS																				!|
 			!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
 			!	---------		
 			!$OMP PARALLEL DEFAULT(none)						&
-			!$OMP PRIVATE( dR,  ft_angle, ft_phase, a,m,n)		&
-			!$OMP SHARED(  H_real, H_k, H_ka, R_frac,  kpt, n_sc, n_wf, do_en_grad, two_pi, two_pi_i)
+			!$OMP PRIVATE( dR_cart, ft_angle, ft_phase, a,m,n)	&
+			!$OMP SHARED( n_sc, n_wf,  R_frac, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
 			!$OMP DO REDUCTION(+: H_k, H_ka)																						
-			do sc = 1, n_sc
-				ft_angle			=	two_pi * dot_product(kpt(1:3), R_frac(:,sc))								!|	
-				ft_phase			= 	cmplx(	cos(ft_angle), sin(ft_angle), dp)										!|	
+			do sc = 1, n_sc																								!|
+				ft_angle	=	two_pi * dot_product(	kpt(:),R_frac(:,sc)	)		! internal  coord					!|
+				ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle), dp)												!|	
 				!Hamilton operator																						!|
-				H_k(:,:)			= 			H_k(:,:)		+	ft_phase						* H_real(:,:,sc)	!|
+				H_k(:,:)	= 			H_k(:,:)		+	ft_phase								* H_real(:,:,sc)	!|
 				!																										!|
 				!OPTIONAL energy gradients																				!|
-				if( do_en_grad)		then																				!|
+				if( do_en_grad)		then
+					dR_cart(:)			=	intern_to_cart(a_latt, R_frac(:,sc))																				!|
 					do a = 1, 3																							!|
-						H_ka(a,:,:) 	=		H_ka(a,:,:)		+	ft_phase * two_pi_i * 	R_frac(a,sc) * H_real(:,:,sc)!|
+						H_ka(a,:,:) 	=		H_ka(a,:,:)		+	ft_phase * i_dp * 	dR_cart(a) * H_real(:,:,sc)		!|
 					end do																								!|
 				end if																									!|
 			end do
@@ -231,33 +230,37 @@ module wann_interp
 		! II	INTERPOLATE CONN & CURV
 		!
 		if(use_pos_op) then
+			if(	kpt_idx <= mpi_nProcs	)then 
+				write(*,*)	"[",mpi_id,"FT_R_to_k]: will interpolate conn & curv additonally"
+			end if
 			if( allocated(atom_frac)	) then
 				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
 				!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
 				!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|
 				!	---------
 				!$OMP PARALLEL DEFAULT(none) &					
-				!$OMP PRIVATE(m,n, dR, ft_angle, ft_phase, a, b) &	
-				!$OMP Shared(n_sc, n_wf, A_ka, Om_kab, R_frac, delta_at, kpt, r_real, two_pi, two_pi_i)	
+				!$OMP PRIVATE(m,n, dR, dR_cart, ft_angle, ft_phase, a, b) &	
+				!$OMP Shared(n_sc, n_wf, A_ka, Om_kab, a_latt, R_frac, delta_at, kpt,  r_real)	
 				!$OMP DO REDUCTION(+: A_ka, Om_kab)																											
 				do sc = 1, n_sc																								!|																				
 					do m = 1 , n_wf																							!|
 						do n = 1, n_wf																						!|
-							dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)								!	internal units	!|
+							dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)				! internal units					!|
+							dR_cart(:)	=	intern_to_cart( a_latt(:,:), dR(:)	)		! in cartesian coord				!|
 							!																								!|
-							ft_angle	=	two_pi * dot_product(kpt(1:3),	dR(1:3))								!|
+							ft_angle	=	2.0_dp * pi_dp * dot_product(kpt(:),dR(:))												!|
 							ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)								!|
 							!																								!|									
 							!																								!|	
 							do a = 1, 3																						!|									
 								!connection																					!|					
-								A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase				* r_real(a,:,:,sc)		!|
+								A_ka(a,n,m)			=	A_ka(a,n,m)		+	ft_phase				* r_real(a,n,m,sc)		!|
 								!curvature																					!|	
 								do b = 1, 3																					!|	
-									Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	&													!|	
-													 		+ 	ft_phase * two_pi_i * dR(a) 	* r_real(b,:,:,sc)		!|	
-									Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	& 													!|
-															- 	ft_phase * two_pi_i * dR(b) 	* r_real(a,:,:,sc)		!|	
+									Om_kab(a,b,n,m)	=	Om_kab(a,b,n,m)	&													!|	
+													 		+ 	ft_phase * i_dp * dR_cart(a) 	* r_real(b,n,m,sc)		!|	
+									Om_kab(a,b,n,m)	=	Om_kab(a,b,n,m)	& 													!|
+															- 	ft_phase * i_dp * dR_cart(b) 	* r_real(a,n,m,sc)		!|	
 								end do																						!|
 							end do																							!|
 						end do																								!|
@@ -276,23 +279,24 @@ module wann_interp
 				!	THIS IS THE 	"WANNIER"	CONVENTION																	!|
 				!	---------
 				!$OMP PARALLEL DEFAULT(none) &					
-				!$OMP PRIVATE(ft_angle, ft_phase, a, b) &	
-				!$OMP Shared(n_sc, A_ka, Om_kab, R_frac, kpt, r_real, two_pi, two_pi_i)	
+				!$OMP PRIVATE(dR_cart, ft_angle, ft_phase, a, b) &	
+				!$OMP Shared(n_sc, a_latt, R_frac, r_real, A_ka, Om_kab, kpt, two_pi)	
 				!$OMP DO REDUCTION(+: A_ka, Om_kab)
 				do sc = 1, n_sc																								!|
-					ft_angle	=	two_pi * dot_product(kpt(1:3),	R_frac(1:3,sc))										!|
-					ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)										!|
+					ft_angle	=	two_pi * dot_product(kpt(:),R_frac(:,sc))														!|
+					ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle),	dp	)											!|
+					dR_cart(:)	=	intern_to_cart( a_latt, R_frac(:,sc))													!|
 					!																										!|									
 					!																										!|	
 					do a = 1, 3																								!|									
 						!connection																							!|					
-						A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase					* r_real(a,:,:,sc)			!|
+						A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase		* r_real(a,:,:,sc)						!|
 						!curvature																							!|	
 						do b = 1, 3																							!|	
 							Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	&															!|	
-											 		+ 	ft_phase * two_pi_i * R_frac(a,sc) * r_real(b,:,:,sc)				!|	
+											 		+ 	ft_phase * i_dp * dR_cart(a) * r_real(b,:,:,sc)						!|	
 							Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)	& 															!|
-													- 	ft_phase * two_pi_i * R_frac(b,sc) * r_real(a,:,:,sc)				!|	
+													- 	ft_phase * i_dp * dR_cart(b) * r_real(a,:,:,sc)						!|	
 						end do																								!|
 					end do																									!|
 					!																										!|
@@ -304,7 +308,8 @@ module wann_interp
 			end if
 		end if	
 		!
-		if(debug_mode) then	
+		if(debug_mode) then
+			call debug_ft_phase(R_frac, delta_at, kpt, a_latt)	
 			call write_ham_binary(kpt_idx,	H_k)
 			call check_W_gauge_herm(kpt, H_k, H_ka, A_ka, Om_kab)
 		end if	
@@ -312,6 +317,15 @@ module wann_interp
 		return
 	end subroutine
 
+
+	pure function intern_to_cart(  a_latt, vec	) result(vec_cart)
+		real(dp),	intent(in)		::		a_latt(3,3), vec(3)
+		real(dp)					::		vec_cart(3)
+		!
+		vec_cart(:)		=	matmul(		a_latt, vec(:)	)
+		!
+		return
+	end function
 
 
 
@@ -577,6 +591,69 @@ module wann_interp
 !	**************************************************************************************************************************************************
 !	**************************************************************************************************************************************************
 !
+	
+
+	subroutine debug_ft_phase(R_frac, delta_at, kpt, a_latt)
+		real(dp),						intent(in)				::	R_frac(:,:), delta_at(:,:,:), kpt(3), a_latt(3,3)
+		real(dp)												:: 	dR(3), dR_cart(3), kpt_cart(3), &
+																	ft_agl, ft_agl_cart, two_pi 
+		complex(dp)												::	R_sum(3), R_sum_cart(3),			&
+																	ft_phs, ft_phs_cart,&
+																	ft_sum, ft_sum_cart, two_pi_i 
+		integer													::	m, n, sc, n_sc , n_wf
+		!
+		n_wf	=	size(delta_at,2)
+		n_sc	=	size(R_frac,2)
+		!
+		kpt_cart(:)	=	get_cart_kpt(a_latt, kpt)
+		!
+		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+		if(	mpi_id == mpi_root_id ) then	
+			write(*,*)	"[debug_ft_phase]: now check (n,m)=(",n,",",m,")	#sc=",n_sc	,"kpt=",kpt			
+			two_pi		=	2.0_dp * pi_dp
+			two_pi_i	= 	two_pi * i_dp
+			ft_sum 		=	0.0_dp
+			ft_sum_cart	=	0.0_dp
+			R_sum		=	0.0_dp
+			R_sum_cart	=	0.0_dp
+			!
+			do m = 1 , n_wf	
+					do n = 1, n_wf	
+			do sc = 1, n_sc										
+					
+						dR(:)		=	R_frac(:,sc)	+ delta_at(:,n,m)				! 	int						
+						dR_cart(:)	=	intern_to_cart( a_latt, dR )	!	cart
+						!
+						!	INTERNAL UNITS 
+						ft_agl		=	two_pi * dot_product(	kpt(:),	dR(:)	)
+						ft_phs		=	cmplx( cos(ft_agl), sin(ft_agl), dp)
+						ft_sum 		=	ft_sum 		+	ft_phs
+						R_sum(:)	=	R_sum(:)	+	two_pi_i	* dR(:)	* ft_phs
+						!	-------------------
+						!
+						!	CARTESIAN COORDS
+						ft_agl_cart =	dot_product( kpt_cart(:), dR_cart(:) )
+						ft_phs_cart = 	cmplx(	cos(ft_agl_cart), sin(ft_agl_cart), 	dp)
+						ft_sum_cart =	ft_sum_cart + 	ft_phs_cart
+						R_sum_cart(:)	=	R_sum_cart(:)	+	dR_cart(:)	* ft_phs_cart
+						!	-------------------
+						!
+						end do
+						!
+			!if( abs(ft_sum - 1.0_dp) > 1e-4_dp) &
+			write(*,*)	"[debug_ft_phase]:	WARNING      ft_sum=",ft_sum,'vs ',ft_sum_cart,"=ft_sum_cart"
+		
+			write(*,*)	"[debug_ft_phase]:	WARNING      R_sum=",R_sum,'.'
+						write(*,*)	"[debug_ft_phase]:	WARNING      R_sum_cart=",R_sum_cart,'.'
+
+					end do
+				end do
+			
+		end if
+		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+		!
+		return
+	end subroutine
 
 
 
