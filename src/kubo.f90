@@ -34,14 +34,14 @@ contains
 
 !public
 
-	function kubo_ahc_tens(en_k, Om_kab, fd_distrib) result( o_ahc)
+	function kubo_ahc_tens(en_k, V_ka, fd_distrib) result( o_ahc)
 		!	see wann guide chapter 12
 		!		eq. (12.16)
 		real(dp),						intent(in)		::	en_k(:), fd_distrib(:,:)
-		complex(dp), 	allocatable,	intent(in)		::	Om_kab(:,:,:,:)
+		complex(dp), 					intent(in)		::	V_ka(:,:,:)
 		real(dp)										::	curv_nn(3,3)
 		real(dp),		allocatable						::	o_ahc(:,:,:)
-		integer											::	n, ef_idx, n_ef, n_wf
+		integer											::	n, np, i,j, ef_idx, n_ef, n_wf
 		!
 		n_wf	=	size(en_k,1)
 		n_ef	=	size(fd_distrib,1)
@@ -49,22 +49,29 @@ contains
 		o_ahc	=	0.0_dp
 		!
 		!
-		if(allocated(Om_kab)) then
-			!$OMP PARALLEL  DO 									&
-			!$OMP DEFAULT(	none							)	&	
-			!$OMP PRIVATE( 	curv_nn, ef_idx					)	&
-			!$OMP SHARED(	n_wf, n_ef, Om_kab, fd_distrib	)	&
-			!----
-			!$OMP 	REDUCTION( + : o_ahc	)
-			do n = 1, n_wf
-				curv_nn(:,:)	=	real(Om_kab(:,:,n,n),dp)
-				!
-				do ef_idx =1 ,n_ef
-					o_ahc(:,:,ef_idx)	=	o_ahc(:,:,ef_idx)	-	curv_nn(:,:)	*	fd_distrib(ef_idx,n)
+		!$OMP PARALLEL  DO 										&
+		!$OMP DEFAULT(	none								)	&	
+		!$OMP PRIVATE( 	np, i,j, curv_nn, ef_idx				)	&
+		!$OMP SHARED(	n_wf, n_ef,en_k, V_ka, fd_distrib	)	&
+		!----
+		!$OMP 	REDUCTION( + : o_ahc	)
+		do n = 1, n_wf
+			!
+			curv_nn	=	0.0_dp
+			do np = 1, n_wf
+				if(np==n)	cycle
+				do j = 1, 3
+					do i = 1, 3
+						curv_nn(i,j)	=	curv_nn(i,j)	- 2.0_dp *	aimag(	V_ka(i,n,np) * V_ka(j,np,n)	)	/ (en_k(np) - en_k(n))**2
+					end do
 				end do
 			end do
-			!$OMP END PARALLEL DO
-		end if
+			!
+			do ef_idx =1 ,n_ef
+				o_ahc(:,:,ef_idx)	=	o_ahc(:,:,ef_idx)	-	curv_nn(:,:)	*	fd_distrib(ef_idx,n)
+			end do
+		end do
+		!$OMP END PARALLEL DO
 		!
 		!
 		return
@@ -76,13 +83,13 @@ contains
 !				OPTICAL CONDUTCTIVITY (hw \non_eq 0)
 !	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	function velo_ahc_tens(en_k, v_kab, hw_lst, fd_distrib, i_eta_smr) result( o_ahc)
+	function velo_ahc_tens(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr) result( o_ahc)
 		!
 		!	use Wanxiangs expression to calculate the ohc
 		!
 		!		VIA VELOCITIES
 		real(dp),		intent(in)		::	en_k(:), hw_lst(:), fd_distrib(:,:)
-		complex(dp), 	intent(in)		::	v_kab(:,:,:), i_eta_smr
+		complex(dp), 	intent(in)		::	V_ka(:,:,:), i_eta_smr
 		complex(dp)	,	allocatable		::	o_ahc(:,:,:,:), vv_dE_hw(:,:,:)
 		real(dp),		allocatable		::	d_ef_lst(:)
 		real(dp)						::	dE_sqr, v_nm_mn(3,3)
@@ -99,32 +106,30 @@ contains
 		!
 		!$OMP  PARALLEL DO DEFAULT(NONE)  											&
 		!$OMP PRIVATE(np, d_ef_lst, dE_sqr, j, v_nm_mn, hw_idx, vv_dE_hw, ef_idx)	&
-		!$OMP SHARED(fd_distrib, en_k, v_kab, hw_lst, n_wf, n_hw, n_ef, i_eta_smr) 	&
+		!$OMP SHARED(fd_distrib, en_k, V_ka, hw_lst, n_wf, n_hw, n_ef, i_eta_smr) 	&
 		!$OMP REDUCTION(+: o_ahc)
 		do n = 1, n_wf
 			do np = 1, n_wf
-				if(np/=n) then
-					!
-					!	dE	BANDS
-					d_ef_lst	=		fd_distrib(:,n)		-	fd_distrib(:,np)
-					dE_sqr		= 	(	en_k(	 n) 		- 		en_k(	 np)	 )**2 	
-					!
-					!	loop real space direction
-					do j = 1, 3
-						v_nm_mn(:,j)			=	aimag(	v_kab(:,n,np) * v_kab(j,np,n)		) 
-					end do
-					!
-					!	LOOP HW
-					do hw_idx =1, n_hw
-						vv_dE_hw(:,:,hw_idx)	=	 v_nm_mn(:,:)	/	(	dE_sqr	- (	hw_lst(hw_idx) + i_eta_smr	)**2	)	
-					end do
-					!
-					!	LOOP FERMI LEVEL
-					do ef_idx = 1, n_ef
-						o_ahc(:,:,:,ef_idx)		=	o_ahc(:,:,:,ef_idx)	+	d_ef_lst(ef_idx)	*	vv_dE_hw(:,:,:)
-					end do
-				end if
+				if(np==n) cycle
 				!
+				!	dE	BANDS
+				d_ef_lst	=		fd_distrib(:,n)		-	fd_distrib(:,np)
+				dE_sqr		= 	(	en_k(	 n) 		- 		en_k(	 np)	 )**2 	
+				!
+				!	loop real space direction
+				do j = 1, 3
+					v_nm_mn(:,j)			=	aimag(	V_ka(:,n,np) * V_ka(j,np,n)		) 
+				end do
+				!
+				!	LOOP HW
+				do hw_idx =1, n_hw
+					vv_dE_hw(:,:,hw_idx)	=	 v_nm_mn(:,:)	/	(	dE_sqr	- (	hw_lst(hw_idx) + i_eta_smr	)**2	)	
+				end do
+				!
+				!	LOOP FERMI LEVEL
+				do ef_idx = 1, n_ef
+					o_ahc(:,:,:,ef_idx)		=	o_ahc(:,:,:,ef_idx)	+	d_ef_lst(ef_idx)	*	vv_dE_hw(:,:,:)
+				end do
 				!
 			end do
 		end do
@@ -137,13 +142,13 @@ contains
 
 
 
-	function kubo_ohc_tens(en_k, v_kab, hw_lst, fd_distrib, i_eta_smr)	result(z_ohc)
+	function kubo_ohc_tens(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr)	result(z_ohc)
 		!
 		!		calculates wann guide (12.5) explicitly
 		!	
 		!	via VELOCITIES
 		real(dp),		intent(in)		::	en_k(:), hw_lst(:), fd_distrib(:,:)
-		complex(dp),	intent(in)		::	v_kab(:,:,:), i_eta_smr
+		complex(dp),	intent(in)		::	V_ka(:,:,:), i_eta_smr
 		complex(dp), 	allocatable		::	z_ohc(:,:,:,:), vv_dE_hw(:,:,:) 
 		real(dp), 		allocatable		::	df_mn(:) 
 		complex(dp)						::	v_nm_mn(3,3)
@@ -162,32 +167,29 @@ contains
 		!
 		!$OMP  PARALLEL DO DEFAULT(NONE)  													&
 		!$OMP PRIVATE(n, df_mn, dE_mn, j, v_nm_mn, vv_dE_hw, hw_idx, ef_idx)				&
-		!$OMP SHARED(fd_distrib, en_k, v_kab, hw_lst, n_wf, n_hw, n_ef, kubo_tol, i_eta_smr)&
+		!$OMP SHARED(fd_distrib, en_k, V_ka, hw_lst, n_wf, n_hw, n_ef, kubo_tol, i_eta_smr)&
 		!$OMP REDUCTION(+: z_ohc)
 		do m = 1 , n_wf
 			do n = 1, n_wf
-				dE_mn 	=	en_k(m)	-	en_k(n)
+				if(m==n)	cycle
+				dE_mn 		=	en_k(m)			-	en_k(n)
+				df_mn		=	fd_distrib(:,m)	-	fd_distrib(:,n)
 				!
+				!	loop real space direction
+				do j = 1, 3
+					v_nm_mn(:,j)	=	V_ka(:,n,m) * V_ka(j,m,n)
+				end do
 				!
-				if(	abs(dE_mn) > kubo_tol ) then 
-					df_mn		=	fd_distrib(:,m)	-	fd_distrib(:,n)
-					!
-					!	loop real space direction
-					do j = 1, 3
-						v_nm_mn(:,j)	=	v_kab(:,n,m) * v_kab(j,m,n)
-					end do
-					!
-					!	LOOP HW
-					vv_dE_hw	=	cmplx(0.0_dp,0.0_dp,dp)
-					do hw_idx = 1, n_hw
-						vv_dE_hw(:,:,hw_idx)	=	v_nm_mn(:,:)	/	(	dE_mn * (dE_mn - hw_lst(hw_idx) - i_eta_smr))
-					end do
-					!
-					!	LOOP FERMI LEVEL
-					do ef_idx = 1, n_ef
-						z_ohc(:,:,:,ef_idx)		=	z_ohc(:,:,:,ef_idx)	+ 	i_dp * 	vv_dE_hw(:,:,:) * df_mn(ef_idx)
-					end do
-				end if
+				!	LOOP HW
+				vv_dE_hw	=	cmplx(0.0_dp,0.0_dp,dp)
+				do hw_idx = 1, n_hw
+					vv_dE_hw(:,:,hw_idx)	=	v_nm_mn(:,:)	/	(	dE_mn * (dE_mn - hw_lst(hw_idx) - i_eta_smr))
+				end do
+				!
+				!	LOOP FERMI LEVEL
+				do ef_idx = 1, n_ef
+					z_ohc(:,:,:,ef_idx)		=	z_ohc(:,:,:,ef_idx)	+ 	i_dp * 	vv_dE_hw(:,:,:) * df_mn(ef_idx)
+				end do
 			end do
 		end do
 		!$OMP END PARALLEL DO
