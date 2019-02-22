@@ -101,7 +101,7 @@ def write_r_file(seed_name, nAt, rhopp ):
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, N_at, atPos, mp_grid, seed_name,			
 							kubo_tol, n_hw, hw_min, hw_max,  laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,  	 
-							plot_bands,	debug_mode, do_gauge_trafo, R_vect_float	, do_write_velo,	do_write_mep_bands,								
+							plot_bands,	debug_mode, use_cart_velo, do_gauge_trafo, R_vect_float	, do_write_velo,	do_write_mep_bands,								
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro, verbose=True		
 						):
 	with open(file_path+'input.cfg','w') as outfile:
@@ -149,6 +149,7 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, N_at, atPos,
 		outfile.write('\n')
 		#
 		outfile.write('[wannInterp]\n')
+		outfile.write('    '	+	'use_cart_velo= '	+	str(use_cart_velo)		+	'\n')
 		outfile.write('    '	+	'doGaugeTrafo= '	+	str(do_gauge_trafo)		+	'\n')
 		outfile.write('    '	+	'mp_grid= '			+	str(mp_grid[0]) +' '+str(mp_grid[1])+' '+str(mp_grid[2])		+	'\n')
 		outfile.write('    '	+	'seed_name= '		+	seed_name			+	'\n')
@@ -230,7 +231,7 @@ def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_g
  							kubo_tol, 
  							n_hw, hw_min, hw_max, laser_phase,  
  							N_eF, eF_min, eF_max, Tkelvin, eta_smearing, 	
- 							plot_bands='F', debug_mode='F' ,do_gauge_trafo='T',	 R_vect_float='F',
+ 							plot_bands='F', debug_mode='F', use_cart_velo='T', do_gauge_trafo='T',	 R_vect_float='F',
  							do_write_velo='F',	do_write_mep_bands='F',			
  							do_mep='T', do_kubo='F', do_ahc='F', do_opt='F', do_gyro='F'		
  						):
@@ -270,7 +271,7 @@ def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_g
 	#	write mepInterp
 	write_mepInterp_input(	 root_dir+'/',valence_bands, ax, ay, az, a0, mp_grid, seed_name,	
 							kubo_tol, n_hw, hw_min, hw_max,  laser_phase, N_eF, eF_min, eF_max, Tkelvin,eta_smearing, 							
-							plot_bands, debug_mode, do_gauge_trafo,	R_vect_float,
+							plot_bands, debug_mode, use_cart_velo, do_gauge_trafo,	R_vect_float,
 							do_write_velo, do_write_mep_bands,							
 							do_mep, do_kubo, do_ahc, do_opt, do_gyro							
 						)

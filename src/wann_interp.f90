@@ -21,7 +21,8 @@ module wann_interp
 									is_equal_mat,			&
 									is_herm_mat,			&
 									is_skew_herm_mat		
-	use input_paras,	only:		debug_mode,	atPos,			&
+	use input_paras,	only:		debug_mode,	atPos,		&
+									use_cart_velo,			&
 									kubo_tol, a_latt
 	use file_io,		only:		write_eig_binary,		&
 									write_ham_binary
@@ -152,7 +153,7 @@ module wann_interp
 		!
 		if( allocated(atom_frac)) then	
 			if(	kpt_idx <= mpi_nProcs	)then 
-				write(*,*)	"[",mpi_id,"FT_R_to_k]: will use TIGHT-B FT CONVENTION"
+				write(*,'(a,i5,a)')	"[#",mpi_id,";FT_R_to_k]: will use TIGHT-B FT CONVENTION"
 			end if
 			! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
 			!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
@@ -166,13 +167,13 @@ module wann_interp
 			end do
 			!$OMP PARALLEL DEFAULT(none)								&
 			!$OMP PRIVATE( 	dR, dR_cart, ft_angle, ft_phase, a,m,n)		&
-			!$OMP SHARED(  	n_sc, n_wf, R_frac, delta_at, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
+			!$OMP SHARED(  	use_cart_velo, n_sc, n_wf, R_frac, delta_at, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
 			!$OMP DO REDUCTION(+: H_k, H_ka)
 			do sc = 1, n_sc																								!|
 				do m = 1 , n_wf																							!|
 					do n = 1, n_wf																						!|
 						dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)				! in internal  coord				!|	
-							! in cartesian coord				!|
+																														!|			
 						!																								!|
 						ft_angle	=	two_pi * dot_product(	kpt(:),	dR(:)	)		! internal  coord				!|
 						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle),	dp	)	!unit indepedent				!|																											!|
@@ -180,9 +181,16 @@ module wann_interp
 						H_k(n,m)	=			H_k(n,m)		+	ft_phase						* H_real(n,m,sc)	!|	
 						!																								!|
 						!OPTIONAL energy gradients																		!|
-						if( do_en_grad)		then																		!|
-							dR_cart(:)		=	intern_to_cart( a_latt(:,:), dR(:)	)	! velo should have cart units	!|																			!|
-							H_ka(:,n,m) 	=	H_ka(:,n,m)		+ ft_phase * i_dp * dR_cart(:)	* H_real(n,m,sc)		!|
+						if( do_en_grad)		then																		!|					
+							!																							!|	
+							!	get dR_cart																				!|										
+							if( use_cart_velo ) then																	!|
+								dR_cart(:)	= 	intern_to_cart( a_latt(:,:), dR(:)	)									!|
+							else																						!|
+								dR_cart(:)	=	two_pi * dR(:)															!|
+							end if																						!|
+							!																							!|
+							H_ka(:,n,m) 	=	H_ka(:,n,m)		+ ft_phase *  i_dp* dR_cart(:)	* H_real(n,m,sc)				!|
 						end if																							!|
 					end do																								!|
 				end do
@@ -203,7 +211,7 @@ module wann_interp
 			!	---------		
 			!$OMP PARALLEL DEFAULT(none)						&
 			!$OMP PRIVATE( dR_cart, ft_angle, ft_phase, a,m,n)	&
-			!$OMP SHARED( n_sc, n_wf,  R_frac, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
+			!$OMP SHARED(use_cart_velo, n_sc, n_wf,  R_frac, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
 			!$OMP DO REDUCTION(+: H_k, H_ka)																						
 			do sc = 1, n_sc																								!|
 				ft_angle	=	two_pi * dot_product(	kpt(:),R_frac(:,sc)	)		! internal  coord					!|
@@ -212,8 +220,14 @@ module wann_interp
 				H_k(:,:)	= 			H_k(:,:)		+	ft_phase								* H_real(:,:,sc)	!|
 				!																										!|
 				!OPTIONAL energy gradients																				!|
-				if( do_en_grad)		then
-					dR_cart(:)			=	intern_to_cart(a_latt, R_frac(:,sc))																				!|
+				if( do_en_grad)		then																				!|
+					!	get dR_cart																						!|										
+					if( use_cart_velo ) then																			!|
+						dR_cart(:)	= 	intern_to_cart( a_latt(:,:), R_frac(:,sc)	)									!|
+					else																								!|
+						dR_cart(:)	=	two_pi * R_frac(:,sc)															!|
+					end if																								!|
+					!																									!|
 					do a = 1, 3																							!|
 						H_ka(a,:,:) 	=		H_ka(a,:,:)		+	ft_phase * i_dp * 	dR_cart(a) * H_real(:,:,sc)		!|
 					end do																								!|
@@ -240,16 +254,22 @@ module wann_interp
 				!	---------
 				!$OMP PARALLEL DEFAULT(none) &					
 				!$OMP PRIVATE(m,n, dR, dR_cart, ft_angle, ft_phase, a, b) &	
-				!$OMP Shared(n_sc, n_wf, A_ka, Om_kab, a_latt, R_frac, delta_at, kpt,  r_real)	
+				!$OMP Shared(use_cart_velo, n_sc, n_wf, A_ka, Om_kab, a_latt, R_frac, delta_at, kpt,  r_real, two_pi)	
 				!$OMP DO REDUCTION(+: A_ka, Om_kab)																											
 				do sc = 1, n_sc																								!|																				
 					do m = 1 , n_wf																							!|
 						do n = 1, n_wf																						!|
 							dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)				! internal units					!|
-							dR_cart(:)	=	intern_to_cart( a_latt(:,:), dR(:)	)		! in cartesian coord				!|
 							!																								!|
-							ft_angle	=	2.0_dp * pi_dp * dot_product(kpt(:),dR(:))												!|
+							ft_angle	=	2.0_dp * pi_dp * dot_product(kpt(:),dR(:))										!|
 							ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle)	,	dp	)								!|
+							!																								!|
+							!	get dR_cart																					!|										
+							if( use_cart_velo ) then																		!|
+								dR_cart(:)	= 	intern_to_cart( a_latt(:,:), dR(:)	)										!|
+							else																							!|
+								dR_cart(:)	=	two_pi * dR(:)																!|
+							end if																							!|
 							!																								!|									
 							!																								!|	
 							do a = 1, 3																						!|									
@@ -258,9 +278,9 @@ module wann_interp
 								!curvature																					!|	
 								do b = 1, 3																					!|	
 									Om_kab(a,b,n,m)	=	Om_kab(a,b,n,m)	&													!|	
-													 		+ 	ft_phase * i_dp * dR_cart(a) 	* r_real(b,n,m,sc)		!|	
+													 		+ 	ft_phase * i_dp * dR_cart(a) 	* r_real(b,n,m,sc)			!|	
 									Om_kab(a,b,n,m)	=	Om_kab(a,b,n,m)	& 													!|
-															- 	ft_phase * i_dp * dR_cart(b) 	* r_real(a,n,m,sc)		!|	
+															- 	ft_phase * i_dp * dR_cart(b) 	* r_real(a,n,m,sc)			!|	
 								end do																						!|
 							end do																							!|
 						end do																								!|
@@ -280,14 +300,18 @@ module wann_interp
 				!	---------
 				!$OMP PARALLEL DEFAULT(none) &					
 				!$OMP PRIVATE(dR_cart, ft_angle, ft_phase, a, b) &	
-				!$OMP Shared(n_sc, a_latt, R_frac, r_real, A_ka, Om_kab, kpt, two_pi)	
+				!$OMP Shared(use_cart_velo, n_sc, a_latt, R_frac, r_real, A_ka, Om_kab, kpt, two_pi)	
 				!$OMP DO REDUCTION(+: A_ka, Om_kab)
 				do sc = 1, n_sc																								!|
-					ft_angle	=	two_pi * dot_product(kpt(:),R_frac(:,sc))														!|
+					ft_angle	=	two_pi * dot_product(kpt(:),R_frac(:,sc))												!|
 					ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle),	dp	)											!|
-					dR_cart(:)	=	intern_to_cart( a_latt, R_frac(:,sc))													!|
-					!																										!|									
-					!																										!|	
+					!	get dR_cart																							!|										
+					if( use_cart_velo ) then																				!|
+						dR_cart(:)	= 	intern_to_cart( a_latt(:,:), R_frac(:,sc)	)										!|
+					else																									!|
+						dR_cart(:)	=	two_pi * R_frac(:,sc)																!|
+					end if																									!|
+					!																										!|
 					do a = 1, 3																								!|									
 						!connection																							!|					
 						A_ka(a,:,:)			=	A_ka(a,:,:)		+	ft_phase		* r_real(a,:,:,sc)						!|
@@ -448,7 +472,7 @@ module wann_interp
 			!	VELOCITIES
 										M_in			=	H_ka(a,:,:)
 										call	blas_matmul(	U_dag, M_in, 		tmp			)
-										call	blas_matmul(	tmp, U_k,			M_in		)
+										call	blas_matmul(	tmp, 	U_k,		M_in		)
 										H_ka(a,:,:)		=	M_in(:,:)
 			!	CONNECTION
 			if( allocated(A_ka))then	

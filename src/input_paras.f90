@@ -28,6 +28,7 @@ module input_paras
 												plot_bands,															&
 												use_mpi,															&
 												debug_mode,															&
+												use_cart_velo,														&
 												do_gauge_trafo,														&
 												do_write_velo,														&
 												use_R_float,														&
@@ -59,6 +60,7 @@ module input_paras
 	character(len=9)			::	opt_out_dir
 	character(len=10)			::	gyro_out_dir	
 	logical						::	plot_bands, 					&
+									use_cart_velo,					&
 									do_gauge_trafo, 				&
 									use_R_float,					&
 									do_write_velo,					&
@@ -141,6 +143,7 @@ module input_paras
 				!~~~~~~~~~~~~
 				!
 				![wannInterp]
+				call CFG_add_get(my_cfg,	"wannInterp%use_cart_velo"		,	use_cart_velo		,	"use cartesian instead of internal units")
 				call CFG_add_get(my_cfg,	"wannInterp%doGaugeTrafo"		,	do_gauge_trafo		,	"switch (W)->(H) gauge trafo"		)
 				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
 				call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files"			)
@@ -252,6 +255,7 @@ module input_paras
 				![FLAGS]		
 				call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		use_cart_velo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_write_velo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_write_mep_bands,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)

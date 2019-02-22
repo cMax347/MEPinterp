@@ -74,7 +74,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
                     n_hw, hw_min, hw_max,  laser_phase ,
                     N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
                     plot_bands, debug_mode,
-                    do_gauge_trafo, R_vect_float,
+                    use_cart_velo, do_gauge_trafo, R_vect_float,
                     do_write_velo, do_write_mep_bands,
                     do_mep, do_kubo, do_ahc, do_opt, do_gyro,
                     verbose=False
@@ -395,7 +395,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
         write_mepInterp_input(
                             file_path,valence_bands, ax, ay, az, a0, N_at, atPos, mp_grid, seed_name,
                             kubo_tol, n_hw, hw_min, hw_max,  laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
-                            plot_bands, debug_mode, do_gauge_trafo, R_vect_float    , do_write_velo,    do_write_mep_bands,
+                            plot_bands, debug_mode, use_cart_velo, do_gauge_trafo, R_vect_float    , do_write_velo,    do_write_mep_bands,
                             do_mep, do_kubo, do_ahc, do_opt, do_gyro, verbose
                         )
 
@@ -449,6 +449,7 @@ def loop_strain(dmin, dmax, n_d):
                             #
                             plot_bands=              False         ,
                             debug_mode=              False         ,
+                            use_cart_velo=           False         ,
                             do_gauge_trafo=          True          ,
                             R_vect_float=            False         ,
                             do_write_velo=           False         ,

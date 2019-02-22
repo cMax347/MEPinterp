@@ -220,7 +220,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_ahc )	then
 							kubo_ahc_loc(:,:,:)		=	kubo_ahc_loc(:,:,:)		&
-														+ 	kubo_ahc_tens(en_k,	Om_kab,   fd_distrib)
+														+ 	kubo_ahc_tens(en_k,	V_ka,   fd_distrib)
 							!			---------------------------------
 							velo_ahc_loc(:,:,:,:)	= 	velo_ahc_loc(:,:,:,:)	&	
 								 							+	velo_ahc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_eta_smr)
