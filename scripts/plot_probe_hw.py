@@ -47,8 +47,8 @@ class HW_probe:
 		print("~")
 		print("[init]: will search for data in folder: "	+	self.root_dir	)
 		print("[init]: will output to folder: "				+ 	self.plot_dir	)
-		
-	
+
+
 
 	def __del__(self):
 		print("~")
@@ -58,7 +58,7 @@ class HW_probe:
 		print("-------------------------------------------------------------------------------")
 
 
-	
+
 
 	def read_responses(self, out_dir, hw_idx):
 		#
@@ -67,7 +67,7 @@ class HW_probe:
 		print('read_responses by identyfing with id_str ="'+id_str+"'")
 		#
 		#	HALL LIKE
-		ahc_tens		=	read_real_tens_file(	out_dir		+ 	'/ahc/ahc_tens.dat'			,			'ahc'		)		
+		ahc_tens		=	read_real_tens_file(	out_dir		+ 	'/ahc/ahc_tens.dat'			,			'ahc'		)
 		ahc_kubo_tens	=	read_cmplx_tens_file(	out_dir		+	'/ahc/ahc_velo.hw'	+ id_str,			'ahcVELO'	)
 		ohc_kubo_tens	=	read_cmplx_tens_file(	out_dir		+	'/ahc/ohc_kubo.hw'	+ id_str,			'ohcVELO'	)
 		#-------
@@ -87,13 +87,13 @@ class HW_probe:
 
 
 	def save_attach_subData(		self, work_dir, hw,
-									ahc_tens, ahc_kubo_tens, ohc_kubo_tens,	
+									ahc_tens, ahc_kubo_tens, ohc_kubo_tens,
 									SeCnd_opt_tens, optA_tens, optS_tens
 							):
 		#
 		#only record if the container is not empty (i.e. the file was found and had good behaviour)
 		#print("[save_attach_subData]: hw="+str(hw))
-	
+
 		#--------------------------
 		#	HALL LIKE
 		#
@@ -143,7 +143,7 @@ class HW_probe:
 		print("^")
 		print("		TRAVERSE SUBDIRECOTRIES - COLLECT THE DATA	")
 		print("-------------------------------------------------------------------------------")
-		
+
 
 		out_dir		=	self.root_dir+'/out'
 		ahc_dir		=	out_dir+'/ahc'
@@ -157,8 +157,8 @@ class HW_probe:
 			print('[read_hw]: now try to read #hw ',hw_idx,"= ",hw_val," (eV)")
 			ahc_tens, ahc_kubo_tens, ohc_kubo_tens, SeCnd_opt_tens, optA_tens, optS_tens	=	self.read_responses(out_dir,hw_idx)
 			#
-			self.save_attach_subData(	out_dir, hw_val, 	
-										ahc_tens, ahc_kubo_tens, ohc_kubo_tens, 
+			self.save_attach_subData(	out_dir, hw_val,
+										ahc_tens, ahc_kubo_tens, ohc_kubo_tens,
 										SeCnd_opt_tens, optA_tens, optS_tens
 									)
 
@@ -177,7 +177,7 @@ class HW_probe:
 		#		#
 		#		#
 		#		work_dir	=	entry.path
-		#		hw 		=	float(work_dir.split("hw")[1])	
+		#		hw 		=	float(work_dir.split("hw")[1])
 		#		#
 		#		#	READ DATA FROM NEW SUBDIR
 		#		print("[read_hw]: found subdir ="+str(entry.path)+' assoc. hw='+str(hw))
@@ -194,7 +194,7 @@ class HW_probe:
 		## ~					 ~
 		##--
 		#self.hw_lst				=	sorted( self.hw_lst						)
-		
+
 		##
 		#self.hw_cs_data			=	sorted(	self.hw_cs_data					)
 		#self.hw_lc_data			=	sorted(	self.hw_lc_data					)
@@ -233,29 +233,29 @@ class HW_probe:
 		elif units == "SI":
 			scale			=	scale * au_to_S_cm
 			unit_str		=	"[S/cm]"
-			unit_dsc		=	"SI units"	
-		elif units == "wx":		 	
+			unit_dsc		=	"SI units"
+		elif units == "wx":
 			scale			=	scale *au_to_S_cm	/ 100.
 			unit_str		=	r'[$10^2$ S/cm]'
-			unit_dsc		=	"Units used by wanxiang in his paper. this should be the SI value divided by 100"	
+			unit_dsc		=	"Units used by wanxiang in his paper. this should be the SI value divided by 100"
 		#
 		print('[set_hall_units]:  chooen units "'+units+'" with dim '+unit_str+'" and  descriptor: "'+unit_dsc+'" '	)
 		#
-		return scale, unit_str, unit_dsc 
+		return scale, unit_str, unit_dsc
 
 
 
-			
 
-	def plot_hall_like(		self, units='au', scale=1.0, 
-							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
+
+	def plot_hall_like(		self, units='au', scale=1.0,
+							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True,
 							label_size=14, xtick_size=12, ytick_size=12,
 							marker_size=12,
 							re_bound=1, im_bound=1
 					):
 		print("^")
 		print("^")
-		print("-------------------------------------------------------------------------------")	
+		print("-------------------------------------------------------------------------------")
 		print("		PLOT HALL LIKE")
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		print("[plot_hall_like]:	try to create folder where plots should go")
@@ -270,7 +270,7 @@ class HW_probe:
 				print("~")
 		else:
 			print('[plot_hall_like]: '+self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
-		#		
+		#
 		#
 		hw_plot 		= []
 		ahc_data	 	= []
@@ -290,7 +290,7 @@ class HW_probe:
 			ohc_kubo_data.append(					ohc_tens[1]				)
 		#
 		#
-		
+
 		#
 		#
 		dim_str	= []
@@ -308,9 +308,9 @@ class HW_probe:
 
 
 		#	color code for the AHC plot
-		ahc_col		=	'black'
+		ahc_col		=	'purple'
 		ohc_wx_col	=	'blue'
-		ohc_w90_col	=	'orange'	
+		ohc_w90_col	=	'orange'
 
 		#
 		#plot all 9 components of mep tensor
@@ -323,7 +323,7 @@ class HW_probe:
 				IM_ahc_kubo_plot	= []
 				RE_ohc_kubo_plot	= []
 				IM_ohc_kubo_plot	= []
-				#				
+				#
 				for ahc_tens in ahc_data:
 					ahc_plot.append(						scale * np.real(	ahc_tens[i][j]		)				)
 					zero_plot.append(								0												)
@@ -333,7 +333,7 @@ class HW_probe:
 				for ohc_tens in ohc_kubo_data:
 					RE_ohc_kubo_plot.append(				scale * np.real(	ohc_tens[i][j]		)				)
 					IM_ohc_kubo_plot.append(				scale * np.imag(	ohc_tens[i][j]		)				)
-				
+
 
 				#
 				#
@@ -344,10 +344,10 @@ class HW_probe:
 				#		REAL PART
 				#
 				if plot_ahc:
-					try:
-						ax[0].plot(hw_plot, ahc_plot,'-', color=ahc_col,label=r'$ \: \: \:\: \;  \sigma ^{\mathrm{AHC}}$')
-					except:
-						print("[plot_hall_like]: 	WARNING could not plot AHC tensor")
+					ax[0].plot(hw_plot, zero_plot,'-',alpha=.25,linewidth=.75,color='black')
+					ax[0].plot(hw_plot, ahc_plot,'-', color=ahc_col,label='dc ahc')
+					#except:
+					#	print("[plot_hall_like]: 	WARNING could not plot AHC tensor")
 				if plot_ahc_kubo:
 					try:
 						ax[0].plot(hw_plot, RE_ahc_kubo_plot,		'v-', 	color=ohc_wx_col, markersize=marker_size,		label=r'Wx'		)
@@ -363,14 +363,17 @@ class HW_probe:
 				#		IMAGINARY PART
 				#
 				if plot_ahc_kubo:
+					# plot empty line to get dc legend as well
+					ax[1].plot(hw_plot, zero_plot,'-',alpha=.25,linewidth=.75,color='black')
+					ax[1].plot([], [], '-',alpha=1.0, color=ahc_col,label=r'$\sigma^{\mathrm{DC}}$')
 					try:
-						ax[1].plot(hw_plot, zero_plot,'-',color='black')
-						ax[1].plot(hw_plot, IM_ahc_kubo_plot,		'v-', 	color=ohc_wx_col, markersize=marker_size,		label=r'Wx'		)
+					
+						ax[1].plot(hw_plot, IM_ahc_kubo_plot,		'v-', 	color=ohc_wx_col, markersize=marker_size,		label=r'$\sigma^{\mathrm{AC}}_\mathrm{Wx}$'		)
 					except:
 						print("[plot_hall_like]: 	WARNING could not plot IM AHC_Kubo (wann guide) tensor")
 				if plot_ohc:
 					try:
-						ax[1].plot(hw_plot, IM_ohc_kubo_plot,		'*-', 	color=ohc_w90_col, markersize=marker_size,		label=r'w90'		)
+						ax[1].plot(hw_plot, IM_ohc_kubo_plot,		'*-', 	color=ohc_w90_col, markersize=marker_size,		label=r'$\sigma^{\mathrm{AC}}_\mathrm{w90}$'		)
 					except:
 						print("[plot_hall_like]: 	WARNING could not plot IM OHC_Kubo (wanxiang) tensor")
 				#
@@ -381,11 +384,11 @@ class HW_probe:
 				ax[0].set_yticks(np.arange(-re_bound, re_bound, 0.1), minor=True)
 				ax[1].set_yticks(np.arange(-im_bound, im_bound, 0.2), minor=True)
 
-				try:	
+				try:
 					ax[0].set_xlim([hw_min, hw_max])
 					ax[0].set_ylim([- re_bound , re_bound  ])
 					ax[1].set_ylim([- im_bound , im_bound  ])
-					
+
 
 					#
 					ax[0].set(ylabel=r'$\sigma^\mathrm{R}_{'+dim_str[i]+dim_str[j]+'}\; (\omega)\;$' +	unit_str)
@@ -415,7 +418,7 @@ class HW_probe:
 				print('[plot_hall_like]:	finished processing '+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+outFile_path	)
 		print("-------------------------------------------------------------------------------")
 		print("")
-		print("")	
+		print("")
 
 
 
@@ -425,14 +428,14 @@ class HW_probe:
 	def plot_opt(self):
 		print("^")
 		print("^")
-		print("-------------------------------------------------------------------------------")	
+		print("-------------------------------------------------------------------------------")
 		print("		PLOT HALL LIKE")
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		print("[plot_opt]: 	WARNING this function is not implemented yet (ToDo!)	")
 		#		MAYBE JUST ADD THIS TO HALL LIKE, THEN ITS EASIER TO COMPARE ALL DATA!!!!!!
 		#
 
-	
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 #	end of class 	HW_probe
@@ -461,17 +464,17 @@ def plot_hw(root_dir):
 		#myTest.print_results_container()
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		#
-		#	PLOT RESPONSES 
+		#	PLOT RESPONSES
 		#
 		#	~~~~~~~~~~~~~~~~~~~~~~~~
 		#
-		myTest.plot_hall_like(		units			=		'wx'		, 
-									scale			=		1.0			, 
-									plot_ahc		=		True		, 
-									plot_ahc_kubo	= 		True		, 
-									plot_ohc		=		True		, 
+		myTest.plot_hall_like(		units			=		'wx'		,
+									scale			=		1.0			,
+									plot_ahc		=		True		,
+									plot_ahc_kubo	= 		True		,
+									plot_ohc		=		True		,
 									label_size=14, xtick_size=12, ytick_size=12, marker_size=2,
-									re_bound		=	2.5,
+									re_bound		=	2.0,
 									im_bound		=	4.5
 							)
 		print("...")
@@ -532,16 +535,16 @@ else:
 #		elif units	==			'cgs':
 #			scale		=	0.09170124
 #			unit_str	=	'[-]'
-#			unit_dsc	=	'MEP is dimensionless quantity in cgs unit system'	
+#			unit_dsc	=	'MEP is dimensionless quantity in cgs unit system'
 #		#
 #		print("[set_mep_units]: MEP	unit id '"+units+"' was interpreted as "+unit_str+" the scale factor will be "+str(unit_conv))
 #		#
-#		return scale, unit_str, unit_dsc 	 
+#		return scale, unit_str, unit_dsc
 #
 #	def plot_mep(self, units='au', scale=1.0, plot_contributions=True,plot_band_res=False, label_size=14, xtick_size=12, ytick_size=12):
 #		print("^")
 #		print("^")
-#		print("-------------------------------------------------------------------------------")	
+#		print("-------------------------------------------------------------------------------")
 #		print("		PLOT MEP")
 #		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 #		print("[plot_mep]:	try to create folder where plots should go")
@@ -579,8 +582,8 @@ else:
 #				mep_band_data.append(mep_band[1])
 #		#
 #		scale, unit_str, unit_dsc 	=	self.set_mep_units(units,scale)
-#		
-#		#		
+#
+#		#
 #		#
 #		if plot_contributions:
 #			print("[plot_mep]:	will plot Chern-Simons (CS) and  local & itinerant contributions ( lc & ic)")
@@ -629,7 +632,7 @@ else:
 #					for mep_ic in mep_ic_data:
 #						mep_ic_plot.append(		scale * mep_ic[i][j]	)
 #
-#				#collect band resolved data	
+#				#collect band resolved data
 #				if plot_band_res:
 #					#print('i=',i,' j=',j, '	band contributions:')
 #					for phi, data in enumerate(mep_band_data):
@@ -656,7 +659,7 @@ else:
 #							mep_band_final[-1].append(hw)
 #
 #					#print('mep_band_final container:',	mep_band_final)
-#					
+#
 #					for hw,mep_bands in enumerate(	mep_band_plot	):
 #						#print("phi=",phi,	'mep:')
 #						#print(mep_bands)
@@ -668,7 +671,7 @@ else:
 #
 #
 #				#do PLOT
-#				fig, ax  = plt.subplots(1,1) 
+#				fig, ax  = plt.subplots(1,1)
 #				try:
 #					plt.plot(hw_plot, mep_tot_plot,'-+', color='black',label="tot")
 #				except:
@@ -694,7 +697,7 @@ else:
 #							plt.plot(hw_plot,	mep_band_final[band],	'x-', label=" #band "+str(band)		)
 #					except:
 #						print("[plot_mep]: WARNING some band contributions could not be plotted")
-#				
+#
 #				#X-AXIS
 #				plt.xlabel(r'$\hbar \omega$ (eV)',	fontsize=label_size)
 #				ax.set_xlim([hw_min,hw_max])
@@ -719,7 +722,7 @@ else:
 #				print('[plot_mep]:	finished processing '+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+self.plot_dir+'/mep_'+dim_str[i]+dim_str[j]+'.pdf')
 #		print("-------------------------------------------------------------------------------")
 #		print("")
-#		print("")	
+#		print("")
 #
 
 
