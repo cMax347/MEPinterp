@@ -25,7 +25,8 @@ module wann_interp
 									use_cart_velo,			&
 									kubo_tol, a_latt
 	use file_io,		only:		write_eig_binary,		&
-									write_ham_binary
+									write_ham_binary,		&
+									write_velo
 	use mpi_community,	only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use mpi
 	use k_space,		only:		get_cart_kpt
@@ -100,7 +101,7 @@ module wann_interp
 			!	DEBUG
 			if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt, A_ka, Om_kab, V_ka)
 		end if
-		!
+
 		!
 		return
 	end subroutine
@@ -129,7 +130,7 @@ module wann_interp
 		complex(dp),					intent(out)				::	H_k(:,:)
 		complex(dp),	allocatable,	intent(inout)			::	H_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
 		real(dp),		allocatable								::	delta_at(:,:,:)
-		real(dp)												::	dR(3), dR_cart(3),ft_angle, two_pi
+		real(dp)												::	dR(3), dR_cart(3),kpt_cart(3),ft_angle, two_pi
 		complex(dp)												::	ft_phase
 		logical													::	use_pos_op, do_en_grad
 		integer    												::	sc, a, b, n_sc, n_wf, n, m 
@@ -148,6 +149,8 @@ module wann_interp
 		if(use_pos_op)	A_ka	= 	0.0_dp
 		if(use_pos_op)	Om_kab	= 	0.0_dp
 		!
+		kpt_cart	=	get_cart_kpt(a_latt, kpt)
+
 		!
 		! I		INTERPOLATE HAM & VELO(s)
 		!
@@ -157,8 +160,8 @@ module wann_interp
 			end if
 			! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
 			!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
-			!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|																!|
-			!	---------		
+			!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|
+			!	---------																								!|
 			allocate(	delta_at(size(atom_frac,1),size(atom_frac,2),size(atom_frac,2)))
 			do n = 1, n_wf
 				do m = 1, n_wf
@@ -166,17 +169,23 @@ module wann_interp
 				end do
 			end do
 			!$OMP PARALLEL DEFAULT(none)								&
-			!$OMP PRIVATE( 	dR, dR_cart, ft_angle, ft_phase, a,m,n)		&
-			!$OMP SHARED(  	use_cart_velo, n_sc, n_wf, R_frac, delta_at, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
+			!$OMP PRIVATE( 	dR, dR_cart,  ft_angle, ft_phase, m,n)		&
+			!$OMP SHARED(  	use_cart_velo,kpt_cart, n_sc, n_wf,kpt_idx, R_frac, delta_at, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
 			!$OMP DO REDUCTION(+: H_k, H_ka)
 			do sc = 1, n_sc																								!|
 				do m = 1 , n_wf																							!|
 					do n = 1, n_wf																						!|
-						dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)				! in internal  coord				!|	
-																														!|			
+						dR(:)		=	R_frac(:,sc) +	delta_at(:,n,m)													!|	
+						!	get ft angle																				!|
+						if( use_cart_velo	) then																		!|
+							dR_cart		=	intern_to_cart(a_latt, dR)													!|			
+							ft_angle	=	 			dot_product(	kpt_cart(:),	dR_cart(:)	)! cartesian coords	!|
+						else																							!|
+							ft_angle	=	two_pi * 	dot_product(		kpt(:) ,		dR(:)	)! internal coords	!|
+						end if																							!|
 						!																								!|
-						ft_angle	=	two_pi * dot_product(	kpt(:),	dR(:)	)		! internal  coord				!|
-						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle),	dp	)	!unit indepedent				!|																											!|
+						!																								!|
+						ft_phase	= 	cmplx(	cos(ft_angle), sin(ft_angle),	dp	)	!unit indepedent				!|		
 						!Hamilton operator																				!|
 						H_k(n,m)	=			H_k(n,m)		+	ft_phase						* H_real(n,m,sc)	!|	
 						!																								!|
@@ -184,13 +193,11 @@ module wann_interp
 						if( do_en_grad)		then																		!|					
 							!																							!|	
 							!	get dR_cart																				!|										
-							if( use_cart_velo ) then																	!|
-								dR_cart(:)	= 	intern_to_cart( a_latt(:,:), dR(:)	)									!|
-							else																						!|
-								dR_cart(:)	=	two_pi * dR(:)															!|
+							if( .not. use_cart_velo ) then																!|																					!|
+								dR_cart(:)	=	two_pi  * dR(:)															!|
 							end if																						!|
 							!																							!|
-							H_ka(:,n,m) 	=	H_ka(:,n,m)		+ ft_phase *  i_dp* dR_cart(:)	* H_real(n,m,sc)				!|
+							H_ka(:,n,m) 	=	H_ka(:,n,m)		+ ft_phase * cmplx(0.0_dp,dR_cart(:),dp)* H_real(n,m,sc)!|
 						end if																							!|
 					end do																								!|
 				end do
@@ -345,8 +352,13 @@ module wann_interp
 	pure function intern_to_cart(  a_latt, vec	) result(vec_cart)
 		real(dp),	intent(in)		::		a_latt(3,3), vec(3)
 		real(dp)					::		vec_cart(3)
+		!integer						::		dim
 		!
-		vec_cart(:)		=	matmul(		a_latt, vec(:)	)
+		!vec_cart	=	0.0_dp
+		!do dim = 1, 3
+		!	vec_cart(:)	=	vec_cart(:)	+	vec(dim)	*	a_latt(dim,:)	
+		!end do
+		vec_cart(:)		=	matmul(		a_latt, vec(:)	)		
 		!
 		return
 	end function
@@ -471,8 +483,13 @@ module wann_interp
 			!
 			!	VELOCITIES
 										M_in			=	H_ka(a,:,:)
-										call	blas_matmul(	U_dag, M_in, 		tmp			)
-										call	blas_matmul(	tmp, 	U_k,		M_in		)
+										!call	blas_matmul(	U_dag, M_in, 		tmp			)
+										!call	blas_matmul(	tmp, 	U_k,		M_in		)
+										!tmp				=	matmul(U_dag, M_in)
+										tmp				=	matmul(M_in, U_k)
+										M_in			=	matmul(U_dag,tmp)
+										!M_in			=	matmul(tmp, U_k)
+										!
 										H_ka(a,:,:)		=	M_in(:,:)
 			!	CONNECTION
 			if( allocated(A_ka))then	
