@@ -372,7 +372,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
                             line    =   line    +   '\t{:.6f}'.format(np.real(HH))
                             line    =   line    +   '\t{:.6f}'.format(np.imag(HH))
                             #
-                            line    =   '{:5d}{:5d}{:5d}{:5d}{:5d}{:12.6f}{:12.6f}\n'.format(int(R[0]),int(R[1]),int(R[2]),j+1,i+1,np.real(HH),np.imag(HH))
+                            line    =   '{:5d}{:5d}{:5d}{:5d}{:5d}{:12.6f}{:12.6f}\n'.format(int(R[0]),int(R[1]),int(R[2]),i+1,j+1,np.real(HH),np.imag(HH))
                             #
                             out_file.write(line)
         out_file.close()
@@ -420,7 +420,7 @@ def loop_strain(dmin, dmax, n_d):
         strain  =   strain / 1000.
         #
         #   name of subdir where calc. will be perfomed in
-        sub_dir =   'd{:.3f}'.format(strain)
+        sub_dir =   'delta{:.3f}'.format(strain)
         #
         write_3q_HR(        base_dir    =   base_dir           ,
                             sub_dir     =   sub_dir             ,
@@ -447,7 +447,7 @@ def loop_strain(dmin, dmax, n_d):
                             Tkelvin=                0             ,
                             eta_smearing=           0.1           ,
                             #
-                            plot_bands=              False         ,
+                            plot_bands=             False         ,
                             debug_mode=              False         ,
                             use_cart_velo=           False         ,
                             do_gauge_trafo=          True          ,
