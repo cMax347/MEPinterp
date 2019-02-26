@@ -235,6 +235,7 @@ contains
 
 
 	subroutine set_recip_latt(a_latt)
+		integer			::	i, j
 		!	
 		!	see eq.(2)		PRB, 13, 5188 (1976)
 		!
@@ -244,9 +245,9 @@ contains
 		!
 		recip_latt_set	=	.false.
 		!
-		a1(:)			=	a_latt(1,:)
-		a2(:)			=	a_latt(2,:)
-		a3(:)			=	a_latt(3,:)
+		a1(:)			=	a_latt(:,1)
+		a2(:)			=	a_latt(:,2)
+		a3(:)			=	a_latt(:,3)
 		!get Unit cell volume
 		unit_vol		=	dot_product(	crossP( a1(:) , a2(:)	)		,	a3(:)	)	 
 		!
@@ -259,15 +260,42 @@ contains
 		bz_vol	=	dot_product(		crossP( b1(:), b2(:))	, b3(:)		)
 		!
 		!	CPY TO TARGET 
-		recip_latt(1,:)	=	b1(:)
-		recip_latt(2,:)	=	b2(:)
-		recip_latt(3,:)	=	b3(:)
+		recip_latt(:,1)	=	b1(:)
+		recip_latt(:,2)	=	b2(:)
+		recip_latt(:,3)	=	b3(:)
 		recip_latt_set	=	.true.
 		! -----
+		!
+		!	DEBUG
+		do i = 1, 3 
+			if( 	abs(dot_product(recip_latt(i,:),a_latt(i,:))-2.0_dp * pi_dp)		> 1e-3_dp	) &
+				write(*,'(a,i5,a,i1,a,i1,a,f8.4,a)')	"[#",mpi_id,&
+							"set_recip_latt]:	WARNING b",i,".a",i," =",dot_product(recip_latt(i,:),a_latt(i,:)),'/= 2pi'
+			!
+			!
+			do j = 1, 3
+				if(i==j) cycle
+				if( 	abs(dot_product(recip_latt(i,:),a_latt(j,:)))		> 1e-3_dp	) &
+					write(*,'(a,i5,a,i1,a,i1,a,f8.4,a)')	"[",mpi_id,&
+							"set_recip_latt]:	WARNING b",i,".a",j," =",dot_product(recip_latt(i,:),a_latt(j,:)),'/= 0'	
+			end do
+			!
+			!
+		end do
+		!
+		if(mpi_id	==	0	)	&
+			call print_recip_latt()
 		!
 		return
 	end subroutine
 
+	subroutine print_recip_latt()
+		if(mpi_id	==	0	)	&
+			write(*,*)	"reciprocal lattice:"
+			write(*,*)	recip_latt
+
+		return
+	end subroutine
 
 
 	function get_recip_latt() result( this_recip_latt )
@@ -322,6 +350,7 @@ contains
 
 
 	function get_cart_kpt(a_latt, kpt) result(kpt_cart)
+		integer			::	j
 		!
 		!	use the a_latt instead of recip_latt
 		!
@@ -329,12 +358,13 @@ contains
 		real(dp)					::	kpt_cart(3)
 		!
 		if(	recip_latt_set) then
-			!kpt_cart	=	matmul(	transpose(recip_latt), 	kpt	)
-			kpt_cart	=	matmul(	transpose(a_latt)	, 	kpt	) / (2.0_dp * pi_dp)
+			kpt_cart	=	matmul(	recip_latt, 	kpt	)
+			!
 		else
-			kpt_cart	=	0.0_dp
-			write(*,*)	"[kspace/get_cart_kpt]:	WARNING get_cart_kpt was called without lattice beeing set"
+			write(*,*)	"[kspace/get_cart_kpt]:	ERROR get_cart_kpt was called without lattice beeing set"
+			STOP
 		end if
+		!
 		!
 		return
 	end function
