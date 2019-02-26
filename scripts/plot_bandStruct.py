@@ -19,11 +19,11 @@ def get_high_symm_points(kpt_file):
 					line_label = line[41:-1].replace(" ","")	#remove whitespace
 				kpt_label.append(line_label)
 
-	#find high symmertry points in labels 
+	#find high symmertry points in labels
 	high_symm_points = []
 	for idx,lbl in enumerate(kpt_label):
 		if len(lbl) >0:
-			my_lbl = lbl 
+			my_lbl = lbl
 			if 'Gamma' in lbl:
 				my_lbl = '$\Gamma$'
 			high_symm_points.append([idx,my_lbl])
@@ -43,7 +43,7 @@ def sort_energies(en_data):
 
 		#init k_old & append first value
 		if idx == 0:
-			id_old 	= id 
+			id_old 	= id
 			k_old	= kpt
 			en_plot.append( [])
 
@@ -66,7 +66,7 @@ def get_en_plot(en_data):
 	en_plot = sort_energies(en_data)
 	nBands =	len(en_plot[0])
 	#plot each band
-	
+
 	#
 	return nBands, en_plot
 
@@ -84,8 +84,8 @@ def read_data(target_dir):
 		kpt_data 	= np.genfromtxt(kpt_file, skip_header=1, usecols= (0,1,2)	)
 		#linspace for plotting
 		k_plot		= np.linspace(	0.0,1.0,len(kpt_data)		)
-		print('[plot_bandstruct/read_data]: found '+str(len(kpt_data))+' kpts')	
-		high_symm_points	=	get_high_symm_points(kpt_file)	
+		print('[plot_bandstruct/read_data]: found '+str(len(kpt_data))+' kpts')
+		high_symm_points	=	get_high_symm_points(kpt_file)
 		print('[plot_bandstruct/read_data]: high symm pts:'+str(high_symm_points))
 		#
 		#
@@ -96,7 +96,7 @@ def read_data(target_dir):
 	else:
 		print("[plot_bandstruct/read_data]: ERROR did not find kpt_file "+kpt_file)
 		stop
-	if os.path.isfile(	en_file):	
+	if os.path.isfile(	en_file):
 		en_data		= np.genfromtxt(en_file,  skip_header=3, usecols=(0,1,2,3,4)	)
 	else:
 		print("[plot_bandstruct/pread_data]: ERROR did not find en_file "+en_file)
@@ -131,7 +131,7 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 
 
 	#PLOTTING
-	fig, ax  = plt.subplots(1,1) 
+	fig, ax  = plt.subplots(1,1)
 
 
 	for dir_idx, next_dir in enumerate(target_dir_lst):
@@ -142,7 +142,7 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 			id_label	=	''
 			try:
 				id_lst.append(	float(next_dir.split(id_str)[1])	)
-				id_label	=	id_formula+'='+str(id_lst[-1])
+				id_label	=	id_formula+'='+'{:01.2f}'.format(id_lst[-1])
 				print("[plot_bandstruct]: intepreted as "+str(id_str)+"="+id_label)
 			except:
 				print("[plot_bandstruct]: could not id the folder "+next_dir)
@@ -150,8 +150,8 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 			#
 			k_plot, k_ticks, k_labels, en_data		=	read_data(next_dir)
 			#
-			#plot_color	=	'black'	
-			#line_style	=	'-'			
+			#plot_color	=	'black'
+			#line_style	=	'-'
 			#
 			#
 			nBands,	en_plot	=	get_en_plot(en_data)
@@ -175,8 +175,8 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 	ax.set_xticklabels(k_labels,fontsize=label_size)
 	ax.grid(axis='x', alpha=.5, linewidth=.8,	color='black')
 
-	
-	
+
+
 
 	#y-axis
 	ax.set_ylim([-14,6.3])
@@ -191,39 +191,69 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 	else:
 		plt.ylabel(r'$E \,(E_h)$',fontsize=label_size)
 
-	plt.legend()
+	plt.legend(loc=(.26,.05),framealpha=1, shadow=False)
 
 	#save file
 	plt.tight_layout()
-	try:
-		plt.savefig(pdf_out_file,bbox_inches='tight')
-		print('saved band_structure: '+pdf_out_file)
-	except:
-		print('Error while saving the plot, try to show plot now in order to manually save it')
-		plt.show()
-	
+	#try:
+	plt.savefig(pdf_out_file,bbox_inches='tight')
+	print('saved band_structure: '+pdf_out_file)
+	#except:
+	#	print('Error while saving the plot, try to show plot now in order to manually save it')
+        #		plt.show()
+
 
 
 
 
 def unit_test():
-	target_dir_lst=[]
-	target_dir_lst.append('./')
-	plot_bandstruct(target_dir_lst, '', '','-','black' ,'./bands.pdf', label_size=14, y_tick_size=12, plot_in_ev=True)
+	# 	out file
+	pdf_target	=	'./bands.pdf'
 
+	#	id data
+	target_dir_lst	=[	'delta0.900',
+						'delta0.950',
+						'delta1.000',
+						'delta1.050',
+						'delta1.100'
+					]
+	id_str			=	'delta'
+	id_label		=	r'$\delta$'
+	#
+	# 	colors
+	min_col		=	'orangered'
+	bas_col		=	'black'
+	max_col		=	'deepskyblue'
+	colors		=[min_col,min_col, bas_col, max_col, max_col]
+	#
+	#	line style
+	prime		=	'-'
+	opt			=	':'
+	line_style	=	[prime, opt, prime, opt, prime]
+	#
+	#	
+	plot_bandstruct(	target_dir_lst, 
+						id_str, id_label,
+						line_style, colors ,
+						pdf_target, 
+						label_size=14, y_tick_size=12, 
+						plot_in_ev=True
+					)
+	
 	#plot_bandstruct(['./'],'./kpts','./eBands.dat',
 	#				'./bands.pdf',
 	#				label_size=14,
 	#				y_tick_size=12,
 	#				plot_in_ev=False
 	#			)
+unit_test()
 
 
-
-
-
-#unit_test()
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
