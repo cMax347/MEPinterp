@@ -344,11 +344,24 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
                                 if np.linalg.norm(delta_cart)<dis[nns+1]:
                                     #print('delta_cart=',delta_cart)
                                     if np.abs(delta_cart[2])<1e-5:
+                                        #   INTRALAYER HOPPING
                                         HH = t_intra
+                                        #
+                                        #   RASHBA SOC
+                                        delta_ij = atoms_cart[jj][:] - atoms_cart[ii][:]
+                                        spin_flip    = 1
+                                        if ii != i:
+                                            spin_flip = -1
+                                        s_i = spin_flip * mag[ii,:]
+                                        #
+                                        print(tso * np.cross( s_i, delta_ij ))
+                                        #HH  =   HH +   tso * np.cross( s_i, delta_ij )
+
                                     else:
+                                        #  INTERLAYER HOPPING
                                         HH = t_inter
                             #
-                            # exchange term
+                            # EXCHANGE TERM
                             if x==0 and y==0 and z==0 :
                                HH = HH + H1[i,j]
 
@@ -429,7 +442,7 @@ def loop_strain(dmin, dmax, n_d):
                             strain      =       strain           ,
                             J_ex        =   -    1.0             ,
                             Jz          =         0             ,
-                            tso         =         0             ,
+                            tso         =         1             ,
                             spin_order  =       '3Q'            ,
                             #
                             mp_grid     =  [200,200,200]         ,
