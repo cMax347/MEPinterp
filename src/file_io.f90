@@ -17,7 +17,7 @@ module file_io
 													a_latt, 							&
 													debug_mode,							&
 													use_R_float,						&
-													plot_bands										
+													plot_bands,  phi_laser										
 
 	implicit none
 
@@ -534,7 +534,7 @@ module file_io
 		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:,:),	a_symm(:,:,:)
 		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:,:,:)
 		character(len=22)									::	fname
-		character(len=100)									::	info_string
+		character(len=150)									::	info_string
 		character(len=4)									::	id_string
 		integer												::	n_hw, hw_idx
 		logical												::	verbose
@@ -563,7 +563,9 @@ module file_io
 				!
 				if(allocated(photo_2nd))	then
 					write(fname,format)		'2nd_photo.hw',hw_idx
-					info_string	=	'seoncd order photconductivitc: J^c_photo = rho^c_ab . E^*_a E_b (PRB 97, 241118(R) (2018))'
+					write(info_string,*)	'2nd order photcond: J^c_photo = rho^c_ab . E^*_a E_b; Phi_ab= ', 	&
+													phi_laser,																&
+											' (PRB 97, 241118(R) (2018))'
 					id_string	=	"2phC"
 					call	write_tens_file(opt_out_dir,	fname,	photo_2nd(:,:,:,hw_idx),	info_string,	id_string, verbose)
 				end if
