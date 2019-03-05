@@ -43,11 +43,12 @@ contains
 		!$OMP REDUCTION(+: phot_cond)
 		do 	m = 1, n_wf
 			do n = 1, n_wf
-				dE_nm	=	cmplx(	en_k(n) - en_k(m)	,0.0_dp,dp) 	-	 i_eta_smr
+				dE_nm	=	cmplx(	en_k(n) - en_k(m)	,0.0_dp,dp) 			-	 i_eta_smr
 				do l = 1, n_wf
+					if(	l==n	)	cycle
 					!
 					df_ln	=	fd_distrib(:,l)	-	fd_distrib(:,n)
-					dE_nl	=		en_k(n) 	- 		en_k(l)
+					dE_nl	=	cmplx(	en_k(n) - 	 en_k(l),	0.0_dp, dp)		-	 i_eta_smr
 					!
 					!	LOOP DIRECTIONS
 					do c = 1, 3
@@ -60,10 +61,11 @@ contains
 					tmp =	0.0_dp
 					do hw = 1, n_hw
 						do omega = -1, 1, 2
-							dE_nl_hw	=	dE_nl +	omega*hw_lst(hw) -	 i_eta_smr		
+							dE_nl_hw	=	dE_nl +	cmplx(	omega*hw_lst(hw),	0.0_dp,	dp) 		
 							!
-							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	real(		phi_laser	*	vvv_nl_lm_mn(:,:,:)				&		
-																					/	( dE_nm * dE_nl_hw * hw_lst(hw)**2	) 	,dp)			
+							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	real(		phi_laser	*	vvv_nl_lm_mn(:,:,:)						&		
+																			/ ( dE_nm * dE_nl_hw * cmplx(hw_lst(hw)**2,0.0_dp,dp)) 	,	&
+																	dp)			
 						end do
 					end do
 					!
