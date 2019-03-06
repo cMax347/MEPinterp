@@ -585,7 +585,7 @@ module file_io
 		integer,					intent(in)		::	n_ki_glob
 		complex(dp),	allocatable, intent(in)				::	C_tens(:,:),	D_tens(:,:), Dw_tens(:,:,:)
 		character(len=22)									::	fname
-		character(len=100)									::	info_string
+		character(len=120)									::	info_string
 		character(len=6)									::	id_string
 		complex(dp)											::	trace_D
 		integer												::	n_hw, hw_idx
@@ -610,7 +610,7 @@ module file_io
 			!
 			!	write file
 			fname		=	'gyro_D.dat'
-			info_string	=	'# the D tensor from arXiv:1710.03204v2, written '//cTIME(time())
+			info_string	=	'# the Berry curvature dipole mom. D tensor (dimless in 3D) from arXiv:1710.03204v2, written '//cTIME(time())
 			id_string	=	'gyroD'
 			call	write_tens_file(gyro_out_dir,	fname,	D_tens,	info_string,	id_string, verbose)
 		end if
