@@ -38,7 +38,8 @@ module wann_interp
 
 
 	private
-	public					::		get_wann_interp	
+	public					::		get_wann_interp,		&
+									get_kubo_curv	
 
 
 	contains
@@ -117,13 +118,13 @@ module wann_interp
 		!
 		real(dp),						intent(in)			::	en_k(:)
 		complex(dp),					intent(in)			::	V_ka(:,:,:)
-		real(dp),		allocatable,	intent(out)			::	kubo_curv(:,:,:)
+		complex(dp),	allocatable,	intent(out)			::	kubo_curv(:,:,:)
 		real(dp)											::	curv_nn(3,3),	dEE_nnp
 		integer												::	n_wf, n, np,  j
 		!
 		n_wf		=	size(en_k,1)
 		allocate(kubo_curv(3,3,n_wf))
-		kubo_curv	=	0.0_dp
+		kubo_curv	=	cmplx(0.0_dp,0.0_dp,dp)
 		!
 		do n = 1, n_wf
 			!
