@@ -1,9 +1,10 @@
-import os
-import datetime
-import numpy as np
-import shutil as sh
-from FeMn_latt_OPT import FeMn_latt_OPT
-from tb_input_writer import write_mepInterp_input
+import  os
+import  datetime
+import  numpy                    as      np
+import  shutil                   as      sh
+from    FeMn_latt_OPT              import FeMn_latt_OPT
+from    FeMn_get_spin_config       import get_spiral
+from    tb_input_writer            import write_mepInterp_input
 
 
 
@@ -25,6 +26,9 @@ phi_1q   = [-2.0943951024, -2.0943951024,  1.0471975512,  1.0471975512]
 
 theta_0q = [ 0.0000000000,  1.5707963268,  1.5707963268,  1.5707963268] # For test
 phi_0q   = [ 0.0000000000, -2.0943951024,  2.0943951024,  0.0000000000]
+
+
+
 
 
 #init latt
@@ -69,7 +73,7 @@ def dir_setup(base_dir, sub_dir,verbose=False):
     return root_dir, w90_dir
 
 
-def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_order,
+def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_deg,
                     mp_grid, kubo_tol, valence_bands,
                     n_hw, hw_min, hw_max,  laser_phase ,
                     N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
@@ -154,22 +158,25 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
     #-------------------------------------------------#
     # spin configuration                              #
     #-------------------------------------------------#
-    if spin_order == '3Q':
-        theta   = theta_3q
-        phi     = phi_3q
-    elif spin_order == '2Q':
-        theta   = theta_2q
-        phi     = phi_2q
-    elif spin_order == '1Q':
-        theta   = theta_1q
-        phi     = phi_1q
-    elif spin_order == '0Q':
-        theta   = theta_0q
-        phi     = phi_0q
-    else:
-        theta   = theta_3q
-        phi     = phi_3q
-        print_v("[write_3q_HR]:   WARNING unknown spin_order ID "+spin_order+" . Will use default (3Q state)", verbose)
+    theta, phi  =   get_spiral(theta_deg)
+
+
+    #if spin_order == '3Q':
+    #    theta   = theta_3q
+    #    phi     = phi_3q
+    #elif spin_order == '2Q':
+    #    theta   = theta_2q
+    #    phi     = phi_2q
+    #elif spin_order == '1Q':
+    #    theta   = theta_1q
+    #    phi     = phi_1q
+    #elif spin_order == '0Q':
+    #    theta   = theta_0q
+    #    phi     = phi_0q
+    #else:
+    #    theta   = theta_3q
+    #    phi     = phi_3q
+    #    print_v("[write_3q_HR]:   WARNING unknown spin_order ID "+spin_order+" . Will use default (3Q state)", verbose)
     #
     mag = np.zeros((natoms,ndim))
     for i in range(natoms):
@@ -248,7 +255,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
     #-------------------------------------------------#
     with open(w90_dir+'FeMn_d'+str(strain)+'.latt','w') as out_latt:
         out_latt.write( '#Created on ' +      datetime.date.today().strftime("%d%B%Y")
-                        +' [TB FeMn python: '+str(spin_order)+' t='+str(t)+'(eV); strain='+str(strain)
+                        +' [TB FeMn python: theta_order='+str(theta_deg)+' t='+str(t)+'(eV); strain='+str(strain)
                         +'] \n')
         for i in range(3):
             for j in range(3):
@@ -292,7 +299,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
         #      HEADER
         print_v("[FeMn_WX_setup]: start writing "+out_fpath+" file",verbose)
         out_file.write( 'Created with python on ' +      datetime.date.today().strftime("%d%B%Y")
-                        +' [TB FeMn: '+str(spin_order)+' t='+str(t)+'(eV); strain='+str(strain)
+                        +' [TB FeMn: theta_order='+str(theta_deg)+' t='+str(t)+'(eV); strain='+str(strain)
                         +'] \n')
         out_file.write('{:11d}\n'.format(num_orb))
         out_file.write('{:11d}\n'.format((2*ncells+1)**ndim))
@@ -351,14 +358,14 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
                                         #
                                         #   RASHBA SOC
                                         delta_ij = atoms_cart[ii][:] - atoms_cart[jj][:]
-                                       
+
                                         #
                                         rashba = 0
-                                        if  (   i<= natoms  and     j > natoms      ): 
+                                        if  (   i<= natoms  and     j > natoms      ):
                                             rashba =                       1j * tso *     (     delta[1]       + 1j * delta[0] )
                                             print("rahsba:   (",i,",",j,")")
                                         elif(   i > natoms  and     j <= natoms     ):
-                                            rashba =                       1j * tso *     (     delta[1]       - 1j * delta[0] ) 
+                                            rashba =                       1j * tso *     (     delta[1]       - 1j * delta[0] )
                                             print("rahsba:   (",i,",",j,")")
                                         else:
                                             print( "rashba only flips them spins (",i,",",j,")")
@@ -428,10 +435,10 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
 
 
 
-def loop_strain(soc_min,soc_max,n_soc):
+def loop_rashba(soc_min,soc_max,n_soc):
     base_dir    =   'newRun_'+datetime.date.today().strftime("%d%B%Y")
-    # 
-    print('setup FeMn model at different strain values')   
+    #
+    print('setup FeMn model at different strain values')
     for tso in np.linspace(soc_min,soc_max,n_soc):
         #
         print("\traw rashba:\t",tso)
@@ -490,8 +497,78 @@ def loop_strain(soc_min,soc_max,n_soc):
 
 
 
-loop_strain(0.0,1.0,5)
+def loop_spiral(theta_min,theta_max,n_theta):
+    base_dir    =   'new_spiral_run_'+datetime.date.today().strftime("%d%B%Y")
+    #
+    print('setup FeMn model at different spin configurations')
+    for theta_deg in np.linspace(theta_min,theta_max,n_theta):
+        #
+        #   truncate everything after 3 digit
+        #tso  =   tso * 1000
+        #tso  =   np.trunc(tso)
+        #tso  =   tso / 1000.
+        #
+        #   name of subdir where calc. will be perfomed in
+        sub_dir =   'theta{:5.3f}'.format(theta_deg)
+        #
+        write_3q_HR(        base_dir    =   base_dir           ,
+                            sub_dir     =   sub_dir             ,
+                            seed_name   =    'wf1_hr'           ,
+                            t           =   -    1.0            ,
+                            strain      =       1.0           ,
+                            J_ex        =   -    1.0             ,
+                            Jz          =         0             ,
+                            tso         =         0.0             ,
+                            theta_deg   =       theta_deg            ,
+                            #
+                            mp_grid     =  [200,200,200]         ,
+                            kubo_tol    =           1e-5         ,
+                            valence_bands=          2            ,
+                            #
+                            n_hw=                   121           ,
+                            hw_min=                 0             ,
+                            hw_max=                 6             ,
+                            laser_phase=            1             ,
+                            #
+                            N_eF=                   1             ,
+                            eF_min=                 0             ,
+                            eF_max=                 0             ,
+                            Tkelvin=                0             ,
+                            eta_smearing=           0.1           ,
+                            #
+                            plot_bands=            True         ,
+                            debug_mode=              False         ,
+                            use_cart_velo=           False         ,
+                            do_gauge_trafo=          True          ,
+                            R_vect_float=            False         ,
+                            do_write_velo=           True         ,
+                            do_write_mep_bands=      True          ,
+                            #
+                            do_mep=             True                ,
+                            do_kubo=            False                ,
+                            do_ahc=             True                ,
+                            do_opt=             False               ,
+                            do_gyro=            False               ,
+                            verbose=            False
+                    )
+        #
+        print("\tfinished setup of folder:\t\t->",sub_dir)
+    print('\nfinished setting up ./'+base_dir)
 
+
+
+
+
+
+def main():
+    #loop_strain(0.0,1.0,5)
+
+    loop_spiral(54.7,54.7,1)
+
+
+
+
+main()
 
 
 
