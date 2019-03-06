@@ -189,7 +189,7 @@ contains
        	!
        	!
        	if(T_kelvin < min_temp .and. .not. t_zero_warn )	then
-       		write(*,*)	"[d1_fd_stat_deriv]: WARNING fd_stat_deriv only defined for finite Temeperature (T/=0)"
+       		write(*,*)	"[d1_fd_stat_deriv]: WARNING T=0; fd_stat_deriv only defined for finite Temeperature (try to set Tkelvin>0)"
        		t_zero_warn	=	.True.
        	end if
        	!
