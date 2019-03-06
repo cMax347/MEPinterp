@@ -247,10 +247,9 @@ contains
 						if(		do_gyro	)								then	
 							fd_deriv(:,:)	=	fd_stat_deriv(fd_distrib(:,:), T_kelvin)
 							!
-							gyro_C_loc(:,:,:)		=	gyro_C_loc(:,:,:)		+	get_gyro_C(V_ka, 					fd_deriv)
-							gyro_D_loc(:,:,:)		=	gyro_D_loc(:,:,:)		+ 	get_gyro_D(V_ka, Om_kab, 			fd_deriv)
-							! get_gyro_DW is dummy and returns 0 currently!!!
-							gyro_Dw_loc(:,:,:,:)	=	gyro_Dw_loc(:,:,:,:)	+ 	get_gyro_Dw(en_k, A_ka,		hw_lst, fd_deriv)	
+							gyro_C_loc(:,:,:)		=	gyro_C_loc(:,:,:)		+	get_gyro_C(			V_ka, 				fd_deriv)
+							gyro_D_loc(:,:,:)		=	gyro_D_loc(:,:,:)		+ 	get_gyro_D(	en_k, V_ka, Om_kab, 		fd_deriv)
+							gyro_Dw_loc(:,:,:,:)	=	gyro_Dw_loc(:,:,:,:)	+ 	get_gyro_Dw(en_k, V_ka, A_ka, hw_lst, 	fd_deriv)	
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
