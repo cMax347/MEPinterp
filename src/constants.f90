@@ -5,6 +5,8 @@ module constants
 	!FLOATING POINT
 	integer, 		parameter 	:: 	dp 				= kind(0.d0)
 	real(dp),		parameter	:: 	fp_acc			= 1e-14_dp
+	real(dp),		parameter	::	real_0			= 0.0_dp
+	complex(dp),	parameter	:: 	cmplx_0			= cmplx(real_0,real_0,dp) 
 	!		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	!
 	!MATHEMATICAL
