@@ -109,7 +109,41 @@ module wann_interp
 
 
 
-
+	subroutine	get_kubo_curv(	en_k, V_ka, kubo_curv	)
+		!
+		!	use Kubo formula to calculate curvature of bands
+		!
+		!		curv_n = -2 sum_np	IM[		V^_   V^_	]	/	(E_np - E_n)**2
+		!
+		real(dp),						intent(in)			::	en_k(:)
+		complex(dp),					intent(in)			::	V_ka(:,:,:)
+		real(dp),		allocatable,	intent(out)			::	kubo_curv(:,:,:)
+		real(dp)											::	curv_nn(3,3),	dEE_nnp
+		integer												::	n_wf, n, np,  j
+		!
+		n_wf		=	size(en_k,1)
+		allocate(kubo_curv(3,3,n_wf))
+		kubo_curv	=	0.0_dp
+		!
+		do n = 1, n_wf
+			!
+			curv_nn	=	0.0_dp
+			do np = 1, n_wf
+				if(np==n)					cycle
+				!
+				dEE_nnp				=	(	en_k(np) - en_k(n)	)**2 
+				if(	abs(dEE_nnp)< kubo_tol)	cycle
+				!
+				do j = 1, 3
+					kubo_curv(:,j,n)	=	kubo_curv(:,j,n)	+	aimag(	V_ka(:,n,np) * V_ka(j,np,n)	)	/ dEE_nnp
+				end do
+			end do
+		end do
+		!
+		kubo_curv	=	-2.0_dp * kubo_curv
+		!
+		return
+	end subroutine
 
 
 !private:
