@@ -2,21 +2,31 @@ module gyro
 !!---------------------------------------------------------------------------------------------------------------------
 !
 !			see arXiv:1710.03204v2
-!
+!	or
+!			Souza et al., PRB 97 035158 (2018)
 !!---------------------------------------------------------------------------------------------------------------------
 
 	use constants,			only:		dp
 	use statistics,			only:		fd_stat_deriv
-	use matrix_math,		only:		convert_tens_to_vect
+	use matrix_math,		only:		convert_tens_to_vect, &
+										crossP
+	use wann_interp,		only:		get_kubo_curv
 	use omp_lib
 
 
 	implicit none
 
-	public 	::	get_gyro_D, get_gyro_Dw, get_gyro_C, get_gyro_K
+	public 						::		get_gyro_D, get_gyro_Dw,	& 
+										get_gyro_C, 				&
+										get_gyro_K
 	private
 
 
+
+	save
+
+
+	logical						::		d_warning	=	.False.
 	
 contains
 
@@ -61,64 +71,125 @@ contains
 
 
 
-	function get_gyro_D(V_ka, Om_kab, fd_deriv) result(D_ab)
+	function get_gyro_D(en_k, V_ka, Om_kab, fd_deriv) result(D_ab)
+		!
+		!	see eq.(2) of PRB 97 035158 (2018)
+		!
+		real(dp),						intent(in)			::		en_k(:), fd_deriv(:,:)
 		complex(dp),					intent(in)			::		V_ka(:,:,:)	
 		complex(dp),	allocatable,	intent(in)			::		Om_kab(:,:,:,:)
-		real(dp),						intent(in)			::		fd_deriv(:,:)
-		complex(dp)											::		om_ca(3), tens(3,3)
+		complex(dp),	allocatable							::		kubo_curv(:,:,:)		
+		complex(dp)											::		om_ca(3)
+		complex(dp)											::		tens(3,3)
 		complex(dp),	allocatable							::		D_ab(:,:,:)
 		integer												::		n, b, n_ef, n_wf, ef_idx
 		!
 		n_ef	=	size(fd_deriv,1)
 		n_wf	=	size(fd_deriv,2)
-		allocate(D_ab(	3,3,	n_ef))
+		allocate(	D_ab(	3,3, n_ef))
 		D_ab	=	0.0_dp
 		!
-		if(allocated(Om_kab)) then
+		if(	.not.	allocated(Om_kab) )	then
+			!	USE KUBO TO ESTIMATE CURV
+			call get_kubo_curv(	en_k, V_ka, kubo_curv	)
 			!
-			!$OMP PARALLEL DO DEFAULT(none) 					& 
-			!$OMP PRIVATE(om_ca, tens, b, ef_idx) 				&
-			!$OMP SHARED(n_wf, n_ef, V_ka, Om_kab, fd_deriv)	&
-			!$OMP REDUCTION(+: D_ab) 
-			do n =1 , n_wf
-				call	convert_tens_to_vect(Om_kab(:,:,n,n), om_ca(:)	)	
-				!
-				tens = 0.0_dp
-				do b = 1, 3
-					tens(:,b)	=	tens(:,b)	+	V_ka(:,n,n) * om_ca(b) 		
-				end do
-				!
-				do ef_idx	=	1 , n_ef
-					D_ab(:,:,ef_idx)	=	D_ab(:,:,ef_idx)	+	tens(:,:)	* fd_deriv(ef_idx,n)	
-				end do
+			if(	.not. d_warning	)	then
+				write(*,*)	"[get_gyro_D]: WARNING Curvature not allocated, will use velocities & energies to interpolate curvature!"
+				d_warning = .True.
+			end if
+		else
+			!	USE GIVEN CURVATURE
+			allocate(kubo_curv(3,3,n_wf))
+			do n = 1, n_wf
+				kubo_curv(:,:,n)	=	Om_kab(:,:,n,n)
 			end do
-			!$OMP END PARALLEL DO
-			!
 		end if
+		!
+		!$OMP PARALLEL DO DEFAULT(none) 					& 
+		!$OMP PRIVATE(om_ca, tens, b, ef_idx) 				&
+		!$OMP SHARED(n_wf, n_ef, V_ka, kubo_curv, fd_deriv)	&
+		!$OMP REDUCTION(+: D_ab) 
+		do n =1 , n_wf
+			tens	=	kubo_curv(:,:,n)
+			call	convert_tens_to_vect(tens(:,:), om_ca(:)	)	
+			!
+			tens = 0.0_dp
+			do b = 1, 3
+				tens(:,b)	=	tens(:,b)	+	V_ka(:,n,n) * om_ca(b) 		
+			end do
+			!
+			do ef_idx	=	1 , n_ef
+				D_ab(:,:,ef_idx)	=	D_ab(:,:,ef_idx)	-	tens(:,:)	* fd_deriv(ef_idx,n)
+			end do
+		end do
+		!$OMP END PARALLEL DO
+		!!
+		!else
+		!	!
+		!	!$OMP PARALLEL DO DEFAULT(none) 					& 
+		!	!$OMP PRIVATE(om_ca, tens, b, ef_idx) 				&
+		!	!$OMP SHARED(n_wf, n_ef, V_ka, Om_kab, fd_deriv)	&
+		!	!$OMP REDUCTION(+: D_ab) 
+		!	do n =1 , n_wf
+		!		call	convert_tens_to_vect(Om_kab(:,:,n,n), om_ca(:)	)	
+		!		!
+		!		tens = 0.0_dp
+		!		do b = 1, 3
+		!			tens(:,b)	=	tens(:,b)	+	V_ka(:,n,n) * om_ca(b) 		
+		!		end do
+		!		!
+		!		do ef_idx	=	1 , n_ef
+		!			D_ab(:,:,ef_idx)	=	D_ab(:,:,ef_idx)	-	tens(:,:)	* fd_deriv(ef_idx,n)
+		!		end do
+		!	end do
+		!	!$OMP END PARALLEL DO
+		!	!
+		!end if
 		!
 		return
 	end function
 
 
-	function get_gyro_Dw(en_k, A_ka,hw_lst, fd_deriv)	result(Dw_ab)
-		complex(dp),	allocatable,	intent(in)	::	A_ka(:,:,:)
+	function get_gyro_Dw(en_k, V_ka, A_ka,hw_lst, fd_deriv)	result(Dw_ab)
+		!
+		!	see eq.(12) of PRB 97 035158 (2018)
+		!
+		complex(dp),	allocatable,	intent(in)	::	V_ka(:,:,:), A_ka(:,:,:)
 		real(dp),						intent(in)	::	en_k(:), hw_lst(:), fd_deriv(:,:)
-		complex(dp),	allocatable					::	Dw_ab(:,:,:,:)
-		integer										::	n_hw, n_ef
+		complex(dp),	allocatable					::	Dw_ab(:,:,:,:), tens(:,:,:)
+		real(dp),		allocatable					::	Om_hw(:,:,:)
+		integer										::	n_wf, n_hw, n_ef, n, hw, b, ef_idx
 		!
 		!
-		n_hw	=	size(hw_lst,1)
-		n_ef	=	size(fd_deriv,1)
+		n_wf	=	size(en_k,		1)
+		n_hw	=	size(hw_lst,	1)
+		n_ef	=	size(fd_deriv,	1)
 		!
-		allocate(Dw_ab(	3,3,	n_hw,	n_ef))
+		allocate(	Om_hw(		  3,	n_hw,			n_wf	))
+		allocate(	tens(		3,3,	n_hw					))
+		allocate(	Dw_ab(		3,3,	n_hw,	n_ef			))
+		!
 		Dw_ab	=	0.0_dp
 		!
 		if(	allocated(A_ka)) then
-			if(	size(A_ka,2) /= size(en_k,1))	write(*,*)	"[get_gyro_Dw]: WARNING en_k and A_ka life on different bases"
+			!	PRECALC CURVATURE( FREQUENCY W)
+			call get_curvTilde_hw(	en_k, A_ka, hw_lst, Om_hw)
 			!
-			!
-			!	TODO		!!!!!!!!!!1!
-			!
+			!	LOOP BANDS
+			do n =1 , n_wf
+				!	ITERATE REAL SPACE DIRECTIONS				
+				tens 	=	0.0_dp
+				do hw = 1, n_hw
+					do b = 1, 3
+						tens(:,b,hw)	=	tens(:,b,hw)	+	V_ka(:,n,n) * Om_hw(b,hw,n)
+					end do
+				end do
+				!
+				!	ITERATE FERMI LEVEL
+				do ef_idx = 1, n_ef
+					Dw_ab(:,:,:,ef_idx)	=	Dw_ab(:,:,:,ef_idx)	-	tens(:,:,:)	*	 fd_deriv(ef_idx, n)
+				end do
+			end do 
 			!
 		end if
 		!
@@ -162,8 +233,79 @@ contains
 	end function
 
 
+!	private:
 
-
+	subroutine get_curvTilde_hw(en_k, A_ka, hw_lst, Om_tilde)
+		!
+		!	see eq.(C20) of PRB 97 035158 (2018)
+		!
+		real(dp),		intent(in)				::	en_k(:), hw_lst(:)
+		complex(dp),	intent(in)				::	A_ka(:,:,:)
+		real(dp)								::	om_tilde(:,:,:)	
+		real(dp)								::	ww_kmn
+		real(dp)								::	om_vect(3)
+		integer									::	n, m, n_wf, hw, n_hw
+		!
+		n_wf	=	size(en_k,	1)
+		n_hw	=	size(hw_lst,1)
+		!
+		do n = 1, n_wf
+			do m = 1, n_wf
+				if(	m==n )	cycle
+				!
+				ww_kmn		=	(	en_k( m) -	en_k( n)	)**2
+				om_vect(:)	=	aimag(	crossP(	A_ka(:,n,m),	A_ka(:,m,n)	)	)	
+				!
+				!
+				om_vect = 	om_vect * ww_kmn
+				do hw = 1, n_hw
+					om_tilde(:,hw,n)	=	om_tilde(:, hw, n)	- 	om_vect(:)	 /	(	ww_kmn - hw_lst(hw)	)
+				end do
+			end do
+		end do
+		!
+		return
+	end subroutine
 
 
 end module gyro
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
