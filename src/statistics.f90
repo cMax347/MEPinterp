@@ -29,7 +29,8 @@ module statistics
 	save
 
 
-	real(dp),	parameter	::			min_temp	= 1e-2_dp
+	real(dp),	parameter	::			min_temp	= 	1e-2_dp
+	logical					::			t_zero_warn	=	.False.
 
 contains
 
@@ -187,8 +188,9 @@ contains
        	end do
        	!
        	!
-       	if(T_kelvin < min_temp)	then
+       	if(T_kelvin < min_temp .and. .not. t_zero_warn )	then
        		write(*,*)	"[d1_fd_stat_deriv]: WARNING fd_stat_deriv only defined for finite Temeperature (T/=0)"
+       		t_zero_warn	=	.True.
        	end if
        	!
 		return
