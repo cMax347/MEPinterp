@@ -21,7 +21,7 @@ module wann_interp
 									is_equal_mat,			&
 									is_herm_mat,			&
 									is_skew_herm_mat		
-	use input_paras,	only:		debug_mode,	atPos,		&
+	use input_paras,	only:		debug_mode,	wf_centers,	&
 									use_cart_velo,			&
 									kubo_tol, a_latt
 	use file_io,		only:		write_eig_binary,		&
@@ -55,7 +55,7 @@ module wann_interp
 !public:
 	subroutine get_wann_interp(		do_gauge_trafo, 									&
 									H_real, r_real, 									&
-									R_frac,	atPos,									&
+									R_frac,	wf_centers,									&
 									kpt_idx, kpt, 									&
 									e_k, V_ka, A_ka, Om_kab								&
 							)
@@ -74,7 +74,7 @@ module wann_interp
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		integer,						intent(in)				::	kpt_idx
 		real(dp),						intent(in)				::	R_frac(:,:), kpt(3)	
-		real(dp),		allocatable,	intent(in)				::	atPos(:,:)
+		real(dp),		allocatable,	intent(in)				::	wf_centers(:,:)
 		real(dp),						intent(out)				::	e_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
@@ -88,7 +88,7 @@ module wann_interp
 		!
 		!
 		!ft onto k-space (W)-gauge
-		call FT_R_to_k(H_real, r_real,  R_frac, atPos, kpt_idx, kpt, U_k,  H_ka, A_ka, Om_kab)
+		call FT_R_to_k(H_real, r_real,  R_frac, wf_centers, kpt_idx, kpt, U_k,  H_ka, A_ka, Om_kab)
 		!
 		!
 		!get energies (H)-gauge

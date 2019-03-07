@@ -35,7 +35,7 @@ module input_paras
 												do_write_mep_bands,													&
 												do_mep, do_ahc, do_kubo, do_opt, do_gyro,							&
 												!atoms
-												N_at,	atPos,														&
+												wf_centers,															&
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
@@ -67,12 +67,12 @@ module input_paras
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_gyro
-	integer						::	N_at, N_eF, N_hw
+	integer						::	N_wf, N_eF, N_hw
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
 									eF_min, eF_max, T_kelvin			
 	complex(dp)					::	i_eta_smr, phi_laser
-	real(dp),	allocatable		::	atPos(:,:)
+	real(dp),	allocatable		::	wf_centers(:,:)
 
 
 
@@ -132,13 +132,14 @@ module input_paras
 				call CFG_add_get(my_cfg,	"unitCell%a0"					,	a0					,	"lattice scaling factor "			)
 				!~~~~~~~~~~~~
 				!
-				![atoms]
-				call CFG_add_get(my_cfg,	"atoms%N_at"					,	N_at				,	"number of atoms specified in input")
-				if(	N_at > 0) then 
-					allocate(	atPos(		3,	N_at)	)
-					call CFG_add_get(my_cfg,	"atoms%atPos_x"					,	atPos(1,:)			,	"array of x coord of relative pos"	)
-					call CFG_add_get(my_cfg,	"atoms%atPos_y"					,	atPos(2,:)			,	"array of y coord of relative pos"	)
-					call CFG_add_get(my_cfg,	"atoms%atPos_z"					,	atPos(3,:)			,	"array of z coord of relative pos"	)
+				![wannier]
+				call CFG_add_get(my_cfg,	"wannier%seed_name"			,	seed_name				,	"seed name of the TB files"			)
+				call CFG_add_get(my_cfg,	"wannier%N_wf"					,	N_wf				,	"number of WFs specified in input")
+				if(	N_wf > 0) then 
+					allocate(	wf_centers(		3,	N_wf)	)
+					call CFG_add_get(my_cfg,	"wannier%wf_centers_x"					,	wf_centers(1,:)			,	"array of x coord of relative pos"	)
+					call CFG_add_get(my_cfg,	"wannier%wf_centers_y"					,	wf_centers(2,:)			,	"array of y coord of relative pos"	)
+					call CFG_add_get(my_cfg,	"wannier%wf_centers_z"					,	wf_centers(3,:)			,	"array of z coord of relative pos"	)
 				end if 
 				!~~~~~~~~~~~~
 				!
@@ -146,12 +147,6 @@ module input_paras
 				call CFG_add_get(my_cfg,	"wannInterp%use_cart_velo"		,	use_cart_velo		,	"use cartesian instead of internal units")
 				call CFG_add_get(my_cfg,	"wannInterp%doGaugeTrafo"		,	do_gauge_trafo		,	"switch (W)->(H) gauge trafo"		)
 				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
-				call CFG_add_get(my_cfg,	"wannInterp%seed_name"			,	seed_name			,	"seed name of the TB files"			)
-				!~~~~~~~~~~~~
-				!
-				![mep]
-				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
-				call CFG_add_get(my_cfg,	"MEP%do_write_mep_bands"		,	do_write_mep_bands	,	"write mep tensor band resolved"	)
 				!~~~~~~~~~~~~
 				!
 				![Fermi]
@@ -162,6 +157,12 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Fermi%eta_smearing"			,	eta					,	"smearing for optical conductivty"	)
 				call CFG_add_get(my_cfg,	"Fermi%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO formulas"	)
 				!~~~~~~~~~~~~
+				!
+				![mep]
+				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
+				call CFG_add_get(my_cfg,	"MEP%do_write_mep_bands"		,	do_write_mep_bands	,	"write mep tensor band resolved"	)
+				!~~~~~~~~~~~~
+				
 				!
 				![Laser]
 				call CFG_add_get(my_cfg,	"Laser%N_hw"					,	N_hw					,	"points to probe in interval"	)
@@ -271,10 +272,10 @@ module input_paras
 				call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				![ATOMS]
-				call MPI_BCAST(		N_at			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-				if(	N_at > 0) then
-					if(	mpi_id /= mpi_root_id )		allocate(	atPos(3,N_at)	)
-					call MPI_BCAST(		atPos			,		3* N_at			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		N_wf			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				if(	N_wf > 0) then
+					if(	mpi_id /= mpi_root_id )		allocate(	wf_centers(3,N_wf)	)
+					call MPI_BCAST(		wf_centers			,		3* N_wf			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				end if
 				![KUBO]
 				call MPI_BCAST(		hw_min			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)			

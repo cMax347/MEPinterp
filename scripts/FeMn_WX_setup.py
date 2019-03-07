@@ -397,16 +397,16 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, spin_ord
         #-------------------------------------------------#
         file_path   =   root_dir
         #
-        ax      =   latt[0,:]
-        ay      =   latt[1,:]
-        az      =   latt[2,:]
-        a0      =   1
+        ax          =   latt[0,:]
+        ay          =   latt[1,:]
+        az          =   latt[2,:]
+        a0          =   1
         #
-        N_at    =   num_orb
-        atPos   =   np.append( atoms, atoms, axis=0)
+        N_wf        =   num_orb
+        wf_centers  =   np.append( atoms, atoms, axis=0)
         #
         write_mepInterp_input(
-                            file_path,valence_bands, ax, ay, az, a0, N_at, atPos, mp_grid, seed_name,
+                            file_path,valence_bands, ax, ay, az, a0, N_wf, wf_centers, mp_grid, seed_name,
                             kubo_tol, n_hw, hw_min, hw_max,  laser_phase ,N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
                             plot_bands, debug_mode, use_cart_velo, do_gauge_trafo, R_vect_float    , do_write_velo,    do_write_mep_bands,
                             do_mep, do_kubo, do_ahc, do_opt, do_gyro, verbose
