@@ -130,7 +130,7 @@ def write_mepInterp_input(	file_path,valence_bands, ax, ay, az, a0, N_wf, atPos,
 		outfile.write('    '	+	'a0= '				+	str(a0)				+	'\n')
 		outfile.write('\n')
 		#
-		outfile.write('[wannier]\n')
+		outfile.write('[wannBase]\n')
 		outfile.write('    '	+	'seed_name= '		+	seed_name			+	'\n')
 		outfile.write('    '	+	'N_wf= '			+	str(N_wf)										+	'\n')
 		x_pos	= ' '

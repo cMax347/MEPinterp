@@ -132,14 +132,14 @@ module input_paras
 				call CFG_add_get(my_cfg,	"unitCell%a0"					,	a0					,	"lattice scaling factor "			)
 				!~~~~~~~~~~~~
 				!
-				![wannier]
-				call CFG_add_get(my_cfg,	"wannier%seed_name"			,	seed_name				,	"seed name of the TB files"			)
-				call CFG_add_get(my_cfg,	"wannier%N_wf"					,	N_wf				,	"number of WFs specified in input")
+				![wannBase]
+				call CFG_add_get(my_cfg,	"wannBase%seed_name"			,	seed_name				,	"seed name of the TB files"			)
+				call CFG_add_get(my_cfg,	"wannBase%N_wf"					,	N_wf				,	"number of WFs specified in input")
 				if(	N_wf > 0) then 
 					allocate(	wf_centers(		3,	N_wf)	)
-					call CFG_add_get(my_cfg,	"wannier%wf_centers_x"					,	wf_centers(1,:)			,	"array of x coord of relative pos"	)
-					call CFG_add_get(my_cfg,	"wannier%wf_centers_y"					,	wf_centers(2,:)			,	"array of y coord of relative pos"	)
-					call CFG_add_get(my_cfg,	"wannier%wf_centers_z"					,	wf_centers(3,:)			,	"array of z coord of relative pos"	)
+					call CFG_add_get(my_cfg,	"wannBase%wf_centers_x"		,	wf_centers(1,:)			,	"array of x coord of relative pos"	)
+					call CFG_add_get(my_cfg,	"wannBase%wf_centers_y"		,	wf_centers(2,:)			,	"array of y coord of relative pos"	)
+					call CFG_add_get(my_cfg,	"wannBase%wf_centers_z"		,	wf_centers(3,:)			,	"array of z coord of relative pos"	)
 				end if 
 				!~~~~~~~~~~~~
 				!
