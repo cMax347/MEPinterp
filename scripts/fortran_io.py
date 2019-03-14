@@ -25,6 +25,11 @@ import os
 #		print('could not find file '+file)
 #	return mep_tens
 
+def read_hw_lst(out_dir,fname='/hw_lst.txt'):
+	hw_lst	=	np.genfromtxt(out_dir+fname, skip_header=1,usecols=(1))
+	return hw_lst
+
+
 
 def read_real_tens_file(file,id):
 	tens = []
@@ -52,6 +57,63 @@ def read_real_tens_file(file,id):
 	else:
 		print(' ! could not find file '+file)
 	return tens
+
+
+
+
+def read_real_3rd_rank_tens_file(file,id, verbose=False):
+	tens = []
+	tens2= []
+	#
+	if os.path.exists(file):
+		tens_file_path	= file
+		with open(tens_file_path, 'r') as tens_file:
+			start 	=	- 100
+			end		=	- 100
+			for idx,line in enumerate(tens_file):
+				if 'begin '+id in line:
+					start =	idx+1
+					end	  = start + 9 + 3 
+					if verbose:
+						print('[read_real_3rd_rank_tens_file]: raw values:') 
+				if idx == end:
+					if not 'end '+id in line:
+						print("[read_real_3rd_rank_tens_file]:unexpected end of file")
+				#
+				if idx > start:
+					raw	=	np.fromstring(line, dtype=np.float, sep=' ')
+					#	X-COMP
+					if  idx <= start + 3:
+						tens2.append(	raw	)
+						if verbose:
+							print('x _',idx-start,':',raw)
+					# 	y init
+					elif idx == start+4:
+						tens.append(tens2)
+						tens2	=	[]
+					#	Y-COMP
+					elif idx> start +4	and idx <=	start +7:
+						tens2.append(	raw	)
+						if verbose:
+							print('y  _',idx-(start+4),':',raw)
+					#	z init
+					elif idx == start+8:
+						tens.append(tens2)
+						tens2	=	[]
+					#	Z-COMP					
+					elif idx> start+8 and idx <= start+11:
+						tens2.append(	raw	)
+						if verbose:
+							print('z _',idx-(start+8),':',raw)
+			# 
+			tens.append(tens2)
+		tens = np.array(tens)
+	else:
+		print('[read_real_3rd_rank_tens_file]: ERROR ',file,' does not exist')	
+	#
+	#
+	return tens
+
 
 
 def read_cmplx_tens_file(file,id):

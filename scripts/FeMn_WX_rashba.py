@@ -122,7 +122,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_de
     print_v('vol = '+str(vol), verbose)
     print_v("now apply strain="+str(strain)+' ...\n', verbose)
     #
-    latt_optimizer               =   FeMn_latt_OPT(strain)
+    latt_optimizer               =   FeMn_latt_OPT(strain,verbose)
     opt_x, opt_vol,  latt    =   latt_optimizer.optimize_lattice(1e-7)  # solve the strained lattice, by keeping constant volume
     print_v("\n\n\n", verbose)
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -256,7 +256,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_de
     with open(w90_dir+'FeMn_d'+str(strain)+'.latt','w') as out_latt:
         out_latt.write( '#Created on ' +      datetime.date.today().strftime("%d%B%Y")
                         +' [TB FeMn python: theta_order='+str(theta_deg)+' t='+str(t)+'(eV); strain='+str(strain)
-                        +'] \n')
+                        +'; rashba='+str(tso)+'] \n')
         for i in range(3):
             for j in range(3):
                 out_latt.write( '{:.8f}'.format(latt[i,j])+' ')
@@ -363,18 +363,18 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_de
                                         rashba = 0
                                         if  (   i<= natoms  and     j > natoms      ):
                                             rashba =                       1j * tso *     (     delta[1]       + 1j * delta[0] )
-                                            print("rahsba:   (",i,",",j,")")
+                                            print_v("rahsba:   ("+str(i)+","+str(j)+")", verbose)
                                         elif(   i > natoms  and     j <= natoms     ):
                                             rashba =                       1j * tso *     (     delta[1]       - 1j * delta[0] )
-                                            print("rahsba:   (",i,",",j,")")
+                                            print_v("rahsba:   ("+str(i)+","+str(j)+")", verbose)
                                         else:
-                                            print( "rashba only flips them spins (",i,",",j,")")
+                                            print_v( "rashba only flips them spins ("+str(i)+","+str(j)+")", verbose)
                                         HH  =   HH +   rashba
 
                                     else:
                                         #  INTERLAYER HOPPING
                                         HH = t_inter
-                                        print( "no interlayer rashba (",i,",",j,")")
+                                        print_v( "no interlayer rashba ("+str(i)+","+str(j)+")",verbose)
                             #
                             # EXCHANGE TERM
                             if x==0 and y==0 and z==0 :
@@ -435,13 +435,13 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_de
 
 
 
-def loop_rashba(soc_min,soc_max,n_soc):
+def loop_rashba(soc_min,soc_max,n_soc, verbose=False):
     base_dir    =   'newRun_'+datetime.date.today().strftime("%d%B%Y")
     #
-    print('setup FeMn model at different strain values')
+    print_v('setup FeMn model at different strain values',verbose)
     for tso in np.linspace(soc_min,soc_max,n_soc):
         #
-        print("\traw rashba:\t",tso)
+        print_v("\traw rashba:\t"+str(tso),verbose)
         #   truncate everything after 3 digit
         tso  =   tso * 1000
         tso  =   np.trunc(tso)
@@ -491,16 +491,16 @@ def loop_rashba(soc_min,soc_max,n_soc):
                             verbose=            False
                     )
         #
-        print("\tfinished setup of folder:\t\t->",sub_dir)
-    print('\nfinished setting up ./'+base_dir)
+        print_v("\tfinished setup of folder:\t\t-> "+sub_dir,verbose)
+    print_v('\nfinished setting up ./'+base_dir,verbose)
 
 
 
 
-def loop_spiral(theta_min,theta_max,n_theta):
+def loop_spiral(theta_min,theta_max,n_theta, verbose=False):
     base_dir    =   'new_spiral_run_'+datetime.date.today().strftime("%d%B%Y")
     #
-    print('setup FeMn model at different spin configurations')
+    print_v('setup FeMn model at different spin configurations',verbose)
     for theta_deg in np.linspace(theta_min,theta_max,n_theta):
         #
         #   truncate everything after 3 digit
@@ -514,16 +514,16 @@ def loop_spiral(theta_min,theta_max,n_theta):
         write_3q_HR(        base_dir    =   base_dir           ,
                             sub_dir     =   sub_dir             ,
                             seed_name   =    'wf1_hr'           ,
-                            t           =   -    1.0            ,
-                            strain      =       1.0           ,
-                            J_ex        =   -    1.0             ,
+                            t           =   -    1.2            ,
+                            strain      =       1.2           ,
+                            J_ex        =   -    3.0             ,
                             Jz          =         0             ,
-                            tso         =         0.0             ,
+                            tso         =         0.3             ,
                             theta_deg   =       theta_deg            ,
                             #
-                            mp_grid     =  [200,200,200]         ,
+                            mp_grid     =  [32,32,32]         ,
                             kubo_tol    =           1e-5         ,
-                            valence_bands=          2            ,
+                            valence_bands=          4            ,
                             #
                             n_hw=                   121           ,
                             hw_min=                 0             ,
@@ -546,14 +546,14 @@ def loop_spiral(theta_min,theta_max,n_theta):
                             #
                             do_mep=             True                ,
                             do_kubo=            False                ,
-                            do_ahc=             True                ,
+                            do_ahc=             False                ,
                             do_opt=             False               ,
                             do_gyro=            False               ,
                             verbose=            False
                     )
         #
-        print("\tfinished setup of folder:\t\t->",sub_dir)
-    print('\nfinished setting up ./'+base_dir)
+        print_v("\tfinished setup of folder:\t\t-> "+sub_dir,verbose)
+    print_v('\nfinished setting up ./'+base_dir,verbose)
 
 
 
@@ -568,7 +568,7 @@ def main():
 
 
 
-main()
+#main()
 
 
 
