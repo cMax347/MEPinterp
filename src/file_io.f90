@@ -654,7 +654,7 @@ module file_io
 			write(w_unit,*)	info_string
 			write(w_unit,*)	'begin '//id_string
 			do row = 1, 3
-				write(w_unit,'(200(f16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
+				write(w_unit,'(200(e16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
 			end do
 			write(w_unit,*)	'end '//id_string
 		close(w_unit)
@@ -683,7 +683,7 @@ module file_io
 			do dim	=	1,3
 				write(w_unit,*)	dim_str(dim)
 				do row = 1, 3
-					write(w_unit,'(200(f16.8,a))')		(		tens(dim,row,clm), ' ', clm=1,3)
+					write(w_unit,'(200(e16.8,a))')		(		tens(dim,row,clm), ' ', clm=1,3)
 				end do
 			end do
 			write(w_unit,*)	'end '//id_string
@@ -707,7 +707,7 @@ module file_io
 			write(255,*)	info_string
 			write(255,*)	'begin '//id_string
 			do row = 1, 3
-				write(255,'(200(a,f12.6,a,f12.6,a))')		(		' ',real(tens(row,clm),dp), ' ',imag(tens(row,clm)),' ', clm=1,3)
+				write(255,'(200(a,e16.8,a,e16.8,a))')		(		' ',real(tens(row,clm),dp), ' ',imag(tens(row,clm)),' ', clm=1,3)
 			end do
 			write(255,*)	'end '//id_string
 		close(255)
@@ -863,7 +863,7 @@ module file_io
 		integer												::	int3(3), index(2)
 		real(dp)											::	unit_cell(3,3), compl1(2),compl3(6), rTest(3), real3(3)
 		!
-		mpi_unit	= mpi_id
+		mpi_unit	= 100 + mpi_id
 		open(unit=mpi_unit, file=seed_name//'_tb.dat',form='formatted', status='old', action='read')
 		!read unit cell
 		read(mpi_unit,*)
