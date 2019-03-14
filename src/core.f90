@@ -281,14 +281,16 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	REDUCE MPI & WRITE FILES
 		!----------------------------------------------------------------------------------------------------------------------------------
-		call integrate_over_k_space(	n_ki_glob, 																								&
-										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,													&	
+		if(allocated(kubo_mep_ic_loc)) write(*,*)	"kubo mep ic allocated"
+
+		call integrate_over_k_space(	n_ki_glob, 	eF_idx,											&
+										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,		&	
 										!
-										kubo_mep_ic_loc(	:,:,eF_idx), kubo_mep_lc_loc(	:,:,eF_idx),	kubo_mep_cs_loc(:,:,eF_idx),		&									
-										kubo_ahc_loc(		:,:,eF_idx), velo_ahc_loc(		:,:,:,eF_idx),	kubo_ohc_loc( :,:,:,eF_idx),		&
-										kubo_opt_s_loc(		:,:,:,eF_idx), kubo_opt_a_loc(	:,:,:,eF_idx),										&
-										gyro_C_loc(			:,:,eF_idx), gyro_D_loc(		:,:,eF_idx),	gyro_Dw_loc(  :,:,:,eF_idx),		&
-										photo2_cond_loc( :,:,:,:,eF_idx)																		&
+										kubo_mep_ic_loc, kubo_mep_lc_loc,	kubo_mep_cs_loc,		&									
+										kubo_ahc_loc, velo_ahc_loc,	kubo_ohc_loc,					&
+										kubo_opt_s_loc, kubo_opt_a_loc,								&
+										gyro_C_loc, gyro_D_loc,	gyro_Dw_loc,						&
+										photo2_cond_loc												&
 							)
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -415,7 +417,7 @@ contains
 
 
 
-	subroutine 	integrate_over_k_space(		n_ki_loc, 																&
+	subroutine 	integrate_over_k_space(		n_ki_loc, 	eF_idx,														&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,						&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,							&									
 										kubo_ahc_loc, velo_ahc_loc,	kubo_ohc_loc,									&
@@ -433,14 +435,14 @@ contains
 		!
 		!			mep_tens_ic_loc, , mep_tens_lc_loc, mep_tens_cs_loc ar given as arrays over valence bands
 		!-----------------------------------------------------------------------------------------------------------
-		integer,						intent(in)		::	n_ki_loc 	
+		integer,						intent(in)		::	n_ki_loc , eF_idx	
 		real(dp),						intent(in)		::	mep_bands_ic_loc(:,:,:), mep_bands_lc_loc(:,:,:), mep_bands_cs_loc(:,:,:),	&
-															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),			&				
-															kubo_ahc_loc(:,:),															&									
-															photo2_cond_loc(:,:,:,:)
-		complex(dp),					intent(in)		::	velo_ahc_loc(:,:,:),	kubo_ohc_loc(:,:,:),								&
-															kubo_opt_s_loc(:,:,:), kubo_opt_a_loc(:,:,:),								&
-															gyro_C_loc(:,:), gyro_D_loc(:,:), gyro_Dw_loc(:,:,:)		
+															kubo_mep_ic_loc(:,:,:), kubo_mep_lc_loc(:,:,:), kubo_mep_cs_loc(:,:,:),		&				
+															kubo_ahc_loc(:,:,:),														&									
+															photo2_cond_loc(:,:,:,:,:)
+		complex(dp),					intent(in)		::	velo_ahc_loc(:,:,:,:),	kubo_ohc_loc(:,:,:,:),								&
+															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
+															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!-----------------------------------------------------------------------------------------------------------
 		integer											::	n_ki_glob
 		real(dp), 				allocatable				::	mep_bands_loc(:,:,:),														&
@@ -491,9 +493,9 @@ contains
 		!
 		!
 		if( do_kubo ) 											then
-			call mpi_reduce_sum(	kubo_mep_ic_loc	,	kubo_mep_ic_glob	)
-			call mpi_reduce_sum(	kubo_mep_lc_loc	,	kubo_mep_lc_glob	)
-			call mpi_reduce_sum(	kubo_mep_cs_loc	,	kubo_mep_cs_glob	)
+			call mpi_reduce_sum(	kubo_mep_ic_loc(:,:,eF_idx)	,	kubo_mep_ic_glob	)
+			call mpi_reduce_sum(	kubo_mep_lc_loc(:,:,eF_idx)	,	kubo_mep_lc_glob	)
+			call mpi_reduce_sum(	kubo_mep_cs_loc(:,:,eF_idx)	,	kubo_mep_cs_glob	)
 			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected KUBO MEP tensors"
 			call normalize_k_int(kubo_mep_ic_glob)
 			call normalize_k_int(kubo_mep_lc_glob)
@@ -502,9 +504,9 @@ contains
 		!
 		!
 		if( do_ahc )											then
-			call mpi_reduce_sum(	kubo_ahc_loc	,	kubo_ahc_glob		)
-			call mpi_reduce_sum(	velo_ahc_loc	,	velo_ahc_glob		)
-			call mpi_reduce_sum(	kubo_ohc_loc	,	kubo_ohc_glob		)
+			call mpi_reduce_sum(	kubo_ahc_loc(:,:  ,eF_idx)	,	kubo_ahc_glob		)
+			call mpi_reduce_sum(	velo_ahc_loc(:,:,:,eF_idx)	,	velo_ahc_glob		)
+			call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,eF_idx)	,	kubo_ohc_glob		)
 			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
 			call normalize_k_int(kubo_ahc_glob)
 			call normalize_k_int(velo_ahc_glob)
@@ -513,9 +515,9 @@ contains
 		!
 		!
 		if( do_opt )											then
-			call mpi_reduce_sum(	kubo_opt_s_loc	,	kubo_opt_s_glob		)
-			call mpi_reduce_sum(	kubo_opt_a_loc	,	kubo_opt_a_glob		)
-			call mpi_reduce_sum(	photo2_cond_loc ,	photo2_cond_glob	)
+			call mpi_reduce_sum(	kubo_opt_s_loc(:,:,:,eF_idx)	,	kubo_opt_s_glob		)
+			call mpi_reduce_sum(	kubo_opt_a_loc(:,:,:,eF_idx)	,	kubo_opt_a_glob		)
+			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,eF_idx) ,	photo2_cond_glob	)
 			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
 			call normalize_k_int(kubo_opt_s_glob)
 			call normalize_k_int(kubo_opt_a_glob)
@@ -524,9 +526,9 @@ contains
 		!
 		!
 		if( do_gyro )											then
-			call mpi_reduce_sum(	gyro_C_loc		,	gyro_C_glob			)
-			call mpi_reduce_sum(	gyro_D_loc		,	gyro_D_glob			)
-			call mpi_reduce_sum(	gyro_Dw_loc		,	gyro_Dw_glob		)
+			call mpi_reduce_sum(	gyro_C_loc(:,:,eF_idx)		,	gyro_C_glob			)
+			call mpi_reduce_sum(	gyro_D_loc(:,:,eF_idx)		,	gyro_D_glob			)
+			call mpi_reduce_sum(	gyro_Dw_loc(:,:,:,eF_idx)	,	gyro_Dw_glob		)
 			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
 			call normalize_k_int(gyro_C_glob)
 			call normalize_k_int(gyro_D_glob)
