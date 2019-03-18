@@ -281,8 +281,6 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	REDUCE MPI & WRITE FILES
 		!----------------------------------------------------------------------------------------------------------------------------------
-		if(allocated(kubo_mep_ic_loc)) write(*,*)	"kubo mep ic allocated"
-
 		call integrate_over_k_space(	n_ki_glob, 	eF_idx,											&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,		&	
 										!
@@ -625,7 +623,7 @@ contains
 															kubo_ahc_loc(:,:,:),														&
 															photo2_cond_loc(:,:,:,:,:)									
 		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:,:,:), kubo_ohc_loc(:,:,:,:),								&
-															tempS(:,:,:,:), tempA(:,:,:,:), 													&
+															tempS(:,:,:,:), tempA(:,:,:,:), 											&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
