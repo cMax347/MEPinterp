@@ -293,7 +293,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_de
     idx_r       =   0
 
 
-    out_fpath   =   w90_dir + seed_name   + '.dat'
+    out_fpath   =   w90_dir + seed_name    + '_hr.dat'
     with open(out_fpath,'w') as out_file:
         #   ^^^^^^^^^^^^^^^^
         #      HEADER
@@ -513,12 +513,12 @@ def loop_spiral(theta_min,theta_max,n_theta, verbose=False):
         #
         write_3q_HR(        base_dir    =   base_dir           ,
                             sub_dir     =   sub_dir             ,
-                            seed_name   =    'wf1_hr'           ,
+                            seed_name   =    'wf1'             ,
                             t           =   -    1.2            ,
                             strain      =       1.2           ,
                             J_ex        =   -    3.0             ,
                             Jz          =         0             ,
-                            tso         =         0.3             ,
+                            tso         =      -   0.3             ,
                             theta_deg   =       theta_deg            ,
                             #
                             mp_grid     =  [32,32,32]         ,
@@ -562,13 +562,13 @@ def loop_spiral(theta_min,theta_max,n_theta, verbose=False):
 
 def main():
     #loop_strain(0.0,1.0,5)
-
+    loop_spiral(0,90,2)
     loop_spiral(54.7,54.7,1)
 
 
 
 
-#main()
+main()
 
 
 
