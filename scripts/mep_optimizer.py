@@ -141,9 +141,9 @@ class MEP_optimizer:
 		mep_id		=	'mep'
 		mep_tens	=	read_real_tens_file(	mep_file,	mep_id)
 		mep_abs 	=	abs(	mep_tens	)
-		
-		print("mep_tens:",mep_tens)
-		print("abs_max=",mep_abs.max())
+		#
+		#print("[get_absmax_mep]:	mep_tens:",mep_tens)
+		#print("[get_absmax_mep]:	abs_max=",mep_abs.max())
 		#
 		return	mep_abs.max()
 
