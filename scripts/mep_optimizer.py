@@ -57,7 +57,7 @@ class MEP_optimizer:
 	def __init__(	self, 
 					N_mpi_procs=1,
 					base_dir='./mep_opt',	
-					seed_name=	'wf1_hr', mp_grid=	4, kubo_tol=1e-5,
+					seed_name=	'wf1', mp_grid=	4, kubo_tol=1e-5,
 					valence_bands=4,	
 					n_hw=1,hw_min=0,hw_max=1.2,laser_phase=1,
 					N_eF=301, eF_min=0, eF_max=3.0, Tkelvin=0,eta_smearing=0.1,
