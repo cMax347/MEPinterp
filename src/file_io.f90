@@ -155,7 +155,6 @@ module file_io
 	end subroutine
 
 
-
 	subroutine write_velo(kpt_idx, V_ka)
 		integer,			intent(in)		::	kpt_idx
 		complex(dp),		intent(in)		::	V_ka(:,:,:)
