@@ -127,20 +127,23 @@ class MEP_optimizer:
 	def bandgap_exists(self,	occ_file, acc=1e-8):
 		if os.path.isfile(occ_file):
 			occ	=	np.genfromtxt(	occ_file, usecols=(1))
-			for eF in occ:
-				if np.abs(	float(eF - self.valence_bands)) < acc:
+			print("len(occ)=",len(occ))
+			for n_el in occ:
+				#print("n_el=",n_el)
+				if np.abs(	float(n_el - self.valence_bands)) < acc:
 					return True
-				return False
-			else:
-				return np.abs(	float(occ - self.valence_bands))< acc
 		else:
 			print('[bandgap_exists]: ERROR occupation data file '+occ_file+' was not found!')
 			return False
+		return False
 
 	def get_absmax_mep(self,	mep_file):
 		mep_id		=	'mep'
 		mep_tens	=	read_real_tens_file(	mep_file,	mep_id)
 		mep_abs 	=	abs(	mep_tens	)
+		
+		print("mep_tens:",mep_tens)
+		print("abs_max=",mep_abs.max())
 		#
 		return	mep_abs.max()
 
@@ -206,8 +209,8 @@ def cost_func( x, args):
 			print('[cost_func]: WARNING not an insulator')
 			costs	=	0
 		#
-		print(costs)
-		return costs
+		print('{:16.8e}'.format(costs))
+		return float(costs)
 
 #def test():
 #	new_run	=	MEP_optimizer(	mp_grid=16,	N_eF=301)
