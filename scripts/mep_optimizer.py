@@ -37,8 +37,8 @@ def get_constraints():
 	constr.append({'type':'ineq', 'fun' : lambda x: 	0.0-x[0]			})		#		-2 <= x[0]	<= 0.1
 	constr.append({'type':'ineq', 'fun' : lambda x: 	2-np.abs(x[0])		})				 
 	#	strain
-	constr.append({'type':'ineq', 'fun' : lambda x: 	x[1]-.5 	})		#		.5	<= x[1] <= 1.5
-	constr.append({'type':'ineq', 'fun' : lambda x: 	1.5- np.abs(x[1])	})
+	constr.append({'type':'ineq', 'fun' : lambda x: 	x[1]-.7 	})		#		.5	<= x[1] <= 1.5
+	constr.append({'type':'ineq', 'fun' : lambda x: 	1.3- np.abs(x[1])	})
 	#	J_ex
 	constr.append({'type':'ineq', 'fun' : lambda x: 	-x[2]-2.0 	})		#		
 	constr.append({'type':'ineq', 'fun' : lambda x: 	6.0 - np.abs(x[2])	})
