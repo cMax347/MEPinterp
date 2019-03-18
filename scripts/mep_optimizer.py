@@ -43,7 +43,7 @@ def get_constraints():
 	constr.append({'type':'ineq', 'fun' : lambda x: 	-x[2]-2.0 	})		#		
 	constr.append({'type':'ineq', 'fun' : lambda x: 	6.0 - np.abs(x[2])	})
 	#	tso
-	constr.append({'type':'ineq', 'fun' : lambda x: 	-.1 - x[3]	})
+	constr.append({'type':'ineq', 'fun' : lambda x: 	 - x[3]	})
 	constr.append({'type':'ineq', 'fun' : lambda x: 	.6 - np.abs(x[3])	})
 	#
 	constr.append({'type':'ineq', 'fun' : lambda x: 	x[4] 		})
