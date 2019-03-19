@@ -23,7 +23,7 @@ module input_paras
 												out_dir,															&
 												eig_out_dir,														&
 												velo_out_dir,														&
-												mep_out_dir, ahc_out_dir, 	opt_out_dir,	gyro_out_dir,			&
+												mep_out_dir, ahc_out_dir, 	opt_out_dir, opt_out_ef_dir,	gyro_out_dir,	&
 												!jobs
 												plot_bands,															&
 												use_mpi,															&
@@ -58,6 +58,7 @@ module input_paras
 	character(len=9)			::	mep_out_dir	
 	character(len=9)			::	ahc_out_dir
 	character(len=9)			::	opt_out_dir
+	character(len=20), allocatable			::		opt_out_ef_dir(:)
 	character(len=10)			::	gyro_out_dir	
 	logical						::	plot_bands, 					&
 									use_cart_velo,					&
@@ -86,7 +87,7 @@ module input_paras
 	logical function init_parameters()
 		type(CFG_t) 			:: 	my_cfg
 		real(dp)				::	a1(3), a2(3), a3(3), eta, laser_phase
-		integer					::	mp_grid(3)
+		integer					::	mp_grid(3), ef_idx
 		logical					::	input_exist
 		!
 		use_mpi	= .false.
@@ -231,6 +232,13 @@ module input_paras
 					if( do_mep .or. do_kubo		)	call my_mkdir(mep_out_dir)
 					if(			do_ahc			)	call my_mkdir(ahc_out_dir)
 					if(			do_opt			)	call my_mkdir(opt_out_dir)
+					if(			do_opt			)	then
+						allocate(	opt_out_ef_dir(	N_ef)	)
+						do ef_idx = 1, N_eF
+							write(opt_out_ef_dir(ef_idx),'(a,i5.5,a)')	opt_out_dir//'ef.',ef_idx,'/'
+							call my_mkdir(opt_out_ef_dir(ef_idx))
+						end do
+					end if
 					if(			do_gyro			)	call my_mkdir(gyro_out_dir)		
 				end if	
 				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: ... directories created"

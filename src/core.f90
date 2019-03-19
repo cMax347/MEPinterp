@@ -450,7 +450,7 @@ contains
 															mep_sum_ic_glob(:,:), mep_sum_lc_glob(:,:), mep_sum_cs_glob(:,:),			&
 															kubo_mep_ic_glob(:,:), kubo_mep_lc_glob(:,:), kubo_mep_cs_glob(:,:),		&
 															kubo_ahc_glob(:,:),															&
-															photo2_cond_glob(:,:,:,:)
+															photo2_cond_glob(:,:,:,:,:)
 
 															
 															
@@ -515,7 +515,7 @@ contains
 		if( do_opt )											then
 			call mpi_reduce_sum(	kubo_opt_s_loc(:,:,:,eF_idx)	,	kubo_opt_s_glob		)
 			call mpi_reduce_sum(	kubo_opt_a_loc(:,:,:,eF_idx)	,	kubo_opt_a_glob		)
-			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,eF_idx) ,	photo2_cond_glob	)
+			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,:) 		,	photo2_cond_glob	)
 			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
 			call normalize_k_int(kubo_opt_s_glob)
 			call normalize_k_int(kubo_opt_a_glob)

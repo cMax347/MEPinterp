@@ -12,6 +12,7 @@ module file_io
 													mep_out_dir,						&
 													ahc_out_dir,						&
 													opt_out_dir,						&
+													opt_out_ef_dir,						&
 													gyro_out_dir,						&
 													raw_dir, 							&
 													a_latt, 							&
@@ -531,15 +532,15 @@ module file_io
 	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm, photo_2nd)
 		integer,						intent(in)			::	n_ki_glob
 		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:,:),	a_symm(:,:,:)
-		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:,:,:)
+		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:,:,:,:)
 		character(len=22)									::	fname
 		character(len=150)									::	info_string
 		character(len=4)									::	id_string
-		integer												::	n_hw, hw_idx
+		integer												::	n_hw, hw_idx, ef_idx
 		logical												::	verbose
 		!
 		n_hw 	=	0
-		if( 	allocated(photo_2nd		))	n_hw	=	size(	photo_2nd	,	3)
+		if( 	allocated(photo_2nd		))	n_hw	=	size(	photo_2nd	,	4)
 		if( 	allocated(a_symm		)) 	n_hw	=	size(	a_symm		,	3)
 		if( 	allocated(s_symm		)) 	n_hw	=	size(	s_symm		,	3)
 		!
@@ -560,16 +561,20 @@ module file_io
 					call 	write_tens_file(opt_out_dir,	fname,	a_symm(:,:,hw_idx),	info_string,	id_string, verbose)
 				end if
 				!
-				if(allocated(photo_2nd))	then
-					write(fname,format)		'2nd_photo.hw',hw_idx
-					write(info_string,*)	'2nd order photcond: J^c_photo = rho^c_ab . E^*_a E_b; Phi_ab= ', 	&
-													phi_laser,																&
-											' (PRB 97, 241118(R) (2018))'
-					id_string	=	"2phC"
-					call	write_tens_file(opt_out_dir,	fname,	photo_2nd(:,:,:,hw_idx),	info_string,	id_string, verbose)
-				end if
 			end do
 			!
+			if(allocated(photo_2nd))	then
+				do ef_idx = 1, size(photo_2nd,5)
+					do hw_idx =1 , n_hw
+						write(fname,format)		'2nd_photo.hw',hw_idx
+						write(info_string,*)	'2nd order photcond: J^c_photo = rho^c_ab . E^*_a E_b; Phi_ab= ', 	&
+														phi_laser,																&
+												' (PRB 97, 241118(R) (2018))'
+						id_string	=	"2phC"
+						call	write_tens_file(opt_out_ef_dir(ef_idx),	fname,	photo_2nd(:,:,:,hw_idx,ef_idx),	info_string,	id_string, verbose)
+					end do
+				end do
+			end if
 			!
 			write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses at ",	&
 									n_hw," laser frequencies on ",n_ki_glob," kpts"
