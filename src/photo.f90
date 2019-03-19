@@ -41,11 +41,11 @@ contains
 		!$OMP PRIVATE(n, l,  dE_nm,df_ln, dE_nl, c, b, vvv_nl_lm_mn, tmp, hw, omega, dE_nl_hw, ef_idx)	&
 		!$OMP SHARED(n_wf, n_hw, n_ef, en_k, fd_distrib, V_ka, hw_lst, phi_laser, i_eta_smr) 			&
 		!$OMP REDUCTION(+: phot_cond)
-		do 	m = 1, n_wf
-			do n = 1, n_wf
+		do 	n = 1, n_wf
+			do m = 1, n_wf
 				dE_nm	=	cmplx(	en_k(n) - en_k(m)	,0.0_dp,dp) 			-	 i_eta_smr
 				do l = 1, n_wf
-					if(	l==n	)	cycle
+					if(l==n) cycle
 					!
 					df_ln	=	fd_distrib(:,l)	-	fd_distrib(:,n)
 					dE_nl	=	cmplx(	en_k(n) - 	 en_k(l),	0.0_dp, dp)		-	 i_eta_smr
@@ -61,11 +61,9 @@ contains
 					tmp =	0.0_dp
 					do hw = 1, n_hw
 						do omega = -1, 1, 2
-							dE_nl_hw	=	dE_nl +	cmplx(	omega*hw_lst(hw),	0.0_dp,	dp) 		
+							dE_nl_hw	=	dE_nl +	cmplx(	real(omega,dp)*hw_lst(hw),	0.0_dp,	dp) 		
 							!
-							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	real(		phi_laser	*	vvv_nl_lm_mn(:,:,:)						&		
-																			/ ( dE_nm * dE_nl_hw * cmplx(hw_lst(hw)**2,0.0_dp,dp)) 	,	&
-																	dp)			
+							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	real(	phi_laser *	vvv_nl_lm_mn(:,:,:)	/ ( dE_nm * dE_nl_hw ) ,dp)			
 						end do
 					end do
 					!
@@ -79,6 +77,11 @@ contains
 		end do
 		!$OMP END PARALLEL DO
 		!
+		do ef_idx = 1, n_ef
+			do hw = 1, n_hw
+				phot_cond(:,:,:,hw, ef_idx)		=	phot_cond(:,:,:,hw,ef_idx)	/	hw_lst(hw)**2
+			end do
+		end do
 		!
 		return
 	end function
