@@ -1,3 +1,4 @@
+ #!/usr/bin/env python3
 import os
 import time
 import shutil as sh
@@ -8,6 +9,11 @@ from scipy.optimize import	basinhopping
 #
 from FeMn_WX_rashba import 	write_3q_HR
 from fortran_io		import	read_real_tens_file
+
+
+def print_f(msg):
+	with open("mylog.txt", "a") as myfile:
+		myfile.write(msg)
 
 
 def save_mkdir(new_dir):
@@ -26,7 +32,7 @@ def run_fortran(run_dir,	N_mpi_jobs=1,N_omp_jobs=1):
 	#
 	os.chdir(root_dir)
 	end			=	time.time()
-	print("[run_fortran]:	finished this run after ",end-start," sec")
+	#print_f("[run_fortran]:	finished this run after "+str(end-start)+" sec")
 
 
 
@@ -119,21 +125,21 @@ class MEP_optimizer:
 		self.do_gyro			=	do_gyro
 
 
-	def print_log(self):
-		print("[MEP_optimizer]: History of the log	([t, strain, J_ex, tso,	theta_deg, 	cost]")
-		for entry in self.opt_log:
-			print(entry)
+	#def print_log(self):
+	#	print("[MEP_optimizer]: History of the log	([t, strain, J_ex, tso,	theta_deg, 	cost]")
+	#	for entry in self.opt_log:
+	#		print(entry)
 
 	def bandgap_exists(self,	occ_file, acc=1e-8):
 		if os.path.isfile(occ_file):
 			occ	=	np.genfromtxt(	occ_file, usecols=(1))
-			print("len(occ)=",len(occ))
+			#print_f("len(occ)="+str(len(occ)))
 			for n_el in occ:
 				#print("n_el=",n_el)
 				if np.abs(	float(n_el - self.valence_bands)) < acc:
 					return True
 		else:
-			print('[bandgap_exists]: ERROR occupation data file '+occ_file+' was not found!')
+			print_f('[bandgap_exists]: ERROR occupation data file '+str(occ_file)+' was not found!')
 			return False
 		return False
 
@@ -161,16 +167,16 @@ class MEP_optimizer:
 
 def cost_func( x, args):	
 		#	x:	t, strain, J_ex, tso, theta_deg
-		print('[cost_func]: 	next x = ',x)
+		print_f('[cost_func]: 	next x = '+str(x))
 		costs		=	0
 		#
 		Jz			=	0
 		#
-		if x[0]	> 0: print('[cost_func]:	WARNING got corrupted para_val: t  =x[0]>0')
-		if x[1]	< 0: print('[cost_func]:	WARNING got corrupted para_val: d  =x[1]<0')
-		if x[2]	> 0: print('[cost_func]:	WARNING got corrupted para_val: J  =x[2]>0')
-		if x[3]	> 0: print('[cost_func]:	WARNING got corrupted para_val: soc=x[3]>0')
-		if x[4]	< 0: print('[cost_func]:	WARNING got corrupted para_val:  chi=x[4]<0')
+		if x[0]	> 0: print_f('[cost_func]:	WARNING got corrupted para_val: t  =x[0]>0')
+		if x[1]	< 0: print_f('[cost_func]:	WARNING got corrupted para_val: d  =x[1]<0')
+		if x[2]	> 0: print_f('[cost_func]:	WARNING got corrupted para_val: J  =x[2]>0')
+		if x[3]	> 0: print_f('[cost_func]:	WARNING got corrupted para_val: soc=x[3]>0')
+		if x[4]	< 0: print_f('[cost_func]:	WARNING got corrupted para_val:  chi=x[4]<0')
 		#
 		new_run 	=	MEP_optimizer(	
 							N_mpi_procs=4,
@@ -206,10 +212,10 @@ def cost_func( x, args):
 		if(	new_run.bandgap_exists(occ_file)	):
 			costs	=	-	new_run.get_absmax_mep(	mep_file	)
 		else:
-			print('[cost_func]: WARNING not an insulator')
+			print_f(' (WARNING not an insulator) ')
 			costs	=	0
 		#
-		print('{:16.8e}'.format(costs))
+		print_f(' ->	{:16.8e}'.format(costs)+'\n')
 		return float(costs)
 
 #def test():
@@ -230,10 +236,10 @@ def run_opti(niter=100, verbose=False):
 	#
 	minimizer_kwargs	=	dict(method="COBYLA", constraints=constr, args=args)
 	resHopp				=	basinhopping( cost_func,init_guess,	niter=niter, disp = verbose,	minimizer_kwargs=minimizer_kwargs)
-	print("[run_opti]:	optimal parameter_set: ",resHopp.x)
-	print("[run_opti]:	minimal value: ",resHopp.fun)
-	print('[run_opti]:	optimizer terminated with final message:	')
-	print('\t',resHopp.message)
+	print_f("[run_opti]:	optimal parameter_set: "+str(resHopp.x)+'\n')
+	print_f("[run_opti]:	minimal value: "+str(resHopp.fun)+'\n')
+	print_f('[run_opti]:	optimizer terminated with final message:	'+'\n')
+	print_f('\t'+str(resHopp.message)+'\n')
 #
 run_opti(niter=1, verbose=True)
 	
