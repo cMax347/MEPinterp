@@ -43,6 +43,7 @@ contains
 		!$OMP REDUCTION(+: phot_cond)
 		do 	n = 1, n_wf
 			do m = 1, n_wf
+				if(n==m)	cycle
 				dE_nm	=	cmplx(	en_k(n) - en_k(m)	,0.0_dp,dp) 			-	 i_eta_smr
 				do l = 1, n_wf
 					if(l==n) cycle
