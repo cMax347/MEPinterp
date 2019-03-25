@@ -459,7 +459,7 @@ contains
 		complex(dp),			allocatable				::	velo_ahc_glob(:,:,:),														&
 															kubo_ohc_glob(:,:,:),														&
 															kubo_opt_s_glob(:,:,:), kubo_opt_a_glob(:,:,:),								&
-															gyro_C_glob(:,:), gyro_D_glob(:,:), gyro_Dw_glob(:,:,:)		
+															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:)		
 		!
 		
 		!
@@ -524,8 +524,8 @@ contains
 		!
 		!
 		if( do_gyro )											then
-			call mpi_reduce_sum(	gyro_C_loc(:,:,eF_idx)		,	gyro_C_glob			)
-			call mpi_reduce_sum(	gyro_D_loc(:,:,eF_idx)		,	gyro_D_glob			)
+			call mpi_reduce_sum(	gyro_C_loc(:,:,:)			,	gyro_C_glob			)
+			call mpi_reduce_sum(	gyro_D_loc(:,:,:)			,	gyro_D_glob			)
 			call mpi_reduce_sum(	gyro_Dw_loc(:,:,:,eF_idx)	,	gyro_Dw_glob		)
 			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
 			call normalize_k_int(gyro_C_glob)

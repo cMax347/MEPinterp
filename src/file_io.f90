@@ -571,7 +571,8 @@ module file_io
 														phi_laser,																&
 												' (PRB 97, 241118(R) (2018))'
 						id_string	=	"2phC"
-						call	write_tens_file(opt_out_ef_dir(ef_idx),	fname,	photo_2nd(:,:,:,hw_idx,ef_idx),	info_string,	id_string, verbose)
+						call	write_tens_file(trim(opt_out_ef_dir(ef_idx)),	&
+							trim(fname),photo_2nd(:,:,:,hw_idx,ef_idx),	info_string,id_string, verbose)
 					end do
 				end do
 			end if
@@ -587,36 +588,40 @@ module file_io
 
 	subroutine write_gyro_tensors(n_ki_glob, C_tens, D_tens, Dw_tens)
 		integer,					intent(in)		::	n_ki_glob
-		complex(dp),	allocatable, intent(in)				::	C_tens(:,:),	D_tens(:,:), Dw_tens(:,:,:)
+		complex(dp),	allocatable, intent(in)				::	C_tens(:,:,:),	D_tens(:,:,:), Dw_tens(:,:,:)
 		character(len=22)									::	fname
 		character(len=120)									::	info_string
 		character(len=6)									::	id_string
-		complex(dp)											::	trace_D
-		integer												::	n_hw, hw_idx
+		integer												::	n_hw, hw_idx, ef_idx
 		logical												::	verbose
 		!
 		verbose	=	.true.
 		if(allocated(C_tens)) then
-			fname		=	'gyro_C.dat'
-			info_string	=	'# the C tensor from arXiv:1710.03204v2, written '//cTIME(time())
-			id_string	=	'gyroC'
-			call	write_tens_file(gyro_out_dir,	fname,	C_tens,	info_string,	id_string, verbose)
+			do ef_idx = 1, size(C_tens,3)
+				write(fname,format)		'gyro_C.ef',ef_idx
+				!fname		=	'gyro_C.dat'
+				info_string	=	'# the C tensor from arXiv:1710.03204v2, written '//cTIME(time())
+				id_string	=	'gyroC'
+				call	write_tens_file(gyro_out_dir,	fname,	C_tens(:,:,ef_idx),	info_string,	id_string, verbose)
+			end do
 		end if
 		!
 		if(allocated(D_tens)) then
-			! check if traceless
-			trace_D	=		cmplx(0.0_dp,0.0_dp, dp)
-			trace_D	= 		D_tens(1,1) &
-					  	+	D_tens(2,2)	&
-					  	+	D_tens(3,3)
-			!
-			if(	abs(trace_D) > 1e-2_dp)	write(*,*)	"[write_gyro_tensors]:	WARNING D_tens is not traceless!! (trace_D=",trace_D,")"
+			!! check if traceless
+			!trace_D	=		cmplx(0.0_dp,0.0_dp, dp)
+			!trace_D	= 		D_tens(1,1) &
+			!		  	+	D_tens(2,2)	&
+			!		  	+	D_tens(3,3)
+			!!
+			!if(	abs(trace_D) > 1e-2_dp)	write(*,*)	"[write_gyro_tensors]:	WARNING D_tens is not traceless!! (trace_D=",trace_D,")"
 			!
 			!	write file
-			fname		=	'gyro_D.dat'
-			info_string	=	'# the Berry curvature dipole mom. D tensor (dimless in 3D) from arXiv:1710.03204v2, written '//cTIME(time())
-			id_string	=	'gyroD'
-			call	write_tens_file(gyro_out_dir,	fname,	D_tens,	info_string,	id_string, verbose)
+			do ef_idx = 1, size(D_tens,3)
+				write(fname,format)		'gyro_D.ef',ef_idx
+				info_string	=	'# the Berry curvature dipole mom. D tensor (dimless in 3D) from arXiv:1710.03204v2, written '//cTIME(time())
+				id_string	=	'gyroD'
+				call	write_tens_file(gyro_out_dir,	fname,	D_tens(:,:,ef_idx),	info_string,	id_string, verbose)
+			end do
 		end if
 		!
 		if(allocated(Dw_tens)) then
