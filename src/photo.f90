@@ -22,7 +22,7 @@ contains
 		!
 		real(dp),		intent(in)			::	hw_lst(:), fd_distrib(:,:), en_k(:)
 		complex(dp),	intent(in)			::	V_ka(:,:,:), phi_laser, i_eta_smr
-		real(dp),		allocatable			::	phot_cond(:,:,:,:,:), df_ln(:)
+		real(dp),		allocatable			::	phot_cond(:,:,:,:,:), df_ln(:), tmp(:,:,:,:)
 		complex(dp)							::	dE_nm, dE_nl,  dE_nl_hw, vvv_nl_lm_mn(3,3,3)
 		integer								::	m, n, l, c, b, hw, omega, ef_idx, n_ef, n_hw, n_wf
 		!
@@ -31,13 +31,14 @@ contains
 		n_wf	=	size(	en_k		,	1)
 		!
 		allocate(	df_ln(							n_ef	))
+		allocate(	tmp(			3,3,3,	n_hw			))
 		allocate(	phot_cond(		3,3,3,	n_hw,	n_ef	))
 		phot_cond	=	0.0_dp
 		!
 		!
-		!$OMP  PARALLEL DO DEFAULT(NONE)  																&
-		!$OMP PRIVATE(n, m, l, dE_nm, df_ln, dE_nl, c, b, vvv_nl_lm_mn,  ef_idx,hw, omega, dE_nl_hw)	&
-		!$OMP SHARED(n_wf, n_hw, n_ef, en_k, fd_distrib, V_ka, hw_lst, phi_laser, i_eta_smr) 			&
+		!$OMP  PARALLEL DO DEFAULT(NONE)  																	&
+		!$OMP PRIVATE(n, m, l, dE_nm, df_ln, dE_nl, c, b, vvv_nl_lm_mn, tmp, hw, omega, dE_nl_hw, ef_idx)	&
+		!$OMP SHARED(n_wf, n_hw, n_ef, en_k, fd_distrib, V_ka, hw_lst, phi_laser, i_eta_smr) 				&
 		!$OMP REDUCTION(+: phot_cond)
 		do 	n = 1, n_wf
 			do m = 1, n_wf
@@ -55,22 +56,23 @@ contains
 						end do
 					end do
 					!
+					!
+					!	LOOP FREQUENCIES
+					tmp =	0.0_dp
+					do hw = 1, n_hw
+						do omega = -1, 1, 2
+							dE_nl_hw	=	dE_nl +	omega*hw_lst(hw) -	 i_eta_smr		
+							!
+							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	real(	phi_laser	*	vvv_nl_lm_mn(:,:,:)				&		
+																	/	( dE_nm * dE_nl_hw 	) 	,dp)			
+						end do
+						tmp(:,:,:,hw)		=	tmp(:,:,:,hw)	/	hw_lst(hw)**2
+					end do
+					!
 					!	LOOP FERMI LEVEL
-					do ef_idx =1, n_ef
-						if(abs(df_ln(ef_idx))>1e-6_dp) then
-							!	LOOP FREQUENCIES
-							do hw = 1, n_hw
-								do omega = -1, 1, 2
-									dE_nl_hw	=	dE_nl +	cmplx(	real(omega,dp)*hw_lst(hw),	0.0_dp,	dp) 		
-									!
-									phot_cond(:,:,:,hw,ef_idx)	=	phot_cond(:,:,:,hw,ef_idx)							&
-										+	real(	phi_laser *	vvv_nl_lm_mn(:,:,:)	/ ( dE_nm * dE_nl_hw ) 		,dp)	&
-										/ 	hw_lst(hw)**2		
-								end do
-							end do
-							phot_cond(:,:,:,:,ef_idx)		=	phot_cond(:,:,:,:,ef_idx)	*	df_ln(ef_idx)
-						end if
-					end do 
+					do ef_idx = 1, n_ef
+						phot_cond(:,:,:,:,ef_idx)		=	phot_cond(:,:,:,:,ef_idx)	+	tmp(:,:,:,:)	* df_ln(ef_idx)
+					end do
 					!
 					!
 				end do
