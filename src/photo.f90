@@ -57,17 +57,19 @@ contains
 					!
 					!	LOOP FERMI LEVEL
 					do ef_idx =1, n_ef
-						!	LOOP FREQUENCIES
-						do hw = 1, n_hw
-							do omega = -1, 1, 2
-								dE_nl_hw	=	dE_nl +	cmplx(	real(omega,dp)*hw_lst(hw),	0.0_dp,	dp) 		
-								!
-								phot_cond(:,:,:,hw,ef_idx)	=	phot_cond(:,:,:,hw,ef_idx)							&
-									+	real(	phi_laser *	vvv_nl_lm_mn(:,:,:)	/ ( dE_nm * dE_nl_hw ) 		,dp)	&
-									/ 	hw_lst(hw)**2		
+						if(abs(df_ln(ef_idx))>1e-6_dp) then
+							!	LOOP FREQUENCIES
+							do hw = 1, n_hw
+								do omega = -1, 1, 2
+									dE_nl_hw	=	dE_nl +	cmplx(	real(omega,dp)*hw_lst(hw),	0.0_dp,	dp) 		
+									!
+									phot_cond(:,:,:,hw,ef_idx)	=	phot_cond(:,:,:,hw,ef_idx)							&
+										+	real(	phi_laser *	vvv_nl_lm_mn(:,:,:)	/ ( dE_nm * dE_nl_hw ) 		,dp)	&
+										/ 	hw_lst(hw)**2		
+								end do
 							end do
-						end do
-						phot_cond(:,:,:,:,ef_idx)		=	phot_cond(:,:,:,:,ef_idx)	*	df_ln(ef_idx)
+							phot_cond(:,:,:,:,ef_idx)		=	phot_cond(:,:,:,:,ef_idx)	*	df_ln(ef_idx)
+						end if
 					end do 
 					!
 					!
