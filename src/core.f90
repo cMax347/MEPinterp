@@ -337,9 +337,9 @@ contains
 			write(*,*)		"~"
 			write(*,*)		"~"
 			write(*,*)		"~"
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]:^^^^^^^	FERMI SELECTOR   ^^^^^^^^^^^^^^^^^^^^^^^"
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]:	select eF s.t. 	N_el(eF)= N_el "
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:^^^^^^^	FERMI SELECTOR   ^^^^^^^^^^^^^^^^^^^^^^^"
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:	select eF s.t. 	N_el(eF)= N_el "
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 			
 			!	
 			!^^^^^^^^^^^^
@@ -357,16 +357,16 @@ contains
 			!
 			!^^^^^^^^^^^^
 			!	get optimal Fermi energy
-			write(*,'(a,i5,a,i5,a)')	"[#",mpi_id,";fermi_selector]: the system is expected to have	N_el,sys :=	",Ne_sys," electron(s)"
-			write(*,'(a,i5,a,a)')		"[#",mpi_id,";fermi_selector]: now try to find ",&
+			write(*,'(a,i7.7,a,i5,a)')	"[#",mpi_id,";fermi_selector]: the system is expected to have	N_el,sys :=	",Ne_sys," electron(s)"
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";fermi_selector]: now try to find ",&
 											"a optimal Fermi energy value s.t. N_el( e_fermi) == N_el,sys .. "
 			write(*,*)				"..."
 			write(*,*)				"..."
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]:	#eF 	| eF (eV)	 |  N_el(#eF)	|	error abs( N_el(#eF) - N_el )	"
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"
-			write(*,'(a,i5,a,i5,a,a,a,i5,a,a)')	"[#",mpi_id,";fermi_selector]:	",	&
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:	#eF 	| eF (eV)	 |  N_el(#eF)	|	error abs( N_el(#eF) - N_el )	"
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"
+			write(*,'(a,i7.7,a,i5,a,a,a,i5,a,a)')	"[#",mpi_id,";fermi_selector]:	",	&
 																	0,"	|	"," -  ","     |", valence_bands ," 		 |		","(electron(s) in system)"
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]:         -------------------------------------------------------------    "
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:         -------------------------------------------------------------    "
 			!
 			!
 			do eF_idx	=	1, size(	ef_lst,1	)
@@ -376,7 +376,7 @@ contains
 				!
 				!	output
 				write(occ_file,'(f16.8,a,f16.8)')	ef_lst(ef_idx) *	 aUtoEv,"	",	Ne_glob_sum(eF_idx)
-				write(*,'(a,i5,a,i5,a,f12.6,a,f12.6,a,e16.8)',advance='no')	"[#",mpi_id,";fermi_selector]:	",	&
+				write(*,'(a,i7.7,a,i5,a,f12.6,a,f12.6,a,e16.8)',advance='no')	"[#",mpi_id,";fermi_selector]:	",	&
 										eF_idx," |	   ",  ef_lst(ef_idx)*aUtoEv,"  | ",Ne_glob_sum(eF_idx),"	 |	",new_error
 				!
 				!	optimal?!
@@ -393,12 +393,12 @@ contains
 			end do
 			!
 			close(occ_file)
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"		
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"		
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -----------------------------------------------------------------------"		
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -----------------------------------------------------------------------"		
 			write(*,*)				"..."
-			write(*,*)	"[#",mpi_id,";fermi_selector]: determined optimal fermi energy eF_optimal=",&
+			write(*,'(a,i7.7,a,f12.6,a,e16.8)')	"[#",mpi_id,";fermi_selector]: determined optimal fermi energy eF_optimal=",&
 								opt_ef* aUtoEv," eV with abs( N_el(eF_optimal) - N_el )=",opt_error
-			write(*,'(a,i5,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 			write(*,*)	"\n"
 		end if
 		!
@@ -482,7 +482,7 @@ contains
 			call mpi_reduce_sum(	mep_sum_ic_loc	,	mep_sum_ic_glob		)
 			call mpi_reduce_sum(	mep_sum_lc_loc	,	mep_sum_lc_glob		)
 			call mpi_reduce_sum(	mep_sum_cs_loc	,	mep_sum_cs_glob		)
-			if(mpi_id == mpi_root_id)	 write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected MEP tensors"
+			if(mpi_id == mpi_root_id)	 write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected MEP tensors"
 			call normalize_k_int(mep_sum_ic_glob)
 			call normalize_k_int(mep_sum_lc_glob)
 			call normalize_k_int(mep_sum_cs_glob)
@@ -494,7 +494,7 @@ contains
 			call mpi_reduce_sum(	kubo_mep_ic_loc(:,:,eF_idx)	,	kubo_mep_ic_glob	)
 			call mpi_reduce_sum(	kubo_mep_lc_loc(:,:,eF_idx)	,	kubo_mep_lc_glob	)
 			call mpi_reduce_sum(	kubo_mep_cs_loc(:,:,eF_idx)	,	kubo_mep_cs_glob	)
-			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected KUBO MEP tensors"
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected KUBO MEP tensors"
 			call normalize_k_int(kubo_mep_ic_glob)
 			call normalize_k_int(kubo_mep_lc_glob)
 			call normalize_k_int(kubo_mep_cs_glob)
@@ -505,7 +505,7 @@ contains
 			call mpi_reduce_sum(	kubo_ahc_loc(:,:  ,eF_idx)	,	kubo_ahc_glob		)
 			call mpi_reduce_sum(	velo_ahc_loc(:,:,:,eF_idx)	,	velo_ahc_glob		)
 			call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,eF_idx)	,	kubo_ohc_glob		)
-			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
 			call normalize_k_int(kubo_ahc_glob)
 			call normalize_k_int(velo_ahc_glob)
 			call normalize_k_int(kubo_ohc_glob)
@@ -516,7 +516,7 @@ contains
 			call mpi_reduce_sum(	kubo_opt_s_loc(:,:,:,eF_idx)	,	kubo_opt_s_glob		)
 			call mpi_reduce_sum(	kubo_opt_a_loc(:,:,:,eF_idx)	,	kubo_opt_a_glob		)
 			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,:) 		,	photo2_cond_glob	)
-			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
 			call normalize_k_int(kubo_opt_s_glob)
 			call normalize_k_int(kubo_opt_a_glob)
 			call normalize_k_int(photo2_cond_glob)
@@ -527,7 +527,7 @@ contains
 			call mpi_reduce_sum(	gyro_C_loc(:,:,:)			,	gyro_C_glob			)
 			call mpi_reduce_sum(	gyro_D_loc(:,:,:)			,	gyro_D_glob			)
 			call mpi_reduce_sum(	gyro_Dw_loc(:,:,:,eF_idx)	,	gyro_Dw_glob		)
-			if(mpi_id == mpi_root_id) write(*,'(a,i5,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
 			call normalize_k_int(gyro_C_glob)
 			call normalize_k_int(gyro_D_glob)
 			call normalize_k_int(gyro_Dw_glob)
@@ -537,7 +537,7 @@ contains
 			write(*,*)				""
 			write(*,*)				""
 			write(*,*)				"..."					
-			write(*,'(a,i5,a,a,a,i8,a)') "[#",mpi_id,"; core_worker",cTIME(time()),"]: collected tensors from",mpi_nProcs," mpi-threads"
+			write(*,'(a,i7.7,a,a,a,i8,a)') "[#",mpi_id,"; core_worker",cTIME(time()),"]: collected tensors from",mpi_nProcs," mpi-threads"
 		end if
 	
 		!
@@ -729,7 +729,7 @@ contains
 			omp_nThreads	=	omp_get_num_threads()
 			omp_id			=	omp_get_thread_num()
 			if(omp_id	==	0	) then
-				write(*,'(a,i5,a,a,a,i3,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
+				write(*,'(a,i7.7,a,a,a,i3,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
 													"]:  I start interpolating now (#OMP THREADS=",omp_nThreads,")...."
 			end if
 		!$OMP END PARALLEL
@@ -751,7 +751,7 @@ contains
 		!
 		!	PRINT AFTER K LOOP
 		if(	n_ki_cnt == 499 ) then
-			write(*,'(a,i5,a,a,a,i8,a,f6.1,a)')		"[#",mpi_id,";core_worker/",&
+			write(*,'(a,i7.7,a,a,a,i8,a,f6.1,a)')		"[#",mpi_id,";core_worker/",&
 					cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",100.0_dp*real(n_ki_cnt+1,dp)/n_ki_tot,"%)."
 		end if
 		!
@@ -764,7 +764,7 @@ contains
 			!
 			if (abs(delta)	< 0.49_dp	)	then
 				!
-				write(*,'(a,i5,a,a,a,i8,a,f6.1,a)',advance="no")		"[#",mpi_id,";core_worker/",&
+				write(*,'(a,i7.7,a,a,a,i8,a,f6.1,a)',advance="no")		"[#",mpi_id,";core_worker/",&
 										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",10.0_dp*real(i,dp),"%)"
 				!
 				!
@@ -777,7 +777,7 @@ contains
 		end do
 		!
 		!	PRINT DEBUG
-		if(	n_ki_cnt > n_ki_tot)	write(*,'(a,i5,a,i8,a,i8)')	"[#",mpi_id,";core]: warning n_ki_cnt=",&
+		if(	n_ki_cnt > n_ki_tot)	write(*,'(a,i7.7,a,i8,a,i8)')	"[#",mpi_id,";core]: warning n_ki_cnt=",&
 																	n_ki_cnt," which exceeds n_ki_tot=",n_ki_tot
 		!
 		!
@@ -799,11 +799,11 @@ contains
 		else
 			write(gauge_label,*)		'in the (W) Wannier gauge (no gauge trafo performed!)'
 		end if
-		write(*,'(a,i5,a,a,a,i8,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
+		write(*,'(a,i7.7,a,a,a,i8,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
 													"]: ...finished interpolating (",n_ki_loc,"/",n_ki_glob,") kpts "//gauge_label
 		!
 		if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		write(*,'(a,i5,a,a,a,f8.4,a)')	"[#",mpi_id,";core_worker/",cTIME(time()),"]: choosen fermi energy	", &	
+		write(*,'(a,i7.7,a,a,a,f8.4,a)')	"[#",mpi_id,";core_worker/",cTIME(time()),"]: choosen fermi energy	", &	
 										eF_lst(eF_final_idx) * aUtoEv," eV. Now start reduction of response tensors..." 
 		!
 		!

@@ -97,7 +97,7 @@ module input_paras
 		init_parameters	=	.false.
 		!
 		if( 	.not. use_mpi 		.and.		 mpi_id	/= 0			)	then
-			 write(*,'(a,i3,a)')		'[#',mpi_id,';init_parameters]:	hello, I am an unexpected MPI thread !!!1!1!!!1!!1 '
+			 write(*,'(a,i7.7,a)')		'[#',mpi_id,';init_parameters]:	hello, I am an unexpected MPI thread !!!1!1!!!1!!1 '
 		end if
 		!
 		velo_out_dir	=	out_dir//"/velo/"
@@ -201,7 +201,7 @@ module input_paras
 				write(*,*)					"parallelization with #",mpi_nProcs," MPI threads"
 				write(*,*)					""
 				write(*,*)					"**********************init_parameter interpretation******************************"
-				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
+				write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: input interpretation:"
 				!call CFG_write(my_cfg,	"stdout", hide_unused=.false.)	!writes all input vars to stdout
 				write(*,*)					"~~"
 				if(	T_kelvin < 1e-2_dp)	 then
@@ -217,13 +217,13 @@ module input_paras
 				
 				write(*,*)					"*********************************************************************************"		
 				!call CFG_write(my_cfg, './input.log', hide_unused=.true.)
-				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: wrote input log file to input.log"
+				write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: wrote input log file to input.log"
 				write(*,*)		""
 				!
 				!make the output folder
 				write(*,*)	"*"
 				write(*,*)	"----------------------MAKE TARGET DIRECTORIES-------------------------"
-				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: start target mkdir..."
+				write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: start target mkdir..."
 				call my_mkdir(out_dir)
 				call my_mkdir(raw_dir)
 				if(		 	do_write_velo		)	call my_mkdir(velo_out_dir)	
@@ -241,14 +241,14 @@ module input_paras
 					end if
 					if(			do_gyro			)	call my_mkdir(gyro_out_dir)		
 				end if	
-				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: ... directories created"
+				write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: ... directories created"
 			else
-				write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
+				write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
 				stop "please provide a input.cfg file"
 			end if
 			write(*,*)	"*"
 			write(*,*)	"----------------------K-SPACE SETUP-------------------------"
-			write(*,'(a,i3,a)')			"[#",mpi_id,";init_parameters]: now bcast the input parameters and setup k-space ..."
+			write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: now bcast the input parameters and setup k-space ..."
 			write(*,*)	""
 		end if
 		!
@@ -329,7 +329,7 @@ module input_paras
 		!inquire(directory=dir, exist=dir_exists)
 		!if( .not. dir_exists )	then
 			call system(mkdir//dir)
-			write(*,'(a,i3,a,a)')	"[#",mpi_id,"; init_parameters]: (fake) created directory ",dir
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,"; init_parameters]: (fake) created directory ",dir
 		!end if
 		!
 		return

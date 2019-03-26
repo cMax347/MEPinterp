@@ -50,13 +50,13 @@ contains
 			if(	abs(dV)	> 1e-1_dp) then
 				write(*,*)	"[set_recip_latt]: 	WARNING	KSPACE CORRUPTED!! bz_vol /= (8 pi**3/ unit_vol)"
 			else
-				write(*,'(a,i3,a,i4,a,i4,a,i4,a,a,f8.4,a,f8.4,a)')	&
+				write(*,'(a,i7.7,a,i4,a,i4,a,i4,a,a,f8.4,a,f8.4,a)')	&
 									"[#",mpi_id,";k_space]: k-space setup done (mp_grid=",&
 									mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),"). ",&
 									"unit_vol=,",unit_vol,",(a0**3) -> bz_vol=",bz_vol," (1/a0**3)"
 			end if
 		else
-			write(*,'(a,i3,a)')	&
+			write(*,'(a,i7.7,a)')	&
 				"[#",mpi_id,";k_space]: ERROR reciprocal lattice was not initalized. Pls contact dev.."
 		end if
 		!
@@ -203,7 +203,7 @@ contains
 		if(	allocated(r_tb)	)	then	
 			allocate(	A_ka(	  3,		size(r_tb,2),	size(r_tb,3)	)	)
 			allocate(	Om_kab(	3,	3,		size(r_tb,2),	size(r_tb,3)	)	)
-			write(*,'(a,i3,a)')		"[#",mpi_id,"; kspace_allocator]: allocated position operator (will use Berry connenction & curv)"	
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,"; kspace_allocator]: allocated position operator (will use Berry connenction & curv)"	
 		end if
 		!
 		return
@@ -269,14 +269,14 @@ contains
 		!	DEBUG
 		do i = 1, 3 
 			if( 	abs(dot_product(recip_latt(i,:),a_latt(i,:))-2.0_dp * pi_dp)		> 1e-3_dp	) &
-				write(*,'(a,i5,a,i1,a,i1,a,f8.4,a)')	"[#",mpi_id,&
+				write(*,'(a,i7.7,a,i1,a,i1,a,f8.4,a)')	"[#",mpi_id,&
 							"set_recip_latt]:	WARNING b",i,".a",i," =",dot_product(recip_latt(i,:),a_latt(i,:)),'/= 2pi'
 			!
 			!
 			do j = 1, 3
 				if(i==j) cycle
 				if( 	abs(dot_product(recip_latt(i,:),a_latt(j,:)))		> 1e-3_dp	) &
-					write(*,'(a,i5,a,i1,a,i1,a,f8.4,a)')	"[",mpi_id,&
+					write(*,'(a,i7.7,a,i1,a,i1,a,f8.4,a)')	"[",mpi_id,&
 							"set_recip_latt]:	WARNING b",i,".a",j," =",dot_product(recip_latt(i,:),a_latt(j,:)),'/= 0'	
 			end do
 			!

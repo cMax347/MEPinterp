@@ -61,7 +61,7 @@ contains
 			!
 			!	do the work
 			if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-			write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
+			write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
 			!
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
@@ -74,7 +74,7 @@ contains
 
 				k_per_mpi	= k_per_mpi + 1
 			end do
-			write(*,'(a,i3,a,a,a,i10,a,i10,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),				&
+			write(*,'(a,i7.7,a,a,a,i10,a,i10,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),				&
 													']:	...finished, interpolated ',k_per_mpi,' of ',num_kpts,' kpts'
 			!
 			!
@@ -104,7 +104,7 @@ contains
 		if( do_write_velo )		then
 			allocate(	V_ka(3,	size(H_tb,1), size(H_tb,2))		)
 			V_ka	=	0.0_dp
-			write(*,'(a,i3,a,i1,a,i3,a,i3,a)')	"[",mpi_id,"band_allocator]: V_ka allocated with size=	(",&
+			write(*,'(a,i7.7,a,i1,a,i3,a,i3,a)')	"[",mpi_id,"band_allocator]: V_ka allocated with size=	(",&
 													size(V_ka,1), "x",size(V_ka,2),"x",size(V_ka,3),")"
 		end if
 		!

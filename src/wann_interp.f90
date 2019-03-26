@@ -191,7 +191,7 @@ module wann_interp
 		!
 		if( allocated(atom_frac)) then	
 			if(	kpt_idx <= mpi_nProcs	)then 
-				write(*,'(a,i5,a)')	"[#",mpi_id,";FT_R_to_k]: will use TIGHT-B FT CONVENTION"
+				write(*,'(a,i7.7,a)')	"[#",mpi_id,";FT_R_to_k]: will use TIGHT-B FT CONVENTION"
 			end if
 			! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
 			!	CONSIDER ATOMIC POSITIONS IN FOURIER TRANSFORM															!|
@@ -244,7 +244,7 @@ module wann_interp
 			!
 		else
 			if(	kpt_idx <= mpi_nProcs	)then 
-				write(*,*)	"[",mpi_id,"FT_R_to_k]: will use WANNIER FT CONVENTION"
+				write(*,'(a,i7.7,a)')	"[",mpi_id,"FT_R_to_k]: will use WANNIER FT CONVENTION"
 			end if
 			!
 			! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|
@@ -287,7 +287,7 @@ module wann_interp
 		!
 		if(use_pos_op) then
 			if(	kpt_idx <= mpi_nProcs	)then 
-				write(*,*)	"[",mpi_id,"FT_R_to_k]: will interpolate conn & curv additonally"
+				write(*,'(a,i7.7,a)')	"[",mpi_id,"FT_R_to_k]: will interpolate conn & curv additonally"
 			end if
 			if( allocated(atom_frac)	) then
 				! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!|

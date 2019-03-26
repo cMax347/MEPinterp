@@ -150,7 +150,7 @@ module file_io
 			!		
 		end do
 		close(220)
-		write(*,'(a,i3,a)')		"[#",mpi_id,"; write_en_global]: success!"
+		write(*,'(a,i7.7,a)')		"[#",mpi_id,"; write_en_global]: success!"
 		!
 		return
 	end subroutine
@@ -190,7 +190,7 @@ module file_io
 		!
 		!	CLOSE FILE
 		close(mpi_unit)
-		write(*,'(a,i3,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
+		write(*,'(a,i7.7,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
 		!
 		return
 	end subroutine
@@ -400,7 +400,7 @@ module file_io
 			end do
 		end if
 		!-----------------------------------------------------------------------------------
-		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_mep_tensors]: calculated MEP tensor on ",n_ki_glob," kpts"
+		write(*,'(a,i7.7,a,i8,a)')		"[#",mpi_id,"; write_mep_tensors]: calculated MEP tensor on ",n_ki_glob," kpts"
 		!
 		!
 		return
@@ -455,7 +455,7 @@ module file_io
 			allocate(kubo_mep_tens(3,3))
 			kubo_mep_tens	= 	kubo_mep_ic +	kubo_mep_lc	+	kubo_mep_cs
 			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_tens, info_string,	id_string, verbose )
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: wrote  KUBO MEP tensor on ",n_ki_glob," kpts"
+			write(*,'(a,i7.7,a,i8,a)')		"[#",mpi_id,"; core_worker]: wrote  KUBO MEP tensor on ",n_ki_glob," kpts"
 		end if
 		!
 		!
@@ -481,7 +481,7 @@ module file_io
 			info_string	=	'# anomalous Hall conductivity tensor, written '//cTIME(time())
 			id_string	=	'ahc'
 			call	write_tens_file(ahc_out_dir,	trim(fname),	ahc_tens,	info_string,	id_string, verbose)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor (curvature) on ",n_ki_glob," kpts:"
+			write(*,'(a,i7.7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor (curvature) on ",n_ki_glob," kpts:"
 			do row = 1, 3
 				write(*,*)	ahc_tens(row,:)
 			end do
@@ -518,9 +518,9 @@ module file_io
 				write(*,*)	"[write_ahc_tensor]:	ERROR different hw_lst length detected "
 				stop "ahc hw lst inconsistency"
 			else
-				write(*,'(a,i3,a,i7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (Wanxiang) tensor at ",&
+				write(*,'(a,i7.7,a,i7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (Wanxiang) tensor at ",&
 																n_hw," frequencies on ",n_ki_glob," kpts"
-				write(*,'(a,i3,a,i7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (w90: velo) tensor at ",&
+				write(*,'(a,i7.7,a,i7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (w90: velo) tensor at ",&
 																n_hw," frequencies on ",n_ki_glob," kpts"
 			end if
 		end if
@@ -577,7 +577,7 @@ module file_io
 				end do
 			end if
 			!
-			write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses at ",	&
+			write(*,'(a,i7.7,a,i7,a,i7)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses at ",	&
 									n_hw," laser frequencies on ",n_ki_glob," kpts"
 		end if
 		!	
@@ -635,14 +635,14 @@ module file_io
 				call	write_tens_file(gyro_out_dir,	fname,	Dw_tens(:,:,hw_idx),	info_string,	id_string,verbose)
 			end do
 			!
-			write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_gyro_tensors]:	wrote Dw tensor at ",	&
+			write(*,'(a,i7.7,a,i7,a,i7)')	"[#",mpi_id,";write_gyro_tensors]:	wrote Dw tensor at ",	&
 											n_hw,	"laser frequencies on ",n_ki_glob," kpts"		
 			!
 		end if
 		!
 		!
 		if(allocated(C_tens) .and. allocated(D_tens) .and. allocated(Dw_tens)) then
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated GYRO tensors on ",n_ki_glob," kpts"
+			write(*,'(a,i7.7,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated GYRO tensors on ",n_ki_glob," kpts"
 		end if
 		!
 		return
@@ -667,7 +667,7 @@ module file_io
 			end do
 			write(w_unit,*)	'end '//id_string
 		close(w_unit)
-		if(verbose)		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
+		if(verbose)		write(*,'(a,i7.7,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
 																fname," written  successfully!"
 		!
 		!
@@ -697,7 +697,7 @@ module file_io
 			end do
 			write(w_unit,*)	'end '//id_string
 		close(w_unit)
-		if(verbose)		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
+		if(verbose)		write(*,'(a,i7.7,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
 																fname," written  successfully!"
 		!
 		!
@@ -720,7 +720,7 @@ module file_io
 			end do
 			write(255,*)	'end '//id_string
 		close(255)
-		if(verbose)		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
+		if(verbose)		write(*,'(a,i7.7,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
 																fname," written successfully!"
 		!
 		!
@@ -781,7 +781,7 @@ module file_io
 				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
 			end do
 			close(mpi_unit)
-			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
+			write(*,'(a,i7.7,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
 		end if 
 
 		!
@@ -846,11 +846,12 @@ module file_io
 				do kpt = 1, num_kpts
 					read(mpi_unit,*)		raw_idx, raw_kpt(1:3)
 					kpt_latt(1:3,raw_idx)	= raw_kpt(1:3)
-					if(raw_idx /= kpt)	write(*,'(a,i3,a)') '[#',mpi_id,'; read_geninterp_kpt_file]: WARNING, issues with k-mesh ordering detected'	
+					if(raw_idx /= kpt)	write(*,'(a,i7.7,a)') '[#',mpi_id,&
+						'; read_geninterp_kpt_file]: WARNING, issues with k-mesh ordering detected'	
 				end do
-				write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_geninterp_kpt_file]: success! num_kpts=",num_kpts
+				write(*,'(a,i7.7,a,i8)')	"[#",mpi_id,"; read_geninterp_kpt_file]: success! num_kpts=",num_kpts
 			else
-				write(*,'(a,i3,a)')	"[#",mpi_id,"; read_geninterp_kpt_file]: file is not given in fractional coordinates (will not use file)"
+				write(*,'(a,i7.7,a)')	"[#",mpi_id,"; read_geninterp_kpt_file]: file is not given in fractional coordinates (will not use file)"
 			end if
 			!
 			close(mpi_unit)
@@ -962,7 +963,7 @@ module file_io
 		rHopp	= 	rHopp / aUtoAngstrm
 		!
 		!
-		write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,";read_tb_file]: success (input interpretation: nWfs="
+		write(*,'(a,i7.7,a)',advance="no")	"[#",mpi_id,";read_tb_file]: success (input interpretation: nWfs="
 		write(*,'(i6,a,i6,a)')				f_nwfs, ";	nrpts=",f_nSC,")!"
 		return
 	end subroutine 
@@ -1050,7 +1051,7 @@ module file_io
 		!convert to a.u
 		H_mat	= H_mat / aUtoEv
 		!
-		write(*,'(a,i3,a,i4,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_hr_file]: unit=#",mpi_unit," SUCCESS (input interpretation: nWfs=",		&
+		write(*,'(a,i7.7,a,i4,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_hr_file]: unit=#",mpi_unit," SUCCESS (input interpretation: nWfs=",		&
 												f_nwfs, ";	nrpts=",size(R_vect,2),") on unit: "
 		return
 	end subroutine
@@ -1099,7 +1100,7 @@ module file_io
 		!convert angstom to (au)
 		r_mat	= r_mat	/ aUtoAngstrm
 		!
-		write(*,'(a,i3,a,i6,a)')	"[#",mpi_id,";read_r_file]: success (input interpretation: nWfs=",f_nwfs, ";)"				
+		write(*,'(a,i7.7,a,i6,a)')	"[#",mpi_id,";read_r_file]: success (input interpretation: nWfs=",f_nwfs, ";)"				
 		!
 		return
 	end subroutine
