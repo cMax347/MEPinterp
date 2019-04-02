@@ -546,22 +546,22 @@ module file_io
 		!
 		if (n_hw > 0) then
 			verbose	=	.false.
-			do hw_idx	=	 1, n_hw	 
-				if(allocated(s_symm)) then
-					write(fname,format)		'opt_Ssymm.hw',hw_idx
-					info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
-					id_string	=	'optS'
-					call 	write_tens_file(opt_out_dir,	fname,	s_symm(:,:,hw_idx),	info_string,	id_string, verbose)
-				end if
-				!
-				if(allocated(a_symm)) then
-					write(fname,format)		'opt_Asymm.hw',hw_idx
-					info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
-					id_string	=	'optA'
-					call 	write_tens_file(opt_out_dir,	fname,	a_symm(:,:,hw_idx),	info_string,	id_string, verbose)
-				end if
-				!
-			end do
+			!do hw_idx	=	 1, n_hw	 
+			!	if(allocated(s_symm)) then
+			!		write(fname,format)		'opt_Ssymm.hw',hw_idx
+			!		info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
+			!		id_string	=	'optS'
+			!		call 	write_tens_file(opt_out_dir,	fname,	s_symm(:,:,hw_idx),	info_string,	id_string, verbose)
+			!	end if
+			!	!
+			!	if(allocated(a_symm)) then
+			!		write(fname,format)		'opt_Asymm.hw',hw_idx
+			!		info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
+			!		id_string	=	'optA'
+			!		call 	write_tens_file(opt_out_dir,	fname,	a_symm(:,:,hw_idx),	info_string,	id_string, verbose)
+			!	end if
+			!	!
+			!end do
 			!
 			if(allocated(photo_2nd))	then
 				do ef_idx = 1, size(photo_2nd,5)
