@@ -13,7 +13,7 @@ module photo
 contains
 
 
-	function photo_2nd_cond(en_k, V_ka, hw_lst, phi_laser, fd_distrib, i_eta_smr) result(phot_cond)
+	function photo_2nd_cond(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr) result(phot_cond)
 		!
 		!	implementation of Yang et al., PRB 97 241118(R) (2018)    EQ(1)
 		!	"PHOTOGALVANIC EFFECT IN WEYL SEMIMETALS FROM FIRST PRINCIPLES"
@@ -21,8 +21,9 @@ contains
 		!		EQ.(1)		
 		!
 		real(dp),		intent(in)			::	hw_lst(:), fd_distrib(:,:), en_k(:)
-		complex(dp),	intent(in)			::	V_ka(:,:,:), phi_laser, i_eta_smr
-		real(dp),		allocatable			::	phot_cond(:,:,:,:,:), df_ln(:), tmp(:,:,:,:)
+		complex(dp),	intent(in)			::	V_ka(:,:,:), i_eta_smr
+		real(dp),		allocatable			::	df_ln(:)
+		complex(dp),	allocatable			::	phot_cond(:,:,:,:,:), tmp(:,:,:,:)
 		complex(dp)							::	dE_nm, dE_nl,  dE_nl_hw, vvv_nl_lm_mn(3,3,3)
 		integer								::	m, n, l, c, b, hw, omega, ef_idx, n_ef, n_hw, n_wf
 		!
@@ -63,8 +64,8 @@ contains
 						do omega = -1, 1, 2
 							dE_nl_hw	=	dE_nl +	omega*hw_lst(hw) -	 i_eta_smr		
 							!
-							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	real(	phi_laser	*	vvv_nl_lm_mn(:,:,:)				&		
-																	/	( dE_nm * dE_nl_hw 	) 	,dp)			
+							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	vvv_nl_lm_mn(:,:,:)				&		
+																	/	( dE_nm * dE_nl_hw 	) 		
 						end do
 						tmp(:,:,:,hw)		=	tmp(:,:,:,hw)	/	hw_lst(hw)**2
 					end do
