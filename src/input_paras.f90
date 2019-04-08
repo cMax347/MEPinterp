@@ -39,7 +39,7 @@ module input_paras
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
-												N_hw, hw_min, hw_max, phi_laser, 									&
+												N_hw, hw_min, hw_max,												&
 												N_eF, eF_min, eF_max, T_kelvin, i_eta_smr
 
 
@@ -72,7 +72,7 @@ module input_paras
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
 									eF_min, eF_max, T_kelvin			
-	complex(dp)					::	i_eta_smr, phi_laser
+	complex(dp)					::	i_eta_smr
 	real(dp),	allocatable		::	wf_centers(:,:)
 
 
@@ -86,7 +86,7 @@ module input_paras
 !public
 	logical function init_parameters()
 		type(CFG_t) 			:: 	my_cfg
-		real(dp)				::	a1(3), a2(3), a3(3), eta, laser_phase
+		real(dp)				::	a1(3), a2(3), a3(3), eta
 		integer					::	mp_grid(3), ef_idx
 		logical					::	input_exist
 		!
@@ -169,7 +169,6 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Laser%N_hw"					,	N_hw					,	"points to probe in interval"	)
 				call CFG_add_get(my_cfg,	"Laser%hw_min"					,	hw_min					,	"min energy of incoming light"	)
 				call CFG_add_get(my_cfg,	"Laser%hw_max"					,	hw_max					,	"max energy of incoming light"	)
-				call CFG_add_get(my_cfg,	"Laser%laser_phase"				,	laser_phase			,	"euler angle of phase shift of driving E-field")
 				!~~~~~~~~~~~~
 				!~~~~~~~~~~~~
 				!~~~~~~~~~~~~
@@ -192,7 +191,6 @@ module input_paras
 				!
 				!	derived constants
 				i_eta_smr	=	cmplx(0.0_dp,	eta	,dp)
-				phi_laser	=	cmplx(cos(pi_dp*laser_phase),sin(pi_dp*laser_phase),dp)
 				!
 				!
 				!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -289,7 +287,6 @@ module input_paras
 				call MPI_BCAST(		hw_min			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)			
 				call MPI_BCAST(		hw_max			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		n_hw			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-				call MPI_BCAST(		phi_laser		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				![FERMI]
 				call MPI_BCAST(		kubo_tol		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)	
 				call MPI_BCAST(		N_eF			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
