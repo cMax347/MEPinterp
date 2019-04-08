@@ -29,6 +29,8 @@ module k_space
 		module procedure z0_tens_normalize_k_int
 		module procedure z2_tens_normalize_k_int
 		module procedure z3_tens_normalize_k_int
+		module procedure z4_tens_normalize_k_int
+		module procedure z5_tens_normalize_k_int
 	end interface normalize_k_int
 
 
@@ -174,6 +176,30 @@ contains
 		!
 		return
 	end subroutine
+!------
+	subroutine z4_tens_normalize_k_int(tens)
+		complex(dp),	allocatable,	intent(inout)	::	tens(:,:,:,:)
+		integer							:: 	n_k
+		!
+		if(allocated(tens))	then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!------
+subroutine z5_tens_normalize_k_int(tens)
+	complex(dp),	allocatable,	intent(inout)	::	tens(:,:,:,:,:)
+	integer							:: 	n_k
+	!
+	if(allocated(tens))	then
+		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+		if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
+	end if
+	!
+	return
+end subroutine
 	
 
 
