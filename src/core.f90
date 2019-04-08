@@ -31,7 +31,7 @@ module core
 								wf_centers,										&
 								valence_bands, 									&
 								seed_name,										&
-								hw_min, hw_max, n_hw, phi_laser, 				&
+								hw_min, hw_max, n_hw, 							&
 								N_eF, eF_min, eF_max, T_kelvin, i_eta_smr,		&
 								out_dir
 	!
@@ -97,8 +97,7 @@ contains
 												kubo_ahc_loc(		:,:,:),				&
 												kubo_mep_ic_loc(	:,:,:),				&
 												kubo_mep_lc_loc(	:,:,:),				&
-												kubo_mep_cs_loc(	:,:,:),				&
-												photo2_cond_loc(:, :,:,:,:)
+												kubo_mep_cs_loc(	:,:,:)
 												!
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_kab(:,:,:,:),			&
@@ -110,6 +109,7 @@ contains
 												kubo_ohc_loc(	  :,:,:,:),				&
 												kubo_opt_s_loc(	  :,:,:,:),				&
 												kubo_opt_a_loc(	  :,:,:,:),				&
+												photo2_cond_loc(:,:,:,:,:),				&
 												gyro_C_loc(			:,:,:),				&							
 												gyro_D_loc(			:,:,:),				&
 												gyro_Dw_loc(	  :,:,:,:)																								
@@ -238,7 +238,7 @@ contains
 									kubo_opt_a_loc(:,:,:,:)		=	kubo_opt_a_loc(:,:,:,:)	+	tempA
 									!			---------------------------------
 									photo2_cond_loc(:,:,:,:,:)	=	photo2_cond_loc(:,:,:,:,:)	&	
-												+	photo_2nd_cond(en_k, V_ka, hw_lst, phi_laser, fd_distrib, i_eta_smr )
+												+	photo_2nd_cond(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr )
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -436,10 +436,10 @@ contains
 		integer,						intent(in)		::	n_ki_loc , eF_idx	
 		real(dp),						intent(in)		::	mep_bands_ic_loc(:,:,:), mep_bands_lc_loc(:,:,:), mep_bands_cs_loc(:,:,:),	&
 															kubo_mep_ic_loc(:,:,:), kubo_mep_lc_loc(:,:,:), kubo_mep_cs_loc(:,:,:),		&				
-															kubo_ahc_loc(:,:,:),														&									
-															photo2_cond_loc(:,:,:,:,:)
+															kubo_ahc_loc(:,:,:)								
 		complex(dp),					intent(in)		::	velo_ahc_loc(:,:,:,:),	kubo_ohc_loc(:,:,:,:),								&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
+															photo2_cond_loc(:,:,:,:,:),													&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!-----------------------------------------------------------------------------------------------------------
 		integer											::	n_ki_glob
@@ -449,16 +449,12 @@ contains
 															mep_sum_ic_loc(:,:), mep_sum_lc_loc(:,:), mep_sum_cs_loc(:,:),				&
 															mep_sum_ic_glob(:,:), mep_sum_lc_glob(:,:), mep_sum_cs_glob(:,:),			&
 															kubo_mep_ic_glob(:,:), kubo_mep_lc_glob(:,:), kubo_mep_cs_glob(:,:),		&
-															kubo_ahc_glob(:,:),															&
-															photo2_cond_glob(:,:,:,:,:)
-
-															
-															
-															!
+															kubo_ahc_glob(:,:)												
 															!
 		complex(dp),			allocatable				::	velo_ahc_glob(:,:,:),														&
 															kubo_ohc_glob(:,:,:),														&
 															kubo_opt_s_glob(:,:,:), kubo_opt_a_glob(:,:,:),								&
+															photo2_cond_glob(:,:,:,:,:),												&
 															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:)		
 		!
 		
@@ -620,11 +616,12 @@ contains
 		real(dp),		allocatable,	intent(inout)	::	Ne_loc_sum(:),																&
 															mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),		&
 															kubo_mep_ic_loc(:,:,:), kubo_mep_lc_loc(:,:,:), kubo_mep_cs_loc(:,:,:),		&				
-															kubo_ahc_loc(:,:,:),														&
-															photo2_cond_loc(:,:,:,:,:)									
+															kubo_ahc_loc(:,:,:)
+		!				
 		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:,:,:), kubo_ohc_loc(:,:,:,:),								&
 															tempS(:,:,:,:), tempA(:,:,:,:), 											&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
+															photo2_cond_loc(:,:,:,:,:),													&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	ALLOCATE & INIT
