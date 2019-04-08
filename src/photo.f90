@@ -37,9 +37,9 @@ contains
 		phot_cond	=	0.0_dp
 		!
 		!
-		!$OMP  PARALLEL DO DEFAULT(NONE)  																	&
+		!$OMP  PARALLEL DO DEFAULT(NONE)  																&
 		!$OMP PRIVATE( m, l, dE_nm, df_ln, dE_nl, c, b, vvv_nl_lm_mn, tmp, hw, omega, dE_nl_hw, ef_idx)	&
-		!$OMP SHARED(n_wf, n_hw, n_ef, en_k, fd_distrib, V_ka, hw_lst, phi_laser, i_eta_smr) 				&
+		!$OMP SHARED(n_wf, n_hw, n_ef, en_k, fd_distrib, V_ka, hw_lst,  i_eta_smr) 						&
 		!$OMP REDUCTION(+: phot_cond)
 		do 	n = 1, n_wf
 			do m = 1, n_wf

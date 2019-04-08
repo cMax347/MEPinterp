@@ -455,7 +455,7 @@ contains
 															kubo_ohc_glob(:,:,:),														&
 															kubo_opt_s_glob(:,:,:), kubo_opt_a_glob(:,:,:),								&
 															photo2_cond_glob(:,:,:,:,:),												&
-															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:)		
+															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:,:)		
 		!
 		
 		!
@@ -522,7 +522,7 @@ contains
 		if( do_gyro )											then
 			call mpi_reduce_sum(	gyro_C_loc(:,:,:)			,	gyro_C_glob			)
 			call mpi_reduce_sum(	gyro_D_loc(:,:,:)			,	gyro_D_glob			)
-			call mpi_reduce_sum(	gyro_Dw_loc(:,:,:,eF_idx)	,	gyro_Dw_glob		)
+			call mpi_reduce_sum(	gyro_Dw_loc(:,:,:,:)		,	gyro_Dw_glob		)
 			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
 			call normalize_k_int(gyro_C_glob)
 			call normalize_k_int(gyro_D_glob)

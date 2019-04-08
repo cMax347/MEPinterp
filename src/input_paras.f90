@@ -21,9 +21,7 @@ module input_paras
 												w90_dir, 															&
 												raw_dir,															&
 												out_dir,															&
-												eig_out_dir,														&
 												velo_out_dir,														&
-												mep_out_dir, ahc_out_dir, 	opt_out_dir, opt_out_ef_dir,	gyro_out_dir,	&
 												!jobs
 												plot_bands,															&
 												use_mpi,															&
@@ -54,12 +52,6 @@ module input_paras
 	character(len=4)			::	raw_dir ="raw/"
 	character(len=4)			::	out_dir	="out/"
 	character(len=10)			:: 	velo_out_dir
-	character(len=11)			::	eig_out_dir
-	character(len=9)			::	mep_out_dir	
-	character(len=9)			::	ahc_out_dir
-	character(len=9)			::	opt_out_dir
-	character(len=20), allocatable			::		opt_out_ef_dir(:)
-	character(len=10)			::	gyro_out_dir	
 	logical						::	plot_bands, 					&
 									use_cart_velo,					&
 									do_gauge_trafo, 				&
@@ -87,7 +79,7 @@ module input_paras
 	logical function init_parameters()
 		type(CFG_t) 			:: 	my_cfg
 		real(dp)				::	a1(3), a2(3), a3(3), eta
-		integer					::	mp_grid(3), ef_idx
+		integer					::	mp_grid(3)
 		logical					::	input_exist
 		!
 		use_mpi	= .false.
@@ -101,11 +93,6 @@ module input_paras
 		end if
 		!
 		velo_out_dir	=	out_dir//"/velo/"
-		mep_out_dir 	=	out_dir//"/mep/"	
-		ahc_out_dir		=	out_dir//"/ahc/"
-		opt_out_dir 	=	out_dir//"/opt/"	
-		gyro_out_dir	=	out_dir//"/gyro/"
-		eig_out_dir		=	raw_dir//"/eigen/"
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
 			inquire(file="./input.cfg",exist=input_exist)
@@ -225,21 +212,7 @@ module input_paras
 				call my_mkdir(out_dir)
 				call my_mkdir(raw_dir)
 				if(		 	do_write_velo		)	call my_mkdir(velo_out_dir)	
-				if(			debug_mode			)	call my_mkdir(eig_out_dir)
-				if(.not. plot_bands) then
-					if( do_mep .or. do_kubo		)	call my_mkdir(mep_out_dir)
-					if(			do_ahc			)	call my_mkdir(ahc_out_dir)
-					if(			do_opt			)	call my_mkdir(opt_out_dir)
-					if(			do_opt			)	then
-						allocate(	opt_out_ef_dir(	N_ef)	)
-						do ef_idx = 1, N_eF
-							write(opt_out_ef_dir(ef_idx),'(a,i5.5,a)')	opt_out_dir//'ef.',ef_idx,'/'
-							call my_mkdir(opt_out_ef_dir(ef_idx))
-						end do
-					end if
-					if(			do_gyro			)	call my_mkdir(gyro_out_dir)		
-				end if	
-				write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: ... directories created"
+				write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: ...all required directories created"
 			else
 				write(*,'(a,i7.7,a)')			"[#",mpi_id,";init_parameters]: could not find input file"
 				stop "please provide a input.cfg file"
