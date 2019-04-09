@@ -48,7 +48,6 @@ bin/**
 **/w90files
 **/__pycache__
 thirdparty/cmake_install.cmake
-**thirdparty/NPY-for-Fortran
 *Makefile
 *.cmake
 **/intelAdvi
