@@ -46,7 +46,6 @@ bin/**
 **thirdparty/Makefile
 **/wannier90
 **/w90files
-**/config_fortran
 **/__pycache__
 thirdparty/cmake_install.cmake
 **thirdparty/NPY-for-Fortran

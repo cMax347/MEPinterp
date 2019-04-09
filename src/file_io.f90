@@ -302,9 +302,9 @@ module file_io
 		real(dp),	allocatable,	intent(in)		::	mep_ic(:,:), mep_lc(:,:), mep_cs(:,:)
 		real(dp)									::	mep_tens(3,3)
 		!
-		if(allocated(mep_ic)) 	call add_npz(	out_dir//trim(mep_npz),	'mep_ic', 		flatten_array(	 mep_ic		))
-		if(allocated(mep_lc)) 	call add_npz(	out_dir//trim(mep_npz),	'mep_lc', 		flatten_array(	 mep_lc		))
-		if(allocated(mep_cs)) 	call add_npz(	out_dir//trim(mep_npz),	'mep_cs', 		flatten_array(	 mep_cs		))
+		if(allocated(mep_ic)) 	call save_npy(	out_dir//'mep_ic.npy', 		mep_ic		)
+		if(allocated(mep_lc)) 	call save_npy(	out_dir//'mep_lc.npy', 		mep_lc		)
+		if(allocated(mep_cs)) 	call save_npy(	out_dir//'mep_cs.npy', 		mep_cs		)
 		!-------------------------------------total MEP tensor------------------------------
 		if(allocated(mep_cs) .and. allocated(mep_lc) .and. allocated(mep_ic) ) then
 			mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
@@ -325,9 +325,9 @@ module file_io
 		real(dp)											::	kubo_mep_tens(3,3)
 		!
 		!-------------------------------------individual contributions-------------
-		if(allocated(kubo_mep_ic)) 	call add_npz(	out_dir//trim(mep_npz),	'kubo_mep_ic',	flatten_array(	kubo_mep_ic	))
-		if(allocated(kubo_mep_lc)) 	call add_npz(	out_dir//trim(mep_npz),	'kubo_mep_lc',	flatten_array(	kubo_mep_lc	))
-		if(allocated(kubo_mep_cs)) 	call add_npz(	out_dir//trim(mep_npz),	'kubo_mep_cs',	flatten_array(	kubo_mep_cs	))
+		if(allocated(kubo_mep_ic)) 	call save_npy(	out_dir//'kubo_mep_ic.npy',	kubo_mep_ic	)
+		if(allocated(kubo_mep_lc)) 	call save_npy(	out_dir//'kubo_mep_lc.npy',	kubo_mep_lc	)
+		if(allocated(kubo_mep_cs)) 	call save_npy(	out_dir//'kubo_mep_cs.npy',	kubo_mep_cs	)
 		!
 		!-------------------------------------total MEP tensor------------------------------
 		if(			allocated(kubo_mep_ic) 		&	
@@ -351,9 +351,9 @@ module file_io
 		complex(dp),allocatable,	intent(in)			::	velo_ahc_tens(:,:,:), ohc_tens(:,:,:)
 		!
 		!
-		if(allocated(ahc_tens)) 	call 	add_npz(out_dir//trim(ahc_npz),	'ahc_tens',	flatten_array(	ahc_tens		))
-		if(allocated(velo_ahc_tens))call	add_npz(out_dir//trim(ahc_npz), 'ahcVELO',	flatten_array(	velo_ahc_tens	))
-		if(allocated(ohc_tens))		call	add_npz(out_dir//trim(ahc_npz),	'ohcVELO',	flatten_array(	ohc_tens		))
+		if(allocated(ahc_tens)) 	call 	save_npy(	out_dir//'ahc_tens.npy',	ahc_tens		)
+		if(allocated(velo_ahc_tens))call	save_npy(	out_dir//'ahcVELO.npy',		velo_ahc_tens	)
+		if(allocated(ohc_tens))		call	save_npy(	out_dir//'ohcVELO.npy',		ohc_tens		)
 		!
 		!
 		write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC/OHC tensor to ",out_dir//trim(ahc_npz)
@@ -367,8 +367,8 @@ module file_io
 		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:,:),	a_symm(:,:,:)
 		complex(dp),	allocatable,	intent(in)			::	photo_2nd(:,:,:,:,:)
 		!
-		if(allocated(s_symm)) 		call add_npz(	out_dir//trim(opt_npz), 	"opt_Ssymm", 	flatten_array(	s_symm		))
-		if(allocated(a_symm))		call add_npz(	out_dir//trim(opt_npz), 	"opt_Asymm", 	flatten_array(	a_symm		))
+		if(allocated(s_symm)) 		call save_npy(	out_dir//"opt_Ssymm.npy", 	s_symm		)
+		if(allocated(a_symm))		call save_npy(	out_dir//"opt_Asymm.npy", 	a_symm		)
 		if(allocated(photo_2nd))	call add_npz(	out_dir//trim(opt_npz),		'photoC_2nd', 	flatten_array(	photo_2nd	))
 		!
 		write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses to ",	out_dir//trim(opt_npz)
@@ -382,8 +382,8 @@ module file_io
 		integer,					intent(in)		::	n_ki_glob
 		complex(dp),	allocatable, intent(in)		::	C_tens(:,:,:),	D_tens(:,:,:), Dw_tens(:,:,:,:)
 		!
-		if(allocated(C_tens)) 		call add_npz(	out_dir//trim(gyro_npz), "gyro_C", 	flatten_array(	C_tens		))
-		if(allocated(D_tens)) 		call add_npz(	out_dir//trim(gyro_npz), "gyro_D", 	flatten_array(	D_tens		))
+		if(allocated(C_tens)) 		call save_npy(	out_dir//"gyro_C.npy", 	C_tens		)
+		if(allocated(D_tens)) 		call save_npy(	out_dir//"gyro_D.npy", 	D_tens		)
 		if(allocated(Dw_tens))		call add_npz(	out_dir//trim(gyro_npz), "gyro_Dw", flatten_array(	Dw_tens		))
 		!
 		!
