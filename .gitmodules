@@ -1,6 +1,3 @@
-[submodule "thirdparty/-f"]
-	path = thirdparty/-f
-	url = https://github.com/jannisteunissen/config_fortran.git
 [submodule "thirdparty/config_fortran"]
 	path = thirdparty/config_fortran
 	url = https://github.com/jannisteunissen/config_fortran.git
