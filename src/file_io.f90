@@ -36,30 +36,7 @@ module file_io
 													write_opt_tensors,					&
 													write_gyro_tensors
 
-
-
-
-
-
-	interface flatten_array
-		module procedure d2_flatten_array
-		module procedure d3_flatten_array
-		module procedure d4_flatten_array
-		module procedure d5_flatten_array
-		!
-		module procedure z2_flatten_array
-		module procedure z3_flatten_array
-		module procedure z4_flatten_array
-		module procedure z5_flatten_array
-	end interface flatten_array
-
-
-
 	character(len=64)						::		format='(a,i7.7)'
-	character(len=30)						::		mep_npz		=	'mep_response.npz'
-	character(len=30)						::		opt_npz		=	'opt_response.npz'
-	character(len=30)						::		gyro_npz	=	'gyro_response.npz'
-	character(len=30)						::		ahc_npz		=	'ahc_response.npz'
 	integer									::		num_bands
 	
 
@@ -223,15 +200,15 @@ module file_io
 			end do
 			!
 			!
-			call save_npy(	out_dir//'/hw_lst.npy',		hw_lst	)
+			call save_npy(	out_dir//'hw_lst.npy',		hw_lst	)
 			!
 		else
 			allocate(hw_lst(1))	
 			hw_lst	=	hw_min			
 		end if
 		!
-		call save_npy(	out_dir//'/hw_lst.npy',		hw_lst	)
-		write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_hw_list]: wrote hw list to ",trim(out_dir//'/hw_lst.npy')
+		call save_npy(	out_dir//'hw_lst.npy',		hw_lst	)
+		write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_hw_list]: wrote hw list to ",trim(out_dir//'hw_lst.npy')
 		!
 		return
 	end subroutine
@@ -290,8 +267,10 @@ module file_io
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable, 	intent(inout)	::	mep_bands(:,:,:)
 		!
-		call	add_npz(out_dir//trim(mep_npz),	"mep_bands",	flatten_array(	mep_bands	))
-		write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep_bands to ",out_dir//trim(mep_npz)
+		if(	allocated(mep_bands))	then
+			call	save_npy(out_dir//"mep_bands.npy",	mep_bands	)
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep_bands to ",out_dir//"mep_bands.npy"
+		end if
 		!
 		return
 	end subroutine
@@ -305,14 +284,21 @@ module file_io
 		if(allocated(mep_ic)) 	call save_npy(	out_dir//'mep_ic.npy', 		mep_ic		)
 		if(allocated(mep_lc)) 	call save_npy(	out_dir//'mep_lc.npy', 		mep_lc		)
 		if(allocated(mep_cs)) 	call save_npy(	out_dir//'mep_cs.npy', 		mep_cs		)
+		!
+		if(allocated(mep_ic)) 	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//'mep_ic.npy'
+		if(allocated(mep_lc))	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//'mep_lc.npy'
+		if(allocated(mep_cs))	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//'mep_cs.npy'
 		!-------------------------------------total MEP tensor------------------------------
 		if(allocated(mep_cs) .and. allocated(mep_lc) .and. allocated(mep_ic) ) then
 			mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
-			call add_npz(	out_dir//trim(mep_npz),	'mep_tens',		flatten_array(	mep_tens	))
-			
+			call save_npy(	out_dir//'mep_tens.npy',		mep_tens	)
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//'mep_tens.npy'
 		end if
 		!-----------------------------------------------------------------------------------
-		write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//trim(mep_npz)
+		
 		!
 		!
 		return
@@ -329,16 +315,22 @@ module file_io
 		if(allocated(kubo_mep_lc)) 	call save_npy(	out_dir//'kubo_mep_lc.npy',	kubo_mep_lc	)
 		if(allocated(kubo_mep_cs)) 	call save_npy(	out_dir//'kubo_mep_cs.npy',	kubo_mep_cs	)
 		!
+		if(allocated(kubo_mep_ic))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//'kubo_mep_ic.npy'
+		if(allocated(kubo_mep_lc))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//'kubo_mep_lc.npy'
+		if(allocated(kubo_mep_cs))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//'kubo_mep_cs.npy'
+		!
 		!-------------------------------------total MEP tensor------------------------------
 		if(			allocated(kubo_mep_ic) 		&	
 			.and. 	allocated(kubo_mep_lc)		&
 			.and. 	allocated(kubo_mep_cs)		&
 		) then
 			kubo_mep_tens	= 	kubo_mep_ic +	kubo_mep_lc	+	kubo_mep_cs
-			call add_npz(	out_dir//trim(mep_npz),	'kubo_mep_tens',	flatten_array(	kubo_mep_tens	))
+			call save_npy(	out_dir//'kubo_mep_tens.npy',	kubo_mep_tens	)
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//'kubo_mep_tens.npy'
 		end if
-		write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//trim(mep_npz)
-		!
 		!
 		return
 	end subroutine
@@ -356,7 +348,12 @@ module file_io
 		if(allocated(ohc_tens))		call	save_npy(	out_dir//'ohcVELO.npy',		ohc_tens		)
 		!
 		!
-		write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC/OHC tensor to ",out_dir//trim(ahc_npz)
+		if(allocated(ahc_tens)) 	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC/OHC tensor to ",out_dir//'ahc_tens.npy'
+		if(allocated(velo_ahc_tens))&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC/OHC tensor to ",out_dir//'ahcVELO.npy'
+		if(allocated(ohc_tens))		&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC/OHC tensor to ",out_dir//'ohcVELO.npy'
 		!
 		return
 	end subroutine
@@ -369,10 +366,14 @@ module file_io
 		!
 		if(allocated(s_symm)) 		call save_npy(	out_dir//"opt_Ssymm.npy", 	s_symm		)
 		if(allocated(a_symm))		call save_npy(	out_dir//"opt_Asymm.npy", 	a_symm		)
-		if(allocated(photo_2nd))	call add_npz(	out_dir//trim(opt_npz),		'photoC_2nd', 	flatten_array(	photo_2nd	))
+		if(allocated(photo_2nd))	call save_npy(	out_dir//'photoC_2nd.npy', 	photo_2nd	)
 		!
-		write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses to ",	out_dir//trim(opt_npz)
-		!	
+		if(allocated(s_symm))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote symm opt tens to ",	out_dir//"opt_Ssymm.npy"
+		if(allocated(a_symm))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote symm opt tens to ",	out_dir//"opt_Asymm.npy"
+		if(allocated(photo_2nd))&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote 2nd opt tens to ",	out_dir//'photoC_2nd.npy'
 		!
 		return
 	end subroutine	
@@ -384,12 +385,14 @@ module file_io
 		!
 		if(allocated(C_tens)) 		call save_npy(	out_dir//"gyro_C.npy", 	C_tens		)
 		if(allocated(D_tens)) 		call save_npy(	out_dir//"gyro_D.npy", 	D_tens		)
-		if(allocated(Dw_tens))		call add_npz(	out_dir//trim(gyro_npz), "gyro_Dw", flatten_array(	Dw_tens		))
+		if(allocated(Dw_tens))		call save_npy(	out_dir//"gyro_Dw.npy", Dw_tens		)
 		!
-		!
-		if(allocated(C_tens) .and. allocated(D_tens) .and. allocated(Dw_tens)) then
-			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote GYRO tensors to ",out_dir//trim(gyro_npz)
-		end if
+		if(allocated(C_tens))	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";write_gyro_tensors]: wrote GYRO-C tensors to ",out_dir//"gyro_C.npy"
+		if(allocated(D_tens))	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";write_gyro_tensors]: wrote GYRO-D tensors to ",out_dir//"gyro_D.npy"
+		if(allocated(Dw_tens))	&	
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";write_gyro_tensors]: wrote GYR-DW tensors to ",out_dir//"gyro_Dw.npy"
 		!
 		return
 	end subroutine
@@ -813,6 +816,7 @@ module file_io
 		!	FULL BASIS
 		inquire(file=w90_dir//seed_name//'_tb.dat',	exist=tb_exist)
 		if(tb_exist) then
+			write(*,*)	'[read_tb_basis]: "found data file '//w90_dir//seed_name//'_hr.dat'
 			call read_tb_file(w90_dir//seed_name, R_vect, H_mat, r_mat)
 			r_exist	= .true.
 		else
@@ -829,7 +833,10 @@ module file_io
 			!
 			!	POSITION
 			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
-			if(  r_exist )	call read_r_file(w90_dir//seed_name, R_vect, r_mat)
+			if(  r_exist )	then
+				write(*,*)	'[read_tb_basis]: "found data file '//w90_dir//seed_name//'_r.dat'
+				call read_r_file(w90_dir//seed_name//'_r.dat', R_vect, r_mat)
+			end if
 			!
 			!
 		end if
@@ -939,227 +946,5 @@ module file_io
 !~
 !~
 !~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!~
-!--------------------------------------------------------------------------------------------------------------------------------		
-!--------------------------------------------------------------------------------------------------------------------------------		
-!--------------------------------------------------------------------------------------------------------------------------------		
-!			FLATTEN_ARRAY INTERFACE
-!--------------------------------------------------------------------------------------------------------------------------------		
-	!^
-	!---	REAL FUNCTIONS		----!
-	!~
-	function d2_flatten_array(	d2	) 	result(	d_flat	)
-		real(dp),	intent(in)			::	d2(:,:)
-		real(dp),	allocatable			::	d_flat(:)
-		integer							::	a, b, idx
-		!
-		allocate(d_flat(	size(d2,1)*size(d2,2)		))
-		!
-		idx	=	1
-		do b = 1, size(d2,2)
-			do a = 1, size(d2,1)
-				d_flat(	idx	)	=	d2(a,b)
-				idx				=	1 + idx
-			end do
-		end do
-		!
-		return
-	end function
-
-	function d3_flatten_array(	d3	) 	result(	d_flat	)
-		real(dp),	intent(in)			::	d3(:,:,:)
-		real(dp),	allocatable			::	d_flat(:)
-		integer							::	a, b, c, idx
-		!
-		allocate(d_flat(	size(d3,1)*size(d3,2)*size(d3,3)	))
-		!
-		idx	=	1
-		do c = 1, size(d3,3)
-			do b = 1, size(d3,2)
-				do a = 1, size(d3,1)
-					d_flat(	idx	)	=	d3(a,b,c)
-					idx				=	1 + idx
-				end do
-			end do
-		end do
-		!
-		return
-	end function
-
-	function d4_flatten_array(	d4	) 	result(	d_flat	)
-		real(dp),	intent(in)			::	d4(:,:,:,:)
-		real(dp),	allocatable			::	d_flat(:)
-		integer							::	a, b, c, d, idx
-		!
-		allocate(d_flat(	size(d4,1)*size(d4,2)*size(d4,3)*size(d4,4)	))
-		!
-		idx	=	1
-		do d = 1, size(d4,4)
-			do c = 1, size(d4,3)
-				do b = 1, size(d4,2)
-					do a = 1, size(d4,1)
-						d_flat(	idx	)	=	d4(a,b,c,d)
-						idx				=	1 + idx
-					end do
-				end do
-			end do
-		end do
-		!
-		return
-	end function	
-
-	function d5_flatten_array(	d5	) 	result(	d_flat	)
-		real(dp),	intent(in)			::	d5(:,:,:,:,:)
-		real(dp),	allocatable			::	d_flat(:)
-		integer							::	a, b, c, d, e, idx
-		!
-		allocate(d_flat(	size(d5,1)*size(d5,2)*size(d5,3)*size(d5,4)*size(d5,5)	))
-		!
-		idx	=	1
-		do e = 1, size(d5,5)
-			do d = 1, size(d5,4)
-				do c = 1, size(d5,3)
-					do b = 1, size(d5,2)
-						do a = 1, size(d5,1)
-							d_flat(	idx	)	=	d5(a,b,c,d,e)
-							idx				=	1 + idx
-						end do
-					end do
-				end do
-			end do
-		end do
-		!
-		return
-	end function
-
-
-	!^
-	!---	COMPLEX FUNCTIONS		----!
-	!~
-	function z2_flatten_array(	z2	) 	result(	z_flat	)
-		complex(dp),	intent(in)		::	z2(:,:)
-		complex(dp),	allocatable		::	z_flat(:)
-		integer							::	a, b, idx
-		!
-		allocate(z_flat(	size(z2,1)*size(z2,2)		))
-		!
-		idx	=	1
-		do b = 1, size(z2,2)
-			do a = 1, size(z2,1)
-				z_flat(	idx	)	=	z2(a,b)
-				idx				=	1 + idx
-			end do
-		end do
-		!
-		return
-	end function
-
-	function z3_flatten_array(	z3	) 	result(	z_flat	)
-		complex(dp),	intent(in)		::	z3(:,:,:)
-		complex(dp),	allocatable		::	z_flat(:)
-		integer							::	a, b, c, idx
-		!
-		allocate(z_flat(	size(z3,1)*size(z3,2)*size(z3,3)	))
-		!
-		idx	=	1
-		do c = 1, size(z3,3)
-			do b = 1, size(z3,2)
-				do a = 1, size(z3,1)
-					z_flat(	idx	)	=	z3(a,b,c)
-					idx				=	1 + idx
-				end do
-			end do
-		end do
-		!
-		return
-	end function
-
-	function z4_flatten_array(	z4	) 	result(	z_flat	)
-		complex(dp),	intent(in)		::	z4(:,:,:,:)
-		complex(dp),	allocatable		::	z_flat(:)
-		integer							::	a, b, c, d, idx
-		!
-		allocate(z_flat(	size(z4,1)*size(z4,2)*size(z4,3)*size(z4,4)	))
-		!
-		idx	=	1
-		do d = 1, size(z4,4)
-			do c = 1, size(z4,3)
-				do b = 1, size(z4,2)
-					do a = 1, size(z4,1)
-						z_flat(	idx	)	=	z4(a,b,c,d)
-						idx				=	1 + idx
-					end do
-				end do
-			end do
-		end do
-		!
-		return
-	end function
-
-	function z5_flatten_array(	z5	) 	result(	z_flat	)
-		complex(dp),	intent(in)		::	z5(:,:,:,:,:)
-		complex(dp),	allocatable		::	z_flat(:)
-		integer							::	a, b, c, d, e, idx
-		!
-		allocate(z_flat(	size(z5,1)*size(z5,2)*size(z5,3)*size(z5,4)*size(z5,5)	))
-		!
-		idx	=	1
-		do e = 1, size(z5,5)
-			do d = 1, size(z5,4)
-				do c = 1, size(z5,3)
-					do b = 1, size(z5,2)
-						do a = 1, size(z5,1)
-							z_flat(	idx	)	=	z5(a,b,c,d,e)
-							idx				=	1 + idx
-						end do
-					end do
-				end do
-			end do
-		end do
-		!
-		return
-	end function
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 
 end module file_io
