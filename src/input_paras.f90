@@ -47,7 +47,7 @@ module input_paras
 
 	
 	integer						::	valence_bands
-	character(len=3)			:: 	seed_name
+	character(len=:), allocatable::	seed_name
 	character(len=9)			::	w90_dir	="w90files/"
 	character(len=4)			::	raw_dir ="raw/"
 	character(len=4)			::	out_dir	="out/"
@@ -81,6 +81,7 @@ module input_paras
 		real(dp)				::	a1(3), a2(3), a3(3), eta
 		integer					::	mp_grid(3)
 		logical					::	input_exist
+		character(len=132)		:: 	long_seed_name
 		!
 		use_mpi	= .false.
 #ifdef USE_MPI
@@ -121,7 +122,7 @@ module input_paras
 				!~~~~~~~~~~~~
 				!
 				![wannBase]
-				call CFG_add_get(my_cfg,	"wannBase%seed_name"			,	seed_name				,	"seed name of the TB files"			)
+				call CFG_add_get(my_cfg,	"wannBase%seed_name"			,	long_seed_name		,	"seed name of the TB files"			)
 				call CFG_add_get(my_cfg,	"wannBase%N_wf"					,	N_wf				,	"number of WFs specified in input")
 				if(	N_wf > 0) then 
 					allocate(	wf_centers(		3,	N_wf)	)
@@ -232,7 +233,7 @@ module input_paras
 		if( input_exist) then
 			if(use_mpi) then
 				!ROOT BCAST
-				![FLAGS]		
+				![FLAGS]
 				call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		use_cart_velo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
@@ -248,7 +249,7 @@ module input_paras
 				![SYSTEM]
 				call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
-				call MPI_BCAST(		seed_name(:)	,	len(seed_name)		,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		long_seed_name	,	len(long_seed_name)	,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				![ATOMS]
 				call MPI_BCAST(		N_wf			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
@@ -268,6 +269,10 @@ module input_paras
 				call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		i_eta_smr		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			end if
+			!
+			!TRIM SEEDNAME
+			allocate(	character(len=len(trim(long_seed_name)))	::	seed_name		)
+			seed_name	=	trim(long_seed_name)
 			!
 			!UNIT CELL VOLUME
 			a1			=	a_latt(1,:)
