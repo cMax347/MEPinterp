@@ -162,7 +162,7 @@ class HW_probe:
 										SeCnd_opt_tens, optA_tens, optS_tens
 									)
 
-
+		print('ahc_kubo_tens.shape=',np.shape(ohc_kubo_tens))
 
 		#	plot hall like neeeds
 		# self.hw_lst:

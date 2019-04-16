@@ -2,8 +2,8 @@
 #create a library from all tests
 add_library(Helpers helpers.f90)
 target_link_libraries(Helpers srcLib)
-
-
+#
+#
 #add TEST-EXECUTABLES
 #
 #	#1
@@ -17,11 +17,15 @@ target_link_libraries(testMatMath Helpers)
 #	#3
 add_executable(testkSpace test_kSpace.f90)
 target_link_libraries(testkSpace Helpers)
-
-
-
+#
+#	#4
+add_executable(testFeMn	 test_FeMn_AHE.f90)
+target_link_libraries(testFeMn Helpers)
+target_link_libraries(testFeMn m_config)
+#
+#
 #make the executables tests
-add_test(NAME I/O           		COMMAND testIO        )
-add_test(NAME matrix_math   		COMMAND testMatMath   )
-add_test(NAME k_space				COMMAND testkSpace	  )
-
+add_test(NAME I/O           		COMMAND testIO     	)
+add_test(NAME matrix_math   		COMMAND testMatMath	)
+add_test(NAME k_space				COMMAND testkSpace	)
+add_test(NAME AHE					COMMAND testFeMn	)

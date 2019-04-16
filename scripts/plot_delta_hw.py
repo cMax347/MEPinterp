@@ -5,8 +5,8 @@ import os
 import matplotlib.pyplot as plt
 
 
-from fortran_io			import 	read_real_tens_file
-from fortran_io			import 	read_cmplx_tens_file
+#from fortran_io			import 	read_real_tens_file
+#from fortran_io			import 	read_cmplx_tens_file
 
 #class response_tensors:
 #		def __init__(self):
@@ -381,9 +381,9 @@ class HW_probe:
 						IM_ahc_kubo_plot.append(	scale *	np.imag(		np.array(self.hw_ahc_kubo_data[idx])[i][j][hw_idx]				))
 
 
-					print('idx=',idx,'RE_ahc_kubo_plot')
-					for elem in RE_ahc_kubo_plot:
-						print(elem)
+					#print('idx=',idx,'RE_ahc_kubo_plot')
+					#for elem in RE_ahc_kubo_plot:
+					#	print(elem)
 					#for ahc_tens in ahc_data[idx]:
 					#	ahc_plot.append(						scale * np.real(	ahc_tens[i][j]		)				)
 					#for ahc_K_tens in ahc_kubo_data[idx]:

@@ -16,6 +16,7 @@ program test_FeMn_AHE
 	!
 	logical							::		test_passed
 	!
+	
 	!
 	test_passed	=	.False.
 	!MPI INIT
@@ -25,10 +26,31 @@ program test_FeMn_AHE
 	call MPI_INIT( ierr )
     call MPI_COMM_RANK (MPI_COMM_WORLD, 	mpi_id			, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, 	mpi_nProcs		, ierr)
-	write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';test_FeMn_AHE/',cTIME(time()),']:	welcome to mepInterp'
 	!
 	!
 	if(	mpi_id	==	mpi_root_id	)	then
+		write(*,*)					'^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+		write(*,*)					"|							Fe_Mn TB model test 							|"
+		write(*,*)					"|						https://arxiv.org/abs/1811.05803 					|"
+		write(*,*)					'-----------------------------------------------------------------------------'
+		write(*,*)					'	this test checks:'
+		write(*,*)					'		->	wann interpolation of tight binding Hamiltonian'
+		write(*,*)					'		->	k_space setup & integration'
+		write(*,*)					'		->	MPI parallelization'
+		write(*,*)					'		->	(frequency dependent) AHE'
+		write(*,*)					'		->	tight binding approximation (i.e. wf_centers are used to get FT-phase)'
+		write(*,*)					'		->	curvature interpolation (via zero freq. limit - compare RE{ahcVELO(hw=0)} to ah_tens)'
+		write(*,*)					'		-> 	'
+		write(*,*)					'	this test DOES NOT CHECK:'
+		write(*,*)					'		 X	position operator interpolation'
+		write(*,*)					'		 X	cartesian velocities in wannier interpolation'
+		write(*,*)					'		 X	any none Hall response tensors'
+		write(*,*)					'		 X	'
+
+		write(*,*)					'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+		write(*,*)					'...'
+		!				~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';test_FeMn_AHE/',cTIME(time()),']:	welcome to test_FeMn_AHE'
 		call write_input_files()
 		write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';test_FeMn_AHE/',cTIME(time()),']:	wrote input files'
 	end if

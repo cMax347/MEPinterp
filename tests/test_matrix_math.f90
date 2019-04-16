@@ -8,7 +8,7 @@ program test_matrix_math
 											blas_matmul,		&
 											matrix_comm
 
-    use helpers,		only:				my_exit,									&
+    use test_helpers,	only:				my_exit,									&
     										push_to_outFile, write_test_results, 		&
     										random_matrix, random_vector                     
 

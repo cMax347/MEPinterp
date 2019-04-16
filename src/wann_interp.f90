@@ -518,12 +518,12 @@ module wann_interp
 			!
 			!	VELOCITIES
 										M_in			=	H_ka(a,:,:)
-										!call	blas_matmul(	U_dag, M_in, 		tmp			)
-										!call	blas_matmul(	tmp, 	U_k,		M_in		)
-										!tmp				=	matmul(U_dag, M_in)
+										!	BLAS
+										!call	blas_matmul(	M_in, 	U_k,		tmp			)
+										!call	blas_matmul(	U_dag, 	tmp,		M_in		)
+										!	matmul
 										tmp				=	matmul(M_in, U_k)
-										M_in			=	matmul(U_dag,tmp)
-										!M_in			=	matmul(tmp, U_k)
+										M_in			=	matmul(U_dag,tmp)		
 										!
 										H_ka(a,:,:)		=	M_in(:,:)
 			!	CONNECTION
@@ -559,6 +559,9 @@ module wann_interp
 		!
 		D_ka(:,:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
+		!$OMP PARALLEL DO DEFAULT(none) &
+		!$OMP PRIVATE(n,eDiff_mn) &
+		!$OMP SHARED(kubo_tol, e_k, H_Ka, D_ka) 
 		do m = 1, size(D_ka,3)
 			do n = 1, size(D_ka,2)
 				if(	n >	m )	then
@@ -578,6 +581,7 @@ module wann_interp
 				end if
 			end do
 		end do
+		!$OMP END PARALLEL DO
 		!
 		if(debug_mode)	then
 			do a = 1, 3

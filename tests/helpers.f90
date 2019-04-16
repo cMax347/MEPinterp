@@ -2,7 +2,7 @@
 !	module providing usefull routines for testing
 
 
-module helpers	
+module test_helpers	
 	use	constants,			only:		dp, fp_acc
 
 	implicit none

@@ -3,7 +3,7 @@ program test_kSpace
 	use		constants,			only:			dp, pi_dp
 	use		k_space
 	use		matrix_math,		only:			is_equal_mat, crossp
-	use 	helpers,			only:			my_exit,								&
+	use 	test_helpers,		only:			my_exit,								&
 	    										push_to_outFile, write_test_results
 
 

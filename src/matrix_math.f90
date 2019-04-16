@@ -621,7 +621,7 @@ module matrix_math
        
         !
         !        CALL DGEMM('N','N',M,N,K,ALPHA,A,M,B,K,BETA,C,M)
-        call dgemm('N', 'N', m, n, k, 1._dp, A, m, B, k, 0._dp, C, m)
+        call dgemm('N', 'N', m, n, k, 1._dp, A(:,:), m, B(:,:), k, 0._dp, C(:,:), m)
         !C = matmul(A,B)
         return
     end subroutine

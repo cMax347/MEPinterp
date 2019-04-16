@@ -16,7 +16,7 @@ bin/**
 *.win
 *.mmn
 *.amn
-*.dat
+#*.dat
 *.pdf
 *.nb
 *.mod
