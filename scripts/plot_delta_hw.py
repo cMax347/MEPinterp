@@ -74,79 +74,80 @@ class HW_probe:
 
 	
 
-	def read_responses(self, out_dir, hw_idx):
-		#
-		hw_idx	=	hw_idx + 1	# Fortran index starts at 1
-		id_str	=	'{:07d}'.format(hw_idx)
-		print('read_responses by identyfing with id_str ="'+id_str+"'")
-		#
-		#	HALL LIKE
-		ahc_tens		=	read_real_tens_file(	out_dir		+ 	'/ahc/ahc_tens.dat'			,			'ahc'		)		
-		ahc_kubo_tens	=	read_cmplx_tens_file(	out_dir		+	'/ahc/ahc_velo.hw'	+ id_str,			'ahcVELO'	)
-		ohc_kubo_tens	=	read_cmplx_tens_file(	out_dir		+	'/ahc/ohc_kubo.hw'	+ id_str,			'ohcVELO'	)
-		#-------
-		#
-		#	OPTICAL
-		SeCnd_opt_tens	=	read_real_tens_file(	 out_dir	+	'/opt/2nd_photo.hw'	+ id_str,			'2phC'		)
-		optA_tens		=	read_cmplx_tens_file(	 out_dir	+	'/opt/opt_Asymm.hw'	+ id_str,			'optA'		)
-		optS_tens		=	read_cmplx_tens_file(	 out_dir	+	'/opt/opt_Ssymm.hw'	+ id_str,			'optS'		)
-		#-------
-		#
-		#	GYROTROPIC
-		#-------
-					#
-		#
-		#
-		return 		ahc_tens, ahc_kubo_tens, ohc_kubo_tens, SeCnd_opt_tens, optA_tens, optS_tens
+#	def read_responses(self, out_dir, hw_idx):
+#		#
+#		hw_idx	=	hw_idx + 1	# Fortran index starts at 1
+#		id_str	=	'{:07d}'.format(hw_idx)
+#		print('read_responses by identyfing with id_str ="'+id_str+"'")
+#		#
+#		#	HALL LIKE
+#		ahc_tens		=	read_real_tens_file(	out_dir		+ 	'/ahc/ahc_tens.dat'			,			'ahc'		)		
+#		ahc_kubo_tens	=	read_cmplx_tens_file(	out_dir		+	'/ahc/ahc_velo.hw'	+ id_str,			'ahcVELO'	)
+#		ohc_kubo_tens	=	read_cmplx_tens_file(	out_dir		+	'/ahc/ohc_kubo.hw'	+ id_str,			'ohcVELO'	)
+#		#-------
+#		#
+#		#	OPTICAL
+#		SeCnd_opt_tens	=	read_real_tens_file(	 out_dir	+	'/opt/2nd_photo.hw'	+ id_str,			'2phC'		)
+#		optA_tens		=	read_cmplx_tens_file(	 out_dir	+	'/opt/opt_Asymm.hw'	+ id_str,			'optA'		)
+#		optS_tens		=	read_cmplx_tens_file(	 out_dir	+	'/opt/opt_Ssymm.hw'	+ id_str,			'optS'		)
+#		#-------
+#		#
+#		#	GYROTROPIC
+#		#-------
+#					#
+#		#
+#		#
+#		return 		ahc_tens, ahc_kubo_tens, ohc_kubo_tens, SeCnd_opt_tens, optA_tens, optS_tens
+#
 
-
-	def save_attach_subData(		self, work_dir,para_val, hw,
-									ahc_tens, ahc_kubo_tens, ohc_kubo_tens,	
-									SeCnd_opt_tens, optA_tens, optS_tens
-							):
-		#
-		#only record if the container is not empty (i.e. the file was found and had good behaviour)
-		#print("[save_attach_subData]: hw="+str(hw))
-	
-		#--------------------------
-		#	HALL LIKE
-		#
-		#
-		if len(ahc_tens)	is 3:
-			self.hw_ahc_data[-1].append(				[hw, ahc_tens]			)
-		else:
-			print("[save_attach_subData]: 	WARNING  wrong ahc length in "+					str(work_dir)		)
-			print("[save_attach_subData]: ahc_tens:"+str(ahc_tens))
-		if len(ahc_kubo_tens) is 3:
-			self.hw_ahc_kubo_data[-1].append(			[para_val, hw, ahc_kubo_tens]		)
-		else:
-			print("[save_attach_subData]: 	WARNING  wrong ahc kubo length in "+			str(work_dir)		)
-		if len(ohc_kubo_tens) is 3:
-			self.hw_ohc_data[-1].append(				[para_val, hw, ohc_kubo_tens]		)
-		else:
-			print("[save_attach_subData]: 	WARNING  wrong ohc kubo length in "+			str(work_dir)		)
-		#--------------------------
-		#	OPTICAL
-		#
-		if len(SeCnd_opt_tens)	is 3:
-			self.hw_2ndPhoto_data[-1].append(			[para_val, hw,	SeCnd_opt_tens]		)
-		else:
-			print("[save_attach_subData]: 	WARNING  wrong 2nd photo length in "+			str(work_dir)		)
-		if len(optA_tens)	is 3:
-			self.hw_optA_data[-1].append(			[para_val, hw,	optA_tens]		)
-		else:
-			print("[save_attach_subData]: 	WARNING  wrong opt asymm tens length in "+		str(work_dir)		)
-		if len(optS_tens)	is 3:
-			self.hw_optS_data[-1].append(			[para_val, hw,	optS_tens]		)
-		else:
-			print("[save_attach_subData]: 	WARNING  wrong opt ssymm tens length in "+		str(work_dir)		)
-
+#	def save_attach_subData(		self, work_dir,para_val, hw,
+#									ahc_tens, ahc_kubo_tens, ohc_kubo_tens,	
+#									SeCnd_opt_tens, optA_tens, optS_tens
+#							):
+#		#
+#		#only record if the container is not empty (i.e. the file was found and had good behaviour)
+#		#print("[save_attach_subData]: hw="+str(hw))
+#	
+#		#--------------------------
+#		#	HALL LIKE
+#		#
+#		#
+#		if len(ahc_tens)	is 3:
+#			self.hw_ahc_data[-1].append(				[hw, ahc_tens]			)
+#		else:
+#			print("[save_attach_subData]: 	WARNING  wrong ahc length in "+					str(work_dir)		)
+#			print("[save_attach_subData]: ahc_tens:"+str(ahc_tens))
+#		if len(ahc_kubo_tens) is 3:
+#			self.hw_ahc_kubo_data[-1].append(			[para_val, hw, ahc_kubo_tens]		)
+#		else:
+#			print("[save_attach_subData]: 	WARNING  wrong ahc kubo length in "+			str(work_dir)		)
+#		if len(ohc_kubo_tens) is 3:
+#			self.hw_ohc_data[-1].append(				[para_val, hw, ohc_kubo_tens]		)
+#		else:
+#			print("[save_attach_subData]: 	WARNING  wrong ohc kubo length in "+			str(work_dir)		)
+#		#--------------------------
+#		#	OPTICAL
+#		#
+#		if len(SeCnd_opt_tens)	is 3:
+#			self.hw_2ndPhoto_data[-1].append(			[para_val, hw,	SeCnd_opt_tens]		)
+#		else:
+#			print("[save_attach_subData]: 	WARNING  wrong 2nd photo length in "+			str(work_dir)		)
+#		if len(optA_tens)	is 3:
+#			self.hw_optA_data[-1].append(			[para_val, hw,	optA_tens]		)
+#		else:
+#			print("[save_attach_subData]: 	WARNING  wrong opt asymm tens length in "+		str(work_dir)		)
+#		if len(optS_tens)	is 3:
+#			self.hw_optS_data[-1].append(			[para_val, hw,	optS_tens]		)
+#		else:
+#			print("[save_attach_subData]: 	WARNING  wrong opt ssymm tens length in "+		str(work_dir)		)
+#
 
 
 
 
 	def read_hw_lst(self,out_dir):
-		this_hw_lst				=	np.genfromtxt(out_dir+'/hw_lst.txt', skip_header=1,usecols=(1))
+		#this_hw_lst				=	np.genfromtxt(out_dir+'/hw_lst.txt', skip_header=1,usecols=(1))
+		this_hw_lst				=	np.load(out_dir+'/hw_lst.npy')
 		self.hw_lst.append(	this_hw_lst	)
 
 
@@ -189,15 +190,18 @@ class HW_probe:
 			#	loop hw_idx
 			#
 			#	make a plot for this hw_lst 
-			for hw_idx, hw_val in enumerate(self.hw_lst[-1]):
-				swag = 1
-				#print('[read_hw]: now try to read #hw ',hw_idx,"= ",hw_val," (eV)")
-				ahc_tens, ahc_kubo_tens, ohc_kubo_tens, SeCnd_opt_tens, optA_tens, optS_tens	=	self.read_responses(out_dir,hw_idx)
-				#
-				self.save_attach_subData(	out_dir, self.para_vals[idx], hw_val, 	
-											ahc_tens, ahc_kubo_tens, ohc_kubo_tens, 
-											SeCnd_opt_tens, optA_tens, optS_tens
-										)
+			#for hw_idx, hw_val in enumerate(self.hw_lst[-1]):
+			#	swag = 1
+			#	#print('[read_hw]: now try to read #hw ',hw_idx,"= ",hw_val," (eV)")
+			#	ahc_tens, ahc_kubo_tens, ohc_kubo_tens, SeCnd_opt_tens, optA_tens, optS_tens	=	self.read_responses(out_dir,hw_idx)
+			#	#
+			#	self.save_attach_subData(	out_dir, self.para_vals[idx], hw_val, 	
+			#								ahc_tens, ahc_kubo_tens, ohc_kubo_tens, 
+			#								SeCnd_opt_tens, optA_tens, optS_tens
+			#
+			self.hw_ahc_data[-1]		=	np.load(out_dir+'/ahc_tens.npy')
+			self.hw_ahc_kubo_data[-1]	=	np.load(out_dir+'/ahcVELO.npy')							
+			self.hw_ohc_data[-1]		=	np.load(out_dir+'/ohcVELO.npy')
 			#
 			print('[read_data]: read data from ',out_dir, ' (associated ',self.dir_id,'=',self.para_vals[idx],')')
 
@@ -278,6 +282,11 @@ class HW_probe:
 		ahc_kubo_data	= []
 		ohc_kubo_data	= []
 		#
+		#print('ac_kubo_data shape:',np.array(self.hw_ahc_kubo_data).shape)
+
+
+
+
 
 		para_floats	=	[]
 		for para_str in self.para_vals:
@@ -288,20 +297,25 @@ class HW_probe:
 		scale, unit_str, unit_dsc	=	self.set_hall_units(units,scale)
 
 
-		for idx,para_val in enumerate(self.para_vals):
-			hw_plot.append([])
-			ahc_data.append([])
-			ahc_kubo_data.append([])
-			ohc_kubo_data.append([])
-			#
-			for hw in self.hw_lst[idx]:
-				hw_plot[-1].append(hw)
-			for ahc_tens in self.hw_ahc_data[idx]:
-				ahc_data[-1].append(						ahc_tens[1]				)
-			for ahc_kubo_tens in self.hw_ahc_kubo_data[idx]:
-				ahc_kubo_data[-1].append(					ahc_kubo_tens[2]		)
-			for ohc_tens in self.hw_ohc_data[idx]:
-				ohc_kubo_data[-1].append(					ohc_tens[2]				)
+		print(self.hw_ahc_kubo_data[1])
+		print('para_vals:',self.para_vals)
+		
+
+
+		#for idx,para_val in enumerate(self.para_vals):
+		#	hw_plot.append([])
+		#	ahc_data.append([])
+		#	ahc_kubo_data.append([])
+		#	ohc_kubo_data.append([])
+		#	#
+		#	for hw in self.hw_lst[idx]:
+		#		hw_plot[-1].append(hw)
+		#	for ahc_tens in self.hw_ahc_data[idx]:
+		#		ahc_data[-1].append(						ahc_tens[1]				)
+		#	for ahc_kubo_tens in self.hw_ahc_kubo_data[idx]:
+		#		ahc_kubo_data[-1].append(					ahc_kubo_tens[2]		)
+		#	for ohc_tens in self.hw_ohc_data[idx]:
+		#		ohc_kubo_data[-1].append(					ohc_tens[2]				)
 
 		#print(ahc_kubo_data)
 		#
@@ -353,18 +367,34 @@ class HW_probe:
 					IM_ahc_kubo_plot	= []
 					RE_ohc_kubo_plot	= []
 					IM_ohc_kubo_plot	= []
-					#				
-					for ahc_tens in ahc_data[idx]:
-						ahc_plot.append(						scale * np.real(	ahc_tens[i][j]		)				)
-					for ahc_K_tens in ahc_kubo_data[idx]:
-						RE_ahc_kubo_plot.append(				scale * np.real(	ahc_K_tens[i][j]	)				)
-						IM_ahc_kubo_plot.append(				scale * np.imag(	ahc_K_tens[i][j]	)				)
-					for ohc_tens in ohc_kubo_data[idx]:
-						RE_ohc_kubo_plot.append(				scale * np.real(	ohc_tens[i][j]		)				)
-						IM_ohc_kubo_plot.append(				scale * np.imag(	ohc_tens[i][j]		)				)
 					#
-					hw_max	=	max(hw_plot[idx])
-					hw_min	=	min(hw_plot[idx])
+					#print('test shape:')
+					#test = np.array(	self.hw_ahc_kubo_data[0]	)
+					#print(test.shape)
+					#for hw_idx, hw_val in enumerate(self.hw_lst):
+					#	print('#hw_idx=',hw_idx)
+					#	print(test[hw_idx]) 
+					#print('3x3?!',self.hw_ahc_kubo_data[0])
+					#ahc_plot.append(	self.ahc)	
+					for hw_idx,hw_val in enumerate(self.hw_lst[idx]):
+						RE_ahc_kubo_plot.append(	scale *	np.real(		np.array(self.hw_ahc_kubo_data[idx])[i][j][hw_idx]				))
+						IM_ahc_kubo_plot.append(	scale *	np.imag(		np.array(self.hw_ahc_kubo_data[idx])[i][j][hw_idx]				))
+
+
+					print('idx=',idx,'RE_ahc_kubo_plot')
+					for elem in RE_ahc_kubo_plot:
+						print(elem)
+					#for ahc_tens in ahc_data[idx]:
+					#	ahc_plot.append(						scale * np.real(	ahc_tens[i][j]		)				)
+					#for ahc_K_tens in ahc_kubo_data[idx]:
+					#	RE_ahc_kubo_plot.append(				scale * np.real(	ahc_K_tens[i][j]	)				)
+					#	IM_ahc_kubo_plot.append(				scale * np.imag(	ahc_K_tens[i][j]	)				)
+					#for ohc_tens in ohc_kubo_data[idx]:
+					#	RE_ohc_kubo_plot.append(				scale * np.real(	ohc_tens[i][j]		)				)
+					#	IM_ohc_kubo_plot.append(				scale * np.imag(	ohc_tens[i][j]		)				)
+					#
+					hw_max	=	max(self.hw_lst[idx])
+					hw_min	=	min(self.hw_lst[idx])
 					#
 					#
 					#	determine color based on para_val
@@ -388,16 +418,16 @@ class HW_probe:
 					label =r'$\delta$ '+'{:.2f}'.format(float(para_val))
 					#		REAL PART
 					#
-					if plot_ahc:
-						#print('hw_plot=',hw_plot)
-						#print('ahc_plot=',ahc_plot)
-						try:
-							ax[0].plot(hw_plot[0], ahc_plot,'-', color=color,label=label)
-						except:
-							print("[plot_hall_like]: 	WARNING could not plot AHC tensor")
+					#if plot_ahc:
+					#	#print('hw_plot=',hw_plot)
+					#	#print('ahc_plot=',ahc_plot)
+					#	try:
+					#		ax[0].plot(hw_plot[0], ahc_plot,'-', color=color,label=label)
+					#	except:
+					#		print("[plot_hall_like]: 	WARNING could not plot AHC tensor")
 					if plot_ahc_kubo:
 						try:
-							ax[0].plot(	hw_plot[0], RE_ahc_kubo_plot,		
+							ax[0].plot(	self.hw_lst[idx], RE_ahc_kubo_plot,		
 													marker='v',
 													linestyle=style,
 													linewidth=line_width, 	
@@ -407,24 +437,24 @@ class HW_probe:
 										)
 						except:
 							print("[plot_hall_like]: 	WARNING could not plot RE AHC_Kubo (wann guide) tensor")
-					if plot_ohc:
-						try:
-							ax[0].plot(hw_plot[0], RE_ohc_kubo_plot,		
-														marker='*', 	
-														linestyle=style,
-														linewidth=line_width, 	
-														color=color, 
-														markersize=marker_size,		
-														label=label		)
-						except:
-							print("[plot_hall_like]: 	WARNING could not plot RE AHC_Kubo (wanxiang) tensor")
+					#$if plot_ohc:
+					#$	try:
+					#$		ax[0].plot(hw_plot[0], RE_ohc_kubo_plot,		
+					#$									marker='*', 	
+					#$									linestyle=style,
+					#$									linewidth=line_width, 	
+					#$									color=color, 
+					#$									markersize=marker_size,		
+					#$									label=label		)
+					#$	except:
+					#$		print("[plot_hall_like]: 	WARNING could not plot RE AHC_Kubo (wanxiang) tensor")
 					#
 					#
 					#		IMAGINARY PART
 					#
 					if plot_ahc_kubo:
 						try:
-							ax[1].plot(hw_plot[0], IM_ahc_kubo_plot,		
+							ax[1].plot(self.hw_lst[idx], IM_ahc_kubo_plot,		
 													marker='v',
 													linestyle=style,
 													linewidth=line_width, 	 	
@@ -434,17 +464,17 @@ class HW_probe:
 										)
 						except:
 							print("[plot_hall_like]: 	WARNING could not plot IM AHC_Kubo (wann guide) tensor")
-					if plot_ohc:
-						try:
-							ax[1].plot(hw_plot[0], IM_ohc_kubo_plot,		
-														marker='*',
-														linestyle=style,
-														linewidth=line_width, 	 	
-														color=color, 
-														markersize=marker_size,		
-														label=label	)
-						except:
-							print("[plot_hall_like]: 	WARNING could not plot IM OHC_Kubo (wanxiang) tensor")
+					#if plot_ohc:
+					#	try:
+					#		ax[1].plot(hw_plot[0], IM_ohc_kubo_plot,		
+					#									marker='*',
+					#									linestyle=style,
+					#									linewidth=line_width, 	 	
+					#									color=color, 
+					#									markersize=marker_size,		
+					#									label=label	)
+					#	except:
+					#		print("[plot_hall_like]: 	WARNING could not plot IM OHC_Kubo (wanxiang) tensor")
 				# ~~~~~~~~~~~~~~~~~
 				#
 				#
