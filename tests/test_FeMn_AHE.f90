@@ -147,7 +147,7 @@ program test_FeMn_AHE
 		wf_centers(3,1+4:4+4)	=	wf_centers(3,1:4)						!	v			
 		!
 		!	NUMERICS
-		mp_grid(1:3)	=	128
+		mp_grid(1:3)	=	204
 		!
 		!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		call CFG_add(my_cfg,	"jobs%plot_bands"			,		.False.			,	"if true do a bandstructure run"				)
