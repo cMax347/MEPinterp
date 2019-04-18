@@ -23,6 +23,12 @@ add_executable(testFeMn	 test_FeMn_AHE.f90)
 target_link_libraries(testFeMn Helpers)
 target_link_libraries(testFeMn m_config)
 #
+#	#5
+add_executable(testGaAs	 test_GaAs_shiftC.f90)
+target_link_libraries(testGaAs Helpers)
+target_link_libraries(testGaAs m_config)
+
+#
 #
 #make the executables tests
 add_test(NAME I/O           		COMMAND testIO     	)
