@@ -9,6 +9,7 @@ program test_FeMn_AHE
 	use mpi_community,			only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,			only:		init_parameters,	&
 											my_mkdir
+	use k_space,				only:		get_mp_grid
 	use core,					only:		core_worker
 	use test_helpers,			only:		my_exit		
 	!
@@ -82,6 +83,8 @@ program test_FeMn_AHE
 	!
 	!FINALIZE
 	call MPI_FINALIZE(ierr)
+	write(*,*)	'[#',mpi_id,';test_FeMn_AHE/',cTIME(time()),']:	test was performed on mp_grid ',get_mp_grid()
+	write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';test_FeMn_AHE/',cTIME(time()),']:	consider finer mesh for better accuracy'		
 	write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';test_FeMn_AHE/',cTIME(time()),']:	all done, by by'	
 
 
@@ -147,7 +150,7 @@ program test_FeMn_AHE
 		wf_centers(3,1+4:4+4)	=	wf_centers(3,1:4)						!	v			
 		!
 		!	NUMERICS
-		mp_grid(1:3)	=	204
+		mp_grid(1:3)	=	64
 		!
 		!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		call CFG_add(my_cfg,	"jobs%plot_bands"			,		.False.			,	"if true do a bandstructure run"				)

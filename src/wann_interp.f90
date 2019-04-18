@@ -522,22 +522,24 @@ module wann_interp
 										!call	blas_matmul(	M_in, 	U_k,		tmp			)
 										!call	blas_matmul(	U_dag, 	tmp,		M_in		)
 										!	matmul
-										tmp				=	matmul(M_in, U_k)
-										M_in			=	matmul(U_dag,tmp)		
+										tmp				=	blas_matmul(M_in, U_k)
+										M_in			=	blas_matmul(U_dag,tmp)		
 										!
 										H_ka(a,:,:)		=	M_in(:,:)
 			!	CONNECTION
 			if( allocated(A_ka))then	
-										tmp				=	A_ka(a,:,:)
-										tmp(:,:)		=	matmul(	U_dag		,	tmp		)
-										A_ka(a,:,:)		=	matmul(	tmp			, 	U_k		)
+										M_in			=	A_ka(a,:,:)
+										tmp(:,:)		=	blas_matmul(	U_dag		,	tmp		)
+										A_ka(a,:,:)		=	blas_matmul(	tmp			, 	U_k		)
+										!call	blas_matmul(	U_dag,	tmp		,	tmp		)
+										!call	blas_matmul(	tmp,	U_k		,	A_ka(a,:,:))
 			end if
 			!	CURVATURE
 			if( allocated(Om_kab)	)then
 				do b = 1,3 
 										tmp				=	Om_kab(a,b,:,:)
-										tmp				=	matmul(	U_dag		,	tmp		)
-										Om_kab(a,b,:,:)	=	matmul(	tmp			,	U_k		)	
+										tmp				=	blas_matmul(	U_dag		,	tmp		)
+										Om_kab(a,b,:,:)	=	blas_matmul(	tmp			,	U_k		)	
 				end do
 			end if
 			!
@@ -546,6 +548,17 @@ module wann_interp
 		!
 		return
 	end subroutine	
+
+	function unit_rot(	M,	U, U_dag	)	result(M_rot)
+		complex(dp),	intent(in)		::	M(:,:), U(:,:), U_dag(:,:)
+		complex(dp),	allocatable		::	M_rot(:,:)
+		complex(dp), save,	allocatable		::	tmp1(:,:), tmp2(:,:)
+
+
+
+
+		return
+	end function
 
 
 

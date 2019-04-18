@@ -1,5 +1,4 @@
 module matrix_math
-
 	implicit none
 
 	private
@@ -544,8 +543,10 @@ module matrix_math
         allocate(   tmp(size(A,1),size(B,2))     )
 
         !
-        call blas_matmul(A, B,      C   )
-        call blas_matmul(B, A,      tmp )
+        !call blas_matmul(A, B,      C   )
+        C   =   blas_matmul(A,B)
+        !call blas_matmul(B, A,      tmp )
+        tmp =   blas_matmul(B,A)
         C   = C - tmp
         !
         return
@@ -563,8 +564,10 @@ module matrix_math
         allocate(   C(size(A,1),size(B,2))     )
         allocate(   tmp(size(A,1),size(B,2))   )
         !
-        call blas_matmul(A, B,      C   )
-        call blas_matmul(B, A,      tmp )
+        !call blas_matmul(A, B,      C   )
+        C   =   blas_matmul(A,B)
+        !call blas_matmul(B, A,      tmp )
+        tmp   =   blas_matmul(B,A)
         C   = C - tmp
         !
         return
@@ -603,51 +606,53 @@ module matrix_math
 
 
 
-    subroutine d_blas_matmul(A, B, C) 
+    function d_blas_matmul(A, B)   result(C)
         !   C := alpha*op(A)*op(B) + beta*C
         real(dp),        intent(in)         ::  A(:,:), B(:,:)
-        real(dp),        intent(out)        ::  C(:,:)
+        real(dp),   allocatable             ::  C(:,:)
         integer                             ::  m, n, k
         !
         m       =   size(A,1)
         n       =   size(B,2)
         k       =   size(A,2)
-        if( k /= size(B,1))   stop  '[d_blas_matmul]:   warning matrix size do not match correctly'  
-
+        if( k /= size(B,1))   stop  '[d_blas_matmul]:   warning matrix size do not match correctly (k<->size(B,1))'
+        if( m /= size(C,1))   stop  '[d_blas_matmul]:   warning matrix size do not match correctly (m<->size(C,1))'  
+        if( n /= size(C,2))   stop  '[d_blas_matmul]:   warning matrix size do not match correctly (n<->size(C,2))'    
         !
-        !allocate(   C(m,n)     )
+        allocate(   C(m,n)     )
         C       =   0.0_dp
         !
-       
         !
         !        CALL DGEMM('N','N',M,N,K,ALPHA,A,M,B,K,BETA,C,M)
-        call dgemm('N', 'N', m, n, k, 1._dp, A(:,:), m, B(:,:), k, 0._dp, C(:,:), m)
-        !C = matmul(A,B)
+        call dgemm('N', 'N', m, n, k, 1.0_dp, A(:,:), m, B(:,:), k, 0.0_dp, C(:,:), m)
+        !
+        !
         return
-    end subroutine
+    end function
 
 
 
 
-    subroutine z_blas_matmul(A, B, C) 
+    function z_blas_matmul(A, B)     result(C)
         !   C := alpha*op(A)*op(B) + beta*C
         complex(dp),        intent(in)      ::  A(:,:), B(:,:)
-        complex(dp),        intent(out)     ::  C(:,:)
+        complex(dp),        allocatable     ::  C(:,:)
         integer                             ::  m, n, k
         !
         m       =   size(A,1)
         k       =   size(A,2)
         n       =   size(B,2)
-        if( k /= size(B,1))   stop  '[z_blas_matmul]:   warning matrix size do not match correctly'  
+        if( k /= size(B,1))   stop  '[z_blas_matmul]:   warning matrix size do not match correctly (k<->size(B,1))'  
         !
         !
-        C   =   cmplx(0.0_dp,0.0_dp,dp)
+        allocate(   C(m,n)     )
+        C      =    cmplx(0.0_dp,0.0_dp,dp)
         !
-        call zgemm('N', 'N', m, n, k, 1._dp, A(:,:), m,  B(:,:), k, 0,    C(:,:), m)
-        !C = matmul(A,B)
+        call zgemm('N', 'N', m, n, k, 1.0_dp, A(:,:), m,  B(:,:), k, 0.0_dp,    C(:,:), m)
+        !
         !
         return
-    end subroutine
+    end function
 
 
 end module

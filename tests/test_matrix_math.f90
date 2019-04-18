@@ -291,8 +291,8 @@ contains
 		call zheevd_wrapper(U,	eigVal)
 
 		!rotate M_W with U should yield diagonal matrix (matrix in H gauge)
-		call blas_matmul(	conjg(transpose(U)),	M_W,		tmp)
-		call blas_matmul(	tmp,					U,			M_W)
+		tmp	=	blas_matmul(	conjg(transpose(U))	,	M_W		)
+		M_W	=	blas_matmul(			tmp			,	 U		)
 		!
 		!
 		!todo: check now if M_H is diagonal with eival on diago
@@ -365,7 +365,7 @@ contains
 		call random_matrix(B)
 		!
 		C_intern	=	matmul(A,B)
-		call	blas_matmul(A,B,C_blas)
+		C_blas		=	blas_matmul(A,B)
 		!
 		test_d_blas_matmul	=	.false.
 		acc					= 	fp_acc
@@ -395,7 +395,7 @@ contains
 		call random_matrix(B)
 		!
 		C_intern	=	matmul(A,B)
-		call	blas_matmul(A,B, C_blas)
+		C_blas		=	blas_matmul(A,B)
 		!
 		!
 		test_z_blas_matmul	= .false.
