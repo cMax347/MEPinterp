@@ -2,22 +2,19 @@ module file_io
 #ifdef __INTEL_COMPILER
 	use ifport !needed for time 
 #endif
+	use m_npy
+	use endian_swap
 	use matrix_math,					only:		is_equal_vect, is_herm_mat	
 	use constants,						only:		dp, fp_acc, aUtoAngstrm, aUtoEv
 	use mpi_community,					only:		mpi_id, mpi_root_id, mpi_nProcs
 	use input_paras,					only:		w90_dir, 							&
 													out_dir,							& 
-													eig_out_dir,						&
 													velo_out_dir,						&
-													mep_out_dir,						&
-													ahc_out_dir,						&
-													opt_out_dir,						&
-													gyro_out_dir,						&
 													raw_dir, 							&
 													a_latt, 							&
 													debug_mode,							&
 													use_R_float,						&
-													plot_bands										
+													plot_bands									
 
 	implicit none
 
@@ -39,20 +36,11 @@ module file_io
 													write_opt_tensors,					&
 													write_gyro_tensors
 
-
-
-
-	interface write_tens_file
-		module procedure d2_write_tens_file
-		module procedure d3_write_tens_file
-		!
-		module procedure z_write_tens_file
-	end interface write_tens_file
-
-
-
 	character(len=64)						::		format='(a,i7.7)'
 	integer									::		num_bands
+	
+
+
 	contains
 
 
@@ -90,7 +78,7 @@ module file_io
 		integer							::	mpi_unit, n, m
 		!
 		mpi_unit	=	100 + mpi_id + 15 * mpi_nProcs
-		write(filename, format) eig_out_dir//'eig.',kpt_idx
+		write(filename, format) raw_dir//'eig.',kpt_idx
 		!
 		open(unit=mpi_unit, file=filename, form='formatted', action='write', access='stream', status='replace')
 			do m =1, size(U_k,2)
@@ -111,7 +99,7 @@ module file_io
 		integer							::	mpi_unit, n, m
 		!
 		mpi_unit	=	100 + mpi_id + 15 * mpi_nProcs
-		write(filename, format) eig_out_dir//'ham.',kpt_idx
+		write(filename, format) raw_dir//'ham.',kpt_idx
 		!
 		open(unit=mpi_unit, file=filename, form='formatted', action='write', access='stream', status='replace')
 			do m =1, size(H_k,2)
@@ -123,28 +111,6 @@ module file_io
 		!
 		return
 	end subroutine
-
-
-	subroutine write_geninterp_kpt_file(seed_name, kpt_latt)
-		character(len=*),	intent(in)			::	seed_name
-		real(dp),			intent(in)			::	kpt_latt(:,:)	
-		integer									::	qi_idx, x		
-		!
-		open(unit=200, file = seed_name//'_geninterp.kpt', form='formatted', action='write',	access='stream', status='replace')
-		write(200,*)	'# fractional kpts created by MEPInterp, written '//cTIME(time())
-		write(200,*)	'frac'
-		write(200,*)	size(kpt_latt,2)
-		!
-		do qi_idx = 1, size(kpt_latt,2)
-			write(200,'(i3,a)',advance="no")	qi_idx, ' '
-			write(200,'(*(f16.8))')		(kpt_latt(x,qi_idx), x= 1, size(kpt_latt,1))
-		end do
-		close(200)
-		write(*,'(a,i3,a,a)')		'[#',mpi_id,'; write_geninterp_kpt_file]: wrote ',seed_name//'_geninterp.kpt file'
-		!
-		return
-	end subroutine
-
 
 
 	subroutine write_en_global(kpt_latt)
@@ -171,11 +137,10 @@ module file_io
 			!		
 		end do
 		close(220)
-		write(*,'(a,i3,a)')		"[#",mpi_id,"; write_en_global]: success!"
+		write(*,'(a,i7.7,a)')		"[#",mpi_id,"; write_en_global]: success!"
 		!
 		return
 	end subroutine
-
 
 
 	subroutine write_velo(kpt_idx, V_ka)
@@ -212,90 +177,86 @@ module file_io
 		!
 		!	CLOSE FILE
 		close(mpi_unit)
-		write(*,'(a,i3,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
+		write(*,'(a,i7.7,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
 		!
 		return
 	end subroutine
-
-
 
 
 	subroutine write_hw_list(n_hw, 	hw_min,	hw_max	)
 		integer,			intent(in)		::	n_hw
 		real(dp),			intent(in)		::	hw_min, hw_max
-		integer								::	hw_idx, hw_unit
+		real(dp),			allocatable		::	hw_lst(:)
+		integer								::	hw_idx
 		real(dp)							::	hw_val, delta_hw
-		character(len=20)					::	fname
-		character(len=100)					::	info_string
-		!
-		fname 			=	out_dir//'hw_lst.txt'
-		info_string		=	'# List of Laser frequencies (in eV) used for calc. opt. responses, written at '//cTIME(time())
-		hw_unit			=	399
-		delta_hw		=	(	hw_max -	hw_min	)	/	real(N_hw -1,dp)
 		!
 		!
-		open(unit=hw_unit,	file=trim(fname), form='formatted', action='write', access='stream', status='replace')
-		write(hw_unit,*) info_string
-		!
-		do hw_idx = 1, n_hw
-			hw_val		=	hw_min 	+	real(hw_idx-1,dp)	* delta_hw
+		if(	n_hw	> 1	)	then
+			allocate(	hw_lst(n_hw))
+			delta_hw		=	(	hw_max -	hw_min	)	/	real(n_hw -1,dp)
+			do hw_idx = 1, n_hw
+				hw_val			=	hw_min 	+	real(hw_idx-1,dp)	* delta_hw
+				hw_lst(hw_idx)	=	 hw_val * aUtoEv
+			end do
 			!
-			write(hw_unit,'(i7,a,f16.8)')	hw_idx,"	", hw_val * aUtoEv
-		end do
-		close(hw_unit)
+			!
+			call save_npy(	out_dir//'hw_lst.npy',		hw_lst	)
+			!
+		else
+			allocate(hw_lst(1))	
+			hw_lst	=	hw_min			
+		end if
 		!
-		write(*,'(a,i7,a)')		"[write_hw_list]: wrote ",n_hw," entries to ",fname
+		call save_npy(	out_dir//'hw_lst.npy',		hw_lst	)
+		write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_hw_list]: wrote hw list to ",trim(out_dir//'hw_lst.npy')
 		!
 		return
 	end subroutine
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
 !--------------------------------------------------------------------------------------------------------------------------------		
 !--------------------------------------------------------------------------------------------------------------------------------		
 !--------------------------------------------------------------------------------------------------------------------------------		
@@ -305,50 +266,10 @@ module file_io
 	subroutine write_mep_bands(n_ki_glob, mep_bands)
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable, 	intent(inout)	::	mep_bands(:,:,:)
-		real(dp),	allocatable						::	mep_sum(:,:)
-		character(len=20)							::	fname
-		character(len=100)							::	info_string
-		character(len=3)							::	id_string
-		integer										::	n0, row
-		logical										::	verbose
 		!
-
-		!
-		if(allocated(mep_bands)) then
-			verbose	= .true.
-			allocate(	mep_sum(3,3)	)
-			mep_sum		=	0.0_dp
-			id_string	=	'mep'
-			!
-			write(*,*)	"[write_mep_bands]:	"
-			do n0 = 1, size(mep_bands,3)
-				!	write to file
-				write(info_string,'(a,i3,a,i8,a)')		'# mep contribution of band '	,	n0, 	'(n_kpt=',n_ki_glob,')'
-				write(fname, format)		 			'mep_band.'						,	n0
-				call 	write_tens_file(	mep_out_dir, fname, mep_bands(:,:,n0), info_string, 	id_string,verbose)
-				!
-				!	print to std output
-				write(*,*)	"band n=",n0
-				do row = 1, 3
-					write(*,*)	mep_bands(row,:,n0)
-				end do
-				!
-				!	add to sum over bands
-				mep_sum	=	mep_sum	+	mep_bands(:,:,n0)
-			end do
-			!
-			!	print sum to std output
-			write(*,*)	"band sum"
-			do row = 1, 3
-				write(*,*)	mep_sum(row,:)
-			end do
-			write(*,*)	"--------------------------"
-			write(*,*)	"*"
-			write(*,*)	"*"
-			!	write sum to file
-			write(info_string,*)		'# mep sum over band contributions (this should be the equivalent to mep_tens.dat)'
-			fname		='mep_band.sum'
-			call 	write_tens_file(	mep_out_dir,	trim(fname),	mep_sum,	info_string,	id_string,verbose)
+		if(	allocated(mep_bands))	then
+			call	save_npy(out_dir//"mep_bands.npy",	mep_bands	)
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep_bands to ",out_dir//"mep_bands.npy"
 		end if
 		!
 		return
@@ -358,71 +279,26 @@ module file_io
 	subroutine write_mep_tensors(n_ki_glob, mep_ic, mep_lc, mep_cs)
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable,	intent(in)		::	mep_ic(:,:), mep_lc(:,:), mep_cs(:,:)
-		real(dp),	allocatable						::	mep_tens(:,:)
-		character(len=12)							::	fname
-		character(len=100)							::	info_string
-		character(len=3)							::	id_string
-		integer										::	row
-		logical										::	verbose
+		real(dp)									::	mep_tens(3,3)
 		!
-		id_string	=	'mep'
-		verbose		=	.true.
+		if(allocated(mep_ic)) 	call save_npy(	out_dir//'mep_ic.npy', 		mep_ic		)
+		if(allocated(mep_lc)) 	call save_npy(	out_dir//'mep_lc.npy', 		mep_lc		)
+		if(allocated(mep_cs)) 	call save_npy(	out_dir//'mep_cs.npy', 		mep_cs		)
+		!
+		if(allocated(mep_ic)) 	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//'mep_ic.npy'
+		if(allocated(mep_lc))	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//'mep_lc.npy'
+		if(allocated(mep_cs))	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//'mep_cs.npy'
 		!-------------------------------------total MEP tensor------------------------------
 		if(allocated(mep_cs) .and. allocated(mep_lc) .and. allocated(mep_ic) ) then
-			fname		= 	'mep_tens.dat'
-			info_string	= 	'# total mep tensor (mep_tot= mep_ic+mep_lc+mep_cs)  (in atomic units - dimensionless), written '//cTIME(time())
-			!
-			allocate(	mep_tens(3,3)	)
 			mep_tens	= 	mep_ic +	mep_lc	+	mep_cs
-			call	write_tens_file(mep_out_dir,	fname,	mep_tens, info_string,	id_string, verbose )
-			write(*,*)	"[write_mep_tensors]: mep_tens:"
-			do row = 1, 3
-				write(*,*)	mep_tens(row,:)
-			end do
-		end if
-		!
-		!-------------------------------------itinerant contribution MEP tensor-------------
-		if(allocated(mep_ic)) then
-			fname		= 	'mep_ic.dat'
-			info_string	= 	'# itinerant contribution of mep tensor (in atomic units - dimensionless), written '//cTIME(time())
-			!
-			call	write_tens_file(mep_out_dir,	fname,	mep_ic,	info_string,	id_string, verbose )
-			!
-			write(*,*)	"[write_mep_tensors]: mep_ic:"
-			do row = 1, 3
-				write(*,*)	mep_ic(row,:)
-			end do
-		end if
-		!
-		!
-		!-------------------------------------local contribution MEP tensor-----------------
-		if(allocated(mep_lc)) then
-			fname		= 	'mep_lc.dat'
-			info_string	= 	'# local contribution of mep tensor  (in atomic units - dimensionless), written '//cTIME(time())
-			!
-			call	write_tens_file(mep_out_dir,	fname,	mep_lc,	info_string,	id_string, verbose )
-			!
-			write(*,*)	"[write_mep_tensors]: mep_lc:"
-			do row = 1, 3
-				write(*,*)	mep_lc(row,:)
-			end do	
-		end if
-		!
-		!
-		!-------------------------------------Chern-Simons term MEP tensor------------------
-		if(allocated(mep_cs)) then
-			fname		= 	'mep_cs.dat'
-			info_string	= 	'# Chern-Simons term of mep tensor  (in atomic units - dimensionless), written '//cTIME(time())
-			!
-			call	write_tens_file(mep_out_dir,	fname,	mep_cs,	info_string,	id_string, verbose )
-			!
-			write(*,*)	"[write_mep_tensors]: mep_cs:"
-			do row = 1, 3
-				write(*,*)	mep_cs(row,:)
-			end do
+			call save_npy(	out_dir//'mep_tens.npy',		mep_tens	)
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote mep to ",out_dir//'mep_tens.npy'
 		end if
 		!-----------------------------------------------------------------------------------
-		write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_mep_tensors]: calculated MEP tensor on ",n_ki_glob," kpts"
+		
 		!
 		!
 		return
@@ -430,56 +306,31 @@ module file_io
 
 
 	subroutine write_kubo_mep_tensors(n_ki_glob, kubo_mep_ic, kubo_mep_lc, kubo_mep_cs)
-		integer,					intent(in)		::	n_ki_glob
+		integer,							intent(in)		::	n_ki_glob
 		real(dp),		allocatable,		intent(in)		::	kubo_mep_ic(:,:), kubo_mep_lc(:,:), kubo_mep_cs(:,:)
-		real(dp),		allocatable							::	kubo_mep_tens(:,:)
-		character(len=20)									::	fname
-		character(len=90)									::	info_string
-		character(len=7)									::	id_string
-		logical												::	allo_ic, allo_lc, allo_cs, verbose
+		real(dp)											::	kubo_mep_tens(3,3)
 		!
-		id_string	=	'KUBOmep'
-		allo_ic		=	.false.
-		allo_ic		=	.false.
-		allo_ic		=	.false.		
-		verbose		=	.true.
-		!-------------------------------------itinerant contribution MEP tensor-------------
-		if(allocated(kubo_mep_ic)) then
-			fname		= 	'kubo_mep_ic.dat'
-			info_string	= 	'# itinerant contribution of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
-			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_ic,	info_string,	id_string, verbose )
-			allo_ic	=	.true.
-		end if
+		!-------------------------------------individual contributions-------------
+		if(allocated(kubo_mep_ic)) 	call save_npy(	out_dir//'kubo_mep_ic.npy',	kubo_mep_ic	)
+		if(allocated(kubo_mep_lc)) 	call save_npy(	out_dir//'kubo_mep_lc.npy',	kubo_mep_lc	)
+		if(allocated(kubo_mep_cs)) 	call save_npy(	out_dir//'kubo_mep_cs.npy',	kubo_mep_cs	)
 		!
-		!
-		!-------------------------------------local contribution MEP tensor-----------------
-		if(allocated(kubo_mep_lc)) then
-			fname		= 	'kubo_mep_lc.dat'
-			info_string	= 	'# local contribution of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
-			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_lc,	info_string,	id_string, verbose )
-			allo_lc	=	.true.
-		end if
-		!
-		!
-		!-------------------------------------Chern-Simons term MEP tensor------------------
-		if(allocated(kubo_mep_cs)) then
-			fname		= 	'kubo_mep_cs.dat'
-			info_string	= 	'# Chern-Simons term of KUBO mep tensor (with fermi-dirac statistic), written '//cTIME(time())
-			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_cs,	info_string,	id_string, verbose )
-			allo_cs	=	.true.
-		end if
-		!
+		if(allocated(kubo_mep_ic))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//'kubo_mep_ic.npy'
+		if(allocated(kubo_mep_lc))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//'kubo_mep_lc.npy'
+		if(allocated(kubo_mep_cs))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//'kubo_mep_cs.npy'
 		!
 		!-------------------------------------total MEP tensor------------------------------
-		if(allo_ic .and. allo_lc .and. allo_cs) then
-			fname		= 	'kubo_mep_tens.dat'
-			info_string	= 	'# total KUBO mep tensor (with fermi-dirac statistic) (mep_tot= mep_ic+mep_lc+mep_cs), written '//cTIME(time())
-			allocate(kubo_mep_tens(3,3))
+		if(			allocated(kubo_mep_ic) 		&	
+			.and. 	allocated(kubo_mep_lc)		&
+			.and. 	allocated(kubo_mep_cs)		&
+		) then
 			kubo_mep_tens	= 	kubo_mep_ic +	kubo_mep_lc	+	kubo_mep_cs
-			call	write_tens_file(mep_out_dir,	fname,	kubo_mep_tens, info_string,	id_string, verbose )
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: wrote  KUBO MEP tensor on ",n_ki_glob," kpts"
+			call save_npy(	out_dir//'kubo_mep_tens.npy',	kubo_mep_tens	)
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_mep_tensors]: wrote kubo_mep to ",out_dir//'kubo_mep_tens.npy'
 		end if
-		!
 		!
 		return
 	end subroutine
@@ -490,62 +341,19 @@ module file_io
 		integer,					intent(in)		::	n_ki_glob
 		real(dp),	allocatable,	intent(in)			::	ahc_tens(:,:)
 		complex(dp),allocatable,	intent(in)			::	velo_ahc_tens(:,:,:), ohc_tens(:,:,:)
-		character(len=22)								::	fname
-		character(len=100)								::	info_string
-		character(len=7)								::	id_string
-		integer											::	row, hw_idx, n_hw
-		logical											::	verbose
 		!
 		!
-		if(allocated(ahc_tens)) then
-			verbose		=	.true.
-			fname		=	'ahc_tens.dat'
-			info_string	=	'# anomalous Hall conductivity tensor, written '//cTIME(time())
-			id_string	=	'ahc'
-			call	write_tens_file(ahc_out_dir,	trim(fname),	ahc_tens,	info_string,	id_string, verbose)
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC tensor (curvature) on ",n_ki_glob," kpts:"
-			do row = 1, 3
-				write(*,*)	ahc_tens(row,:)
-			end do
-		end if
+		if(allocated(ahc_tens)) 	call 	save_npy(	out_dir//'ahc_tens.npy',	ahc_tens		)
+		if(allocated(velo_ahc_tens))call	save_npy(	out_dir//'ahcVELO.npy',		velo_ahc_tens	)
+		if(allocated(ohc_tens))		call	save_npy(	out_dir//'ohcVELO.npy',		ohc_tens		)
 		!
 		!
-		n_hw		=	size(velo_ahc_tens,3)
-		!
-		verbose	=	.false.
-		do hw_idx 	= 1, n_hw
-			if(allocated(velo_ahc_tens)) then
-				id_string	=	'ahcVELO'
-				info_string	=	'# OHC via Wanxiang formula (Im(v**2)/(dE**2 - (hw+eta)**2 )) '//cTIME(time())
-				write(fname,format)		'ahc_velo.hw',hw_idx
-				
-				!
-				call	write_tens_file(ahc_out_dir,	fname,	velo_ahc_tens(:,:,hw_idx),	info_string,	id_string, verbose)	
-			end if
-			!
-			if(allocated(ohc_tens)) then
-				id_string	=	'ohcVELO'
-				info_string	=	'# optical Hall conductivity tensor (via velocities, wann guide: eq.12.5) '//cTIME(time())
-				write(fname,format)		'ohc_kubo.hw',hw_idx
-				!
-				call	write_tens_file(ahc_out_dir,	fname,	ohc_tens(:,:,hw_idx),	info_string,	id_string, verbose)
-				!
-			
-			end if
-		end do
-		!
-		!	DEBUG
-		if(allocated(velo_ahc_tens) .and. allocated(ohc_tens)) then
-			if(size(velo_ahc_tens,3) /=	size(ohc_tens,3)	) then
-				write(*,*)	"[write_ahc_tensor]:	ERROR different hw_lst length detected "
-				stop "ahc hw lst inconsistency"
-			else
-				write(*,'(a,i3,a,i7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (Wanxiang) tensor at ",&
-																n_hw," frequencies on ",n_ki_glob," kpts"
-				write(*,'(a,i3,a,i7,a,i8,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote OHC (w90: velo) tensor at ",&
-																n_hw," frequencies on ",n_ki_glob," kpts"
-			end if
-		end if
+		if(allocated(ahc_tens)) 	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC/OHC tensor to ",out_dir//'ahc_tens.npy'
+		if(allocated(velo_ahc_tens))&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC/OHC tensor to ",out_dir//'ahcVELO.npy'
+		if(allocated(ohc_tens))		&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; write_ahc_tensor]: wrote AHC/OHC tensor to ",out_dir//'ohcVELO.npy'
 		!
 		return
 	end subroutine
@@ -554,48 +362,18 @@ module file_io
 	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm, photo_2nd)
 		integer,						intent(in)			::	n_ki_glob
 		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:,:),	a_symm(:,:,:)
-		real(dp),		allocatable,	intent(in)			::	photo_2nd(:,:,:,:)
-		character(len=22)									::	fname
-		character(len=100)									::	info_string
-		character(len=4)									::	id_string
-		integer												::	n_hw, hw_idx
-		logical												::	verbose
+		complex(dp),	allocatable,	intent(in)			::	photo_2nd(:,:,:,:,:)
 		!
-		n_hw 	=	0
-		if( 	allocated(photo_2nd		))	n_hw	=	size(	photo_2nd	,	3)
-		if( 	allocated(a_symm		)) 	n_hw	=	size(	a_symm		,	3)
-		if( 	allocated(s_symm		)) 	n_hw	=	size(	s_symm		,	3)
+		if(allocated(s_symm)) 		call save_npy(	out_dir//"opt_Ssymm.npy", 	s_symm		)
+		if(allocated(a_symm))		call save_npy(	out_dir//"opt_Asymm.npy", 	a_symm		)
+		if(allocated(photo_2nd))	call save_npy(	out_dir//'photoC_2nd.npy', 	photo_2nd	)
 		!
-		if (n_hw > 0) then
-			verbose	=	.false.
-			do hw_idx	=	 1, n_hw	 
-				if(allocated(s_symm)) then
-					write(fname,format)		'opt_Ssymm.hw',hw_idx
-					info_string	=	'# symmetric optical conductivity tensor, written '//cTIME(time())
-					id_string	=	'optS'
-					call 	write_tens_file(opt_out_dir,	fname,	s_symm(:,:,hw_idx),	info_string,	id_string, verbose)
-				end if
-				!
-				if(allocated(a_symm)) then
-					write(fname,format)		'opt_Asymm.hw',hw_idx
-					info_string	=	'# asymmetric optical conductivity tensor, written '//cTIME(time())
-					id_string	=	'optA'
-					call 	write_tens_file(opt_out_dir,	fname,	a_symm(:,:,hw_idx),	info_string,	id_string, verbose)
-				end if
-				!
-				if(allocated(photo_2nd))	then
-					write(fname,format)		'2nd_photo.hw',hw_idx
-					info_string	=	'seoncd order photconductivitc: J^c_photo = rho^c_ab . E^*_a E_b (PRB 97, 241118(R) (2018))'
-					id_string	=	"2phC"
-					call	write_tens_file(opt_out_dir,	fname,	photo_2nd(:,:,:,hw_idx),	info_string,	id_string, verbose)
-				end if
-			end do
-			!
-			!
-			write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_opt_tensors]:	wrote optical responses at ",	&
-									n_hw," laser frequencies on ",n_ki_glob," kpts"
-		end if
-		!	
+		if(allocated(s_symm))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote symm opt tens to ",	out_dir//"opt_Ssymm.npy"
+		if(allocated(a_symm))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote symm opt tens to ",	out_dir//"opt_Asymm.npy"
+		if(allocated(photo_2nd))&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote 2nd opt tens to ",	out_dir//'photoC_2nd.npy'
 		!
 		return
 	end subroutine	
@@ -603,156 +381,66 @@ module file_io
 
 	subroutine write_gyro_tensors(n_ki_glob, C_tens, D_tens, Dw_tens)
 		integer,					intent(in)		::	n_ki_glob
-		complex(dp),	allocatable, intent(in)				::	C_tens(:,:),	D_tens(:,:), Dw_tens(:,:,:)
-		character(len=22)									::	fname
-		character(len=100)									::	info_string
-		character(len=6)									::	id_string
-		integer												::	n_hw, hw_idx
-		logical												::	verbose
+		complex(dp),	allocatable, intent(in)		::	C_tens(:,:,:),	D_tens(:,:,:), Dw_tens(:,:,:,:)
 		!
-		verbose	=	.true.
-		if(allocated(C_tens)) then
-			fname		=	'gyro_C.dat'
-			info_string	=	'# the C tensor from arXiv:1710.03204v2, written '//cTIME(time())
-			id_string	=	'gyroC'
-			call	write_tens_file(gyro_out_dir,	fname,	C_tens,	info_string,	id_string, verbose)
-		end if
+		if(allocated(C_tens)) 		call save_npy(	out_dir//"gyro_C.npy", 	C_tens		)
+		if(allocated(D_tens)) 		call save_npy(	out_dir//"gyro_D.npy", 	D_tens		)
+		if(allocated(Dw_tens))		call save_npy(	out_dir//"gyro_Dw.npy", Dw_tens		)
 		!
-		if(allocated(D_tens)) then
-			fname		=	'gyro_D.dat'
-			info_string	=	'# the D tensor from arXiv:1710.03204v2, written '//cTIME(time())
-			id_string	=	'gyroD'
-			call	write_tens_file(gyro_out_dir,	fname,	D_tens,	info_string,	id_string, verbose)
-		end if
-		!
-		if(allocated(Dw_tens)) then
-			n_hw		=	size(Dw_tens,3)
-			id_string	=	'gyroDw'
-			verbose		=	.false.
-			!
-			do hw_idx = 1, n_hw
-				write(fname,format)		'gyro_Dw.hw',hw_idx
-				info_string	=	'# the Dw tensor from arXiv:1710.03204v2, written '//cTIME(time())
-				call	write_tens_file(gyro_out_dir,	fname,	Dw_tens(:,:,hw_idx),	info_string,	id_string,verbose)
-			end do
-			!
-			write(*,'(a,i3,a,i7,a,i7)')	"[#",mpi_id,";write_gyro_tensors]:	wrote Dw tensor at ",	&
-											n_hw,	"laser frequencies on ",n_ki_glob," kpts"		
-			!
-		end if
-		!
-		!
-		if(allocated(C_tens) .and. allocated(D_tens) .and. allocated(Dw_tens)) then
-			write(*,'(a,i3,a,i8,a)')		"[#",mpi_id,"; core_worker]: calculated GYRO tensors on ",n_ki_glob," kpts"
-		end if
+		if(allocated(C_tens))	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";write_gyro_tensors]: wrote GYRO-C tensors to ",out_dir//"gyro_C.npy"
+		if(allocated(D_tens))	&
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";write_gyro_tensors]: wrote GYRO-D tensors to ",out_dir//"gyro_D.npy"
+		if(allocated(Dw_tens))	&	
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";write_gyro_tensors]: wrote GYR-DW tensors to ",out_dir//"gyro_Dw.npy"
 		!
 		return
 	end subroutine
-
-
-
-
-
-!private write helpers
-	subroutine d2_write_tens_file(dir, fname,tens, info_string, id_string, verbose)
-		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
-		real(dp),			intent(in)		::	tens(3,3)
-		logical,			intent(in)		::	verbose
-		integer								::	row, clm, w_unit		!
-		!write result to file
-		open(newunit=w_unit, file=dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
-			write(w_unit,*)	info_string
-			write(w_unit,*)	'begin '//id_string
-			do row = 1, 3
-				write(w_unit,'(200(f16.8,a))')		(		tens(row,clm), ' ', clm=1,3)
-			end do
-			write(w_unit,*)	'end '//id_string
-		close(w_unit)
-		if(verbose)		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
-																fname," written  successfully!"
-		!
-		!
-		return
-	end subroutine
-
-	subroutine d3_write_tens_file(dir, fname,tens, info_string, id_string, verbose)
-		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
-		real(dp),			intent(in)		::	tens(3,3,3)
-		logical,			intent(in)		::	verbose
-		integer								::	row, clm,dim, w_unit		!
-		character(len=1)					::	dim_str(3)
-		!
-		dim_str(1)	=	"x"
-		dim_str(2)	=	"y"
-		dim_str(3)	=	"z"
-		!
-		!write result to file
-		open(newunit=w_unit, file=dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
-			write(w_unit,*)	info_string
-			write(w_unit,*)	'begin '//id_string
-			do dim	=	1,3
-				write(w_unit,*)	dim_str(dim)
-				do row = 1, 3
-					write(w_unit,'(200(f16.8,a))')		(		tens(dim,row,clm), ' ', clm=1,3)
-				end do
-			end do
-			write(w_unit,*)	'end '//id_string
-		close(w_unit)
-		if(verbose)		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
-																fname," written  successfully!"
-		!
-		!
-		return
-	end subroutine
-
-
-
-	subroutine z_write_tens_file(dir, fname,tens, info_string, id_string, verbose)
-		character(len=*), 	intent(in)		::	dir, fname, info_string, id_string
-		complex(dp),		intent(in)		::	tens(3,3)
-		logical,			intent(in)		::	verbose
-		integer								::	row, clm		!
-		!write result to file
-		open(unit=255, file=dir//fname, form='formatted', 	action='write', access='stream',	status='replace')
-			write(255,*)	info_string
-			write(255,*)	'begin '//id_string
-			do row = 1, 3
-				write(255,'(200(a,f12.6,a,f12.6,a))')		(		' ',real(tens(row,clm),dp), ' ',imag(tens(row,clm)),' ', clm=1,3)
-			end do
-			write(255,*)	'end '//id_string
-		close(255)
-		if(verbose)		write(*,'(a,i3,a,a,a,a,a)')	"[#",mpi_id,"; write_",id_string,"_tensor]: file ",&
-																fname," written successfully!"
-		!
-		!
-		return
-	end subroutine
-
-
 !--------------------------------------------------------------------------------------------------------------------------------		
 !--------------------------------------------------------------------------------------------------------------------------------		
 !--------------------------------------------------------------------------------------------------------------------------------		
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
+!~
 !--------------------------------------------------------------------------------------------------------------------------------		
 !--------------------------------------------------------------------------------------------------------------------------------		
 !--------------------------------------------------------------------------------------------------------------------------------		
@@ -782,7 +470,7 @@ module file_io
 				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
 			end do
 			close(mpi_unit)
-			write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
+			write(*,'(a,i7.7,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
 		end if 
 
 		!
@@ -847,11 +535,12 @@ module file_io
 				do kpt = 1, num_kpts
 					read(mpi_unit,*)		raw_idx, raw_kpt(1:3)
 					kpt_latt(1:3,raw_idx)	= raw_kpt(1:3)
-					if(raw_idx /= kpt)	write(*,'(a,i3,a)') '[#',mpi_id,'; read_geninterp_kpt_file]: WARNING, issues with k-mesh ordering detected'	
+					if(raw_idx /= kpt)	write(*,'(a,i7.7,a)') '[#',mpi_id,&
+						'; read_geninterp_kpt_file]: WARNING, issues with k-mesh ordering detected'	
 				end do
-				write(*,'(a,i3,a,i8)')	"[#",mpi_id,"; read_geninterp_kpt_file]: success! num_kpts=",num_kpts
+				write(*,'(a,i7.7,a,i8)')	"[#",mpi_id,"; read_geninterp_kpt_file]: success! num_kpts=",num_kpts
 			else
-				write(*,'(a,i3,a)')	"[#",mpi_id,"; read_geninterp_kpt_file]: file is not given in fractional coordinates (will not use file)"
+				write(*,'(a,i7.7,a)')	"[#",mpi_id,"; read_geninterp_kpt_file]: file is not given in fractional coordinates (will not use file)"
 			end if
 			!
 			close(mpi_unit)
@@ -873,7 +562,7 @@ module file_io
 		integer												::	int3(3), index(2)
 		real(dp)											::	unit_cell(3,3), compl1(2),compl3(6), rTest(3), real3(3)
 		!
-		mpi_unit	= mpi_id
+		mpi_unit	= 100 + mpi_id
 		open(unit=mpi_unit, file=seed_name//'_tb.dat',form='formatted', status='old', action='read')
 		!read unit cell
 		read(mpi_unit,*)
@@ -963,7 +652,7 @@ module file_io
 		rHopp	= 	rHopp / aUtoAngstrm
 		!
 		!
-		write(*,'(a,i3,a)',advance="no")	"[#",mpi_id,";read_tb_file]: success (input interpretation: nWfs="
+		write(*,'(a,i7.7,a)',advance="no")	"[#",mpi_id,";read_tb_file]: success (input interpretation: nWfs="
 		write(*,'(i6,a,i6,a)')				f_nwfs, ";	nrpts=",f_nSC,")!"
 		return
 	end subroutine 
@@ -1051,7 +740,7 @@ module file_io
 		!convert to a.u
 		H_mat	= H_mat / aUtoEv
 		!
-		write(*,'(a,i3,a,i4,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_hr_file]: unit=#",mpi_unit," SUCCESS (input interpretation: nWfs=",		&
+		write(*,'(a,i7.7,a,i4,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_hr_file]: unit=#",mpi_unit," SUCCESS (input interpretation: nWfs=",		&
 												f_nwfs, ";	nrpts=",size(R_vect,2),") on unit: "
 		return
 	end subroutine
@@ -1100,7 +789,7 @@ module file_io
 		!convert angstom to (au)
 		r_mat	= r_mat	/ aUtoAngstrm
 		!
-		write(*,'(a,i3,a,i6,a)')	"[#",mpi_id,";read_r_file]: success (input interpretation: nWfs=",f_nwfs, ";)"				
+		write(*,'(a,i7.7,a,i6,a)')	"[#",mpi_id,";read_r_file]: success (input interpretation: nWfs=",f_nwfs, ";)"				
 		!
 		return
 	end subroutine
@@ -1127,6 +816,7 @@ module file_io
 		!	FULL BASIS
 		inquire(file=w90_dir//seed_name//'_tb.dat',	exist=tb_exist)
 		if(tb_exist) then
+			write(*,*)	'[read_tb_basis]: "found data file '//w90_dir//seed_name//'_hr.dat'
 			call read_tb_file(w90_dir//seed_name, R_vect, H_mat, r_mat)
 			r_exist	= .true.
 		else
@@ -1143,7 +833,10 @@ module file_io
 			!
 			!	POSITION
 			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
-			if(  r_exist )	call read_r_file(w90_dir//seed_name, R_vect, r_mat)
+			if(  r_exist )	then
+				write(*,*)	'[read_tb_basis]: "found data file '//w90_dir//seed_name//'_r.dat'
+				call read_r_file(w90_dir//seed_name//'_r.dat', R_vect, r_mat)
+			end if
 			!
 			!
 		end if
@@ -1204,7 +897,7 @@ module file_io
 			if( .not.	 is_herm_mat(	H_mat(  :,:,sc),max_err)) then
 			 	write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space Hamiltonian is not herm in sc= ',sc,'; largest error: ', max_err
 			 	hermitian	=	.false.
-			 	stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (Hamiltonian)"
+			 	!stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (Hamiltonian)"
 			end if
 			!
 			!
@@ -1215,7 +908,7 @@ module file_io
 				if( .not.	is_herm_mat(	r_mat(1,:,:,sc),max_err)) then 																			!
 					write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space x-position op. not herm, largest error: ', max_err,' sc =',sc			!
 					hermitian	=	.false.																											!	
-					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (x-pos op)"															!	
+					!stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (x-pos op)"															!	
 				end if																																!		
 				!																																	!
 				!			Y	- POSITION																											!
@@ -1223,7 +916,7 @@ module file_io
 				if( .not.	is_herm_mat(	r_mat(2,:,:,sc),max_err)) then 																			!
 				write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space y-position op. not herm, largest error: ', max_err	,' sc =',sc							!
 					hermitian	=	.false.																											!
-					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (y-pos op)"															!				
+					!stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (y-pos op)"															!				
 				end if
 				!
 				!			Z	- POSITION
@@ -1231,7 +924,7 @@ module file_io
 				if( .not.	is_herm_mat(	r_mat(3,:,:,sc),max_err)) then 
 					write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space z-position op. not herm, largest error: ', max_err,' sc =',sc	
 					hermitian	=	.false.
-					stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (z-pos op)"
+					!stop "'[read_tb_basis/DEBUG-MODE]: STOP non Hermitian real space basis (z-pos op)"
 				end if
 				!------------------------------------------------------------------------------------------------------------------------------------
 			end if
@@ -1241,7 +934,7 @@ module file_io
 		if(hermitian)	then
 			write(*,*)	"[read_tb_basis/DEBUG-MODE]: SUCCESS real space basis is hermitian"
 		else
-			stop '[read_tb_basis/DEBUG-MODE]: ERROR real space basis IS NOT hermitian'
+			write(*,*) '[read_tb_basis/DEBUG-MODE]: ERROR real space basis IS NOT hermitian'
 		end if
 		!
 		!
@@ -1249,6 +942,9 @@ module file_io
 		!
 		return
 	end subroutine
-
+!~
+!~
+!~
+!~
 
 end module file_io

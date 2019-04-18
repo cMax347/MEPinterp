@@ -60,12 +60,13 @@ def do_band_calc(tb_model, use_pos_op, latt_sym_group='cub',kpath="Gamma 1000 X 
 	mp_grid = [4,4,4]	#generic does not matter here
 
 	#write_souza_tb_input(root_dir, phi_para, valence_bands, mp_grid , kubo_tol=1e-3, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0, plot_bands='F'):
-
- 
-
+	n_hw	=	1
+	hw_min	=	0
+	hw_max	=	0
+	#
 	write_tb_input(	tb_model, use_pos_op, band_dir, phi, val_bands, mp_grid, 
 							kubo_tol=1e-3, 
-							hw=0.0,laser_phase=0, 
+							n_hw=n_hw, hw_min=hw_min, hw_max=hw_max, laser_phase=0, 
 							 N_eF=1, eF_min=0.0, eF_max=0, Tkelvin=300.0, eta_smearing=3.0, 
 							plot_bands='T', 
 							debug_mode='T',

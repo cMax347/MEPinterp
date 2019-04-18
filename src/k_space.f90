@@ -10,6 +10,7 @@ module k_space
 										get_kpt_idx,							&
 										check_kpt_idx,							&
 										get_rel_kpt,							&		
+										get_cart_kpt,							&
 										get_bz_vol,								&
 										kspace_allocator,						&
 										normalize_k_int,						&
@@ -28,11 +29,14 @@ module k_space
 		module procedure z0_tens_normalize_k_int
 		module procedure z2_tens_normalize_k_int
 		module procedure z3_tens_normalize_k_int
+		module procedure z4_tens_normalize_k_int
+		module procedure z5_tens_normalize_k_int
 	end interface normalize_k_int
 
 
 	integer			::		mp_grid(3)
 	real(dp)		::		recip_latt(3,3), bz_vol, unit_vol
+	logical			::		recip_latt_set = .false.
 
 contains
 
@@ -40,11 +44,25 @@ contains
 
 
 	subroutine print_kSpace_info()
-		write(*,'(a,i3,a,i4,a,i4,a,i4,a,a,f8.4,a)')	&
-							"[#",mpi_id,";k_space]: k-space setup done (mp_grid=",&
-							mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),"). ",&
-							"bz_vol=",bz_vol," (1/a0)"
-
+		real(dp)		:: dV
+		
+		if( recip_latt_set) then
+			! debug BZ volume 
+			dV		=	bz_vol - 8.0_dp * pi_dp**3 / unit_vol
+			if(	abs(dV)	> 1e-1_dp) then
+				write(*,*)	"[set_recip_latt]: 	WARNING	KSPACE CORRUPTED!! bz_vol /= (8 pi**3/ unit_vol)"
+			else
+				write(*,'(a,i7.7,a,i4,a,i4,a,i4,a,a,f8.4,a,f8.4,a)')	&
+									"[#",mpi_id,";k_space]: k-space setup done (mp_grid=",&
+									mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),"). ",&
+									"unit_vol=,",unit_vol,",(a0**3) -> bz_vol=",bz_vol," (1/a0**3)"
+			end if
+		else
+			write(*,'(a,i7.7,a)')	&
+				"[#",mpi_id,";k_space]: ERROR reciprocal lattice was not initalized. Pls contact dev.."
+		end if
+		!
+		!
 		return
 	end subroutine
 
@@ -67,7 +85,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
-		if(n_k > 0	)		scalar	= 	scalar	 /	(	unit_vol	* real(n_k,dp)	)
+		if(n_k > 0	)		scalar	= 	scalar	 /	abs(	unit_vol	* real(n_k,dp)	)
 		
 		!
 		return
@@ -79,7 +97,7 @@ contains
 		!
 		if(allocated(tens)) then
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -91,7 +109,7 @@ contains
 		!
 		if(allocated(tens)) then
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -103,7 +121,7 @@ contains
 		!
 		if(allocated(tens)) then
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -115,7 +133,7 @@ contains
 		!
 		if(allocated(tens)) then
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens	=	tens	 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -130,7 +148,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
-		if(n_k > 0	)		scalar	= 	scalar	 /	(	unit_vol	* real(n_k,dp)	)
+		if(n_k > 0	)		scalar	= 	scalar	 /	abs(	unit_vol	* real(n_k,dp)	)
 		!
 		return
 	end subroutine
@@ -141,7 +159,7 @@ contains
 		!
 		if(allocated(tens))	then
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
@@ -153,11 +171,35 @@ contains
 		!
 		if(allocated(tens))	then
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
-			if(n_k > 0	)		tens		=	tens		 /	(	unit_vol	* real(n_k,dp)	)
+			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
 		!
 		return
 	end subroutine
+!------
+	subroutine z4_tens_normalize_k_int(tens)
+		complex(dp),	allocatable,	intent(inout)	::	tens(:,:,:,:)
+		integer							:: 	n_k
+		!
+		if(allocated(tens))	then
+			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
+		end if
+		!
+		return
+	end subroutine
+!------
+subroutine z5_tens_normalize_k_int(tens)
+	complex(dp),	allocatable,	intent(inout)	::	tens(:,:,:,:,:)
+	integer							:: 	n_k
+	!
+	if(allocated(tens))	then
+		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
+		if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
+	end if
+	!
+	return
+end subroutine
 	
 
 
@@ -187,7 +229,7 @@ contains
 		if(	allocated(r_tb)	)	then	
 			allocate(	A_ka(	  3,		size(r_tb,2),	size(r_tb,3)	)	)
 			allocate(	Om_kab(	3,	3,		size(r_tb,2),	size(r_tb,3)	)	)
-			write(*,'(a,i3,a)')		"[#",mpi_id,"; kspace_allocator]: allocated position operator (will use Berry connenction & curv)"	
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,"; kspace_allocator]: allocated position operator (will use Berry connenction & curv)"	
 		end if
 		!
 		return
@@ -219,6 +261,7 @@ contains
 
 
 	subroutine set_recip_latt(a_latt)
+		integer			::	i, j
 		!	
 		!	see eq.(2)		PRB, 13, 5188 (1976)
 		!
@@ -226,29 +269,59 @@ contains
 		real(dp)				::	a1(3), a2(3), a3(3),	&
 									b1(3), b2(3), b3(3)
 		!
+		recip_latt_set	=	.false.
 		!
-		a1(1:3)		=	a_latt(1,1:3)
-		a2(1:3)		=	a_latt(2,1:3)
-		a3(1:3)		=	a_latt(3,1:3)
+		a1(:)			=	a_latt(:,1)
+		a2(:)			=	a_latt(:,2)
+		a3(:)			=	a_latt(:,3)
 		!get Unit cell volume
-		unit_vol	=	dot_product(	crossP( a1(1:3) , a2(1:3)	)		,	a3(1:3)	)	 
+		unit_vol		=	dot_product(	crossP( a1(:) , a2(:)	)		,	a3(:)	)	 
 		!
 		!setup reciprocal lattice vectors
-		b1(1:3)	= 2.0_dp * pi_dp * crossP( a2(1:3) , a3(1:3) ) / unit_vol
-		b2(1:3)	= 2.0_dp * pi_dp * crossP( a3(1:3) , a1(1:3) ) / unit_vol
-		b3(1:3)	= 2.0_dp * pi_dp * crossP( a1(1:3) , a2(1:3) ) / unit_vol
+		b1(:)	= 2.0_dp * pi_dp * crossP( a2(:) , a3(:) ) / unit_vol
+		b2(:)	= 2.0_dp * pi_dp * crossP( a3(:) , a1(:) ) / unit_vol
+		b3(:)	= 2.0_dp * pi_dp * crossP( a1(:) , a2(:) ) / unit_vol
 		!
 		! BZ volume
 		bz_vol	=	dot_product(		crossP( b1(:), b2(:))	, b3(:)		)
 		!
 		!	CPY TO TARGET 
-		recip_latt(1,:)	=	b1(:)
-		recip_latt(2,:)	=	b2(:)
-		recip_latt(3,:)	=	b3(:)
+		recip_latt(:,1)	=	b1(:)
+		recip_latt(:,2)	=	b2(:)
+		recip_latt(:,3)	=	b3(:)
+		recip_latt_set	=	.true.
+		! -----
+		!
+		!	DEBUG
+		do i = 1, 3 
+			if( 	abs(dot_product(recip_latt(i,:),a_latt(i,:))-2.0_dp * pi_dp)		> 1e-3_dp	) &
+				write(*,'(a,i7.7,a,i1,a,i1,a,f8.4,a)')	"[#",mpi_id,&
+							"set_recip_latt]:	WARNING b",i,".a",i," =",dot_product(recip_latt(i,:),a_latt(i,:)),'/= 2pi'
+			!
+			!
+			do j = 1, 3
+				if(i==j) cycle
+				if( 	abs(dot_product(recip_latt(i,:),a_latt(j,:)))		> 1e-3_dp	) &
+					write(*,'(a,i7.7,a,i1,a,i1,a,f8.4,a)')	"[",mpi_id,&
+							"set_recip_latt]:	WARNING b",i,".a",j," =",dot_product(recip_latt(i,:),a_latt(j,:)),'/= 0'	
+			end do
+			!
+			!
+		end do
+		!
+		if(mpi_id	==	0	)	&
+			call print_recip_latt()
 		!
 		return
 	end subroutine
 
+	subroutine print_recip_latt()
+		if(mpi_id	==	0	)	&
+			write(*,*)	"reciprocal lattice:"
+			write(*,*)	recip_latt
+
+		return
+	end subroutine
 
 
 	function get_recip_latt() result( this_recip_latt )
@@ -283,9 +356,15 @@ contains
 			allocate(kpt(3))
 			!
 			if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
+				!	mp mesh
 				kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
 				kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
 				kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+				!
+				!	Wx mesh:
+				!kpt(1)	=	real(qix-1,dp) / real(mp_grid(1))
+				!kpt(2)	=	real(qiy-1,dp) / real(mp_grid(2))
+				!kpt(3)	=	real(qiz-1,dp) / real(mp_grid(3))
 			end if
 		else 
 			stop "[get_rel_kpt]: ERROR got illegal kpt idx"
@@ -294,6 +373,29 @@ contains
 		!
 		return
 	end function
+
+
+	function get_cart_kpt(a_latt, kpt) result(kpt_cart)
+		integer			::	j
+		!
+		!	use the a_latt instead of recip_latt
+		!
+		real(dp),		intent(in)	::	a_latt(3,3), kpt(3)
+		real(dp)					::	kpt_cart(3)
+		!
+		if(	recip_latt_set) then
+			kpt_cart	=	matmul(	recip_latt, 	kpt	)
+			!
+		else
+			write(*,*)	"[kspace/get_cart_kpt]:	ERROR get_cart_kpt was called without lattice beeing set"
+			STOP
+		end if
+		!
+		!
+		return
+	end function
+
+
 
 
 	logical function check_kpt_idx(	qi_idx	,qix,qiy,qiz)

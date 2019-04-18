@@ -16,7 +16,7 @@ bin/**
 *.win
 *.mmn
 *.amn
-*.dat
+#*.dat
 *.pdf
 *.nb
 *.mod
@@ -45,8 +45,6 @@ bin/**
 *sublimeMake.sh
 **thirdparty/Makefile
 **/wannier90
-**/w90files
-**/config_fortran
 **/__pycache__
 thirdparty/cmake_install.cmake
 *Makefile

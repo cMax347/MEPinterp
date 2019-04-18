@@ -3,6 +3,7 @@ program MEPinterp
 #ifdef __INTEL_COMPILER
 	use ifport !needed for time 
 #endif
+	use omp_lib
 #ifdef USE_MPI	
 	use mpi
 #endif
@@ -24,7 +25,7 @@ program MEPinterp
     call MPI_COMM_RANK (MPI_COMM_WORLD, 	mpi_id			, ierr)
     call MPI_COMM_SIZE (MPI_COMM_WORLD, 	mpi_nProcs		, ierr)
 #endif
-	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	welcome to mepInterp'
+	write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	welcome to mepInterp'
 	!
 	!
     !BODY
@@ -35,7 +36,7 @@ program MEPinterp
 			call core_worker()			
 		end if
 	else
-		write(*,'(a,i3,a)')		'[#',mpi_id,';main]: input file not found, by'
+		write(*,'(a,i7.7,a)')		'[#',mpi_id,';main]: input file not found, by'
 	end if
 	!
 	!
@@ -43,7 +44,7 @@ program MEPinterp
 #ifdef USE_MPI	
 	call MPI_FINALIZE(ierr)
 #endif
-	write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	all done, by by'	
+	write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	all done, by by'	
 	!
 	!
 	stop

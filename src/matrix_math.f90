@@ -1,19 +1,20 @@
 module matrix_math
-
 	implicit none
 
 	private
-	public						::			my_Levi_Civita, crossP,                 &
-                                            zheevr_wrapper,                         &
-                                            zheevd_wrapper,                         &
-                                            zheevx_wrapper,                         &
-                                            is_equal_vect,                          &
-                                            is_equal_mat,                           &
-                                            is_herm_mat,                            &
-                                            is_skew_herm_mat,                       &
-                                            convert_tens_to_vect,                   &
-                                            blas_matmul,                            &
-                                            matrix_comm                                         
+	public						::	    get_levi_civita,                        &
+                                        crossP,                                 &
+                                        zheevr_wrapper,                         &
+                                        zheevd_wrapper,                         &
+                                        zheevx_wrapper,                         &
+                                        is_equal_vect,                          &
+                                        is_equal_mat,                           &
+                                        is_herm_mat,                            &
+                                        is_skew_herm_mat,                       &
+                                        convert_tens_to_vect,                   &
+                                        blas_matmul,                            &
+                                        matrix_comm,                            &
+                                        get_linspace                                        
 
 
     interface crossP
@@ -57,11 +58,12 @@ module matrix_math
 
 
 
-
+    save
 
 
 
     integer,        parameter   ::  dp              = kind(0.d0)
+
 
 	contains
 
@@ -69,6 +71,36 @@ module matrix_math
 
 
 !public:
+    pure subroutine get_linspace(min, max, n_mesh, linspace)
+        real(dp),                      intent(in)      ::   min, max
+        integer,                       intent(in)      ::   n_mesh
+        real(dp),   allocatable,       intent(out)     ::   linspace(:)
+        real(dp)                                       ::   delta
+        integer                                        ::   idx 
+        !
+        !
+        if( n_mesh > 1) then
+            !   
+            !   RETURN LIST
+            allocate(   linspace(n_mesh)  )
+            delta   =   (   max -   min)    /   real(n_mesh-1,dp)    
+            !
+            do idx  =   1, n_mesh
+                linspace(idx)   =       min     +  real(idx-1,dp)    * delta    
+            end do
+        else
+            !
+            !   RETURN SCALAR
+            allocate(   linspace(1) )  
+            linspace    =   min
+        end if
+        !
+        !
+        return
+    end subroutine
+
+
+
     integer pure function my_Levi_Civita(i,j,k)
         !Hard coded Levi Civita tensor
         integer,        intent(in)      :: i,j,k
@@ -88,6 +120,25 @@ module matrix_math
         !
         return
     end function 
+
+
+    pure subroutine get_levi_civita(lc_tens)
+        integer,    intent(out)   ::  lc_tens(3,3,3)
+        !
+        lc_tens         =    0
+        !
+        lc_tens(1,2,3)  =   +1
+        lc_tens(2,3,1)  =   +1
+        lc_tens(3,1,2)  =   +1
+        !
+        lc_tens(1,3,2) =   -1
+        lc_tens(3,2,1) =   -1
+        lc_tens(2,1,3) =   -1        
+        !
+        return
+    end subroutine
+
+
 
 
 
@@ -483,15 +534,20 @@ module matrix_math
         !   calculates the commutator of matrix A with matrix B
         !       C   = [A,B] =   AB - BA
         real(dp),    intent(in)      ::  A(:,:),     B(:,:)
-        real(dp),    allocatable     ::  C(:,:)
+        real(dp),    allocatable     ::  C(:,:),     tmp(:,:)
         !
         if(size(A,2) /= size(B,1)   .or. size(B,2) /= size(A,1) ) stop "real_matrix_comm: mat sizes not matching"
         !
         !
-        allocate(   C(size(A,1),size(B,2))     )
+        allocate(   C(  size(A,1),size(B,2))     )
+        allocate(   tmp(size(A,1),size(B,2))     )
+
         !
-        C   = blas_matmul(A, B)
-        C   = C - blas_matmul(B, A)
+        !call blas_matmul(A, B,      C   )
+        C   =   blas_matmul(A,B)
+        !call blas_matmul(B, A,      tmp )
+        tmp =   blas_matmul(B,A)
+        C   = C - tmp
         !
         return
     end function
@@ -500,15 +556,19 @@ module matrix_math
         !   calculates the commutator of matrix A with matrix B
         !       C   = [A,B] =   AB - BA
         complex(dp),    intent(in)      ::  A(:,:),     B(:,:)
-        complex(dp),    allocatable     ::  C(:,:)
+        complex(dp),    allocatable     ::  C(:,:),     tmp(:,:)
         !
         if(size(A,2) /= size(B,1)   .or. size(B,2) /= size(A,1) ) stop "real_matrix_comm: mat sizes not matching"
         !
         !
         allocate(   C(size(A,1),size(B,2))     )
+        allocate(   tmp(size(A,1),size(B,2))   )
         !
-        C   = blas_matmul(A, B)
-        C   = C - blas_matmul(B, A)
+        !call blas_matmul(A, B,      C   )
+        C   =   blas_matmul(A,B)
+        !call blas_matmul(B, A,      tmp )
+        tmp   =   blas_matmul(B,A)
+        C   = C - tmp
         !
         return
     end function
@@ -546,61 +606,52 @@ module matrix_math
 
 
 
-    function d_blas_matmul(A, B) result(C)
-        real(dp),          allocatable      ::  C(:,:)
+    function d_blas_matmul(A, B)   result(C)
+        !   C := alpha*op(A)*op(B) + beta*C
         real(dp),        intent(in)         ::  A(:,:), B(:,:)
-        !
-        character(len=1)                    ::  transa, transb
-        integer                             ::  m, n, k, lda, ldb, ldc
-        real(dp)                            ::  alpha, beta
+        real(dp),   allocatable             ::  C(:,:)
+        integer                             ::  m, n, k
         !
         m       =   size(A,1)
         n       =   size(B,2)
         k       =   size(A,2)
-        lda     =   size(A,1)
-        ldb     =   size(B,1)
-        ldc     =   m
+        if( k /= size(B,1))   stop  '[d_blas_matmul]:   warning matrix size do not match correctly (k<->size(B,1))'
+        if( m /= size(C,1))   stop  '[d_blas_matmul]:   warning matrix size do not match correctly (m<->size(C,1))'  
+        if( n /= size(C,2))   stop  '[d_blas_matmul]:   warning matrix size do not match correctly (n<->size(C,2))'    
         !
         allocate(   C(m,n)     )
+        C       =   0.0_dp
         !
-        transa  = 'n'
-        transb  = 'n'
-        alpha   =  1.0_dp   
-        beta    = 0.0_dp
         !
-        !call dgemm(transa, transb, m, n, k, alpha, A(1,1), lda, B(1,1), ldb, beta, C(1,1), ldc)
-        C = matmul(A,B)
+        !        CALL DGEMM('N','N',M,N,K,ALPHA,A,M,B,K,BETA,C,M)
+        call dgemm('N', 'N', m, n, k, 1.0_dp, A(:,:), m, B(:,:), k, 0.0_dp, C(:,:), m)
+        !
+        !
+        return
     end function
 
 
 
 
-    function z_blas_matmul(A, B) result(C)
-        complex(dp),        allocatable     ::  C(:,:)
+    function z_blas_matmul(A, B)     result(C)
+        !   C := alpha*op(A)*op(B) + beta*C
         complex(dp),        intent(in)      ::  A(:,:), B(:,:)
-        !
-        character(len=1)                    ::  transa, transb
-        integer                             ::  m, n, k, lda, ldb, ldc
-        complex(dp)                         ::  alpha, beta
+        complex(dp),        allocatable     ::  C(:,:)
+        integer                             ::  m, n, k
         !
         m       =   size(A,1)
-        n       =   size(B,2)
         k       =   size(A,2)
-        lda     =   size(A,1)
-        ldb     =   size(B,1)
-        ldc     =   m
+        n       =   size(B,2)
+        if( k /= size(B,1))   stop  '[z_blas_matmul]:   warning matrix size do not match correctly (k<->size(B,1))'  
         !
-        if( k /= ldb)   stop  '[z_blas_matmul]:   warning matrix size do not match correctly'  
         !
         allocate(   C(m,n)     )
+        C      =    cmplx(0.0_dp,0.0_dp,dp)
         !
-        transa  = 'n'
-        transb  = 'n'
-        alpha   = cmplx(   1.0_dp   ,   0.0_dp  ,   dp)
-        beta    = cmplx(   0.0_dp   ,   0.0_dp  ,   dp)
+        call zgemm('N', 'N', m, n, k, 1.0_dp, A(:,:), m,  B(:,:), k, 0.0_dp,    C(:,:), m)
         !
-        !call zgemm(transa, transb, m, n, k, alpha,   A(1,1)    , lda,  B(1,1)    , ldb, beta,    C(1,1)      , ldc)
-        C = matmul(A,B)
+        !
+        return
     end function
 
 

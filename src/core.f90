@@ -9,14 +9,15 @@ module core
 #ifdef USE_MPI
 	use mpi
 #endif
-	use matrix_math,	only:	my_Levi_Civita
+	use omp_lib
+	use matrix_math,	only:	get_linspace
 	use constants,		only:	dp, aUtoEv
 	use mpi_community,	only:	mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								mpi_ki_selector,								&
 								mpi_bcast_tens,									&
 								mpi_reduce_sum,									&
 								mpi_allreduce_sum
-	use statistics,		only:	fd_get_N_el
+	use statistics,		only:	fd_stat, fd_stat_deriv, fd_get_N_el
 	use input_paras,	only:	use_mpi,										&
 								do_gauge_trafo,									&
 								do_mep,											&
@@ -27,14 +28,14 @@ module core
 								do_opt,											&
 								do_gyro,										&
 								debug_mode,										&
-								a_latt, 										&
+								wf_centers,										&
 								valence_bands, 									&
 								seed_name,										&
-								hw_min, hw_max, n_hw, phi_laser, 				&
+								hw_min, hw_max, n_hw, 							&
 								N_eF, eF_min, eF_max, T_kelvin, i_eta_smr,		&
 								out_dir
 	!
-	use k_space,		only:	get_recip_latt, get_mp_grid, 					&
+	use k_space,		only:	get_mp_grid, 									&
 								kspace_allocator,								&
 								get_kpt_idx,									&
 								get_rel_kpt,									&
@@ -82,12 +83,12 @@ contains
 		!	ic	: itinerant current contribution
 		!	cs	: chern - simons term	
 		!
-		real(dp)							::	delta_eF, eF_tmp,						&
-												delta_hw, 								&
-												kpt(3),	recip_latt(3,3)
+		real(dp)							::	kpt(3)
 												!local sum targets:
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
-												Ne_loc_sum(:), hw_lst(:),				&
+												Ne_loc_sum(:), 							&
+												ef_lst(:), hw_lst(:),					&
+												fd_distrib(:,:), fd_deriv(:,:),			&
 												!
 												mep_bands_ic_loc(	:,:,:),	 			&
 												mep_bands_lc_loc(	:,:,:),				&
@@ -96,19 +97,19 @@ contains
 												kubo_ahc_loc(		:,:,:),				&
 												kubo_mep_ic_loc(	:,:,:),				&
 												kubo_mep_lc_loc(	:,:,:),				&
-												kubo_mep_cs_loc(	:,:,:),				&
-												photo2_cond_loc(:, :,:,:,:)
+												kubo_mep_cs_loc(	:,:,:)
 												!
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
 												A_ka(:,:,:), Om_kab(:,:,:,:),			&
 												V_ka(:,:,:),							&
 												!
-												tempS(:,:,:), 	tempA(:,:,:),			&
+												tempS(:,:,:,:), tempA(:,:,:,:),			&
 												!
 												velo_ahc_loc(	  :,:,:,:),				&
 												kubo_ohc_loc(	  :,:,:,:),				&
 												kubo_opt_s_loc(	  :,:,:,:),				&
 												kubo_opt_a_loc(	  :,:,:,:),				&
+												photo2_cond_loc(:,:,:,:,:),				&
 												gyro_C_loc(			:,:,:),				&							
 												gyro_D_loc(			:,:,:),				&
 												gyro_Dw_loc(	  :,:,:,:)																								
@@ -116,12 +117,13 @@ contains
 												!
 		integer								::	kix, kiy, kiz, ki, 						&
 												mp_grid(3), n_ki_loc,  n_ki_glob,		&
-												ic_skipped, lc_skipped,					& 
-												eF_idx, hw_idx
+												eF_idx, wf_idx
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	allocate
 		!----------------------------------------------------------------------------------------------------------------------------------
-		allocate(	hw_lst(	n_hw	)	)
+		call get_linspace( ef_min, ef_max, n_eF,			ef_lst)
+		call get_linspace( hw_min, hw_max, n_hw, 			hw_lst)	
+		!
 		call allo_core_loc_arrays(		Ne_loc_sum,																		&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,							&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
@@ -129,14 +131,7 @@ contains
 										tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
 									)													
-		!
-		!----------------------------------------------------------------------------------------------------------------------------------
-		!	get 	k-space
-		!----------------------------------------------------------------------------------------------------------------------------------
-		mp_grid				=	get_mp_grid()
-		n_ki_loc			= 	0
-		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
-		recip_latt			=	get_recip_latt()
+		
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get		TB	BASIS
@@ -147,26 +142,22 @@ contains
 			write(*,*)	"----------------------GET REAL SPACE BASIS---------------------------"
 		end if
 		call read_tb_basis(			seed_name, R_vect,		H_tb, r_tb					)
-		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
-		call print_interp_mode()
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
-		!	setup inner loops
+		!	get 	k-space
 		!----------------------------------------------------------------------------------------------------------------------------------
-						delta_eF	=	0.0_dp
-						delta_hw	=	0.0_dp
-		if ( N_eF > 1)	delta_eF 	=	(	eF_max -	eF_min	)	/	real(N_eF -1,dp)
-		if ( N_hw > 1)	then
-			delta_hw	=	(	hw_max -	hw_min	)	/	real(N_hw -1,dp)
-			!
-			do hw_idx = 1, 	n_hw
-				hw_lst(hw_idx)	=	hw_min	+ 	real(hw_idx-1,dp)	*	delta_hw
-			end do
-		else
-			hw_lst		=	hw_min
-		end if
-
-
+		mp_grid				=	get_mp_grid()
+		n_ki_loc			= 	0
+		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
+		!
+		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
+		!
+					allocate(		fd_distrib(		n_eF,	size(en_k,1) 		))
+		if(do_gyro) allocate(		fd_deriv(		n_ef,	size(en_k,1)		))
+		!
+		!
+		call print_interp_mode()
+		!
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	loop	k-space
@@ -185,7 +176,21 @@ contains
 						!	INTERPOLATE	K-POINT
 						!----------------------------------------------------------------------------------------------------------------------------------
 						kpt	=	get_rel_kpt(ki,	kix,kiy,kiz)
-						call get_wann_interp(do_gauge_trafo, H_tb, r_tb, a_latt, recip_latt, R_vect, ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab )
+						call get_wann_interp(		do_gauge_trafo,									& 
+													H_tb, r_tb, R_vect, wf_centers,					&
+													ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab 		&
+											)
+						!
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	FERMI SETUP
+						!----------------------------------------------------------------------------------------------------------------------------------
+						Ne_loc_sum(	:	)	=	Ne_loc_sum(	: )	+	fd_get_N_el(	en_k, ef_lst(:),	T_kelvin)
+						!
+						!$OMP PARALLEL DO DEFAULT(shared) 
+						do wf_idx = 1, size(en_k)
+							fd_distrib(:,wf_idx)	=	fd_stat(	en_k(wf_idx),	ef_lst(:),	T_kelvin	)
+						end do
+						!$OMP END PARALLEL DO
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
@@ -196,68 +201,56 @@ contains
 							mep_bands_cs_loc 	=	mep_bands_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
 						end if
 						!
-						!
-						!
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	KUBO MEP (MEP with fermi_dirac)
+						!----------------------------------------------------------------------------------------------------------------------------------
+						if(	do_kubo	)	then
+							kubo_mep_ic_loc(:,:,:)	=	kubo_mep_ic_loc(:,:,:) 	&
+														+	kubo_mep_IC(en_k, V_ka,fd_distrib)
+							!			---------------------------------	
+							kubo_mep_lc_loc(:,:,:)	=	kubo_mep_lc_loc(:,:,:)	&
+														+	kubo_mep_LC(en_k, V_ka,fd_distrib)
+							!			---------------------------------							
+							kubo_mep_cs_loc(:,:,:)	=	kubo_mep_cs_loc(:,:,:)	&
+														+	kubo_mep_CS(A_ka, Om_kab,fd_distrib)
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
-						!	LOOP FERMI ENERGIES
+						!	AHC
 						!----------------------------------------------------------------------------------------------------------------------------------
-						do eF_idx = 1, 	N_eF
-							eF_tmp	=	eF_min	+	real(eF_idx-1,dp)	*	delta_eF
+						if(	do_ahc )	then
+							kubo_ahc_loc(:,:,:)		=	kubo_ahc_loc(:,:,:)		&
+														+ 	kubo_ahc_tens(en_k,	V_ka,   fd_distrib)
+							!			---------------------------------
+							velo_ahc_loc(:,:,:,:)	= 	velo_ahc_loc(:,:,:,:)	&	
+								 							+	velo_ahc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_eta_smr)
+							!			---------------------------------
+							kubo_ohc_loc(:,:,:,:)	= 	kubo_ohc_loc(:,:,:,:)	&
+								 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_eta_smr)
+						end if
+						!
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	OPTICAL CONDUCTIVITY (w90 version via Connection)
+						!----------------------------------------------------------------------------------------------------------------------------------
+						if(	do_opt	)	then
+									call kubo_opt_tens(en_k, A_ka, hw_lst, fd_distrib, i_eta_smr,  	tempS, tempA)
+									kubo_opt_s_loc(:,:,:,:)		=	kubo_opt_s_loc(:,:,:,:)	+	tempS							
+									kubo_opt_a_loc(:,:,:,:)		=	kubo_opt_a_loc(:,:,:,:)	+	tempA
+									!			---------------------------------
+									photo2_cond_loc(:,:,:,:,:)	=	photo2_cond_loc(:,:,:,:,:)	&	
+												+	photo_2nd_cond(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr )
+						end if
+						!
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	GYROTROPIC TENSORS (CURRENTS)
+						!----------------------------------------------------------------------------------------------------------------------------------
+						if(		do_gyro	)								then	
+							fd_deriv(:,:)	=	fd_stat_deriv(fd_distrib(:,:), T_kelvin)
 							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	COUNT ELECTRONS
-							!----------------------------------------------------------------------------------------------------------------------------------
-							Ne_loc_sum(	eF_idx	)	=	Ne_loc_sum(	eF_idx )	+	fd_get_N_el(	en_k, eF_tmp,	T_kelvin)
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	KUBO MEP (MEP with fermi_dirac)
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_kubo	)						then
-								kubo_mep_ic_loc(:,:,eF_idx)	=	kubo_mep_ic_loc(:,:,eF_idx) +	kubo_mep_IC(eF_tmp, T_kelvin, V_ka, en_k, ic_skipped)
-								kubo_mep_lc_loc(:,:,eF_idx)	=	kubo_mep_lc_loc(:,:,eF_idx) +	kubo_mep_LC(eF_tmp, T_kelvin, V_ka, en_k, lc_skipped)
-								kubo_mep_cs_loc(:,:,eF_idx)	=	kubo_mep_cs_loc(:,:,eF_idx) +	kubo_mep_CS(eF_tmp, T_kelvin, 	en_k, A_ka, Om_kab)
-							end if
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	AHC
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_ahc	) then
-								kubo_ahc_loc(:,:,eF_idx)	=	kubo_ahc_loc(:,:,eF_idx)	+ 	kubo_ahc_tens(en_k,	Om_kab,   eF_tmp, T_kelvin)
-							
-								 velo_ahc_loc(:,:,:,eF_idx)	= 	velo_ahc_loc(:,:,:,eF_idx)	&	
-								 										+	velo_ahc_tens(en_k, V_ka, hw_lst, eF_tmp, T_kelvin, i_eta_smr)
-								 !								---------------------
-								 kubo_ohc_loc(:,:,:,eF_idx)	= 	kubo_ohc_loc(:,:,:,eF_idx)	&
-								 										+	kubo_ohc_tens(en_k, V_ka, hw_lst, eF_tmp, T_kelvin, i_eta_smr)
-							end if
-
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	OPTICAL CONDUCTIVITY (w90 version via Connection)
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_opt	)														then
-									call kubo_opt_tens(hw_lst, eF_tmp, T_kelvin, i_eta_smr, en_k, A_ka, 		tempS, tempA)
-									kubo_opt_s_loc(:,:,:,eF_idx)	=	kubo_opt_s_loc(:,:,:,eF_idx)	+	tempS							
-									kubo_opt_a_loc(:,:,:,eF_idx)	=	kubo_opt_a_loc(:,:,:,eF_idx)	+	tempA
-									!
-									photo2_cond_loc(:,:,:,:,eF_idx)	=	photo2_cond_loc(:,:,:,:,eF_idx)	&	
-																	+	photo_2nd_cond(hw_lst, phi_laser, eF_tmp, &
-								 														T_kelvin, i_eta_smr, en_k, V_ka)
-								end if
-
-							!
-							!----------------------------------------------------------------------------------------------------------------------------------
-							!	GYROTROPIC TENSORS (CURRENTS)
-							!----------------------------------------------------------------------------------------------------------------------------------
-							if(		do_gyro	)								then	
-								gyro_C_loc(:,:,eF_idx)		=	gyro_C_loc(:,:,eF_idx)		+	get_gyro_C(en_k, V_ka, eF_tmp, T_kelvin)
-								gyro_D_loc(:,:,eF_idx)		=	gyro_D_loc(:,:,eF_idx)		+ 	get_gyro_D(en_k, V_ka, Om_kab, eF_tmp, T_kelvin)
-								gyro_Dw_loc(:,:,:,eF_idx)	=	gyro_Dw_loc(:,:,:,eF_idx)	+ 	get_gyro_Dw(hw_lst)	!dummy returns 0 currently!!!
-							end if
-							!
-							!
-						end do	!	end eF loop
+							gyro_C_loc(:,:,:)		=	gyro_C_loc(:,:,:)		+	get_gyro_C(			V_ka, 				fd_deriv)
+							gyro_D_loc(:,:,:)		=	gyro_D_loc(:,:,:)		+ 	get_gyro_D(	en_k, V_ka, Om_kab, 		fd_deriv)
+							gyro_Dw_loc(:,:,:,:)	=	gyro_Dw_loc(:,:,:,:)	+ 	get_gyro_Dw(en_k, V_ka, A_ka, hw_lst, 	fd_deriv)	
+						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	WRITE VELOCITIES
@@ -281,21 +274,21 @@ contains
 		!	GET FERMI ENERGY 
 		!----------------------------------------------------------------------------------------------------------------------------------
 		call mpi_allreduce_sum(	n_ki_loc,	n_ki_glob	)
-		eF_idx	=	fermi_selector(n_ki_glob,	Ne_loc_sum(:), eF_min, delta_eF,	valence_bands	)
-		call print_core_info(n_ki_loc, n_ki_glob, eF_min, delta_eF, eF_idx	)
+		eF_idx	=	fermi_selector(n_ki_glob,	Ne_loc_sum(:), eF_lst,	valence_bands	)
+		call print_core_info(n_ki_loc, n_ki_glob, ef_lst, eF_idx	)
 		!
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	REDUCE MPI & WRITE FILES
 		!----------------------------------------------------------------------------------------------------------------------------------
-		call integrate_over_k_space(	n_ki_glob, 																								&
-										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,													&	
+		call integrate_over_k_space(	n_ki_glob, 	eF_idx,											&
+										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,		&	
 										!
-										kubo_mep_ic_loc(	:,:,eF_idx), kubo_mep_lc_loc(	:,:,eF_idx),	kubo_mep_cs_loc(:,:,eF_idx),		&									
-										kubo_ahc_loc(		:,:,eF_idx), velo_ahc_loc(		:,:,:,eF_idx),	kubo_ohc_loc( :,:,:,eF_idx),		&
-										kubo_opt_s_loc(		:,:,:,eF_idx), kubo_opt_a_loc(	:,:,:,eF_idx),										&
-										gyro_C_loc(			:,:,eF_idx), gyro_D_loc(		:,:,eF_idx),	gyro_Dw_loc(  :,:,:,eF_idx),		&
-										photo2_cond_loc( :,:,:,:,eF_idx)																		&
+										kubo_mep_ic_loc, kubo_mep_lc_loc,	kubo_mep_cs_loc,		&									
+										kubo_ahc_loc, velo_ahc_loc,	kubo_ohc_loc,					&
+										kubo_opt_s_loc, kubo_opt_a_loc,								&
+										gyro_C_loc, gyro_D_loc,	gyro_Dw_loc,						&
+										photo2_cond_loc												&
 							)
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -313,8 +306,6 @@ contains
 	!
 	!
 
-
-
 !
 !----------------------------------------------------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------------------------------
@@ -323,10 +314,10 @@ contains
 !----------------------------------------------------------------------------------------------------------------------------------	
 
 	
-	integer function fermi_selector(	n_ki_glob,	Ne_loc_sum, eF_min, delta_eF, Ne_sys	) result(opt_idx)
+	integer function fermi_selector(	n_ki_glob,	Ne_loc_sum, eF_lst, Ne_sys	) result(opt_idx)
 		integer,							intent(in)			::	n_ki_glob
 		real(dp),  							intent(in)			::	Ne_loc_sum(:)
-		real(dp),							intent(in)			::	eF_min, delta_eF
+		real(dp),							intent(in)			::	ef_lst(:)
 		integer,							intent(in)			::	Ne_sys
 		real(dp)												::	opt_error, opt_ef, new_error, ne_sys_re
 		real(dp),		allocatable								::	Ne_glob_sum(:)
@@ -346,9 +337,9 @@ contains
 			write(*,*)		"~"
 			write(*,*)		"~"
 			write(*,*)		"~"
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:^^^^^^^	FERMI SELECTOR   ^^^^^^^^^^^^^^^^^^^^^^^"
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:	select eF s.t. 	N_el(eF)= N_el "
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:^^^^^^^	FERMI SELECTOR   ^^^^^^^^^^^^^^^^^^^^^^^"
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:	select eF s.t. 	N_el(eF)= N_el "
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 			
 			!	
 			!^^^^^^^^^^^^
@@ -361,38 +352,38 @@ contains
 			ne_sys_re	=	real(Ne_sys,dp)
 			opt_idx		=	1
 			opt_error	=	abs(	Ne_glob_sum(1)	-	ne_sys_re	)
-			opt_ef		=	eF_min 
+			opt_ef		=	ef_lst(1) 
 			!
 			!
 			!^^^^^^^^^^^^
 			!	get optimal Fermi energy
-			write(*,'(a,i3,a,i5,a)')	"[#",mpi_id,";fermi_selector]: the system is expected to have	N_el,sys :=	",Ne_sys," electron(s)"
-			write(*,'(a,i3,a,a)')		"[#",mpi_id,";fermi_selector]: now try to find ",&
+			write(*,'(a,i7.7,a,i5,a)')	"[#",mpi_id,";fermi_selector]: the system is expected to have	N_el,sys :=	",Ne_sys," electron(s)"
+			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";fermi_selector]: now try to find ",&
 											"a optimal Fermi energy value s.t. N_el( e_fermi) == N_el,sys .. "
 			write(*,*)				"..."
 			write(*,*)				"..."
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:	#eF 	| eF (eV)	 |  N_el(#eF)	|	error abs( N_el(#eF) - N_el )	"
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"
-			write(*,'(a,i3,a,i5,a,a,a,i5,a,a)')	"[#",mpi_id,";fermi_selector]:	",	&
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:	#eF 	| eF (eV)	 |  N_el(#eF)	|	error abs( N_el(#eF) - N_el )	"
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"
+			write(*,'(a,i7.7,a,i5,a,a,a,i5,a,a)')	"[#",mpi_id,";fermi_selector]:	",	&
 																	0,"	|	"," -  ","     |", valence_bands ," 		 |		","(electron(s) in system)"
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:         -------------------------------------------------------------    "
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:         -------------------------------------------------------------    "
 			!
 			!
-			do eF_idx	=	1, size(	Ne_glob_sum	)
+			do eF_idx	=	1, size(	ef_lst,1	)
 				!
 				!	get new error
 				new_error	=	abs(	Ne_glob_sum(eF_idx)	-	ne_sys_re	)
 				!
 				!	output
-				write(occ_file,'(f16.8,a,f16.8)')	(eF_min 	+ 	(eF_idx - 1) * delta_eF		) *	 aUtoEv,"	",	Ne_glob_sum(eF_idx)
-				write(*,'(a,i3,a,i5,a,f12.6,a,f12.6,a,e16.8)',advance='no')	"[#",mpi_id,";fermi_selector]:	",	&
-										eF_idx," |	   ",  (eF_min + (eF_idx-1)* delta_eF)*aUtoEv,"  | ",Ne_glob_sum(eF_idx),"	 |	",new_error
+				write(occ_file,'(f16.8,a,f16.8)')	ef_lst(ef_idx) *	 aUtoEv,"	",	Ne_glob_sum(eF_idx)
+				write(*,'(a,i7.7,a,i5,a,f12.6,a,f12.6,a,e16.8)',advance='no')	"[#",mpi_id,";fermi_selector]:	",	&
+										eF_idx," |	   ",  ef_lst(ef_idx)*aUtoEv,"  | ",Ne_glob_sum(eF_idx),"	 |	",new_error
 				!
 				!	optimal?!
 				if(		new_error		<	opt_error	) then
 					opt_idx		=	eF_idx
 					opt_error	=	new_error
-					opt_ef		=	eF_min + (opt_idx-1) * delta_eF
+					opt_ef		=	ef_lst(opt_idx)
 					write(*,'(a)')	"		(new optimal fermi energy found!)"
 				else
 					write(*,*)	" "
@@ -402,12 +393,13 @@ contains
 			end do
 			!
 			close(occ_file)
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"		
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"		
+			!
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -----------------------------------------------------------------------"		
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -----------------------------------------------------------------------"		
 			write(*,*)				"..."
-			write(*,*)	"[#",mpi_id,";fermi_selector]: determined optimal fermi energy eF_optimal=",&
+			write(*,'(a,i7.7,a,f12.6,a,e16.8)')	"[#",mpi_id,";fermi_selector]: determined optimal fermi energy eF_optimal=",&
 								opt_ef* aUtoEv," eV with abs( N_el(eF_optimal) - N_el )=",opt_error
-			write(*,'(a,i3,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 			write(*,*)	"\n"
 		end if
 		!
@@ -424,7 +416,7 @@ contains
 
 
 
-	subroutine 	integrate_over_k_space(		n_ki_loc, 																&
+	subroutine 	integrate_over_k_space(		n_ki_loc, 	eF_idx,														&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,						&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,							&									
 										kubo_ahc_loc, velo_ahc_loc,	kubo_ohc_loc,									&
@@ -442,14 +434,14 @@ contains
 		!
 		!			mep_tens_ic_loc, , mep_tens_lc_loc, mep_tens_cs_loc ar given as arrays over valence bands
 		!-----------------------------------------------------------------------------------------------------------
-		integer,						intent(in)		::	n_ki_loc 	
+		integer,						intent(in)		::	n_ki_loc , eF_idx	
 		real(dp),						intent(in)		::	mep_bands_ic_loc(:,:,:), mep_bands_lc_loc(:,:,:), mep_bands_cs_loc(:,:,:),	&
-															kubo_mep_ic_loc(:,:), kubo_mep_lc_loc(:,:), kubo_mep_cs_loc(:,:),			&				
-															kubo_ahc_loc(:,:),															&									
-															photo2_cond_loc(:,:,:,:)
-		complex(dp),					intent(in)		::	velo_ahc_loc(:,:,:),	kubo_ohc_loc(:,:,:),								&
-															kubo_opt_s_loc(:,:,:), kubo_opt_a_loc(:,:,:),								&
-															gyro_C_loc(:,:), gyro_D_loc(:,:), gyro_Dw_loc(:,:,:)		
+															kubo_mep_ic_loc(:,:,:), kubo_mep_lc_loc(:,:,:), kubo_mep_cs_loc(:,:,:),		&				
+															kubo_ahc_loc(:,:,:)								
+		complex(dp),					intent(in)		::	velo_ahc_loc(:,:,:,:),	kubo_ohc_loc(:,:,:,:),								&
+															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
+															photo2_cond_loc(:,:,:,:,:),													&
+															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!-----------------------------------------------------------------------------------------------------------
 		integer											::	n_ki_glob
 		real(dp), 				allocatable				::	mep_bands_loc(:,:,:),														&
@@ -458,17 +450,13 @@ contains
 															mep_sum_ic_loc(:,:), mep_sum_lc_loc(:,:), mep_sum_cs_loc(:,:),				&
 															mep_sum_ic_glob(:,:), mep_sum_lc_glob(:,:), mep_sum_cs_glob(:,:),			&
 															kubo_mep_ic_glob(:,:), kubo_mep_lc_glob(:,:), kubo_mep_cs_glob(:,:),		&
-															kubo_ahc_glob(:,:),															&
-															photo2_cond_glob(:,:,:,:)
-
-															
-															
-															!
+															kubo_ahc_glob(:,:)												
 															!
 		complex(dp),			allocatable				::	velo_ahc_glob(:,:,:),														&
 															kubo_ohc_glob(:,:,:),														&
 															kubo_opt_s_glob(:,:,:), kubo_opt_a_glob(:,:,:),								&
-															gyro_C_glob(:,:), gyro_D_glob(:,:), gyro_Dw_glob(:,:,:)		
+															photo2_cond_glob(:,:,:,:,:),												&
+															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:,:)		
 		!
 		
 		!
@@ -491,7 +479,7 @@ contains
 			call mpi_reduce_sum(	mep_sum_ic_loc	,	mep_sum_ic_glob		)
 			call mpi_reduce_sum(	mep_sum_lc_loc	,	mep_sum_lc_glob		)
 			call mpi_reduce_sum(	mep_sum_cs_loc	,	mep_sum_cs_glob		)
-			if(mpi_id == mpi_root_id)	 write(*,'(a,i3,a)') "[#",mpi_id,"; core_worker]:  collected MEP tensors"
+			if(mpi_id == mpi_root_id)	 write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected MEP tensors"
 			call normalize_k_int(mep_sum_ic_glob)
 			call normalize_k_int(mep_sum_lc_glob)
 			call normalize_k_int(mep_sum_cs_glob)
@@ -500,10 +488,10 @@ contains
 		!
 		!
 		if( do_kubo ) 											then
-			call mpi_reduce_sum(	kubo_mep_ic_loc	,	kubo_mep_ic_glob	)
-			call mpi_reduce_sum(	kubo_mep_lc_loc	,	kubo_mep_lc_glob	)
-			call mpi_reduce_sum(	kubo_mep_cs_loc	,	kubo_mep_cs_glob	)
-			if(mpi_id == mpi_root_id) write(*,'(a,i3,a)') "[#",mpi_id,"; core_worker]:  collected KUBO MEP tensors"
+			call mpi_reduce_sum(	kubo_mep_ic_loc(:,:,eF_idx)	,	kubo_mep_ic_glob	)
+			call mpi_reduce_sum(	kubo_mep_lc_loc(:,:,eF_idx)	,	kubo_mep_lc_glob	)
+			call mpi_reduce_sum(	kubo_mep_cs_loc(:,:,eF_idx)	,	kubo_mep_cs_glob	)
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected KUBO MEP tensors"
 			call normalize_k_int(kubo_mep_ic_glob)
 			call normalize_k_int(kubo_mep_lc_glob)
 			call normalize_k_int(kubo_mep_cs_glob)
@@ -511,10 +499,10 @@ contains
 		!
 		!
 		if( do_ahc )											then
-			call mpi_reduce_sum(	kubo_ahc_loc	,	kubo_ahc_glob		)
-			call mpi_reduce_sum(	velo_ahc_loc	,	velo_ahc_glob		)
-			call mpi_reduce_sum(	kubo_ohc_loc	,	kubo_ohc_glob		)
-			if(mpi_id == mpi_root_id) write(*,'(a,i3,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
+			call mpi_reduce_sum(	kubo_ahc_loc(:,:  ,eF_idx)	,	kubo_ahc_glob		)
+			call mpi_reduce_sum(	velo_ahc_loc(:,:,:,eF_idx)	,	velo_ahc_glob		)
+			call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,eF_idx)	,	kubo_ohc_glob		)
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
 			call normalize_k_int(kubo_ahc_glob)
 			call normalize_k_int(velo_ahc_glob)
 			call normalize_k_int(kubo_ohc_glob)
@@ -522,10 +510,10 @@ contains
 		!
 		!
 		if( do_opt )											then
-			call mpi_reduce_sum(	kubo_opt_s_loc	,	kubo_opt_s_glob		)
-			call mpi_reduce_sum(	kubo_opt_a_loc	,	kubo_opt_a_glob		)
-			call mpi_reduce_sum(	photo2_cond_loc ,	photo2_cond_glob	)
-			if(mpi_id == mpi_root_id) write(*,'(a,i3,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
+			call mpi_reduce_sum(	kubo_opt_s_loc(:,:,:,eF_idx)	,	kubo_opt_s_glob		)
+			call mpi_reduce_sum(	kubo_opt_a_loc(:,:,:,eF_idx)	,	kubo_opt_a_glob		)
+			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,:) 		,	photo2_cond_glob	)
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
 			call normalize_k_int(kubo_opt_s_glob)
 			call normalize_k_int(kubo_opt_a_glob)
 			call normalize_k_int(photo2_cond_glob)
@@ -533,10 +521,10 @@ contains
 		!
 		!
 		if( do_gyro )											then
-			call mpi_reduce_sum(	gyro_C_loc		,	gyro_C_glob			)
-			call mpi_reduce_sum(	gyro_D_loc		,	gyro_D_glob			)
-			call mpi_reduce_sum(	gyro_Dw_loc		,	gyro_Dw_glob		)
-			if(mpi_id == mpi_root_id) write(*,'(a,i3,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
+			call mpi_reduce_sum(	gyro_C_loc(:,:,:)			,	gyro_C_glob			)
+			call mpi_reduce_sum(	gyro_D_loc(:,:,:)			,	gyro_D_glob			)
+			call mpi_reduce_sum(	gyro_Dw_loc(:,:,:,:)		,	gyro_Dw_glob		)
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
 			call normalize_k_int(gyro_C_glob)
 			call normalize_k_int(gyro_D_glob)
 			call normalize_k_int(gyro_Dw_glob)
@@ -546,7 +534,7 @@ contains
 			write(*,*)				""
 			write(*,*)				""
 			write(*,*)				"..."					
-			write(*,'(a,i3,a,a,a,i8,a)') "[#",mpi_id,"; core_worker",cTIME(time()),"]: collected tensors from",mpi_nProcs," mpi-threads"
+			write(*,'(a,i7.7,a,a,a,i8,a)') "[#",mpi_id,"; core_worker",cTIME(time()),"]: collected tensors from",mpi_nProcs," mpi-threads"
 		end if
 	
 		!
@@ -629,11 +617,12 @@ contains
 		real(dp),		allocatable,	intent(inout)	::	Ne_loc_sum(:),																&
 															mep_tens_ic_loc(:,:,:), mep_tens_lc_loc(:,:,:), mep_tens_cs_loc(:,:,:),		&
 															kubo_mep_ic_loc(:,:,:), kubo_mep_lc_loc(:,:,:), kubo_mep_cs_loc(:,:,:),		&				
-															kubo_ahc_loc(:,:,:),														&
-															photo2_cond_loc(:,:,:,:,:)									
+															kubo_ahc_loc(:,:,:)
+		!				
 		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:,:,:), kubo_ohc_loc(:,:,:,:),								&
-															tempS(:,:,:), tempA(:,:,:), 													&
+															tempS(:,:,:,:), tempA(:,:,:,:), 											&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
+															photo2_cond_loc(:,:,:,:,:),													&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	ALLOCATE & INIT
@@ -676,8 +665,8 @@ contains
 		
 		!
 		if(	do_opt	)	then
-			allocate(	tempS(						3,3,	n_hw						)	)
-			allocate(	tempA(						3,3,	n_hw						)	)				
+			allocate(	tempS(						3,3,	n_hw	,	n_eF			)	)
+			allocate(	tempA(						3,3,	n_hw	,	n_eF			)	)				
 			allocate(	kubo_opt_s_loc(				3,3,	n_hw	,	n_eF			)	)
 			allocate(	kubo_opt_a_loc(				3,3,	n_hw	,	n_eF			)	)
 			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	n_eF 			)	)
@@ -710,6 +699,7 @@ contains
 !	PRINTERS
 	!----------------------------------------------------------------------------------------------------------------------------------
 	subroutine print_interp_mode()
+		integer				::	omp_nThreads, omp_id
 		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 		if(mpi_id == mpi_root_id) then
 			write(*,*)	"*"
@@ -731,8 +721,18 @@ contains
 			write(*,*)	"***^^^^	-	BZ INTEGRATION LOOP	-	^^^^***"
 		end if
 		if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		write(*,'(a,i3,a,a,a,i4,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
-											"]:  I start interpolating now (nValence=",valence_bands,")...."
+
+
+		!$OMP PARALLEL	
+			omp_nThreads	=	omp_get_num_threads()
+			omp_id			=	omp_get_thread_num()
+			if(omp_id	==	0	) then
+				write(*,'(a,i7.7,a,a,a,i3,a)')		"[#",mpi_id,"; core_worker/",cTIME(time()),		&
+													"]:  I start interpolating now (#OMP THREADS=",omp_nThreads,")...."
+			end if
+		!$OMP END PARALLEL
+
+		
 		!
 		!
 		return
@@ -749,8 +749,8 @@ contains
 		!
 		!	PRINT AFTER K LOOP
 		if(	n_ki_cnt == 499 ) then
-			write(*,'(a,i3,a,a,a,i8,a,f6.1,a)')		"[#",mpi_id,";core_worker/",&
-					cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",100.0_dp*real(n_ki_cnt+1,dp)/n_ki_tot,"%)"
+			write(*,'(a,i7.7,a,a,a,i8,a,f6.1,a)')		"[#",mpi_id,";core_worker/",&
+					cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",100.0_dp*real(n_ki_cnt+1,dp)/n_ki_tot,"%)."
 		end if
 		!
 		!
@@ -762,7 +762,7 @@ contains
 			!
 			if (abs(delta)	< 0.49_dp	)	then
 				!
-				write(*,'(a,i3,a,a,a,i8,a,f6.1,a)',advance="no")		"[#",mpi_id,";core_worker/",&
+				write(*,'(a,i7.7,a,a,a,i8,a,f6.1,a)',advance="no")		"[#",mpi_id,";core_worker/",&
 										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",10.0_dp*real(i,dp),"%)"
 				!
 				!
@@ -775,7 +775,7 @@ contains
 		end do
 		!
 		!	PRINT DEBUG
-		if(	n_ki_cnt > n_ki_tot)	write(*,'(a,i3,a,i8,a,i8)')	"[#",mpi_id,";core]: warning n_ki_cnt=",&
+		if(	n_ki_cnt > n_ki_tot)	write(*,'(a,i7.7,a,i8,a,i8)')	"[#",mpi_id,";core]: warning n_ki_cnt=",&
 																	n_ki_cnt," which exceeds n_ki_tot=",n_ki_tot
 		!
 		!
@@ -786,9 +786,9 @@ contains
 
 	!
 	!
-	subroutine print_core_info(n_ki_loc, n_ki_glob, eF_min, delta_eF, eF_final_idx)
+	subroutine print_core_info(n_ki_loc, n_ki_glob, eF_lst, eF_final_idx)
 		integer,		intent(in)		::	n_ki_loc, n_ki_glob
-		real(dp),		intent(in)		::	eF_min, delta_eF
+		real(dp),		intent(in)		::	eF_lst(:)
 		integer,		intent(in)		::	eF_final_idx
 		character(len=60)				::	gauge_label
 		!
@@ -797,12 +797,12 @@ contains
 		else
 			write(gauge_label,*)		'in the (W) Wannier gauge (no gauge trafo performed!)'
 		end if
-		write(*,'(a,i3,a,a,a,i8,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
+		write(*,'(a,i7.7,a,a,a,i8,a,i8,a)')					"[#",mpi_id,"; core_worker/",cTIME(time()),		&
 													"]: ...finished interpolating (",n_ki_loc,"/",n_ki_glob,") kpts "//gauge_label
 		!
 		if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		write(*,'(a,i3,a,a,a,f8.4,a)')	"[#",mpi_id,";core_worker/",cTIME(time()),"]: choosen fermi energy	", &	
-										(eF_min + (eF_final_idx-1)	* delta_eF) * aUtoEv," eV. Now start reduction of response tensors..." 
+		write(*,'(a,i7.7,a,a,a,f8.4,a)')	"[#",mpi_id,";core_worker/",cTIME(time()),"]: choosen fermi energy	", &	
+										eF_lst(eF_final_idx) * aUtoEv," eV. Now start reduction of response tensors..." 
 		!
 		!
 		return

@@ -1,6 +1,6 @@
 program test_matrix_math 
 	use constants,		only:				dp, fp_acc
-	use matrix_math,	only:				my_Levi_Civita, 	&
+	use matrix_math,	only:				get_levi_civita, 	&
 											crossP,				&
 											is_equal_vect,		&
 											is_equal_mat,		&
@@ -8,7 +8,7 @@ program test_matrix_math
 											blas_matmul,		&
 											matrix_comm
 
-    use helpers,		only:				my_exit,									&
+    use test_helpers,	only:				my_exit,									&
     										push_to_outFile, write_test_results, 		&
     										random_matrix, random_vector                     
 
@@ -77,6 +77,9 @@ contains
 !
 !
 	logical function test_levi_civita()
+		integer				::	my_Levi_Civita(3,3,3)
+		!
+		call get_levi_civita(my_Levi_Civita)
 		!
 		test_levi_civita	= 							(	my_Levi_Civita(1,2,3) ==  1	)	
 		test_levi_civita 	= test_levi_civita .and.	(	my_Levi_Civita(2,3,1) ==  1	)
@@ -90,8 +93,6 @@ contains
 		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(1,2,2) == 0	)
 		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(2,1,2) == 0	)
 		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(1,1,1) == 0	)
-		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(-1,2,3)== 0	)
-		test_levi_civita	= test_levi_civita .and.	( 	my_Levi_Civita(4,1,2) == 0	)
 		!
 		return
 	end function
@@ -272,7 +273,7 @@ contains
 !
 	logical function test_gauge_trafo()
 		complex(dp),	allocatable			::	M_W(:,:),				&
-												U(:,:)
+												U(:,:), tmp(:,:)
 		real(dp),		allocatable			::	eigVal(:)
 		real(dp)							::	acc
 		character(len=120)					::	msg
@@ -280,6 +281,7 @@ contains
 		test_gauge_trafo	=	.false.
 		!
 		allocate(	M_W(	smpl_size, smpl_size	)		)
+		allocate(	tmp(	smpl_size, smpl_size	)		)
 		allocate(	U(		smpl_size, smpl_size	)		)
 		allocate(	eigVal(	smpl_size		)		)
 		!
@@ -289,7 +291,8 @@ contains
 		call zheevd_wrapper(U,	eigVal)
 
 		!rotate M_W with U should yield diagonal matrix (matrix in H gauge)
-		M_W	=	blas_matmul(	blas_matmul(conjg(transpose(U)),M_W),	U)
+		tmp	=	blas_matmul(	conjg(transpose(U))	,	M_W		)
+		M_W	=	blas_matmul(			tmp			,	 U		)
 		!
 		!
 		!todo: check now if M_H is diagonal with eival on diago

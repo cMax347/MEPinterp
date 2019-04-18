@@ -5,8 +5,11 @@ module kubo
 	!		http://www.wannier.org/doc/user_guide.pdf
 	!
 	!
+	use omp_lib
+	use input_paras,	only:	kubo_tol
 	use constants,		only:	dp, i_dp, pi_dp, aUtoEv
 	use statistics,		only:	fd_stat
+
 
 	implicit none
 
@@ -31,21 +34,44 @@ contains
 
 !public
 
-	pure function kubo_ahc_tens(en_k, Om_kab, eFermi, T_kelvin) result( o_ahc)
+	function kubo_ahc_tens(en_k, V_ka, fd_distrib) result( o_ahc)
 		!	see wann guide chapter 12
 		!		eq. (12.16)
-		real(dp),		intent(in)		::	en_k(:), eFermi, T_kelvin
-		complex(dp), allocatable,	intent(in)		::	Om_kab(:,:,:,:)
-		real(dp)						::	o_ahc(3,3)
-		integer							::	n
+		real(dp),						intent(in)		::	en_k(:), fd_distrib(:,:)
+		complex(dp), 					intent(in)		::	V_ka(:,:,:)
+		real(dp)										::	curv_nn(3,3)
+		real(dp),		allocatable						::	o_ahc(:,:,:)
+		integer											::	n, np, i,j, ef_idx, n_ef, n_wf
 		!
+		n_wf	=	size(en_k,1)
+		n_ef	=	size(fd_distrib,1)
+		allocate(		o_ahc(	3,3		,	n_ef	))
 		o_ahc	=	0.0_dp
 		!
-		if(allocated(Om_kab)) then
-			do n = 1, size(en_k)
-				o_ahc	=	o_ahc	-	real(Om_kab(:,:,n,n),dp)		*	fd_stat(en_k(n),	eFermi, 	T_kelvin) 
+		!
+		!$OMP PARALLEL  DO 										&
+		!$OMP DEFAULT(	none								)	&	
+		!$OMP PRIVATE( 	np, i,j, curv_nn, ef_idx				)	&
+		!$OMP SHARED(	n_wf, n_ef,en_k, V_ka, fd_distrib	)	&
+		!----
+		!$OMP 	REDUCTION( + : o_ahc	)
+		do n = 1, n_wf
+			!
+			curv_nn	=	0.0_dp
+			do np = 1, n_wf
+				if(np==n)	cycle
+				do j = 1, 3
+					do i = 1, 3
+						curv_nn(i,j)	=	curv_nn(i,j)	- 2.0_dp *	aimag(	V_ka(i,n,np) * V_ka(j,np,n)	)	/ (en_k(np) - en_k(n))**2
+					end do
+				end do
 			end do
-		end if
+			!
+			do ef_idx =1 ,n_ef
+				o_ahc(:,:,ef_idx)	=	o_ahc(:,:,ef_idx)	-	curv_nn(:,:)	*	fd_distrib(ef_idx,n)
+			end do
+		end do
+		!$OMP END PARALLEL DO
 		!
 		!
 		return
@@ -57,43 +83,57 @@ contains
 !				OPTICAL CONDUTCTIVITY (hw \non_eq 0)
 !	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	pure function velo_ahc_tens(en_k, v_kab, hw_lst, eFermi, T_kelvin, i_eta_smr) result( o_ahc)
+	function velo_ahc_tens(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr) result( o_ahc)
 		!
 		!	use Wanxiangs expression to calculate the ohc
 		!
 		!		VIA VELOCITIES
-		real(dp),		intent(in)		::	en_k(:), hw_lst(:), eFermi, T_kelvin
-		complex(dp), 	intent(in)		::	v_kab(:,:,:), i_eta_smr
-		complex(dp)	,	allocatable		::	o_ahc(:,:,:)
-		real(dp)						::	v_nm_mn(3,3), delta_fd, en_denom
-		integer							::	n, l, j, hw
+		real(dp),		intent(in)		::	en_k(:), hw_lst(:), fd_distrib(:,:)
+		complex(dp), 	intent(in)		::	V_ka(:,:,:), i_eta_smr
+		complex(dp)	,	allocatable		::	o_ahc(:,:,:,:), vv_dE_hw(:,:,:)
+		real(dp),		allocatable		::	d_ef_lst(:)
+		real(dp)						::	dE_sqr, v_nm_mn(3,3)
+		integer							::	n, np, j, hw_idx, n_ef, n_hw, n_wf, ef_idx
 		!
+		n_hw	=	size(	hw_lst		,	1)
+		n_ef	=	size(	fd_distrib	,	1)
+		n_wf	=	size(	en_k		,	1)
 		!
-		allocate(	o_ahc(3,3,size(hw_lst))			)
+		allocate(		d_ef_lst(						n_ef	)	)
+		allocate(		vv_dE_hw(	3,3		,	n_hw			)	)
+		allocate(	o_ahc(			3,3		,	n_hw,	n_ef	)	)
 		o_ahc	=	0.0_dp
 		!
-		do n = 1, size(en_k)
-			do l = 1, size(en_k)
-				if(l/=n) then
-					!
-					!
-					en_denom		= 	(	en_k(n) - en_k(l)			)**2 	
-					delta_fd		=	fd_stat(en_k(n), eFermi, T_kelvin)	-	fd_stat(en_k(l), eFermi, T_kelvin)
-					!
-					do j = 1, 3
-						v_nm_mn(:,j)	=	aimag(	v_kab(:,n,l) * v_kab(j,l,n)		) 
-					end do
-					v_nm_mn			=	delta_fd * v_nm_mn
-					!
-					!
-					do hw = 1, size(hw_lst,1)
-						o_ahc(:,:,hw)	= 	o_ahc(:,:,hw) 	+	 v_nm_mn(:,:)	/		(	en_denom	- (		hw_lst(hw) + i_eta_smr		)**2	)	
-					end do
-					!
-					!
-				end if
+		!$OMP  PARALLEL DO DEFAULT(NONE)  											&
+		!$OMP PRIVATE(np, d_ef_lst, dE_sqr, j, v_nm_mn, hw_idx, vv_dE_hw, ef_idx)	&
+		!$OMP SHARED(fd_distrib, en_k, V_ka, hw_lst, n_wf, n_hw, n_ef, i_eta_smr) 	&
+		!$OMP REDUCTION(+: o_ahc)
+		do n = 1, n_wf
+			do np = 1, n_wf
+				if(np==n) cycle
+				!
+				!	dE	BANDS
+				d_ef_lst	=		fd_distrib(:,n)		-	fd_distrib(:,np)
+				dE_sqr		= 	(	en_k(	 n) 		- 		en_k(	 np)	 )**2 	
+				!
+				!	loop real space direction
+				do j = 1, 3
+					v_nm_mn(:,j)			=	aimag(	V_ka(:,n,np) * V_ka(j,np,n)		) 
+				end do
+				!
+				!	LOOP HW
+				do hw_idx =1, n_hw
+					vv_dE_hw(:,:,hw_idx)	=	 v_nm_mn(:,:)	/	(	dE_sqr	- (	hw_lst(hw_idx) + i_eta_smr	)**2	)	
+				end do
+				!
+				!	LOOP FERMI LEVEL
+				do ef_idx = 1, n_ef
+					o_ahc(:,:,:,ef_idx)		=	o_ahc(:,:,:,ef_idx)	+	d_ef_lst(ef_idx)	*	vv_dE_hw(:,:,:)
+				end do
+				!
 			end do
 		end do
+		!$OMP END PARALLEL DO
 		!
 		!
 		return
@@ -102,45 +142,57 @@ contains
 
 
 
-	pure function kubo_ohc_tens(en_k, v_kab, hw_lst, eFermi, T_kelvin, i_eta_smr)	result(z_ohc)
+	function kubo_ohc_tens(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr)	result(z_ohc)
 		!
 		!		calculates wann guide (12.5) explicitly
 		!	
 		!	via VELOCITIES
-		real(dp),		intent(in)		::	en_k(:), hw_lst(:), eFermi, T_kelvin
-		complex(dp),	intent(in)		::	v_kab(:,:,:), i_eta_smr
-		complex(dp), 	allocatable		::	z_ohc(:,:,:) 
+		real(dp),		intent(in)		::	en_k(:), hw_lst(:), fd_distrib(:,:)
+		complex(dp),	intent(in)		::	V_ka(:,:,:), i_eta_smr
+		complex(dp), 	allocatable		::	z_ohc(:,:,:,:), vv_dE_hw(:,:,:) 
+		real(dp), 		allocatable		::	df_mn(:) 
 		complex(dp)						::	v_nm_mn(3,3)
-		integer							::	n,	m, j, hw
-		real(dp)						::	dFdE_mn, dE_mn
+		real(dp)						::	dE_mn
+		integer							::	n, m, j, n_ef, n_hw, n_wf, ef_idx, hw_idx
 		!
-		allocate(	z_ohc(3,3,	size(hw_lst,1)		))
+		n_ef	=	size(	fd_distrib	,	1	)
+		n_hw	=	size(	hw_lst		,	1	)
+		n_wf	=	size(	en_k		,	1	)
+		!
+		allocate(		df_mn(						n_ef	))
+		allocate(		vv_dE_hw(	3,3,	n_hw			))
+		allocate(		z_ohc(		3,3,	n_hw,	n_ef	))
+		!
 		z_ohc	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
-		do m = 1 , size(v_kab,3)
-			do n = 1, size(v_kab,2)
-				if(m/=n) then
-					!
-					!
-					dE_mn 	=	en_k(m)	-	en_k(n)	
-					dFdE_mn	=	fd_stat(en_k(m), 		eFermi, T_kelvin)	- fd_stat(en_k(n), 		eFermi, T_kelvin)
-					dFdE_mn	=	dFdE_mn	/	dE_mn
-					!
-					do j = 1, 3
-						v_nm_mn(:,j)	=	v_kab(:,n,m) * v_kab(j,m,n)
-					end do
-					v_nm_mn				=	v_nm_mn	*	dFdE_mn
-					!
-					!
-					do hw = 1, size(hw_lst)
-						z_ohc(:,:,hw)	=	z_ohc(:,:,hw)	 + 			i_dp * 	v_nm_mn(:,:)					&
-																	/ 	(	dE_mn - hw_lst(hw) - i_eta_smr	)
-					end do
-					!
-					!
-				end if
+		!$OMP  PARALLEL DO DEFAULT(NONE)  													&
+		!$OMP PRIVATE(n, df_mn, dE_mn, j, v_nm_mn, vv_dE_hw, hw_idx, ef_idx)				&
+		!$OMP SHARED(fd_distrib, en_k, V_ka, hw_lst, n_wf, n_hw, n_ef, kubo_tol, i_eta_smr)&
+		!$OMP REDUCTION(+: z_ohc)
+		do m = 1 , n_wf
+			do n = 1, n_wf
+				if(m==n)	cycle
+				dE_mn 		=	en_k(m)			-	en_k(n)
+				df_mn		=	fd_distrib(:,m)	-	fd_distrib(:,n)
+				!
+				!	loop real space direction
+				do j = 1, 3
+					v_nm_mn(:,j)	=	V_ka(:,n,m) * V_ka(j,m,n)
+				end do
+				!
+				!	LOOP HW
+				vv_dE_hw	=	cmplx(0.0_dp,0.0_dp,dp)
+				do hw_idx = 1, n_hw
+					vv_dE_hw(:,:,hw_idx)	=	v_nm_mn(:,:)	/	(	dE_mn * (dE_mn - hw_lst(hw_idx) - i_eta_smr))
+				end do
+				!
+				!	LOOP FERMI LEVEL
+				do ef_idx = 1, n_ef
+					z_ohc(:,:,:,ef_idx)		=	z_ohc(:,:,:,ef_idx)	+ 	i_dp * 	vv_dE_hw(:,:,:) * df_mn(ef_idx)
+				end do
 			end do
 		end do
+		!$OMP END PARALLEL DO
 		!
 		return
 	end function
@@ -149,27 +201,33 @@ contains
 
 
 
-	subroutine kubo_opt_tens(hw_lst, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka, opt_symm, opt_asymm)	
+	subroutine kubo_opt_tens(en_k, A_ka, hw_lst, fd_distrib, i_eta_smr, opt_symm, opt_asymm)	
 		!	see wann guide chapter 12
 		!		eq. (12.14) & (12.15)
 		!
 		!	via CONNECTION
-		real(dp),					intent(in)		::	hw_lst(:), e_fermi, T_kelvin, en_k(:) 
+		real(dp),					intent(in)		::	en_k(:), hw_lst(:), fd_distrib(:,:) 
 		complex(dp),				intent(in)		::	i_eta_smr
 		complex(dp), allocatable,	intent(in)		::	A_ka(:,:,:)
-		complex(dp), allocatable,	intent(out)		::	opt_symm(:,:,:), 	opt_asymm(:,:,:)
-		complex(dp), allocatable					::	opt_herm(:,:,:),	opt_aherm(:,:,:)
+		complex(dp), allocatable,	intent(out)		::	opt_symm(:,:,:,:), 	opt_asymm(:,:,:,:)
+		complex(dp), allocatable					::	opt_herm(:,:,:,:),	opt_aherm(:,:,:,:)
+		integer										::	n_hw, n_ef
 		!
-		allocate(	opt_symm(	3,3,size(hw_lst,1))		)
-		allocate(	opt_asymm(	3,3,size(hw_lst,1))		)
-		allocate(	opt_aherm(	3,3,size(hw_lst,1))		)
-		allocate(	opt_herm(	3,3,size(hw_lst,1))		)
+		n_hw	=	size(	hw_lst		,	1)
+		n_ef	=	size(	fd_distrib	,	1)
+		!
+		allocate(	opt_symm(	3,3,	n_hw, n_ef		))
+		allocate(	opt_asymm(	3,3,	n_hw, n_ef		))
+		!
 		opt_symm	= 	0.0_dp
 		opt_asymm	=	0.0_dp
 		!
 		if(allocated(A_ka)) then
-			opt_herm	=	get_hermitian(hw_lst, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
-			opt_aherm	=	get_anti_herm(hw_lst, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)
+			allocate(	opt_aherm(	3,3,	n_hw, n_ef		))
+			allocate(	opt_herm(	3,3,	n_hw, n_ef		))
+			!
+			opt_herm	=	get_hermitian(hw_lst, fd_distrib, i_eta_smr, en_k, A_ka)
+			opt_aherm	=	get_anti_herm(hw_lst, fd_distrib, i_eta_smr, en_k, A_ka)
 			!
 			opt_symm	=	real(	opt_herm	,	dp) 		+	i_dp * aimag(	opt_aherm	)		!	(12.14)		
 			opt_asymm	=	real(	opt_aherm	,	dp)			+	i_dp * aimag(	opt_herm	)		!	(12.15)
@@ -187,105 +245,161 @@ contains
 
 
 !private:
-	real(dp) pure function delta_broad(eps, smr)
+	 function delta_broad(dE_mn, hw_lst,  smr)	result(d_broad)
 		!see wannier guide eq. (12.9)
 		! 'broadened delta-function'
-		real(dp),		intent(in)	::	eps		!	energy
-		complex(dp),	intent(in)	::	smr		!	smearing factor
+		real(dp),		intent(in)	::	dE_mn, hw_lst(:)		!	energy
+		complex(dp),	intent(in)	::	smr				!	smearing factor
+		complex(dp),	allocatable	::	d_broad(:)
+		complex(dp)					::	dE_smr
+		integer						::	n_hw, hw_idx
 		!
-		if(abs(eps-smr) > 1e-6_dp)	then
-			delta_broad		=	aimag(	1.0_dp/ ( eps - smr )			)			/	pi_dp
-		else
-			delta_broad		= 	aimag(1.0_dp / (1e-6_dp*i_dp)	)	/	pi_dp		!
-		end if
+		n_hw	=	size(hw_lst,1)
+		allocate(	d_broad(n_hw))
+		d_broad	=	cmplx(0.0_dp,0.0_dp,dp)
+		!
+		dE_smr	=	pi_dp * (dE_mn - smr )
+		!
+		do hw_idx = 1, n_hw
+			d_broad(hw_idx)		=	aimag(	1.0_dp	/ 	(dE_smr	-	pi_dp * hw_lst(hw_idx))	)			
+		end do
+		!
 		return
 	end function
 
 
 
-	function get_hermitian(hw_lst, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_herm)
+	function get_hermitian(hw_lst, fd_distrib, i_eta_smr, en_k, A_ka)	result(opt_herm)
 		!	wann guide eq. (12.10)
-		real(dp),		intent(in)		::	hw_lst(:), e_fermi, T_kelvin, en_k(:)
+		real(dp),		intent(in)		::	hw_lst(:), fd_distrib(:,:), en_k(:)
 		complex(dp),	intent(in)		::	i_eta_smr
 		complex(dp),	intent(in)		::	A_ka(:,:,:)
-		complex(dp),	allocatable		::	opt_herm(:,:,:)
+		complex(dp),	allocatable		::	opt_herm(:,:,:,:), a_dE_hw(:,:,:), d_broad(:)
+		real(dp),		allocatable		::	df_mn(:)
 		complex(dp)						::	a_nm_mn(3,3)
-		integer							::	n, m, b, hw 
-		real(dp)						::	f_mn, dE_mn, pre_fact
+		integer							::	n, m, b, 	&
+											hw_idx, ef_idx, n_hw, n_ef, n_wf 
+		real(dp)						::	dE_mn
 		!
-		allocate(opt_herm(3,3,size(hw_lst,1)))
+		n_hw	=	size(hw_lst		,	1)
+		n_ef	=	size(fd_distrib	,	1)
+		n_wf	=	size(en_k		,	1)
+		!
+		allocate(	df_mn(						n_ef	))
+		allocate(	a_dE_hw(	3,3,	n_hw			))
+		allocate(	opt_herm(	3,3,	n_hw,	n_ef	))
+		!
 		opt_herm	=	0.0_dp
 		!
-		do m = 1, size(A_ka,3)
-			do n = 1, size(A_ka,2)
+		!
+		!$OMP PARALLEL DO DEFAULT(none)												&
+		!$OMP PRIVATE(df_mn, dE_mn, b, a_nm_mn, d_broad, a_dE_hw, hw_idx, ef_idx )	&
+		!$OMP SHARED(n_wf, n_hw, n_ef,  hw_lst, fd_distrib, en_k, A_ka, i_eta_smr)	&
+		!$OMP REDUCTION(+: opt_herm)
+		do m = 1, n_wf
+			do n = 1, n_wf
 				if(n/=m) then
 					!
+					!	dE	BANDS				
+					df_mn(:)				=	fd_distrib(:,m)	-	fd_distrib(:,n)
+					dE_mn					=		en_k(m)		-	en_k(n) 
+					! --
 					!
-					f_mn	=	fd_stat(	en_k(m)		,e_fermi,T_kelvin)	-	fd_stat(	en_k(n)		,e_fermi,T_kelvin)
-					dE_mn	=				en_k(m)							-				en_k(n) 
-					!
+					!	LOOP DIRECTIONS
+					a_nm_mn					=	cmplx(0.0_dp,0.0_dp,dp)	
 					do b = 1, 3
-						a_nm_mn(:,b)	=	A_ka(:,n,m) * A_ka(b,m,n)
+						a_nm_mn(:,b)		=	A_ka(:,n,m) 	* 	A_ka(b,m,n)
 					end do
-					a_nm_mn				=	f_mn * dE_mn * a_nm_mn
+					a_nm_mn					=	dE_mn * a_nm_mn
+					! --
 					!
-					!
-					do hw = 1, size(hw_lst,1)
-						opt_herm(:,:,hw)	=	opt_herm(:,:,hw)	+	a_nm_mn(:,:)		* delta_broad( dE_mn - hw_lst(hw)	, i_eta_smr)
+					!	LOOP HW
+					d_broad(:)				= 	delta_broad(dE_mn, hw_lst(:),  i_eta_smr)
+					a_dE_hw					=	cmplx(0.0_dp,0.0_dp,dp)
+					do hw_idx = 1, n_hw
+						a_dE_hw(:,:,hw_idx)	=	a_nm_mn(:,:) * d_broad(hw_idx)
 					end do
+					! --
 					!
+					!	LOOP FERMI LEVEL
+					do ef_idx = 1, n_ef
+						opt_herm(:,:,:,ef_idx)	=		opt_herm(:,:,:,ef_idx)		&
+													- pi_dp * a_dE_hw(:,:,:) * df_mn(ef_idx)
+					end do
+					! --
+				end if
+			end do
+		end do
+		!$OMP END PARALLEL DO
+		!
+		! 
+		return
+	end function
+
+
+
+	function get_anti_herm(hw_lst, fd_distrib, i_eta_smr, en_k, A_ka)	result(opt_aherm)
+		!	wann guide eq. (12.11)
+		real(dp),		intent(in)		::	hw_lst(:), fd_distrib(:,:), en_k(:)
+		complex(dp),	intent(in)		::	i_eta_smr	
+		complex(dp),	intent(in)		::	A_ka(:,:,:)
+		complex(dp),	allocatable		::	a_dE_hw(:,:,:) ,opt_aherm(:,:,:,:)
+		real(dp),		allocatable		::	df_mn(:)
+		complex(dp)						::	a_nm_mn(3,3)
+		integer							::	n, m, b, 		&
+											hw_idx, n_hw,	&
+											ef_idx, n_ef,	&
+											n_wf 
+		real(dp)						::	dE_mn 
+		!
+		n_hw	=	size(	hw_lst		,	1	)
+		n_ef	=	size(	fd_distrib	,	1	)
+		n_wf	=	size(	en_k		,	1	)
+		!
+		allocate(	df_mn(						n_ef	))
+		allocate(	a_dE_hw(	3,3,	n_hw			))
+		allocate(	opt_aherm(	3,3,	n_hw,	n_ef	))
+		opt_aherm	=	cmplx(0.0, 0.0, dp)
+		!
+		!$OMP PARALLEL DO DEFAULT(	none )												&
+		!$OMP PRIVATE(df_mn, dE_mn, b, a_nm_mn, a_dE_hw, hw_idx, ef_idx)			&
+		!$OMP SHARED(n_wf,n_hw,n_ef, fd_distrib, en_k, A_ka, hw_lst, i_eta_smr )	&
+		!$OMP REDUCTION(+: opt_aherm)													
+		do m = 1, n_wf
+			do n = 1, n_wf
+				if(n/=m) then
+					!
+					!	dE	BANDS
+					df_mn(:)	=	fd_distrib(:,m)		-	fd_distrib(:,n)
+					dE_mn		=		en_k(m) 		- 		en_k(n)	
+					! --
+					!
+					!	LOOP DIRECTIONS
+					a_nm_mn	=	0.0_dp
+					do b = 1, 3
+						a_nm_mn(:,b)	=	A_ka(:,n,m) * A_ka(b,m,n)	
+					end do
+					a_nm_mn		=	a_nm_mn  * dE_mn
+					! --
+					!
+					!	LOOP HW LASER
+					a_dE_hw		=	cmplx(0.0_dp,0.0_dp,dp)
+					do hw_idx = 1, n_hw
+						a_dE_hw(:,:,hw_idx)	=	a_nm_mn(:,:)							&
+												/	real(dE_mn - hw_lst(hw_idx) - i_eta_smr , dp)
+					end do
+					! --
+					!
+					!	LOOP FERMI LEVEL
+					do ef_idx = 1, n_ef
+						opt_aherm(:,:,:,ef_idx)	=	opt_aherm(:,:,:,ef_idx)	+ i_dp	* a_dE_hw(:,:,:)	* df_mn(ef_idx)
+					end do
+					! --
 					!
 				end if
 			end do
 		end do
-		!
-		!
-		pre_fact	=	-	pi_dp 
-		opt_herm	=	cmplx(pre_fact,0.0_dp, dp)	* opt_herm
-		!
-		return
-	end function
-
-
-
-	function get_anti_herm(hw_lst, e_fermi, T_kelvin, i_eta_smr, en_k, A_ka)	result(opt_aherm)
-		!	wann guide eq. (12.11)
-		real(dp),		intent(in)		::	hw_lst(:), e_fermi, T_kelvin, en_k(:)
-		complex(dp),	intent(in)		::	i_eta_smr	
-		complex(dp),	intent(in)		::	A_ka(:,:,:)
-		complex(dp),	allocatable		::	opt_aherm(:,:,:)
-		complex(dp)						::	a_nm_mn(3,3)
-		integer							::	n, m, b, hw 
-		real(dp)						::	f_mn, dE_mn 
-		complex(dp)						::	pre_fact
-		!
-		allocate(	opt_aherm(3,3,size(hw_lst,1)))
-		opt_aherm	=	cmplx(0.0, 0.0, dp)
-		!
-		do m = 1, size(A_ka,3)
-			do n = 1, size(A_ka,2)
-				!
-				f_mn	=		fd_stat(	en_k(m)		,e_fermi,T_kelvin)		-		fd_stat(	en_k(n)	 ,e_fermi, T_kelvin)
-				dE_mn	=				en_k(m) - en_k(n)	
-				!
-				do b = 1, 3
-					a_nm_mn(:,b)	=	A_ka(:,n,m) * A_ka(b,m,n)	
-				end do
-				a_nm_mn		=	a_nm_mn	* f_mn * dE_mn
-				!
-				!
-				do hw = 1, size(hw_lst,1)
-					opt_aherm(:,:,hw)	=	opt_aherm(:,:,hw)	+				a_nm_mn(:,:)							&
-																	/	real(dE_mn - hw_lst(hw) - i_eta_smr , dp)
-				end do
-				!
-				!
-			end do
-		end do
-		!
-		!
-		pre_fact	=	i_dp
-		opt_aherm	=	pre_fact	*	opt_aherm
+		!$OMP END PARALLEL DO
 		!
 		return
 	end function

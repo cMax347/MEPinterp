@@ -1,3 +1,4 @@
+
 import numpy as np
 import re
 import os
@@ -179,7 +180,7 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 
 
 	#y-axis
-	ax.set_ylim([-14,6.3])
+	ax.set_ylim([-14,8.3])
 	ax.set_yticks([0.],minor=True)
 	ax.set_yticks([-12,-9,-6,-3,0,3,6],minor=False)
 	plt.tick_params(axis='y', which='major',left=True,right=True, direction='in',labelsize=y_tick_size)
@@ -198,48 +199,68 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 	#try:
 	plt.savefig(pdf_out_file,bbox_inches='tight')
 	print('saved band_structure: '+pdf_out_file)
+	plt.show()
 	#except:
 	#	print('Error while saving the plot, try to show plot now in order to manually save it')
         #		plt.show()
 
 
 
+def discrete_cmap(N, base_cmap=None):
+	#	see
+	#			https://gist.github.com/jakevdp/91077b0cae40f8f8244a
+	#
+    """Create an N-bin discrete colormap from the specified input map"""
 
+    # Note that if base_cmap is a string or None, you can simply do
+    #    return plt.cm.get_cmap(base_cmap, N)
+    # The following works for string, None, or a colormap instance:
+
+    base = plt.cm.get_cmap(base_cmap)
+    color_list = base(np.linspace(0, 1, N))
+    cmap_name = base.name + str(N)
+    print("[discrete_cmap]	choosen cmap:",cmap_name)
+    print("[discrete_cmap]	color list:",color_list)
+    #return base.from_list(cmap_name, color_list, N)
+    return color_list
 
 def unit_test():
 	# 	out file
 	pdf_target	=	'./bands.pdf'
 
 	#	id data
-	target_dir_lst	=[	'delta0.900',
-						'delta0.950',
-						'delta1.000',
-						'delta1.050',
-						'delta1.100'
+	target_dir_lst	=[	'rashba0.000',
+    						'rashba0.099',
+						'rashba0.199',
+						'rashba0.300',
+#						'rashba0.250'
 					]
-	id_str			=	'delta'
-	id_label		=	r'$\delta$'
+	id_str			=	'rashba'
+	id_label		=	r'$\lambda_R$'
 	#
 	# 	colors
 	min_col		=	'orangered'
 	bas_col		=	'black'
 	max_col		=	'deepskyblue'
-	colors		=[min_col,min_col, bas_col, max_col, max_col]
+	colors		=	discrete_cmap(4,'Blues_r')
+	#print(colors)
+	#colors		= ['black','deepskyblue']
 	#
 	#	line style
 	prime		=	'-'
 	opt			=	':'
 	line_style	=	[prime, opt, prime, opt, prime]
+	line_style	=	[prime,prime]
 	#
-	#	
-	plot_bandstruct(	target_dir_lst, 
+	#
+	plot_bandstruct(	target_dir_lst,
 						id_str, id_label,
 						line_style, colors ,
-						pdf_target, 
-						label_size=14, y_tick_size=12, 
+						pdf_target,
+						label_size=14, y_tick_size=12,
 						plot_in_ev=True
 					)
-	
+
 	#plot_bandstruct(['./'],'./kpts','./eBands.dat',
 	#				'./bands.pdf',
 	#				label_size=14,

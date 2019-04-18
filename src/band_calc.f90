@@ -9,8 +9,9 @@ module band_calc
 	use constants,		only:			dp
 	use mpi_community,	only:			mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,	only:			use_mpi, seed_name, a_latt, 					&
-										do_gauge_trafo, do_write_velo
-	use k_space,		only:			get_recip_latt										
+										do_gauge_trafo, 								& 
+										wf_centers,										&
+										do_write_velo
 	use file_io,		only:			read_kptsgen_pl_file,							&
 										read_tb_basis,									&
 										write_en_binary, 								&
@@ -28,7 +29,6 @@ contains
 
 	subroutine band_worker()
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:), R_vect(:,:)
-		real(dp)							::	recip_latt(3,3)
 		integer								::	num_kpts, ki, k_per_mpi
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 				&
 												A_ka(:,:,:), Om_kab(:,:,:,:),				&
@@ -51,7 +51,6 @@ contains
 		if( read_kptsgen_pl_file(rel_kpts)	) then
 			!
 			!	get k-space
-			recip_latt	= get_recip_latt()
 			num_kpts	= size(rel_kpts,2)
 			k_per_mpi	= 0
 			!
@@ -62,20 +61,20 @@ contains
 			!
 			!	do the work
 			if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-			write(*,'(a,i3,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
+			write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
 			!
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
-				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 						&
-										a_latt, recip_latt, R_vect, ki, rel_kpts(:,ki),		& 
-										en_k, V_ka, A_ka, Om_kab							&
+				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 				&
+										R_vect, wf_centers, ki, rel_kpts(:,ki),		& 
+										en_k, V_ka, A_ka, Om_kab					&
 									)
 				call write_en_binary(ki,en_k)
 				if(do_write_velo)	call write_velo(ki,V_ka)
 
 				k_per_mpi	= k_per_mpi + 1
 			end do
-			write(*,'(a,i3,a,a,a,i10,a,i10,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),				&
+			write(*,'(a,i7.7,a,a,a,i10,a,i10,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),				&
 													']:	...finished, interpolated ',k_per_mpi,' of ',num_kpts,' kpts'
 			!
 			!
@@ -105,7 +104,8 @@ contains
 		if( do_write_velo )		then
 			allocate(	V_ka(3,	size(H_tb,1), size(H_tb,2))		)
 			V_ka	=	0.0_dp
-			write(*,'(a,i3,a,i1,a,i3,a,i3,a)')	"[",mpi_id,"]V_ka allocated with size=	(",size(V_ka,1), "x",size(V_ka,2),"x",size(V_ka,3),")"
+			write(*,'(a,i7.7,a,i1,a,i3,a,i3,a)')	"[",mpi_id,"band_allocator]: V_ka allocated with size=	(",&
+													size(V_ka,1), "x",size(V_ka,2),"x",size(V_ka,3),")"
 		end if
 		!
 		!

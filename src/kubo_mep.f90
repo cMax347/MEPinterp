@@ -1,40 +1,45 @@
 module kubo_mep
 	!
 	use constants,		only:	dp, i_dp, pi_dp
-	use matrix_math,	only:	my_Levi_Civita, convert_tens_to_vect
+	use matrix_math,	only:	get_levi_civita,		& 
+								convert_tens_to_vect
 	use statistics,		only:	fd_stat
 	implicit none
-
-
+	!
 	private
 	public			::			kubo_mep_CS,		&
 								kubo_mep_LC,		&
 								kubo_mep_IC
 							
-
-
-
 contains
 
-	pure function kubo_mep_CS(eFermi, T_kelvin, en_k,  A_ka, Om_kab) result(cs_tens)
-		real(dp),						intent(in)		::	eFermi, T_kelvin, en_k(:)
+	pure function kubo_mep_CS(A_ka, Om_kab, fd_distrib) result(cs_tens)
 		complex(dp),	allocatable, 	intent(in)		::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		real(dp)										::	cs_tens(3,3)
-		complex(dp)										::	cs_scal, om_vect(3)
-		integer											::	n0, i
+		real(dp),						intent(in)		::	fd_distrib(:,:)
+		real(dp),		allocatable						::	cs_tens(:,:,:), fd_lst(:)
+		complex(dp),	allocatable						::	cs_scal(:)
+		complex(dp)										::	om_vect(3)
+		integer											::	n0, i, n_ef
 		!
+		n_ef	=	size(fd_distrib,1)
+		allocate(cs_tens(3,3,n_ef))
 		cs_tens	=	0.0_dp
+		!
 		if(	allocated(A_ka)		.and.		allocated(Om_kab)		)then
+			allocate(	fd_lst(		n_ef	))
+			allocate(	cs_scal(	n_ef	))
 			cs_scal	= 0.0_dp
 			!
 			!	sum over valence
 			do n0 = 1, size(Om_kab,3)
 				call convert_tens_to_vect(	Om_kab(:,:,n0,n0),		om_vect(:)	)
-				cs_scal	= cs_scal +	 0.5_dp  	* 		fd_stat(en_k(n0),eFermi, T_kelvin)  	*	dreal(	 dot_product(	A_ka(:,n0,n0)	,	om_vect(:)	)			)
+				!
+				cs_scal(:)	= 	cs_scal(:) 	+	 0.5_dp  * 	fd_distrib(:,n0) 							&
+												* dreal(	dot_product( A_ka(:,n0,n0)	, om_vect(:) ))
 			end do
 			!
 			do i = 1, 3
-				cs_tens(i,i)	= real(cs_scal,dp)
+				cs_tens(i,i,:)	= real(cs_scal(:),dp)
 			end do
 		end if
 		!
@@ -43,46 +48,44 @@ contains
 
 
 	
-	function kubo_mep_LC(eFermi, T_kelvin, velo, En, neglected) result(F3)
+	function kubo_mep_LC(en_k, V_ka, fd_distrib) result(F3)
 		!	LOCAL KUBO CONTRIBUTION
 		!
-		real(dp),			intent(in)		::	eFermi, T_kelvin, En(:)
-		complex(dp),		intent(in)		::	velo(:,:,:)
-		integer,			intent(out)		::	neglected
-		real(dp)							::	F3(3,3)
-		integer								::	n0, n, tot, 		&
-												i, j, k, l	
-		real(dp) 							::	pre_fact, velo_nom, en_term, en_denom, fermi_dirac
+		real(dp),			intent(in)		::	en_k(:), fd_distrib(:,:)
+		complex(dp),		intent(in)		::	V_ka(:,:,:)
+		real(dp),			allocatable		::	F3(:,:,:)
+		integer								::	n0, n, n_wf, n_ef, j, k, l, ef_idx, leviC(3,3,3)	
+		real(dp) 							::	v_nm_mn_nn(3,3), en_denom
 		!
-		neglected	= 0
-		tot 		= 0
+		n_ef	=	size(fd_distrib,1)
+		n_wf	=	size(en_k,1)
+		allocate(	F3(	3,3,	n_ef))
+		!
+		call get_levi_civita(leviC)
 		!
 		F3	= 0.0_dp
-		do n0 = 1, size(velo,2)
-			!
-			fermi_dirac	= fd_stat(en(n0), eFermi, T_kelvin)
-			!
+		do n0 = 1, n_wf
 			!MIXING
-			do n = 1, size(velo,2)
+			do n = 1, n_wf
 			 	if( n/= n0 )	then
-			 		en_denom	=	(	en(n0) - en(n)	)**3
-			 		en_term		=	fermi_dirac	/	en_denom		
-			 		tot			= 	tot + 1
 			 		!
-					!TRIPLE PRODUCT			 		
+			 		!	dE	BANDS
+			 		en_denom	=	(	en_k(n0) - en_k(n)	)**3		
+			 		!
+			 		!	TRIPLE PRODUCT
+			 		v_nm_mn_nn	=	0.0_dp
 			 		do j = 1, 3
-			 			do i = 1, 3
-			 				do l = 1, 3
-			 					do k = 1, 3
-			 						pre_fact	= 	real(my_Levi_Civita(j,k,l),dp)  
-			 						!
-			 						velo_nom	=	real(		velo(i,n0,n) * velo(k,n,n0) * velo(l,n0,n0)		, dp)
-			 						!		
-			 						!
-			 						F3(i,j)		= 	F3(i,j) 	+  		pre_fact * 	velo_nom  * en_term		
-			 					end do
+			 			do k = 1, 3
+			 				do l =1,3
+			 					v_nm_mn_nn(:,j)	=	v_nm_mn_nn(:,j) +	 real(	leviC(j,k,l)	,dp) 					&
+			 													* real(	V_ka(:,n0,n) * V_ka(k,n,n0) * V_ka(l,n0,n0), dp)
 			 				end do
 			 			end do
+			 		end do
+			 		!
+			 		!	LOOP FERMI LEVEL
+			 		do ef_idx	=	1, n_ef
+			 			F3(:,:,ef_idx)	=	F3(:,:,ef_idx)	+ 	v_nm_mn_nn(:,:) * fd_distrib(ef_idx,n0) / en_denom
 			 		end do
 			 	end if
 			 	!
@@ -94,52 +97,50 @@ contains
 	end function
 
 
-	function kubo_mep_IC(eFermi, T_kelvin, velo, En, neglected) result(F2)
+	function kubo_mep_IC(en_k, V_ka, fd_distrib) result(F2)
 		!	ITINERANT KUBO CONTRIBUTION
 		!
-		complex(dp),		intent(in)		::	velo(:,:,:)
-		real(dp),			intent(in)		::	eFermi, T_kelvin, En(:)
-		integer,			intent(out)		::	neglected
-		real(dp)							::	F2(3,3)
-		integer								::	n0, m, n, 		&
-												i, j, k, l,		&
-												tot
-		real(dp) 							::	pre_fact, velo_nom, en_term, en_denom, fermi_dirac
+		real(dp),			intent(in)		::	en_k(:), fd_distrib(:,:)
+		complex(dp),		intent(in)		::	V_ka(:,:,:)
+		real(dp),			allocatable		::	F2(:,:,:)
+		integer								::	n0, m, n, 				&
+												j, k, l, 				&
+												n_ef, n_wf, ef_idx,		&
+												leviC(3,3,3)
+		real(dp) 							::	v_on_nm_mo(3,3), en_denom
 		!
-		neglected	= 0
-		tot 		= 0
+		n_ef	=	size(	fd_distrib	,	1)
+		n_wf	=	size(	en_k		,	1)
+		allocate(	F2(		3,3,	n_ef	))
 		!
 		F2	= 0.0_dp
-		do n0 = 1, size(velo,2)
-			!
-			fermi_dirac	= fd_stat(en(n0), eFermi, T_kelvin)
-			!
+		call get_levi_civita(leviC)
+		!
+		do n0 = 1, n_wf	
 			!MIXING
-			do m = 1, size(velo,2)
-				do n = 1, size(velo,2)
+			do m = 1, n_wf
+				do n = 1, n_wf
 				 	if( n/= n0 .and. m/=n0 )	then
-				 		en_denom	=	(	en(n0) - en(n)	)**2		 * 		(	en(n0) - en(m)	)  
-				 		en_term		=	fermi_dirac		/ 	en_denom
-				 		tot 		= 	tot + 1
+			 			!
+			 			!	dE	BANDS
+				 		en_denom	=	(en_k(n0) - en_k(m)) 	*	(en_k(n0) - en_k(n))**2	 
 				 		!
-				 		!TRIPLE PRODUCT
+				 		!	TRIPLE PRODUCT
+				 		v_on_nm_mo	=	0.0_dp
 				 		do j = 1, 3
-				 			do i = 1, 3
-				 				do l = 1, 3
-				 					do k = 1, 3
-				 						pre_fact	=	- real(my_Levi_Civita(j,k,l),dp) 
-				 						!
-				 						velo_nom	=	real(	velo(i,n0,n) * velo(k,n,m) * velo(l,m,n0)		, dp)
-				 						!
-				 						!
-				 						F2(i,j)		= 	F2(i,j)		+	pre_fact  * velo_nom	* en_term
-				 					end do
+				 			do l = 1, 3
+				 				do k = 1, 3
+				 					v_on_nm_mo(:,j)		=	v_on_nm_mo(:,j)		-	real(leviC(j,k,l),dp)		&
+				 									*	real(	V_ka(:,n0,n) * V_ka(k,n,m) * V_ka(l,m,n0)	,dp)
 				 				end do
 				 			end do
 				 		end do
+				 		!
+				 		!	LOOP FERMI LEVEL
+				 		do ef_idx = 1, n_ef
+				 			F2(:,:,ef_idx)	=	F2(:,:,ef_idx)	+	v_on_nm_mo(:,:)	* fd_distrib(ef_idx,n0)	/ 	en_denom
+				 		end do
 				 	end if
-				 	!
-				 	!
 				end do
 			end do
 		end do

@@ -46,7 +46,9 @@ def save_root_dir_creator(orig_root, root_name):
 
 
 
-def prepare_calc(		target_dir, tb_model, use_pos_op, val_bands, main_exe, kpt_gen, J_ex, t1_hopp, delta,
+def prepare_calc(		target_dir, main_exe, kpt_gen,
+						tb_model, use_pos_op, 
+						val_bands, t1_hopp, delta, J_ex, lmbd_R,
 						gauge_velos, write_velos
 				):
 	copy(	main_exe	,		target_dir	+	'/mepInterp')
@@ -57,14 +59,14 @@ def prepare_calc(		target_dir, tb_model, use_pos_op, val_bands, main_exe, kpt_ge
 		#	
 		#	write input file
 		inp_3q	= target_dir	+	'/inp_params_3q'
-		write_FeMn_3Q_inp(inp_3q, t1_hopp, delta, J_ex)
+		write_FeMn_3Q_inp(inp_3q, t1_hopp, delta, J_ex, lmbd_R)
 		#
 		#interpolate the energies
 		mp_grid = [4,4,4]	#generic does not matter here
 		phi = 0.0			#generic does not matter here
 		write_tb_input(	tb_model, use_pos_op, target_dir, phi, val_bands, mp_grid, 
 								kubo_tol=1e-3, 
-								n_hw=1, hw_min=0.0,hw_max=0.0,laser_phase=0, 
+								n_hw=1, hw_min=0.0, hw_max=0.0, laser_phase=0, 
 								 N_eF=1, eF_min=0.0, eF_max=0, Tkelvin=300.0, eta_smearing=3.0, 
 								plot_bands='T', 
 								debug_mode='T',
@@ -92,14 +94,15 @@ def run_job(root_dir, job_dir, latt_sym_group, kpath):
 
 
 
-def sample_distortion(	tb_model, use_pos_op, 
+def sample_rashba(	tb_model, use_pos_op, 
 						latt_sym_group='cub',
 						kpath="Gamma 1000 X 1000 M 1000 Gamma 1000 R", 
 						val_bands=1, gauge_velos=True, write_velos=False,
 						J_ex			=	1.0											,
 						t_hopp			=	1.0											,
-						delta_min	=	0.9,	delta_max	=	1.0,
-						delta_steps	=	5
+						delta			=	0.0											,
+						lmb_r_min	=	0.0,	lmb_r_max	=	0.1,
+						lmb_steps	=	2
 					):
 	
 
@@ -108,7 +111,7 @@ def sample_distortion(	tb_model, use_pos_op,
 
 	
 	orig_root	=	os.getcwd()
-	root_dir	=	save_root_dir_creator(orig_root,'delta_band_run')
+	root_dir	=	save_root_dir_creator(orig_root,'rashba_band_run')
 	main_exe	= 	root_dir+'/mepInterp'
 	kpt_gen		= 	root_dir+'/kptsgen.pl'
 	#
@@ -121,10 +124,9 @@ def sample_distortion(	tb_model, use_pos_op,
 	en_file_lst	=	[]
 	#
 	#
-	for delta in np.linspace(delta_min,	delta_max, delta_steps):
-		delta	=	round(delta,3)
-		print("[sample_distortion]:	start job delta="+str(delta))
-		band_dir	= root_dir+'/bands_d'+str(delta)
+	for lmbd_R in np.linspace(lmb_r_min,	lmb_r_max, lmb_steps):
+		print("[sample_distortion]:	start job lambda_Rashba="+str(lmbd_R))
+		band_dir	= root_dir+'/bands_d'+str(lmbd_R)
 		job_dirs.append(	band_dir )
 		#
 		#check if executables are present
@@ -133,7 +135,12 @@ def sample_distortion(	tb_model, use_pos_op,
 			save_mkdir(band_dir)
 			#
 			#now copy executables to target
-			prepare_calc(band_dir, tb_model, use_pos_op, val_bands, main_exe, kpt_gen, J_ex, t_hopp, delta, gauge_velos, write_velos)
+			prepare_calc(
+					band_dir,main_exe, kpt_gen, 
+					tb_model, use_pos_op, 
+					val_bands, t_hopp, delta, J_ex,  lmbd_R,
+					gauge_velos, write_velos
+				)
 			#
 			#run exe in target
 			new_k, new_en	=	run_job(root_dir, band_dir, latt_sym_group, kpath)
@@ -176,11 +183,10 @@ def sample_distortion(	tb_model, use_pos_op,
 
 
 def main():
-	pdf_file	=	'./distorted_bands.pdf'
-	id_str		=	'bands_d'
-	id_formula	=	r'$\delta$'
+	pdf_file	=	'./rashba_bands.pdf'
+	
 	#
-	delta_lst, k_file_lst, en_file_lst,	job_dirs	=	sample_distortion(	
+	delta_lst, k_file_lst, en_file_lst,	job_dirs	=	sample_rashba(	
 					tb_model		=	'FeMn3q'									,
 					use_pos_op		=	False										,
 					latt_sym_group	=	'jpH'										,
@@ -189,9 +195,9 @@ def main():
 					write_velos		=	False										,
 					J_ex			=	1.0											,
 					t_hopp			=	1.0											,
-					delta_min		=	0.9											,
-					delta_max		=	1.1											,
-					delta_steps		=	5
+					lmb_r_min		=	0.0											,
+					lmb_r_max		=	0.3											,
+					lmb_steps		=	3
 				)
 	print("the following job dirs where returned: ",job_dirs)
 	print("\n")
@@ -204,9 +210,10 @@ def main():
 
 	print("now try to plot everyhting \n ...")
 
-
-	line_style	=	['-',':','-',':','-']
-	plot_color	=	['orange','orange','black','blue','blue']
+	id_str		=	'bands_d'
+	id_formula	=	r'$\lambda_R$'
+	line_style	=	['-','-','-']
+	plot_color	=	['black','lightblue','darkblue']
 
 
 	plot_bandstruct(	job_dirs, id_str, id_formula, line_style, plot_color, pdf_file, label_size=14, y_tick_size=12, plot_in_ev=True )
