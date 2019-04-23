@@ -504,42 +504,32 @@ module wann_interp
 		complex(dp),					intent(in)		::	U_k(:,:)
 		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
 		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		complex(dp),	allocatable						::	U_dag(:,:), tmp(:,:), M_in(:,:)
+		complex(dp),	allocatable						::	U_dag(:,:), tmp(:,:), M_in(:,:), work(:,:)
 		integer											::	a, b
 		!
 		allocate(	U_dag(		size(U_k,1), size(U_k,2)	))
-		allocate(	tmp(		size(U_k,1), size(U_k,2)	))
 		allocate(	M_in(		size(U_k,1), size(U_k,2)	))
-
+		allocate(	work(		size(U_k,1), size(U_k,2)	))
+		!
 		U_dag	=	conjg(	transpose(	U_k		))
 		!
 		!
 		do a = 1, 3
 			!
 			!	VELOCITIES
-										M_in			=	H_ka(a,:,:)
-										!	BLAS
-										!call	blas_matmul(	M_in, 	U_k,		tmp			)
-										!call	blas_matmul(	U_dag, 	tmp,		M_in		)
-										!	matmul
-										tmp				=	blas_matmul(M_in, U_k)
-										M_in			=	blas_matmul(U_dag,tmp)		
-										!
-										H_ka(a,:,:)		=	M_in(:,:)
+										M_in				=	H_ka(a,:,:)
+										H_ka(a,:,:)			=	unit_rot(	M_in,		U_k, U_dag, 	work)
+
 			!	CONNECTION
 			if( allocated(A_ka))then	
-										M_in			=	A_ka(a,:,:)
-										tmp(:,:)		=	blas_matmul(	U_dag		,	tmp		)
-										A_ka(a,:,:)		=	blas_matmul(	tmp			, 	U_k		)
-										!call	blas_matmul(	U_dag,	tmp		,	tmp		)
-										!call	blas_matmul(	tmp,	U_k		,	A_ka(a,:,:))
+										M_in				=	A_ka(a,:,:)
+										A_ka(a,:,:)			=	unit_rot(	M_in,		U_k, U_dag, 	work)
 			end if
 			!	CURVATURE
 			if( allocated(Om_kab)	)then
 				do b = 1,3 
-										tmp				=	Om_kab(a,b,:,:)
-										tmp				=	blas_matmul(	U_dag		,	tmp		)
-										Om_kab(a,b,:,:)	=	blas_matmul(	tmp			,	U_k		)	
+										M_in				=	Om_kab(a,b,:,:)
+										Om_kab(a,b,:,:)		=	unit_rot(	M_in,		U_k, U_dag, 	work)
 				end do
 			end if
 			!
@@ -549,14 +539,16 @@ module wann_interp
 		return
 	end subroutine	
 
-	function unit_rot(	M,	U, U_dag	)	result(M_rot)
-		complex(dp),	intent(in)		::	M(:,:), U(:,:), U_dag(:,:)
+	function unit_rot(	M,	U, U_dag, tmp	)	result(M_rot)
+		complex(dp),	intent(in)		::	M(:,:), U(:,:), U_dag(:,:) 
+		complex(dp),	intent(inout)	::	tmp(:,:)
 		complex(dp),	allocatable		::	M_rot(:,:)
-		complex(dp), save,	allocatable		::	tmp1(:,:), tmp2(:,:)
-
-
-
-
+		!
+		allocate(	M_rot(	size(M,1),	size(M,2)	))
+		!
+		tmp		=	blas_matmul(	  M		,	U	)
+		M_rot	=	blas_matmul(	U_dag	,  tmp	)
+		!
 		return
 	end function
 
