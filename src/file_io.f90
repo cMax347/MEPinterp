@@ -667,8 +667,10 @@ module file_io
 		rHopp	= 	rHopp / aUtoAngstrm
 		!
 		!
-		write(*,'(a,i7.7,a)',advance="no")	"[#",mpi_id,";read_tb_file]: success (input interpretation: nWfs="
-		write(*,'(i6,a,i6,a)')				f_nwfs, ";	nrpts=",f_nSC,")!"
+		write(*,'(a,i7.7,a,i4,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_tb_file]: unit=#",mpi_unit," SUCCESS (input interpretation: nWfs=",		&
+												f_nwfs, ";	nrpts=",f_nSC,")."
+		!
+		!
 		return
 	end subroutine 
 
@@ -756,7 +758,7 @@ module file_io
 		H_mat	= H_mat / aUtoEv
 		!
 		write(*,'(a,i7.7,a,i4,a,i6,a,i6,a,i5)')	"[#",mpi_id,";read_hr_file]: unit=#",mpi_unit," SUCCESS (input interpretation: nWfs=",		&
-												f_nwfs, ";	nrpts=",size(R_vect,2),") on unit: "
+												f_nwfs, ";	nrpts=",size(R_vect,2),")."
 		return
 	end subroutine
 
@@ -804,7 +806,7 @@ module file_io
 		!convert angstom to (au)
 		r_mat	= r_mat	/ aUtoAngstrm
 		!
-		write(*,'(a,i7.7,a,i6,a)')	"[#",mpi_id,";read_r_file]: success (input interpretation: nWfs=",f_nwfs, ";)"				
+		write(*,'(a,i7.7,a,i4,a)')	"[#",mpi_id,";read_r_file]: unit=#",mpi_unit," SUCCESS "
 		!
 		return
 	end subroutine
