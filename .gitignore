@@ -131,13 +131,13 @@ Temporary Items
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-*$py.class
+#*.py[cod]
+#*$py.class
 
 # C extensions
 
 # Distribution / packaging
-.Python
+#.Python
 build/
 develop-eggs/
 dist/
