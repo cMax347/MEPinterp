@@ -52,7 +52,8 @@ module core
 	!
 	use file_io,		only:	read_tb_basis,									&
 								write_velo,										&
-								write_hw_list,									&
+								write_hw_lst,									&
+								write_occ_lst,									&
 								write_mep_bands,								&
 								write_mep_tensors,								&
 								write_kubo_mep_tensors,							&
@@ -321,7 +322,8 @@ contains
 		integer,							intent(in)			::	Ne_sys
 		real(dp)												::	opt_error, opt_ef, new_error, ne_sys_re
 		real(dp),		allocatable								::	Ne_glob_sum(:)
-		integer													::	eF_idx, occ_file
+		real(dp),		allocatable								::	occ_lst(:,:)
+		integer													::	eF_idx
 		!
 		!^^^^^^^^^^^^
 		!	get sum over (mpi-parallel) k-pts
@@ -333,6 +335,9 @@ contains
 		!
 		!
 		if(	mpi_id	==	mpi_root_id) 	then
+			!
+			allocate(	occ_lst(2,	size(ef_lst,1))	)
+			!
 			write(*,*)		"~"
 			write(*,*)		"~"
 			write(*,*)		"~"
@@ -340,13 +345,6 @@ contains
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:^^^^^^^	FERMI SELECTOR   ^^^^^^^^^^^^^^^^^^^^^^^"
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:	select eF s.t. 	N_el(eF)= N_el "
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-			
-			!	
-			!^^^^^^^^^^^^
-			!	init file to write occupation numbers
-			open(newunit=occ_file, file = out_dir//'occ.dat', form='formatted', action='write',	access='stream', status='replace')
-
-
 			!^^^^^^^^^^^^
 			!	get initial minimum
 			ne_sys_re	=	real(Ne_sys,dp)
@@ -374,8 +372,11 @@ contains
 				!	get new error
 				new_error	=	abs(	Ne_glob_sum(eF_idx)	-	ne_sys_re	)
 				!
+				occ_lst(1,	eF_idx)		=	ef_lst(ef_idx) * aUtoEv
+				occ_lst(2,	eF_idx)		=	Ne_glob_sum(eF_idx)
 				!	output
-				write(occ_file,'(f16.8,a,f16.8)')	ef_lst(ef_idx) *	 aUtoEv,"	",	Ne_glob_sum(eF_idx)
+				!write(occ_file,'(f16.8,a,f16.8)')	ef_lst(ef_idx) *	 aUtoEv,"	",	Ne_glob_sum(eF_idx)
+				
 				write(*,'(a,i7.7,a,i5,a,f12.6,a,f12.6,a,e16.8)',advance='no')	"[#",mpi_id,";fermi_selector]:	",	&
 										eF_idx," |	   ",  ef_lst(ef_idx)*aUtoEv,"  | ",Ne_glob_sum(eF_idx),"	 |	",new_error
 				!
@@ -392,7 +393,7 @@ contains
 				!
 			end do
 			!
-			close(occ_file)
+			call write_occ_lst(	occ_lst	)
 			!
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -----------------------------------------------------------------------"		
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -----------------------------------------------------------------------"		
@@ -544,7 +545,7 @@ contains
 		if(mpi_id == mpi_root_id) then
 			write(*,*)	"*"
 			write(*,*)	"------------------OUTPUT----------------------------------------------"
-			call write_hw_list(			n_hw, 	hw_min,	hw_max															)
+			call write_hw_lst(			n_hw, 	hw_min,	hw_max															)
 			call write_mep_bands(			n_ki_glob,		mep_bands_glob												)
 			call write_mep_tensors(			n_ki_glob,												&
 															mep_sum_ic_glob, 	mep_sum_lc_glob, 	mep_sum_cs_glob		)

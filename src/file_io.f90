@@ -28,7 +28,8 @@ module file_io
 													write_en_global,					&
 													write_velo,							&
 													!-----------------------------------!
-													write_hw_list,						&
+													write_hw_lst,						&
+													write_occ_lst,						&
 													write_mep_bands,					&
 													write_mep_tensors,					&
 													write_kubo_mep_tensors,				&
@@ -183,7 +184,7 @@ module file_io
 	end subroutine
 
 
-	subroutine write_hw_list(n_hw, 	hw_min,	hw_max	)
+	subroutine write_hw_lst(n_hw, 	hw_min,	hw_max	)
 		integer,			intent(in)		::	n_hw
 		real(dp),			intent(in)		::	hw_min, hw_max
 		real(dp),			allocatable		::	hw_lst(:)
@@ -208,7 +209,21 @@ module file_io
 		end if
 		!
 		call save_npy(	out_dir//'hw_lst.npy',		hw_lst	)
-		write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_hw_list]: wrote hw list to ",trim(out_dir//'hw_lst.npy')
+		write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_hw_lst]: wrote hw list to ",trim(out_dir//'hw_lst.npy')
+		!
+		return
+	end subroutine
+
+
+	subroutine write_occ_lst(	occ_lst	)
+		real(dp),	intent(in)		::	occ_lst(:,:)
+		!
+		if(	size(occ_lst,1)	==	2	)	then
+			call save_npy(	out_dir//'occ_lst.npy',		occ_lst	)
+			write(*,'(a,i7.7,a)')	"[#",mpi_id,";write_occ_lst]: 	SUCCESS wrote occ_lst to "//out_dir//'occ_lst.npy'
+		else
+			write(*,'(a,i7.7,a)')	"[#",mpi_id,";write_occ_lst]: 	WARNING occ_lst has wrong shape, no file will be written!"
+		end if
 		!
 		return
 	end subroutine
