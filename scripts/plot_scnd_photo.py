@@ -44,8 +44,9 @@ class plotter:
 		#	read data
 		self.hw_lst	=	np.load(self.data_dir+'/hw_lst.npy')
 		self.occ_lst=	np.load(self.data_dir+'/occ_lst.npy')
-		for elem in self.occ_lst:
-			self.ef_lst.append(		elem[0]		)
+		self.ef_lst	=	self.occ_lst[0][:]
+		#for elem in self.occ_lst:
+		#	self.ef_lst.append(		elem[0]		)
 		#
 		self.scndPhoto_data	=	np.load(self.data_dir+'/photoC_2nd.npy')	
 		np_arr				=	np.array(	self.scndPhoto_data)
@@ -77,6 +78,7 @@ class plotter:
 			print("\tlen(hw_lst)=",len(self.hw_lst))
 		if len(self.ef_lst)!=raw_shape[4]:
 			print("[init]: 	ERROR ef_lst has wrong length") 
+			print("[init]: ef_lst:",self.ef_lst)
 			stop
 		else:
 			print("\tlen(ef_lst)=",len(self.ef_lst))
@@ -181,7 +183,7 @@ class plotter:
 		dim_str.append('z')
 		#
 		#	color code for the AHC plot
-		colors 	= discrete_cmap(len(self.ef_lst),	'seismic')
+		colors 	= discrete_cmap(len(self.ef_lst),	'cool')
 		#
 		#LOOP SPACIAL COMPONENTS OF TENSOR (make individual plot for each)
 		for x in range(0,3):
@@ -205,7 +207,7 @@ class plotter:
 							scnd_photo_plot.append(		scale	*	self.scndPhoto_data[x][i][j][hw_idx][ef_idx]		)
 						#
 						#	plot
-						ax.plot(self.hw_lst, scnd_photo_plot,'-', color=colors[ef_idx],label=ef_val)
+						ax.plot(self.hw_lst, scnd_photo_plot,'-', color=colors[ef_idx],label='{:+4.2f}'.format(ef_val))
 					#
 					#
 					#
