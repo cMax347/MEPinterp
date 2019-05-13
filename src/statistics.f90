@@ -161,6 +161,7 @@ contains
 	function d1_fd_stat_deriv(fd_distrib, T_kelvin) result(fd_deriv)
 		real(dp), 		intent(in)			::	fd_distrib(:,:), T_kelvin
 		real(dp),		allocatable			::	fd_deriv(:,:)
+		real(dp)							::  x
 		integer								::	ef_idx, n_ef, n_wf, n
 		!
 		!	w90git:
@@ -183,7 +184,11 @@ contains
        	!
       	do n = 1, n_wf
        		do ef_idx = 1, n_ef
-       			fd_deriv(ef_idx,n)	=1.00_dp 	/ 	 (		2.00_dp	+ 2.00_dp *	cosh( fd_distrib(ef_idx,n) )	)			
+       			x	=	fd_distrib(	ef_idx,	n)
+       			!
+       			!	FERMI-DIRAC SMEARING
+       			if( abs(x) .le. 36.0_dp)	&
+       				fd_deriv(ef_idx,n)	=1.00_dp 	/ 	 (		2.00_dp	+ exp(-x) + exp(+x)	)
        		end do        		
        	end do
        	!

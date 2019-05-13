@@ -73,6 +73,11 @@ contains
 
 	function get_gyro_D(en_k, V_ka, Om_kab, fd_deriv) result(D_ab)
 		!
+		!	calculates Berry curvature dipole matrix D	
+		!
+		!		->	D is traceless
+		!		->	D is dimensionless
+		!
 		!	see eq.(2) of PRB 97 035158 (2018)
 		!
 		real(dp),						intent(in)			::		en_k(:), fd_deriv(:,:)
@@ -152,6 +157,8 @@ contains
 
 	function get_gyro_Dw(en_k, V_ka, A_ka,hw_lst, fd_deriv)	result(Dw_ab)
 		!
+		!	calculates the finite-frequency generalization of Berry curvature dipole
+		!
 		!	see eq.(12) of PRB 97 035158 (2018)
 		!
 		complex(dp),	allocatable,	intent(in)	::	V_ka(:,:,:), A_ka(:,:,:)
@@ -198,6 +205,10 @@ contains
 
 
 	function get_gyro_C(V_ka,  fd_deriv) result(C_ab)
+		!
+		!	calculates the Ohmic conductivity in constant relaxation time approximation
+		!	units of surface current density (A/cm)
+		!
 		real(dp),		intent(in)			::		fd_deriv(:,:)
 		complex(dp),	intent(in)			::		V_ka(:,:,:)
 		complex(dp),	allocatable			::		C_ab(:,:,:)
