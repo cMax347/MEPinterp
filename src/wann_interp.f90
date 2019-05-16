@@ -21,9 +21,13 @@ module wann_interp
 									is_equal_mat,			&
 									is_herm_mat,			&
 									is_skew_herm_mat		
-	use input_paras,	only:		debug_mode,	wf_centers,	&
+	use input_paras,	only:		debug_mode,				&
+									use_kspace_ham,			&
+									kspace_ham_id,			&
+									wf_centers,				&
 									use_cart_velo,			&
 									kubo_tol, a_latt
+	use model_hams,		only:		get_kspace_ham
 	use file_io,		only:		write_eig_binary,		&
 									write_ham_binary,		&
 									write_velo
@@ -70,7 +74,7 @@ module wann_interp
 		!	see 	>>>	PRB 74, 195118 (2006)	<<<			for more details on Wannier interpolation
 		!
 		logical,						intent(in)				::	do_gauge_trafo
-		complex(dp),					intent(in)				::	H_real(:,:,:)
+		complex(dp),	allocatable,	intent(in)				::	H_real(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)			::	r_real(:,:,:,:)
 		integer,						intent(in)				::	kpt_idx
 		real(dp),						intent(in)				::	R_frac(:,:), kpt(3)	
@@ -82,13 +86,23 @@ module wann_interp
 		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
 		!
 		!
-								allocate(	U_k(			size(H_real,1),		size(H_real,2)		)		)		
-		if(	allocated(V_ka)	)	allocate(	H_ka(	3	,	size(H_real,1),		size(H_real,2)	 	)		)
+								allocate(	U_k(			size(e_k,1),		size(e_k,1)		)		)		
+!		if(	allocated(V_ka)	)	allocate(	H_ka(	3	,	size(e_k,1),		size(e_k,1)	 	)		)
+		allocate(	H_ka(	3	,	size(e_k,1),		size(e_k,1)	 	)		)
+
 		!
 		!
 		!
-		!ft onto k-space (W)-gauge
-		call FT_R_to_k(H_real, r_real,  R_frac, wf_centers, kpt_idx, kpt, U_k,  H_ka, A_ka, Om_kab)
+		if(	.not. use_kspace_ham )	then
+			!
+			!	INTERPOLATE REAL SPACE BASIS
+			call FT_R_to_k(H_real, r_real,  R_frac, wf_centers, kpt_idx, kpt, U_k,  H_ka, A_ka, Om_kab)
+		else
+			!
+			!	USE MODEL HAM 
+			call get_kspace_ham(kspace_ham_id,	kpt_idx, kpt, U_k, H_ka)
+		end if
+
 		!
 		!
 		!get energies (H)-gauge
@@ -178,11 +192,15 @@ module wann_interp
 		do_en_grad		= allocated(H_ka)
 		use_pos_op		= allocated(A_ka) .and. allocated(r_real) .and. allocated(Om_kab)
 		!
+		write(*,*)	"FT_R_to_kL: do_en_grad",do_en_grad
+		write(*,*)	"FT_R_to_kL: use_pos_op",use_pos_op
+
 		!init
 						H_k		= 	0.0_dp
 		if(do_en_grad)	H_ka	= 	0.0_dp
 		if(use_pos_op)	A_ka	= 	0.0_dp
 		if(use_pos_op)	Om_kab	= 	0.0_dp
+		write(*,*)	"FT_R_to_kL: zero init done" 
 		!
 		kpt_cart	=	get_cart_kpt(a_latt, kpt)
 
@@ -198,11 +216,13 @@ module wann_interp
 			!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|
 			!	---------																								!|
 			allocate(	delta_at(size(atom_frac,1),size(atom_frac,2),size(atom_frac,2)))
+			write(*,*)	"FT_R_to_kL: delta_at allo" 
 			do n = 1, n_wf
 				do m = 1, n_wf
 					delta_at(:,n,m)	=	atom_frac(:,m) - atom_frac(:,n)	
 				end do
 			end do
+			write(*,*)	"FT_R_to_kL: delta_at init done" 
 			!$OMP PARALLEL DEFAULT(none)								&
 			!$OMP PRIVATE( 	dR, dR_cart,  ft_angle, ft_phase, m,n)		&
 			!$OMP SHARED(  	use_cart_velo,kpt_cart, n_sc, n_wf,kpt_idx, R_frac, delta_at, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
@@ -239,6 +259,7 @@ module wann_interp
 			end do
 			!$OMP END DO
 			!$OMP END PARALLEL
+			write(*,*)	"FT_R_to_kL: finished omp region" 
 			! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!|
 			!
 			!
@@ -380,6 +401,7 @@ module wann_interp
 			call check_W_gauge_herm(kpt, H_k, H_ka, A_ka, Om_kab)
 		end if	
 		!
+		write(*,*)	"FT_R_to_kL: byby" 
 		return
 	end subroutine
 
@@ -504,7 +526,7 @@ module wann_interp
 		complex(dp),					intent(in)		::	U_k(:,:)
 		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
 		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		complex(dp),	allocatable						::	U_dag(:,:), tmp(:,:), M_in(:,:), work(:,:)
+		complex(dp),	allocatable						::	U_dag(:,:), M_in(:,:), work(:,:)
 		integer											::	a, b
 		!
 		allocate(	U_dag(		size(U_k,1), size(U_k,2)	))

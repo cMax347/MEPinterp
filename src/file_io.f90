@@ -35,10 +35,10 @@ module file_io
 													write_kubo_mep_tensors,				&
 													write_ahc_tensor,					&
 													write_opt_tensors,					&
+													write_photoC_tensors,				&
 													write_gyro_tensors
 
 	character(len=64)						::		format='(a,i7.7)'
-	integer									::		num_bands
 	
 
 
@@ -114,8 +114,9 @@ module file_io
 	end subroutine
 
 
-	subroutine write_en_global(kpt_latt)
+	subroutine write_en_global(kpt_latt, num_bands)
 		real(dp),	intent(in)			::	kpt_latt(:,:)
+		integer,	intent(in)			::	num_bands
 		real(dp),	allocatable			::	ek_bands(:)
 		integer							::	qi_idx, band, x, mpi_unit
 		!
@@ -127,9 +128,8 @@ module file_io
 		write(mpi_unit,*)	'# energies interpolated by MEPinterp program, written '//cTIME(time())
 		write(mpi_unit,*)	'# first 3 columns give the relative k-mesh, 4th column are the enegies'
 		write(mpi_unit,*)	'# Kpt_idx  K_x (frac)       K_y (frac)        K_z (frac)       Energy (Hartree)  '
-		do qi_idx = 1, size(kpt_latt,2)
+		do qi_idx = 1, size(kpt_latt,2)			
 			call read_en_binary(qi_idx, ek_bands)
-			!
 			do band = 1, size(ek_bands,1)
 				write(mpi_unit,'(i7,a)',advance="no")	qi_idx,'	'
 				write(mpi_unit,'(200(f16.8))',advance="no")	(kpt_latt(x,qi_idx), x=1,size(kpt_latt,1)	)
@@ -374,25 +374,33 @@ module file_io
 	end subroutine
 
 
-	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm, photo_2nd)
+	subroutine write_opt_tensors(n_ki_glob, s_symm, a_symm)
 		integer,						intent(in)			::	n_ki_glob
 		complex(dp),	allocatable,	intent(in)			::	s_symm(:,:,:),	a_symm(:,:,:)
-		complex(dp),	allocatable,	intent(in)			::	photo_2nd(:,:,:,:,:)
+		
 		!
 		if(allocated(s_symm)) 		call save_npy(	out_dir//"opt_Ssymm.npy", 	s_symm		)
 		if(allocated(a_symm))		call save_npy(	out_dir//"opt_Asymm.npy", 	a_symm		)
-		if(allocated(photo_2nd))	call save_npy(	out_dir//'photoC_2nd.npy', 	photo_2nd	)
+		
 		!
 		if(allocated(s_symm))	&
 			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote symm opt tens to ",	out_dir//"opt_Ssymm.npy"
 		if(allocated(a_symm))	&
 			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote symm opt tens to ",	out_dir//"opt_Asymm.npy"
-		if(allocated(photo_2nd))&
-			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote 2nd opt tens to ",	out_dir//'photoC_2nd.npy'
-		!
 		return
 	end subroutine	
 
+
+	subroutine write_photoC_tensors(n_ki_glob, photo_2nd)
+		integer,						intent(in)			::	n_ki_glob
+		complex(dp),	allocatable,	intent(in)			::	photo_2nd(:,:,:,:,:)
+		!
+		if(allocated(photo_2nd))	call save_npy(	out_dir//'photoC_2nd.npy', 	photo_2nd	)
+		if(allocated(photo_2nd))	&
+			write(*,'(a,i7.7,a,a)')	"[#",mpi_id,";write_opt_tensors]:	wrote 2nd opt tens to ",	out_dir//'photoC_2nd.npy'
+		!
+		return
+	end subroutine
 
 	subroutine write_gyro_tensors(n_ki_glob, C_tens, D_tens, Dw_tens)
 		integer,					intent(in)		::	n_ki_glob
@@ -513,6 +521,7 @@ module file_io
 			e_bands	=	0.0_dp
 			write(*,*)	"[read_en_binary]: WARNING could not read ",	filepath,". Does not exist"
 		end if
+		write(*,*)	"[read_en_binary]: read ",size(e_bands)," bands for #qi",qi_idx
 		!
 		return
 	end subroutine
@@ -858,9 +867,8 @@ module file_io
 			!
 		end if
 		!
-		!	GET BASIS SIZE (NUM_BANDS)
+		!	CHECK IF SYMMETRYIC
 		if(	.not. (size(H_mat,1) == size(H_mat,2)	)	)	stop '[read_tb_basis]:	H_mat is not symmetric'
-		num_bands=size(H_mat,1)
 		!
 		!	CHECK BASIS CONSISTENCY
 		if( r_exist	)	then

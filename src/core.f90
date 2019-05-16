@@ -19,6 +19,7 @@ module core
 								mpi_allreduce_sum
 	use statistics,		only:	fd_stat, fd_stat_deriv, fd_get_N_el
 	use input_paras,	only:	use_mpi,										&
+								use_kspace_ham,	kspace_ham_id,					&
 								do_gauge_trafo,									&
 								do_mep,											&
 								do_write_velo,									&
@@ -26,6 +27,7 @@ module core
 								do_kubo,										&
 								do_ahc,											&
 								do_opt,											&
+								do_photoC,										&
 								do_gyro,										&
 								debug_mode,										&
 								wf_centers,										&
@@ -42,6 +44,7 @@ module core
 								check_kpt_idx,									&
 								normalize_k_int
 	!								
+	use model_hams,		only:	model_ham_allocator
 	use wann_interp,	only:	get_wann_interp
 	!
 	use mep_niu,		only:	mep_niu_CS,	mep_niu_IC, mep_niu_LC
@@ -59,6 +62,7 @@ module core
 								write_kubo_mep_tensors,							&
 								write_ahc_tensor,								&
 								write_opt_tensors,								&
+								write_photoC_tensors,							&
 								write_gyro_tensors
 	
 
@@ -72,6 +76,7 @@ module core
 	!
 	save
 	integer									::		num_kpts
+	logical,		parameter				::		do_calc_velo=.True.
 contains
 
 
@@ -135,14 +140,29 @@ contains
 		
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
-		!	get		TB	BASIS
+		!	get		TB	BASIS	
 		!----------------------------------------------------------------------------------------------------------------------------------
 		if(use_mpi) call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-		if(mpi_id==mpi_root_id)	then
-			write(*,*)	"*"
-			write(*,*)	"----------------------GET REAL SPACE BASIS---------------------------"
+		
+		if(	use_kspace_ham	)	then
+			if(mpi_id==mpi_root_id)	then
+				write(*,*)	"*"
+				write(*,*)	"----------------------USE K-SPACE MODEL HAMS (MHHHHMM HAMS!)---------"
+			end if
+			!
+			call model_ham_allocator( kspace_ham_id, do_calc_velo	,	en_k, V_ka)
+			!
+		else
+			if(mpi_id==mpi_root_id)	then
+				write(*,*)	"*"
+				write(*,*)	"----------------------GET REAL SPACE BASIS---------------------------"
+			end if
+			call read_tb_basis(			seed_name, R_vect,		H_tb, r_tb					)
+			call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
 		end if
-		call read_tb_basis(			seed_name, R_vect,		H_tb, r_tb					)
+		!
+					allocate(		fd_distrib(		n_eF,	size(en_k,1) 		))
+		if(do_gyro) allocate(		fd_deriv(		n_ef,	size(en_k,1)		))
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get 	k-space
@@ -150,11 +170,7 @@ contains
 		mp_grid				=	get_mp_grid()
 		n_ki_loc			= 	0
 		num_kpts			= 	mp_grid(1)*mp_grid(2)*mp_grid(3)
-		!
-		call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
-		!
-					allocate(		fd_distrib(		n_eF,	size(en_k,1) 		))
-		if(do_gyro) allocate(		fd_deriv(		n_ef,	size(en_k,1)		))
+		
 		!
 		!
 		call print_interp_mode()
@@ -181,6 +197,7 @@ contains
 													H_tb, r_tb, R_vect, wf_centers,					&
 													ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab 		&
 											)
+						write(*,*)	"core: i fetched the interpolation on ki=",ki
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	FERMI SETUP
@@ -238,8 +255,11 @@ contains
 									kubo_opt_s_loc(:,:,:,:)		=	kubo_opt_s_loc(:,:,:,:)	+	tempS							
 									kubo_opt_a_loc(:,:,:,:)		=	kubo_opt_a_loc(:,:,:,:)	+	tempA
 									!			---------------------------------
-									photo2_cond_loc(:,:,:,:,:)	=	photo2_cond_loc(:,:,:,:,:)	&	
-												+	photo_2nd_cond(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr )
+						end if
+						!
+						if(	do_photoC )	then
+							photo2_cond_loc(:,:,:,:,:)	=	photo2_cond_loc(:,:,:,:,:)	&	
+											+	photo_2nd_cond(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr )
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -480,11 +500,13 @@ contains
 			call mpi_reduce_sum(	mep_sum_ic_loc	,	mep_sum_ic_glob		)
 			call mpi_reduce_sum(	mep_sum_lc_loc	,	mep_sum_lc_glob		)
 			call mpi_reduce_sum(	mep_sum_cs_loc	,	mep_sum_cs_glob		)
-			if(mpi_id == mpi_root_id)	 write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected MEP tensors"
+			!
 			call normalize_k_int(mep_sum_ic_glob)
 			call normalize_k_int(mep_sum_lc_glob)
 			call normalize_k_int(mep_sum_cs_glob)
 			call normalize_k_int(mep_bands_glob)
+			!
+			if(mpi_id == mpi_root_id)	 write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected MEP tensors"
 		end if
 		!
 		!
@@ -492,10 +514,12 @@ contains
 			call mpi_reduce_sum(	kubo_mep_ic_loc(:,:,eF_idx)	,	kubo_mep_ic_glob	)
 			call mpi_reduce_sum(	kubo_mep_lc_loc(:,:,eF_idx)	,	kubo_mep_lc_glob	)
 			call mpi_reduce_sum(	kubo_mep_cs_loc(:,:,eF_idx)	,	kubo_mep_cs_glob	)
-			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected KUBO MEP tensors"
+			!
 			call normalize_k_int(kubo_mep_ic_glob)
 			call normalize_k_int(kubo_mep_lc_glob)
 			call normalize_k_int(kubo_mep_cs_glob)
+			!
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected KUBO MEP tensors"
 		end if
 		!
 		!
@@ -503,32 +527,40 @@ contains
 			call mpi_reduce_sum(	kubo_ahc_loc(:,:  ,eF_idx)	,	kubo_ahc_glob		)
 			call mpi_reduce_sum(	velo_ahc_loc(:,:,:,eF_idx)	,	velo_ahc_glob		)
 			call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,eF_idx)	,	kubo_ohc_glob		)
-			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
+			!
 			call normalize_k_int(kubo_ahc_glob)
 			call normalize_k_int(velo_ahc_glob)
 			call normalize_k_int(kubo_ohc_glob)
+			!
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
 		end if
 		!
 		!
 		if( do_opt )											then
 			call mpi_reduce_sum(	kubo_opt_s_loc(:,:,:,eF_idx)	,	kubo_opt_s_glob		)
 			call mpi_reduce_sum(	kubo_opt_a_loc(:,:,:,eF_idx)	,	kubo_opt_a_glob		)
-			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,:) 		,	photo2_cond_glob	)
-			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
+			!
 			call normalize_k_int(kubo_opt_s_glob)
 			call normalize_k_int(kubo_opt_a_glob)
-			call normalize_k_int(photo2_cond_glob)
+			!
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
 		end if 
 		!
+		if(	do_photoC)											then
+			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,:) 		,	photo2_cond_glob	)
+			call normalize_k_int(photo2_cond_glob)
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected photoC tensors"
+		end if
 		!
 		if( do_gyro )											then
 			call mpi_reduce_sum(	gyro_C_loc(:,:,:)			,	gyro_C_glob			)
 			call mpi_reduce_sum(	gyro_D_loc(:,:,:)			,	gyro_D_glob			)
 			call mpi_reduce_sum(	gyro_Dw_loc(:,:,:,:)		,	gyro_Dw_glob		)
-			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
+			!
 			call normalize_k_int(gyro_C_glob)
 			call normalize_k_int(gyro_D_glob)
 			call normalize_k_int(gyro_Dw_glob)
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
 		end if
 		!
 		if(mpi_id == mpi_root_id)	then
@@ -551,7 +583,8 @@ contains
 															mep_sum_ic_glob, 	mep_sum_lc_glob, 	mep_sum_cs_glob		)
 			call write_kubo_mep_tensors(	n_ki_glob,		kubo_mep_ic_glob, 	kubo_mep_lc_glob, 	kubo_mep_cs_glob	)
 			call write_ahc_tensor(			n_ki_glob,		kubo_ahc_glob, 		velo_ahc_glob,		kubo_ohc_glob		)
-			call write_opt_tensors(			n_ki_glob,		kubo_opt_s_glob, 	kubo_opt_a_glob,	photo2_cond_glob	)			
+			call write_opt_tensors(			n_ki_glob,		kubo_opt_s_glob, 	kubo_opt_a_glob							)			
+			call write_photoC_tensors(		n_ki_glob, 		photo2_cond_glob											)
 			call write_gyro_tensors( 		n_ki_glob,		gyro_C_glob, 		gyro_D_glob, 		gyro_Dw_glob		)
 			write(*,*)	"*"
 			write(*,*)	"----------------------------------------------------------------"
@@ -670,12 +703,16 @@ contains
 			allocate(	tempA(						3,3,	n_hw	,	n_eF			)	)				
 			allocate(	kubo_opt_s_loc(				3,3,	n_hw	,	n_eF			)	)
 			allocate(	kubo_opt_a_loc(				3,3,	n_hw	,	n_eF			)	)
-			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	n_eF 			)	)
 			!
 			kubo_opt_a_loc		=	0.0_dp
 			kubo_opt_s_loc		=	0.0_dp
+		end if
+		!
+		if(	 do_photoC ) then
+			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	n_eF 			)	)
 			photo2_cond_loc		=	0.0_dp
 		end if
+
 		!
 		if(	do_gyro	)	then
 			allocate(	gyro_C_loc(					3,3,				n_eF			)	)
@@ -710,9 +747,9 @@ contains
 			write(*,*)	"*"
 			write(*,*)	"*"
 			if(do_gauge_trafo)	then
-					write(*,*)	"***^^^^	-	FULL INTERPOLATION MODE (3Q - KSPACE MODE)	-	^^^^***"
+					write(*,*)	"***^^^^	-	FULL INTERPOLATION MODE (KSPACE MODE)	-	^^^^***"
 			else
-					write(*,*)	"***^^^^	-	WANNIER GAUGE MODE  (3Q - KSPACE MODE) -	^^^^***"
+					write(*,*)	"***^^^^	-	WANNIER GAUGE MODE  (KSPACE MODE) -	^^^^***"
 			end if
 			write(*,*)	"*"
 			write(*,*)	"*"

@@ -8,7 +8,9 @@ module band_calc
 #endif
 	use constants,		only:			dp
 	use mpi_community,	only:			mpi_root_id, mpi_id, mpi_nProcs, ierr
-	use input_paras,	only:			use_mpi, seed_name, a_latt, 					&
+	use input_paras,	only:			use_mpi, 										&
+										use_kspace_ham,	kspace_ham_id,					&
+										seed_name, a_latt, 								&
 										do_gauge_trafo, 								& 
 										wf_centers,										&
 										do_write_velo
@@ -17,19 +19,22 @@ module band_calc
 										write_en_binary, 								&
 										write_en_global,								&
 										write_velo
+	use model_hams,		only:			model_ham_allocator
 	use wann_interp,	only:			get_wann_interp									
 	implicit none
 
 
 	private
 	public		::						band_worker
+	save
+	logical,	parameter	::			do_calc_velo=.False.
 
 
 contains
 
 	subroutine band_worker()
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:), R_vect(:,:)
-		integer								::	num_kpts, ki, k_per_mpi
+		integer								::	num_kpts, num_bands, ki, k_per_mpi
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 				&
 												A_ka(:,:,:), Om_kab(:,:,:,:),				&
 												V_ka(:,:,:)					
@@ -41,6 +46,8 @@ contains
 			write(*,*)	"*"
 			write(*,*)	"*"
 			write(*,*)	"***^^^^	-	BANDSTRUCTURE MODE	-	^^^^***"
+			if(use_kspace_ham)	&
+				write(*,*)	"will use kspace model Hamiltonian!!"
 			write(*,*)	"*"
 			write(*,*)	"*"
 			write(*,*)	"----------------------------------------------------------------"
@@ -54,15 +61,22 @@ contains
 			num_kpts	= size(rel_kpts,2)
 			k_per_mpi	= 0
 			!
-			!	get the data
-			call read_tb_basis(seed_name, R_vect, H_tb, r_tb)
-			call band_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
+			!
+			!	SETUP K-SPACE ARRAYS
+			if(	use_kspace_ham	)	then
+				!	no file input needed
+				call model_ham_allocator(kspace_ham_id,	do_calc_velo,	en_k, V_ka)
+			else
+				!	read real space basis
+				call read_tb_basis(seed_name, R_vect, H_tb, r_tb)
+				call band_allocator(H_tb, r_tb, en_k, V_ka, A_ka, Om_kab)
+			end if
+			num_bands	=	size(en_k,1)
 			!
 			!
-			!	do the work
+			!	LOOP K-POINTS
 			if(use_mpi)		call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 			write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';band_worker/',cTIME(time()),	']:	start interpolating...'
-			!
 			!
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
 				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 				&
@@ -81,7 +95,7 @@ contains
 			!	write the results
 			if(use_mpi)	call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 			if(mpi_id == mpi_root_id)	then
-				call write_en_global(rel_kpts)
+				call write_en_global(rel_kpts, num_bands)
 				write(*,*)'---------------------------------------------------------------------------------------------'
 			end if
 		else
