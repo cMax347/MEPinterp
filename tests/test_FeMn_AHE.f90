@@ -161,6 +161,7 @@ program test_FeMn_AHE
 		call CFG_add(my_cfg,	"jobs%do_kubo"				,		.False.			,	"switch (on/off) this response tens calc"		)
 		call CFG_add(my_cfg,	"jobs%do_ahc"				,		.True.			,	"switch (on/off) this response tens calc"		)
 		call CFG_add(my_cfg,	"jobs%do_opt"				,		.False.			,	"switch (on/off) this response tens calc"		)
+		call CFG_add(my_cfg,	"jobs%do_photoC"			,		.False.			,	"switch (on/off) this response tens calc"		)
 		call CFG_add(my_cfg,	"jobs%do_gyro"				,		.False.			,	"switch (on/off) this response tens calc"		)
 		!~~~~~~~~~~~~
 		!
@@ -172,11 +173,12 @@ program test_FeMn_AHE
 		!~~~~~~~~~~~~
 		!
 		![wannBase]
-		call CFG_add(my_cfg,	"wannBase%seed_name"		,	"FeMn"				,	"seed name of the TB files"						)
-		call CFG_add(my_cfg,	"wannBase%N_wf"				,	8					,	"number of WFs specified in input"				)
+		call CFG_add(my_cfg,	"wannBase%seed_name"		,		"FeMn"			,	"seed name of the TB files"						)
+		call CFG_add(my_cfg,	"wannBase%N_wf"				,		8				,	"number of WFs specified in input"				)
 		call CFG_add(my_cfg,	"wannBase%wf_centers_x"		,	wf_centers(1,:)		,	"array of x coord of relative pos"				)
 		call CFG_add(my_cfg,	"wannBase%wf_centers_y"		,	wf_centers(2,:)		,	"array of y coord of relative pos"				)
 		call CFG_add(my_cfg,	"wannBase%wf_centers_z"		,	wf_centers(3,:)		,	"array of z coord of relative pos"				)
+		call CFG_add(my_cfg,	"wannBase%use_kspace_ham"	,		.False.			,	"swith for using model ham setup in k-space"	)
 		!~~~~~~~~~~~~
 		!
 		![wannInterp]
