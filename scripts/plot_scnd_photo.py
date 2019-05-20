@@ -150,11 +150,12 @@ class plotter:
 
 			
 
-	def plot_hall_like(		self, units='au', scale=1.0, 
+	def plot_hall_like(		self, units='au', scale=1.0, phi_laser=1.0,
 							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
 							line_width=1, label_size=14, xtick_size=12, ytick_size=12,
 							marker_size=12,
-							re_bound=1, im_bound=1
+							upper_bound=1, lower_bound=0,
+							plot_legend=False
 					):
 		print("^")
 		print("^")
@@ -204,7 +205,7 @@ class plotter:
 						#
 						# collect data for current plot
 						for hw_idx, hw_val in enumerate(self.hw_lst):
-							scnd_photo_plot.append(		scale	*	self.scndPhoto_data[x][i][j][hw_idx][ef_idx]		)
+							scnd_photo_plot.append(		np.real(	scale * phi_laser	*	self.scndPhoto_data[x][i][j][hw_idx][ef_idx]		))
 						#
 						#	plot
 						ax.plot(self.hw_lst, scnd_photo_plot,'-', color=colors[ef_idx],label='{:+4.2f}'.format(ef_val))
@@ -218,7 +219,7 @@ class plotter:
 					ax.set_xticks(np.arange(hw_min, hw_max+1.0, 0.1), minor=True)
 					try:	
 						ax.set_xlim([hw_min, hw_max])
-						ax.set_ylim([- re_bound , re_bound  ])
+						ax.set_ylim([lower_bound, upper_bound  ])
 						#
 						ax.set(ylabel=r'$\sigma^{'+dim_str[x]+'}_{'+dim_str[i]+dim_str[j]+'}\;$' +	unit_str)
 						ax.yaxis.label.set_size(label_size)
@@ -235,7 +236,8 @@ class plotter:
 					#ax[1].tick_params(axis='x',which='both', direction='in',labelsize=xtick_size, top=True)
 					#ax[1].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 					#
-					plt.legend(loc='lower right',title=r'$\mathrm{E}_f$ (eV)')
+					if plot_legend:
+						plt.legend(loc='lower right',title=r'$\mathrm{E}_f$ (eV)')
 					plt.tight_layout()
 					fig.subplots_adjust(hspace=0.01)
 					#
@@ -297,12 +299,14 @@ def plot_scnd_photo():
 		#
 		myTest.plot_hall_like(		units			=		'SI'		, 
 									scale			=		1.0			, 
+									phi_laser		=		1.0			,	# = 1j
 									plot_ahc		=		False		, 
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		False		, 
 									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
-									re_bound		=	500,
-									im_bound		=	5
+									upper_bound		=	500,
+									lower_bound		=	0,
+									plot_legend=False
 							)
 		print("...")
 		print('[plot_scnd_photo]:	plotted Hall like tensors')
