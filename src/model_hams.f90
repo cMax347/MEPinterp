@@ -181,7 +181,7 @@ module model_hams
 		!
 		!	LOWER TRIANGLE (CC)
 		H_k(dw,up)			=	conjg(		H_k(up,dw)	)
-		do xi = 1, 3
+		do xi = x, y
 			H_ka(xi,dw,up)	=	conjg(	H_ka(xi,up,dw)	)
 		end do
 		!
