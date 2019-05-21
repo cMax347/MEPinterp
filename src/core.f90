@@ -197,7 +197,6 @@ contains
 													H_tb, r_tb, R_vect, wf_centers,					&
 													ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab 		&
 											)
-						write(*,*)	"core: i fetched the interpolation on ki=",ki
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	FERMI SETUP
