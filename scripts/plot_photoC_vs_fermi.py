@@ -192,18 +192,23 @@ class plotter:
 		plt.title(title)			
 		hw_idx			=	0
 		#
-		for x in range(0,2):
-			for i in range(0,2):
+		for x in range(0,3):
+			
 				#COLLECT a_ij(phi=0:n_phi)
 				#do PLOT
 				#
 				scnd_photo_plot	=	[]
 				#	plot curv for each fermi level
 				for ef_idx, ef_val in enumerate(self.ef_lst):
-					scnd_photo_plot.append(	np.real(	scale * phi_laser	*	self.scndPhoto_data[x][i][i][hw_idx][ef_idx]	))
+					sum_ij	=	0 *1j
+					for i in range(0,3):
+						for j in range(0,3):
+							sum_ij = sum_ij + self.scndPhoto_data[x][i][j][hw_idx][ef_idx] 
+					#
+					scnd_photo_plot.append(	np.real(	scale * phi_laser * sum_ij	))
 				#	plot
 				#
-				plt.plot(self.ef_lst, scnd_photo_plot,'-',label=r'$\sigma^{'+dim_str[x]+'}_{'+dim_str[i]+dim_str[i]+'}\;$')
+				plt.plot(self.ef_lst, scnd_photo_plot,'-',label=r'$  \sigma^{'+dim_str[x]+'}_{ij}\;$')
 		#	save plot when fermi levels are added
 		#
 		ef_max	=	max(self.ef_lst)
@@ -213,7 +218,7 @@ class plotter:
 			ax.set_xlim([ef_min, ef_max])
 			#ax.set_ylim([lower_bound, upper_bound  ])
 			#
-			ax.set(ylabel=r'$\sigma^{a}_{bc}\;$' +	unit_str)
+			ax.set(ylabel=r'$\sigma^{a}_{ij}\;$' +	unit_str)
 			ax.yaxis.label.set_size(label_size)	
 		except:
 			print("[plot_hall_like]: labeling of plot failed")
@@ -221,6 +226,7 @@ class plotter:
 		plt.xlabel(r'$ E_f $ (eV)',	fontsize=label_size)
 		#
 		#
+
 		#ax.set_ylim([mep_min,mep_max])
 		#ax[0].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 		#ax[0].tick_params(axis='x',which='both', direction='in',labelsize=xtick_size)
@@ -235,9 +241,11 @@ class plotter:
 		#
 		outFile_path	= self.plot_dir+'/Jphoto_vs_ef.pdf'
 		plt.savefig(outFile_path)
-		plt.close()
+		print('[plot_hall_like]:	plot saved to '+outFile_path)
+
+		plt.show()
+		#plt.close()
 		#
-		#print('[plot_hall_like]:	finished processing '+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+outFile_path	)
 		print("-------------------------------------------------------------------------------")
 		print("")
 		print("")	
