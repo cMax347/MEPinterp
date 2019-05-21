@@ -38,8 +38,8 @@ contains
 		!
 		
 		!
-		!$OMP  PARALLEL DO DEFAULT(NONE)  																&
-		!$OMP PRIVATE( m, l, dE_nm, df_ln, dE_nl, c, b, vvv_nl_lm_mn, tmp, hw, omega, dE_nl_hw, ef_idx)	&
+		!$OMP  PARALLEL DO DEFAULT(NONE) COLLAPSE(2) 													&
+		!$OMP PRIVATE(l, dE_nm, df_ln, dE_nl, c, b, vvv_nl_lm_mn, tmp, hw, omega, dE_nl_hw, ef_idx)		&
 		!$OMP SHARED(n_wf, n_hw, n_ef, en_k, fd_distrib, V_ka, hw_lst,  i_eta_smr) 						&
 		!$OMP REDUCTION(+: phot_cond)
 		do 	n = 1, n_wf
@@ -66,9 +66,8 @@ contains
 							dE_nl_hw	=	dE_nl +	omega*hw_lst(hw) -	 i_eta_smr		
 							!
 							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	vvv_nl_lm_mn(:,:,:)				&		
-																	/	( dE_nm * dE_nl_hw 	) 		
+													/	( dE_nm * dE_nl_hw * hw_lst(hw)**2	) 		
 						end do
-						tmp(:,:,:,hw)		=	tmp(:,:,:,hw)	/	hw_lst(hw)**2
 					end do
 					!
 					!	LOOP FERMI LEVEL
