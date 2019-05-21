@@ -122,8 +122,12 @@ module model_hams
 			call CFG_add_get(rash_cfg,	"rashba_model%Vex"	,	 Vex		,	"exchange coupling in eV"				)
 			call CFG_add_get(rash_cfg,	"rashba_model%nMag"	,  nMag(1:3)	,	"magnetization direction"				)
 			!
-			write(*,'(a,i5.5,a,f6.3,a,f6.3,a)')	"[#",mpi_id,";read_rashba_config]:	SUCCESS (aR=",aR,"; Vex=",Vex,")"
-			write(*,*)	"nMag=",nMag
+			if(		abs(norm2(nMag))	> 1e-3_dp)	&
+				nMag(:)	=	nMag(:)	/	norm2(nMag)	
+			!
+			write(*,'(a,i5.5,a,f6.3,a,f6.3,a,a,f3.1,a,f3.1,a,f3.1,a)')	"[#",mpi_id,";read_rashba_config]:	SUCCESS (	aR=",			&
+																						aR,	" (eV Ang);	Vex=",Vex," (eV); ",		&
+																				"	nmag= (/,",nMag(1)," ",nMag(2)," " ,nMag(3)," /)	)"
 		else
 			write(*,'(a,i5.5,a)')	"[#",mpi_id,";read_rashba_config]:	WARNING could not find ./rashba.cfg , will use standard rashba model"
 		end if
@@ -132,8 +136,7 @@ module model_hams
 		aR		=	aR		/	(aUtoEv*aUtoAngstrm)
 		Vex		=	Vex		/	aUtoEv
 		!
-		if(		abs(norm2(nMag))	> 1e-3_dp)	&
-			nMag(:)	=	nMag(:)	/	norm2(nMag)	
+		
 		!~
 		!~
 		return
