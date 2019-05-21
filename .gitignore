@@ -37,6 +37,7 @@ bin/**
 
 **/build/
 **/build_dev/
+**/build_kmodel/
 **/build_3q/
 **/build_graph/
 **/tests/test
