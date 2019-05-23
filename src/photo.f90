@@ -62,7 +62,7 @@ contains
 					tmp =	0.0_dp
 					do hw = 1, n_hw
 						do omega = -1, 1, 2
-							dE_nl_hw	=	dE_nl +	omega*hw_lst(hw) -	 i_eta_smr		
+							dE_nl_hw	=	dE_nl +	omega*hw_lst(hw)
 							!
 							tmp(:,:,:,hw)	=	tmp(:,:,:,hw)	+	vvv_nl_lm_mn(:,:,:)				&		
 																	/	( dE_nm * dE_nl_hw 	) 		
