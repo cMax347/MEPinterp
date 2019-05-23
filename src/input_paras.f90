@@ -38,6 +38,7 @@ module input_paras
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
+												k_cutoff,															&
 												N_hw, hw_min, hw_max,												&
 												N_eF, eF_min, eF_max, T_kelvin, i_eta_smr
 
@@ -65,7 +66,7 @@ module input_paras
 	integer						::	N_wf, N_eF, N_hw, kspace_ham_id
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
-									eF_min, eF_max, T_kelvin			
+									k_cutoff=1.0_dp,eF_min, eF_max, T_kelvin			
 	complex(dp)					::	i_eta_smr
 	real(dp),	allocatable		::	wf_centers(:,:)
 
@@ -137,6 +138,7 @@ module input_paras
 				call CFG_add_get(my_cfg,	"wannBase%use_kspace_ham"		,	use_kspace_ham		,	"swith for using model ham setup in k-space")
  				if(use_kspace_ham)	&
  					call CFG_add_get(my_cfg,	"wannBase%kspace_ham_id"	,	kspace_ham_id		,	"IDs the model to use (0:rashba)	"	)
+				call CFG_add_get(my_cfg,	"wannBase%k_cutoff"				,	k_cutoff			,	"cutoff for internal k values"			)
 				!~~~~~~~~~~~~
 				!
 				![wannInterp]
@@ -261,6 +263,7 @@ module input_paras
 				call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		long_seed_name	,	len(long_seed_name)	,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		k_cutoff		,			1			,		MPI_DOUBLE_PRECISION,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				![ATOMS]
 				call MPI_BCAST(		N_wf			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				if(	N_wf > 0) then

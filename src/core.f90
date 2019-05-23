@@ -31,6 +31,7 @@ module core
 								do_gyro,										&
 								debug_mode,										&
 								wf_centers,										&
+								k_cutoff,										&
 								valence_bands, 									&
 								seed_name,										&
 								hw_min, hw_max, n_hw, 							&
@@ -192,7 +193,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	INTERPOLATE	K-POINT
 						!----------------------------------------------------------------------------------------------------------------------------------
-						kpt	=	get_rel_kpt(ki,	kix,kiy,kiz)
+						kpt	=	get_rel_kpt(ki,	kix,kiy,kiz,k_cutoff)
 						call get_wann_interp(		do_gauge_trafo,									& 
 													H_tb, r_tb, R_vect, wf_centers,					&
 													ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab 		&

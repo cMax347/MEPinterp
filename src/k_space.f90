@@ -348,18 +348,29 @@ end subroutine
 	end function
 
 
-	function get_rel_kpt(qi_idx, qix,qiy,qiz) result(kpt)
-		integer,	intent(in)	::	qi_idx, qix, qiy, qiz
-		real(dp),	allocatable	::	kpt(:)
+	function get_rel_kpt(qi_idx, qix,qiy,qiz, kmax) result(kpt)
+		integer,				intent(in)	::	qi_idx, qix, qiy, qiz
+		real(dp),	optional,	intent(in)	::	kmax
+		real(dp),		allocatable			::	kpt(:)
+		real(dp)							::	kmax_int = 1.0_dp
+		logical,		save				::	k_cut_msg=.False.
 		!
 		if(check_kpt_idx(qi_idx, qix,qiy,qiz))	then
 			allocate(kpt(3))
 			!
+			if(present(kmax))	&
+				kmax_int	=	kmax
+			!
+			if (.not. k_cut_msg .and. abs(kmax_int-1.0_dp)>1e-3_dp)	&
+				write(*,'(a,i5.5,a,e10.3,a)')	"[#",mpi_id,";get_rel_kpt]:	WARNING	k_cutoff=",kmax_int,&
+								"	(if you dont know what this means you should fuck off)"
+			k_cut_msg	=	.true.
+			!
 			if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
 				!	mp mesh
-				kpt(1)	=	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
-				kpt(2)	=	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
-				kpt(3)	=	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
+				kpt(1)	=	kmax_int *	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
+				kpt(2)	=	kmax_int *	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
+				kpt(3)	=	kmax_int *	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
 				!
 				!	Wx mesh:
 				!kpt(1)	=	real(qix-1,dp) / real(mp_grid(1))
