@@ -36,7 +36,6 @@ contains
 		allocate(	phot_cond(		3,3,3,	n_hw,	n_ef	))
 		phot_cond	=	0.0_dp
 		!
-		
 		!
 		!$OMP  PARALLEL DO DEFAULT(NONE) COLLAPSE(2) 													&
 		!$OMP PRIVATE(l, dE_nm, df_ln, dE_nl, c, b, vvv_nl_lm_mn, tmp, hw, omega, dE_nl_hw, ef_idx)		&
