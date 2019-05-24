@@ -39,6 +39,7 @@ bin/**
 **/build_dev/
 **/build_3q/
 **/build_graph/
+**/build_kmodel/
 **/tests/test
 **/test_tb_input_writer
 *CMakeCache.txt
