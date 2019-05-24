@@ -393,7 +393,7 @@ module file_io
 
 	subroutine write_photoC_tensors(n_ki_glob, photo_2nd)
 		integer,						intent(in)			::	n_ki_glob
-		complex(dp),	allocatable,	intent(in)			::	photo_2nd(:,:,:,:,:)
+		complex(dp),	allocatable,	intent(in)			::	photo_2nd(:,:,:,:,:,:)
 		!
 		if(allocated(photo_2nd))	call save_npy(	out_dir//'photoC_2nd.npy', 	photo_2nd	)
 		if(allocated(photo_2nd))	&

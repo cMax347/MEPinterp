@@ -40,7 +40,8 @@ module input_paras
 												a_latt, kubo_tol, unit_vol,											&
 												k_cutoff,															&
 												N_hw, hw_min, hw_max,												&
-												N_eF, eF_min, eF_max, T_kelvin, i_eta_smr
+												N_eF, eF_min, eF_max, T_kelvin,										&
+												N_eta_smr ,eta_smr_min, eta_smr_max
 
 
 
@@ -63,10 +64,13 @@ module input_paras
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, do_opt, do_photoC, do_gyro
-	integer						::	N_wf, N_eF, N_hw, kspace_ham_id
+	integer						::	N_wf, N_eta_smr, N_eF, N_hw, kspace_ham_id
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
-									k_cutoff=1.0_dp,eF_min, eF_max, T_kelvin			
+									k_cutoff=1.0_dp,				&
+									eF_min, eF_max, 				&
+									eta_smr_min, eta_smr_max,		&
+									T_kelvin			
 	complex(dp)					::	i_eta_smr
 	real(dp),	allocatable		::	wf_centers(:,:)
 
@@ -152,7 +156,9 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Fermi%eF_min"					,	eF_min				,	"minimum fermi energy( in eV)"			)
 				call CFG_add_get(my_cfg,	"Fermi%eF_max"					,	eF_max				,	"maximum fermi energy( in eV)"			)
 				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"							)				
-				call CFG_add_get(my_cfg,	"Fermi%eta_smearing"			,	eta					,	"smearing (in eV)"						)
+				call CFG_add_get(my_cfg,	"Fermi%N_eta_smr"				,	N_eta_smr			,	"number of electr smr to be probed"		)
+				call CFG_add_get(my_cfg,	"Fermi%eta_smr_min"				,	eta_smr_min			,	"min smearing applied"					)
+				call CFG_add_get(my_cfg,	"Fermi%eta_smr_max"				,	eta_smr_max			,	"max smearing applied"					)
 				call CFG_add_get(my_cfg,	"Fermi%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO formulas"	)
 				!~~~~~~~~~~~~
 				!

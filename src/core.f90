@@ -11,7 +11,7 @@ module core
 #endif
 	use omp_lib
 	use matrix_math,	only:	get_linspace
-	use constants,		only:	dp, aUtoEv
+	use constants,		only:	dp, aUtoEv, i_dp
 	use mpi_community,	only:	mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
 								mpi_ki_selector,								&
 								mpi_bcast_tens,									&
@@ -35,7 +35,8 @@ module core
 								valence_bands, 									&
 								seed_name,										&
 								hw_min, hw_max, n_hw, 							&
-								N_eF, eF_min, eF_max, T_kelvin, i_eta_smr,		&
+								N_eF, eF_min, eF_max, T_kelvin, 				&
+								N_eta_smr ,eta_smr_min, eta_smr_max,  			&
 								out_dir
 	!
 	use k_space,		only:	get_mp_grid, 									&
@@ -94,7 +95,7 @@ contains
 												!local sum targets:
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
 												Ne_loc_sum(:), 							&
-												ef_lst(:), hw_lst(:),					&
+												ef_lst(:),eta_smr_lst(:), hw_lst(:),	&
 												fd_distrib(:,:), fd_deriv(:,:),			&
 												!
 												mep_bands_ic_loc(	:,:,:),	 			&
@@ -116,7 +117,7 @@ contains
 												kubo_ohc_loc(	  :,:,:,:),				&
 												kubo_opt_s_loc(	  :,:,:,:),				&
 												kubo_opt_a_loc(	  :,:,:,:),				&
-												photo2_cond_loc(:,:,:,:,:),				&
+												photo2_cond_loc(:,:,:,:,:,:),			&
 												gyro_C_loc(			:,:,:),				&							
 												gyro_D_loc(			:,:,:),				&
 												gyro_Dw_loc(	  :,:,:,:)																								
@@ -128,8 +129,9 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	allocate
 		!----------------------------------------------------------------------------------------------------------------------------------
-		call get_linspace( ef_min, ef_max, n_eF,			ef_lst)
-		call get_linspace( hw_min, hw_max, n_hw, 			hw_lst)	
+		call get_linspace( ef_min, 		ef_max, 		n_eF,				ef_lst	)
+		call get_linspace( hw_min, 		hw_max, 		n_hw, 				hw_lst	)	
+		call get_linspace( eta_smr_min, eta_smr_max, 	n_eta_smr,		eta_smr_lst	)
 		!
 		call allo_core_loc_arrays(		Ne_loc_sum,																		&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,							&	
@@ -241,25 +243,25 @@ contains
 														+ 	kubo_ahc_tens(en_k,	V_ka,   fd_distrib)
 							!			---------------------------------
 							velo_ahc_loc(:,:,:,:)	= 	velo_ahc_loc(:,:,:,:)	&	
-								 							+	velo_ahc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_eta_smr)
+								 							+	velo_ahc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_dp*eta_smr_lst(1))
 							!			---------------------------------
 							kubo_ohc_loc(:,:,:,:)	= 	kubo_ohc_loc(:,:,:,:)	&
-								 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_eta_smr)
+								 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_dp*eta_smr_lst(1))
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPTICAL CONDUCTIVITY (w90 version via Connection)
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_opt	)	then
-									call kubo_opt_tens(en_k, A_ka, hw_lst, fd_distrib, i_eta_smr,  	tempS, tempA)
+									call kubo_opt_tens(en_k, A_ka, hw_lst, fd_distrib, i_dp*eta_smr_lst(1),  	tempS, tempA)
 									kubo_opt_s_loc(:,:,:,:)		=	kubo_opt_s_loc(:,:,:,:)	+	tempS							
 									kubo_opt_a_loc(:,:,:,:)		=	kubo_opt_a_loc(:,:,:,:)	+	tempA
 									!			---------------------------------
 						end if
 						!
 						if(	do_photoC )	then
-							photo2_cond_loc(:,:,:,:,:)	=	photo2_cond_loc(:,:,:,:,:)	&	
-											+	photo_2nd_cond(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr )
+							photo2_cond_loc(:,:,:,:,:,:)	=	photo2_cond_loc(:,:,:,:,:,:)	&	
+											+	photo_2nd_cond(en_k, V_ka, hw_lst, eta_smr_lst,fd_distrib )
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -461,7 +463,7 @@ contains
 															kubo_ahc_loc(:,:,:)								
 		complex(dp),					intent(in)		::	velo_ahc_loc(:,:,:,:),	kubo_ohc_loc(:,:,:,:),								&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
-															photo2_cond_loc(:,:,:,:,:),													&
+															photo2_cond_loc(:,:,:,:,:,:),													&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!-----------------------------------------------------------------------------------------------------------
 		integer											::	n_ki_glob
@@ -476,7 +478,7 @@ contains
 		complex(dp),			allocatable				::	velo_ahc_glob(:,:,:),														&
 															kubo_ohc_glob(:,:,:),														&
 															kubo_opt_s_glob(:,:,:), kubo_opt_a_glob(:,:,:),								&
-															photo2_cond_glob(:,:,:,:,:),												&
+															photo2_cond_glob(:,:,:,:,:,:),												&
 															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:,:)		
 		!
 		
@@ -547,7 +549,7 @@ contains
 		end if 
 		!
 		if(	do_photoC)											then
-			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,:) 		,	photo2_cond_glob	)
+			call mpi_reduce_sum(	photo2_cond_loc(:,:,:,:,:,:) 		,	photo2_cond_glob	)
 			call normalize_k_int(photo2_cond_glob)
 			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected photoC tensors"
 		end if
@@ -656,7 +658,7 @@ contains
 		complex(dp),	allocatable,	intent(inout)	::	velo_ahc_loc(:,:,:,:), kubo_ohc_loc(:,:,:,:),								&
 															tempS(:,:,:,:), tempA(:,:,:,:), 											&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
-															photo2_cond_loc(:,:,:,:,:),													&
+															photo2_cond_loc(:,:,:,:,:,:),												&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	ALLOCATE & INIT
@@ -709,7 +711,7 @@ contains
 		end if
 		!
 		if(	 do_photoC ) then
-			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	n_eF 			)	)
+			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	n_eta_smr,	n_eF )	)
 			photo2_cond_loc		=	0.0_dp
 		end if
 
