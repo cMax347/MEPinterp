@@ -156,8 +156,8 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Fermi%eF_max"					,	eF_max				,	"maximum fermi energy( in eV)"			)
 				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"							)				
 				call CFG_add_get(my_cfg,	"Fermi%N_eta_smr"				,	N_eta_smr			,	"number of electr smr to be probed"		)
-				call CFG_add_get(my_cfg,	"Fermi%eta_smr_min"				,	eta_smr_min			,	"min smearing applied"					)
-				call CFG_add_get(my_cfg,	"Fermi%eta_smr_max"				,	eta_smr_max			,	"max smearing applied"					)
+				call CFG_add_get(my_cfg,	"Fermi%eta_smr_min"				,	eta_smr_min			,	"min smearing (eV) applied"					)
+				call CFG_add_get(my_cfg,	"Fermi%eta_smr_max"				,	eta_smr_max			,	"max smearing (eV) applied"					)
 				call CFG_add_get(my_cfg,	"Fermi%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO formulas"	)
 				!~~~~~~~~~~~~
 				!
