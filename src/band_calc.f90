@@ -14,10 +14,10 @@ module band_calc
 										do_gauge_trafo, 								& 
 										wf_centers,										&
 										do_write_velo
-	use file_io,		only:			read_kptsgen_pl_file,							&
-										read_tb_basis,									&
-										write_en_binary, 								&
+	use w90_interface,	only:			read_tb_basis
+	use file_io,		only:			write_en_binary, 								&
 										write_en_global,								&
+										!read_kptsgen_pl_file,							&
 										write_velo
 	use model_hams,		only:			model_ham_allocator
 	use wann_interp,	only:			get_wann_interp									
@@ -133,5 +133,36 @@ contains
 		!
 		return
 	end subroutine
+
+
+	logical function read_kptsgen_pl_file(kpt_latt)
+		!reads the kpt file generatred by kptsgen.pl
+		real(dp),			allocatable,	intent(inout)		::	kpt_latt(:,:)
+		character(len=50)										::	filename 
+		integer													::	mpi_unit, num_kpts, kpt
+		real(dp)												::	raw_kpt(3), tmp
+		!
+		filename = 'kpts'
+		inquire(file=filename, exist= read_kptsgen_pl_file)
+		if(read_kptsgen_pl_file ) then
+			!
+			mpi_unit	= mpi_id + 4*mpi_nProcs
+			open(unit=mpi_unit, file=filename, form='formatted', action='read', access='stream', status='old')
+			read(mpi_unit,*) num_kpts, raw_kpt(1)
+			!
+			allocate(	kpt_latt(3,num_kpts)	)
+			!
+			do kpt = 1, num_kpts
+				read(mpi_unit,*) raw_kpt(1:3), tmp
+				kpt_latt(1:3,kpt)	= raw_kpt(1:3)
+			end do
+			close(mpi_unit)
+			write(*,'(a,i7.7,a,i8)')	"[#",mpi_id,"; read_kptsgen_pl_file]: success! num_kpts",num_kpts
+		end if 
+
+		!
+		return 
+	end function
+
 
 end module

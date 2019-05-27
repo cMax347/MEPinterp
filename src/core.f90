@@ -10,6 +10,8 @@ module core
 	use mpi
 #endif
 	use omp_lib
+	use m_npy
+	use endian_swap
 	use matrix_math,	only:	get_linspace
 	use constants,		only:	dp, aUtoEv, i_dp
 	use mpi_community,	only:	mpi_root_id, mpi_id, mpi_nProcs, ierr,			&
@@ -55,17 +57,15 @@ module core
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
 	use photo,			only:	photo_2nd_cond
 	!
-	use file_io,		only:	read_tb_basis,									&
-								write_velo,										&
-								write_hw_lst,									&
-								write_occ_lst,									&
-								write_mep_bands,								&
-								write_mep_tensors,								&
-								write_kubo_mep_tensors,							&
-								write_ahc_tensor,								&
-								write_opt_tensors,								&
-								write_photoC_tensors,							&
-								write_gyro_tensors
+	use w90_interface, 	only:	read_tb_basis
+	use file_io,		only:	write_velo!,										&
+								!write_mep_bands,								&
+								!write_mep_tensors,								&
+								!write_kubo_mep_tensors,							&
+								!write_ahc_tensor,								&
+								!write_opt_tensors,								&
+								!write_photoC_tensors,							&
+								!write_gyro_tensors
 	
 
 
@@ -313,6 +313,12 @@ contains
 										gyro_C_loc, gyro_D_loc,	gyro_Dw_loc,						&
 										photo2_cond_loc												&
 							)
+		!
+		if(mpi_id == mpi_root_id) then 
+			call save_npy(	out_dir//'hw_lst.npy',			hw_lst		)
+			call save_npy(	out_dir//'smr_lst.npy',		eta_smr_lst		)
+			call save_npy(	out_dir//'ef_lst.npy',			eF_lst		)
+		end if
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!----------------------------------------------------------------------------------------------------------------------------------	
@@ -335,8 +341,6 @@ contains
 !----------------------------------------------------------------------------------------------------------------------------------
 !	HELPERS
 !----------------------------------------------------------------------------------------------------------------------------------	
-
-	
 	integer function fermi_selector(	n_ki_glob,	Ne_loc_sum, eF_lst, Ne_sys	) result(opt_idx)
 		integer,							intent(in)			::	n_ki_glob
 		real(dp),  							intent(in)			::	Ne_loc_sum(:)
@@ -415,8 +419,11 @@ contains
 				!
 			end do
 			!
-			call write_occ_lst(	occ_lst	)
+			!	WRITE TO NPY FILE
+			call save_npy(	out_dir//'occ_lst.npy',		occ_lst	)
+			write(*,'(a,i7.7,a)')	"[#",mpi_id,";write_occ_lst]: 	SUCCESS wrote occ_lst to "//out_dir//'occ_lst.npy'
 			!
+			!	PRINT FINAL MSG
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -----------------------------------------------------------------------"		
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -----------------------------------------------------------------------"		
 			write(*,*)				"..."
@@ -453,7 +460,7 @@ contains
 		!
 		!
 		!		local:		sum of k-points	 over local( within single mpi) thread
-		!		global:		sum of k-points over whole mesh
+		!		global:		sum of k-points over whole mesh (mpi_reduce)
 		!
 		!			mep_tens_ic_loc, , mep_tens_lc_loc, mep_tens_cs_loc ar given as arrays over valence bands
 		!-----------------------------------------------------------------------------------------------------------
@@ -578,16 +585,77 @@ contains
 		!-----------------------------------------------------------------------------------------------------------
 		if(mpi_id == mpi_root_id) then
 			write(*,*)	"*"
-			write(*,*)	"------------------OUTPUT----------------------------------------------"
-			call write_hw_lst(			n_hw, 	hw_min,	hw_max															)
-			call write_mep_bands(			n_ki_glob,		mep_bands_glob												)
-			call write_mep_tensors(			n_ki_glob,												&
-															mep_sum_ic_glob, 	mep_sum_lc_glob, 	mep_sum_cs_glob		)
-			call write_kubo_mep_tensors(	n_ki_glob,		kubo_mep_ic_glob, 	kubo_mep_lc_glob, 	kubo_mep_cs_glob	)
-			call write_ahc_tensor(			n_ki_glob,		kubo_ahc_glob, 		velo_ahc_glob,		kubo_ohc_glob		)
-			call write_opt_tensors(			n_ki_glob,		kubo_opt_s_glob, 	kubo_opt_a_glob							)			
-			call write_photoC_tensors(		n_ki_glob, 		photo2_cond_glob											)
-			call write_gyro_tensors( 		n_ki_glob,		gyro_C_glob, 		gyro_D_glob, 		gyro_Dw_glob		)
+			write(*,*)	"------------------TENSOR OUTPUT----------------------------------------------"
+			!
+			!	MEP TENSORS
+			if(allocated(mep_bands_glob))	call save_npy(	out_dir//"mep_bands.npy"	,		mep_bands_glob		)
+			if(allocated(mep_sum_ic_glob)) 	call save_npy(	out_dir//'mep_ic.npy'		, 		mep_sum_ic_glob		)
+			if(allocated(mep_sum_lc_glob)) 	call save_npy(	out_dir//'mep_lc.npy'		, 		mep_sum_lc_glob		)
+			if(allocated(mep_sum_cs_glob)) 	call save_npy(	out_dir//'mep_cs.npy'		, 		mep_sum_cs_glob		)
+			if(allocated(kubo_mep_ic_glob)) call save_npy(	out_dir//'kubo_mep_ic.npy'	,		kubo_mep_ic_glob	)
+			if(allocated(kubo_mep_lc_glob)) call save_npy(	out_dir//'kubo_mep_lc.npy'	,		kubo_mep_lc_glob	)
+			if(allocated(kubo_mep_cs_glob)) call save_npy(	out_dir//'kubo_mep_cs.npy'	,		kubo_mep_cs_glob	)
+			!
+			!	AHC TENSORS			
+			if(allocated(kubo_ahc_glob)) 	call save_npy(	out_dir//'ahc_tens.npy'		,		kubo_ahc_glob		)
+			if(allocated(velo_ahc_glob))	call save_npy(	out_dir//'ahcVELO.npy'		,		velo_ahc_glob		)
+			if(allocated(kubo_ohc_glob))	call save_npy(	out_dir//'ohcVELO.npy'		,		kubo_ohc_glob		)
+			!
+			!	OPTICAL TENSORS			
+			if(allocated(kubo_opt_s_glob)) 	call save_npy(	out_dir//"opt_Ssymm.npy"	, 		kubo_opt_s_glob		)
+			if(allocated(kubo_opt_a_glob))	call save_npy(	out_dir//"opt_Asymm.npy"	, 		kubo_opt_a_glob		)
+			if(allocated(photo2_cond_glob))	call save_npy(	out_dir//'photoC_2nd.npy'	, 		photo2_cond_glob	)
+			!
+			!	GYRO TENSORS			
+			if(allocated(gyro_C_glob)) 		call save_npy(	out_dir//"gyro_C.npy"		, 		gyro_C_glob			)
+			if(allocated(gyro_D_glob)) 		call save_npy(	out_dir//"gyro_D.npy"		, 		gyro_D_glob			)
+			if(allocated(gyro_Dw_glob))		call save_npy(	out_dir//"gyro_Dw.npy"		, 		gyro_Dw_glob		)
+			!~~
+			!~~
+			!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+			!	PRINT MSGs
+			!---
+			!
+			!	MEP
+			if(	allocated(mep_bands_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote mep_band to ",			out_dir//"mep_bands.npy"
+			if(allocated(mep_sum_ic_glob)) 	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote mep (ic) to ",			out_dir//'mep_ic.npy'
+			if(allocated(mep_sum_lc_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote mep (lc) to ",			out_dir//'mep_lc.npy'
+			if(allocated(mep_sum_cs_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote mep (cs) to ",			out_dir//'mep_cs.npy'
+			if(allocated(kubo_mep_ic_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote kubo_mep to ",			out_dir//'kubo_mep_ic.npy'
+			if(allocated(kubo_mep_lc_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote kubo_mep to ",			out_dir//'kubo_mep_lc.npy'
+			if(allocated(kubo_mep_cs_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote kubo_mep to ",			out_dir//'kubo_mep_cs.npy'
+			!
+			!	AHC
+			if(allocated(kubo_ahc_glob)) 	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote AHC tensor to ",			out_dir//'ahc_tens.npy'
+			if(allocated(velo_ahc_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote AHC(hw) tensor to ",		out_dir//'ahcVELO.npy'
+			if(allocated(kubo_ohc_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote OHC(hw) tensor to ",		out_dir//'ohcVELO.npy'
+			!
+			!	OPT
+			if(allocated(kubo_opt_s_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]:	wrote symm opt tens to ",		out_dir//"opt_Ssymm.npy"
+			if(allocated(kubo_opt_a_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]:	wrote symm opt tens to ",		out_dir//"opt_Asymm.npy"
+			if(allocated(photo2_cond_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd opt tens to ",		out_dir//'photoC_2nd.npy'
+			!
+			!	GYRO
+			if(allocated(gyro_C_glob))		&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote GYRO-C tensors to ",		out_dir//"gyro_C.npy"
+			if(allocated(gyro_D_glob))		&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote GYRO-D tensors to ",		out_dir//"gyro_D.npy"
+			if(allocated(gyro_Dw_glob))		&	
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote GYR-DW tensors to ",		out_dir//"gyro_Dw.npy"
+			!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 			write(*,*)	"*"
 			write(*,*)	"----------------------------------------------------------------"
 		end if	

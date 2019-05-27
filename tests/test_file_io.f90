@@ -1,7 +1,7 @@
 program test_file_io
 	use constants, 		only:						dp,	fp_acc	
-	use file_io,		only:						read_tb_basis,					& 
-													write_en_binary, read_en_binary,	&
+	use w90_interface,	only:						read_tb_basis
+	use file_io,		only:						write_en_binary, read_en_binary,	&
 													write_en_global
     use test_helpers,	only:						my_exit,							&
     												write_test_results, push_to_outFile,&

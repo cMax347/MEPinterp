@@ -71,7 +71,6 @@ module input_paras
 									eF_min, eF_max, 				&
 									eta_smr_min, eta_smr_max,		&
 									T_kelvin			
-	complex(dp)					::	i_eta_smr
 	real(dp),	allocatable		::	wf_centers(:,:)
 
 
@@ -85,7 +84,7 @@ module input_paras
 !public
 	logical function init_parameters()
 		type(CFG_t) 			:: 	my_cfg
-		real(dp)				::	a1(3), a2(3), a3(3), eta
+		real(dp)				::	a1(3), a2(3), a3(3)
 		integer					::	mp_grid(3)
 		logical					::	input_exist
 		character(len=132)		:: 	long_seed_name
@@ -188,13 +187,11 @@ module input_paras
 				!
 				N_hw			=	max(1,N_hw)
 				!
-				eF_min		= 	eF_min	/	aUtoEv
-				eF_max		=	eF_max	/	aUtoEv
-				eta			=	eta		/	aUtoEv
+				eF_min			= 	eF_min		/	aUtoEv
+				eF_max			=	eF_max		/	aUtoEv
 				!
-				!	derived constants
-				i_eta_smr	=	cmplx(0.0_dp,	eta	,dp)
-				!
+				eta_smr_min		=	eta_smr_min	/	aUtoEv
+				eta_smr_max		=	eta_smr_max	/	aUtoEv
 				!
 				!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 				write(*,*)					"*"
