@@ -166,9 +166,9 @@ program test_FeMn_AHE
 		!~~~~~~~~~~~~
 		!
 		![unitCell]
-		call CFG_add(my_cfg,	"unitCell%a1"      			,		a1(1:3)  	  	,	"a_x lattice vector"							)
-		call CFG_add(my_cfg,	"unitCell%a2"      			,		a2(1:3)  	  	,	"a_y lattice vector"							)
-		call CFG_add(my_cfg,	"unitCell%a3"      			,		a3(1:3)  	  	,	"a_z lattice vector"							)
+		call CFG_add(my_cfg,	"unitCell%a1"      			,		a1(1:3)  	  	,	"a_x lattice vector (bohr)"							)
+		call CFG_add(my_cfg,	"unitCell%a2"      			,		a2(1:3)  	  	,	"a_y lattice vector (bohr)"							)
+		call CFG_add(my_cfg,	"unitCell%a3"      			,		a3(1:3)  	  	,	"a_z lattice vector (bohr)"							)
 		call CFG_add(my_cfg,	"unitCell%a0"				,		a0				,	"lattice scaling factor "						)
 		!~~~~~~~~~~~~
 		!
@@ -193,6 +193,11 @@ program test_FeMn_AHE
 		call CFG_add(my_cfg,	"Fermi%eF_max"					,	0				,	"maximum fermi energy( in eV)"					)
 		call CFG_add(my_cfg,	"Fermi%Tkelvin"					,	0.0_dp			,	"Temperature"									)				
 		call CFG_add(my_cfg,	"Fermi%eta_smearing"			,	0.1_dp			,	"smearing for optical conductivty"				)
+		call CFG_add(my_cfg,	"Fermi%N_eta_smr"				,	1				,	"size of smearing linspace")
+		call CFG_add(my_cfg,	"Fermi%eta_smr_min"				,	0.1_dp			,	"min smearing value in eV")
+		call CFG_add(my_cfg,	"Fermi%eta_smr_max"				,	0.1_dp			,	"max smearing value in eV")
+
+
 		call CFG_add(my_cfg,	"Fermi%kuboTol"					,	1e-5_dp			,	"numerical tolearnce for KUBO formulas"			)
 		!~~~~~~~~~~~~
 		!
