@@ -48,6 +48,7 @@ contains
 				dE_nm	=	en_k(n) - en_k(m)
 				do l = 1, n_wf
 					if(l==n) cycle
+					tmp 	=	0.0_dp
 					dE_nl 	=	en_k(n) 		- 	en_k(l)
 					df_ln(:)=	fd_distrib(:,l)	-	fd_distrib(:,n)
 					!
@@ -64,7 +65,6 @@ contains
 						dE_nl_smr	=	cmplx(	dE_nl,	-eta_smr_lst(smr), dp)		
 						!
 						!	LOOP FREQUENCIES
-						tmp =	0.0_dp
 						do hw = 1, n_hw
 							do omega = -1, 1, 2
 								dE_nl_hw	=	dE_nl_smr +	real(omega,dp)*hw_lst(hw)	
