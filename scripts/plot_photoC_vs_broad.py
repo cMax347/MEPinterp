@@ -12,6 +12,8 @@ ey 	=	np.array([0,1,0])
 ez 	=	np.array([0,0,1])
 
 
+au_to_ev	=	 27.211385
+
 def discrete_cmap(N, base_cmap=None):
     """Create an N-bin discrete colormap from the specified input map"""
 
@@ -46,9 +48,16 @@ class plotter:
 		self.scndPhoto_data		=	[]
 
 		#	read data
-		self.hw_lst	=	np.load(self.data_dir+'/hw_lst.npy')
-		self.occ_lst=	np.load(self.data_dir+'/occ_lst.npy')
-		self.ef_lst	=	self.occ_lst[0][:]
+		self.smr_lst		=	np.load(self.data_dir+'/smr_lst.npy')
+		self.hw_lst			=	np.load(self.data_dir+'/hw_lst.npy')
+		self.occ_lst		=	np.load(self.data_dir+'/occ_lst.npy')
+		self.ef_lst			=	self.occ_lst[0][:]
+		
+		#
+		self.hw_lst			=	self.hw_lst		*	au_to_ev
+		self.smr_lst		=	self.smr_lst 	* au_to_ev
+
+
 		#for elem in self.occ_lst:
 		#	self.ef_lst.append(		elem[0]		)
 		#
@@ -244,61 +253,67 @@ class plotter:
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		print("\tlaser propagation dirct: ",dim_str[laser_dir])
 		
-		smr_idx = 1
+		ef_idx = 33
 		
 		#
 		print("NOW START PLOTTING RESPONSES...")
 		for x in range(0,2):
-			for laser_lmbda in range(-1,2):
-				print("\tlaser polarization para: ",laser_lmbda)
-				laser_pol =	self.get_laser_pol(laser_dir,laser_lmbda)
-				print("laser_pol norm:",np.linalg.norm(laser_pol))
-				print("[plot_hall_like]: LASER polarization vector: \n\t",laser_pol,"\n")
-				print("~~~~")
-				#
-				print("...response J_",dim_str[x]," (lambda=",laser_lmbda,")")
-				#
-				scaler = 1
-				if x==0:
-					scaler=1000
-				#
-				scnd_photo_plot	=	[]
-				for ef_idx, ef_val in enumerate(self.ef_lst):
-					scnd_photo_plot.append(0)
-					for i in range(0,2):
-						for j in range(0,2):
-							#
-							phi_laser	=	self.get_laser_phase(i,j,laser_pol)
-							#print("phi_laser_",i,j,"=",phi_laser)
-							#
-							
-							scnd_photo_plot[-1] =	scnd_photo_plot[-1] + 10 *np.real(scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
-				
-				#
-				print('\t -> max VAL=',max(scnd_photo_plot))
-				print('\t -> min VAL=',min(scnd_photo_plot))
-				plt.plot(self.ef_lst,	scnd_photo_plot, '-', label=str(scaler)+r' $\sigma^{'+dim_str[x]+'};\; \lambda=$'+'{:+2d}'.format(laser_lmbda))
+			for ef_idx, ef_val in enumerate(self.ef_lst):
+				for laser_lmbda in range(-1,2):
+					#if True:
+					if x==1 and not laser_lmbda==0:
+						print("\tlaser polarization para: ",laser_lmbda)
+						laser_pol =	self.get_laser_pol(laser_dir,laser_lmbda)
+						print("laser_pol norm:",np.linalg.norm(laser_pol))
+						print("[plot_hall_like]: LASER polarization vector: \n\t",laser_pol,"\n")
+						print("~~~~")
+						#
+						print("...response J_",dim_str[x]," (lambda=",laser_lmbda,")")
+						#
+						scaler = 1
+						if x==0:
+							scaler=1000
+						#
+						scnd_photo_plot	=	[]
+						for smr_idx, smr_val in enumerate(self.smr_lst):
+							scnd_photo_plot.append(0)
+							for i in range(0,2):
+								for j in range(0,2):
+									#
+									phi_laser	=	self.get_laser_phase(i,j,laser_pol)
+									#print("phi_laser_",i,j,"=",phi_laser)
+									#
+									
+									scnd_photo_plot[-1] =	scnd_photo_plot[-1] + np.real(scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+						#
+						print('\t -> max VAL=',max(scnd_photo_plot))
+						print('\t -> min VAL=',min(scnd_photo_plot))
+						if (ef_idx == len(self.ef_lst)-1) or ef_idx==0:
+							plt.plot(self.smr_lst,	scnd_photo_plot, 'o-', label=str(scaler)+r' $\sigma^{'+dim_str[x]+'};\; \lambda=$'+'{:+2d}'.format(laser_lmbda)+r'$\;\varepsilon_F=$'+'{:2.1f}'.format(self.ef_lst[ef_idx])+' eV')
+						else:
+							plt.plot(self.smr_lst,	scnd_photo_plot, 'o-')
+
 			#
 		#
-		ef_max	=	max(self.ef_lst)
-		ef_min	=	min(self.ef_lst)
-		ax.set_xticks(np.arange(ef_min, ef_max+1.0, (ef_max-ef_min)/len(self.ef_lst)), minor=True)
-		try:	
-			ax.set_xlim([ef_min, ef_max])
-			#ax.set_ylim([lower_bound, upper_bound  ])
-			#
-			ax.set(ylabel=r'$\sigma^{x_i}\;$' +	unit_str)
-			ax.yaxis.label.set_size(label_size)	
-		except:
-			print("[plot_hall_like]: labeling of plot failed")
+		#smr_max	=	max(self.smr_lst)
+		#smr_min	=	min(self.smr_lst)
+		#ax.set_xticks(np.arange(smr_min-1.0, smr_max+1.0, (smr_max-smr_min)/len(self.smr_lst)), minor=True)
+		ax.set(ylabel=r'$J_y\;$ (a.u.)')
+		#try:	
+		#	ax.set_xlim([smr_min, smr_max])
+		#	#ax.set_ylim([lower_bound, upper_bound  ])
+		#	#
+		#	ax.set(ylabel=r'$\sigma^{x_i}\;$' +	unit_str)
+		#	ax.yaxis.label.set_size(label_size)	
+		#except:
+		#	print("[plot_hall_like]: labeling of plot failed")
 		#
-		plt.xlabel(r'$ E_f $ (eV)',	fontsize=label_size)
+		plt.xlabel(r'$ \Gamma $ (eV)',	fontsize=label_size)
 		
 
 		if(len(title)>0):
-			plt.title(title)
-					#
-					#
+			#plt.title(title+r'$\;\varepsilon_F=$'+str(self.ef_lst[ef_idx])+' eV')
+			plt.title(r'circular $J_y$ response '+r'@$\;\hbar\omega = $'+str(self.hw_lst[hw_idx])+' eV')
 
 		#ax.set_ylim([mep_min,mep_max])
 		#ax[0].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
@@ -306,17 +321,17 @@ class plotter:
 		#ax[1].tick_params(axis='x',which='both', direction='in',labelsize=xtick_size, top=True)
 		#ax[1].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 		#
-		if plot_legend:
-			plt.legend(loc='center right')
+		if True:#plot_legend:
+			plt.legend(loc='lower right')
 		#
-		plt.tight_layout()
+		#plt.tight_layout()
 		fig.subplots_adjust(hspace=0.01)
 		#
-		outFile_path	= self.plot_dir+'/Jphoto_vs_ef.pdf'
+		outFile_path	= self.plot_dir+'/Jphoto_vs_broad.pdf'
 		plt.savefig(outFile_path)
 		print('[plot_hall_like]:	plot saved to '+outFile_path)
 
-		plt.show()
+		#plt.show()
 		plt.close()
 		#
 		print("-------------------------------------------------------------------------------")
