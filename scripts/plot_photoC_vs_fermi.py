@@ -80,7 +80,7 @@ class plotter:
 			stop
 		else:
 			print("\tlen(hw_lst)=",len(self.hw_lst))
-		if len(self.ef_lst)!=raw_shape[4]:
+		if len(self.ef_lst)!=raw_shape[5]:
 			print("[init]: 	ERROR ef_lst has wrong length") 
 			print("[init]: ef_lst:",self.ef_lst)
 			stop
@@ -244,6 +244,7 @@ class plotter:
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		print("\tlaser propagation dirct: ",dim_str[laser_dir])
 		
+		smr_idx = 9
 		
 		#
 		print("NOW START PLOTTING RESPONSES...")
@@ -271,7 +272,7 @@ class plotter:
 							#print("phi_laser_",i,j,"=",phi_laser)
 							#
 							
-							scnd_photo_plot[-1] =	scnd_photo_plot[-1] + 10 *np.real(scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][ef_idx] )
+							scnd_photo_plot[-1] =	scnd_photo_plot[-1] + 10 *np.real(scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
 				
 				#
 				print('\t -> max VAL=',max(scnd_photo_plot))
