@@ -86,6 +86,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
+		call check_lattice()
 		if(n_k > 0	)		scalar	= 	scalar	 /	abs(	unit_vol	* real(n_k,dp)	)
 		
 		!
@@ -97,6 +98,7 @@ contains
 		integer						:: 	n_k
 		!
 		if(allocated(tens)) then
+			call check_lattice()
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
@@ -109,6 +111,7 @@ contains
 		integer						:: 	n_k
 		!
 		if(allocated(tens)) then
+			call check_lattice()
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
@@ -121,6 +124,7 @@ contains
 		integer						:: 	n_k
 		!
 		if(allocated(tens)) then
+			call check_lattice()
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
@@ -133,6 +137,7 @@ contains
 		integer						:: 	n_k
 		!
 		if(allocated(tens)) then
+			call check_lattice()
 			n_k	=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 			if(n_k > 0	)		tens	=	tens	 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
@@ -149,6 +154,7 @@ contains
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		!
 		!
+		call check_lattice()
 		if(n_k > 0	)		scalar	= 	scalar	 /	abs(	unit_vol	* real(n_k,dp)	)
 		!
 		return
@@ -159,6 +165,7 @@ contains
 		integer							:: 	n_k
 		!
 		if(allocated(tens))	then
+			call check_lattice()
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
@@ -171,6 +178,7 @@ contains
 		integer							:: 	n_k
 		!
 		if(allocated(tens))	then
+			call check_lattice()
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
@@ -183,6 +191,7 @@ contains
 		integer							:: 	n_k
 		!
 		if(allocated(tens))	then
+			call check_lattice()
 			n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 			if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 		end if
@@ -195,6 +204,7 @@ subroutine z5_tens_normalize_k_int(tens)
 	integer							:: 	n_k
 	!
 	if(allocated(tens))	then
+		call check_lattice()
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
 	end if
@@ -207,8 +217,10 @@ subroutine z6_tens_normalize_k_int(tens)
 	integer							:: 	n_k
 	!
 	if(allocated(tens))	then
+		call check_lattice()
 		n_k		=	mp_grid(1) * mp_grid(2) * mp_grid(3)
 		if(n_k > 0	)		tens		=	tens		 /	abs(	unit_vol	* real(n_k,dp)	)
+		
 	end if
 	!
 	return
@@ -217,7 +229,12 @@ end subroutine
 
 
 
-
+subroutine check_lattice()
+	if (.not. recip_latt_set) &
+		write(*,*)	"[tens_normalize_k_int]: WARNING the reciprocal lattice was never set! Tensor will be normalized with volume 1"
+	!
+	return
+end subroutine
 
 
 
