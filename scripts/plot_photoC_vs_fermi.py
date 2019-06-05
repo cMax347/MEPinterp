@@ -159,53 +159,6 @@ class plotter:
 		return scale, unit_str, unit_dsc 
 
 
-	def get_laser_phase(self,a,b,light_p_vec):
-		if (a in [0,1,2]) and (b in [0,1,2]): 
-			#
-			#	DEF FRANK
-			#return light_p_vec[a] * np.conj(	light_p_vec[b]	)
-			#
-			#	DEF NAGAOSA
-			return np.conj(light_p_vec[a])	* light_p_vec[b]
-		else:
-			print('[get_laser_phase]: invalid index range a,b:',a,b,'	(will return zero)')
-			return 0
-
-	def get_laser_pol(self,prop_dir,lmbda):
-		laser_pol	=	np.zeros(3)
-		x=0
-		y=1
-		z=2
-		#
-		#	NORMALIZE lmbda
-		if np.abs(lmbda)>1e-2:
-			lmbda		=	np.sign(lmbda)
-		else:
-			lmbda		=	0
-		#
-		#	
-		if(prop_dir==x):
-			laser_pol	=	np.array([		0		,		1.		,	lmbda*1j	])
-		elif(prop_dir==y):
-			laser_pol	=	np.array([	lmbda*1j	,		0		,		1.		])
-		elif(prop_dir==z):
-			laser_pol	=	np.array([		1.		,	lmbda * 1j,		0		])
-		else:
-			print("[get_laser_pol]: ERROR index out of bounds: prop_dir=",proop_dir,"!")
-			return laser_pol
-		#
-		#	normalize if circular polarized
-		if np.abs(np.sign(lmbda))>1e-2:
-			laser_pol = laser_pol / np.sqrt(2.)
-		#
-		return laser_pol
-
-
-
-
-
-			
-
 	def plot_hall_like(		self, title="", units='au', scale=1.0, phi_laser=1.0,
 							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
 							line_width=1, label_size=14, xtick_size=12, ytick_size=12,
@@ -261,34 +214,31 @@ class plotter:
 		for x in range(0,2):
 			if x==1:
 				for laser_lmbda in range(-1,2):
+					laser.set_pol(	laser_dir, laser_lmbda )
+
 					print("\tlaser polarization para: ",laser_lmbda)
-					laser_pol =	self.get_laser_pol(laser_dir,laser_lmbda)
-					print("laser_pol norm:",np.linalg.norm(laser_pol))
-					print("[plot_hall_like]: LASER polarization vector: \n\t",laser_pol,"\n")
+					print("laser_pol norm:",np.linalg.norm(laser.pol))
+					print("[plot_hall_like]: LASER polarization vector: \n\t",laser.pol,"\n")
 					print("~~~~")
 					#
 					print("...response J_",dim_str[x]," (lambda=",laser_lmbda,")")
 					#
 					scaler = 1
-					if laser_lmbda==0:
-						scaler=1e15
-					#
-					scnd_photo_plot	=	[]
-					for ef_idx, ef_val in enumerate(self.ef_lst):
-						scnd_photo_plot.append(0)
-						for i in range(0,3):
-							for j in range(0,3):
-								#
-								phi_laser	=	self.get_laser_phase(i,j,laser_pol)
-								#print("phi_laser_",i,j,"=",phi_laser)
-								#
-								
-								scnd_photo_plot[-1] =	scnd_photo_plot[-1] + laser_E0**2*np.real(scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
-					
-					#
-					print('\t -> max VAL=',max(scnd_photo_plot))
-					print('\t -> min VAL=',min(scnd_photo_plot))
-					plt.plot(self.ef_lst,	scnd_photo_plot, '-', label=str(scaler)+r' $J^{'+dim_str[x]+'};\; \lambda=$'+'{:+2d}'.format(laser_lmbda))
+					if not laser_lmbda==0:
+						#	scaler=1e15
+						#
+						scnd_photo_plot	=	[]
+						for ef_idx, ef_val in enumerate(self.ef_lst):
+							scnd_photo_plot.append(0)
+							for i in range(0,3):
+								for j in range(0,3):
+									phi_laser	=	laser.get_phase(i,j) 
+									#									
+									scnd_photo_plot[-1] =	scnd_photo_plot[-1] + laser_E0**2*np.real(scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+						#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+						print('\t -> max VAL=',max(scnd_photo_plot))
+						print('\t -> min VAL=',min(scnd_photo_plot))
+						plt.plot(self.ef_lst,	scnd_photo_plot, '-', label=str(scaler)+r' $J^{'+dim_str[x]+'};\; \lambda=$'+'{:+2d}'.format(laser_lmbda))
 				#
 		#
 		ef_max	=	max(self.ef_lst)
@@ -416,7 +366,8 @@ def plot_scnd_photo():
 		aR, Vex, nMag, sys_info	=	read_rashba_cfg()
 		#
 		frank_I		=	10. 						# G W / cm**2		=	1e9	W/cm**2	= 1e9 1e-4 W/m**2	=	1e5 W/m
-		frank_I_SI	=	frank_I * 1e5				#	W / m**2
+		frank_I_SI	=	frank_I * 1e4				# G	W / m**2
+		frank_I_SI	=	frank_I_SI * 1e9			#	W / m**2
 		frank_LASER	=	laser(x=frank_I_SI,x_is_intensity=True)
 		#
 		#	read data

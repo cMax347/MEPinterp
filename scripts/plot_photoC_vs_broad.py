@@ -153,9 +153,9 @@ class plotter:
 		elif units == "SI":
 			scale			=	scale * omega_au_to_si
 			if dim==3:
-				unit_str		=	r'($ A / m^2$) [3D]'
+				unit_str		=	r'$[ A / m^2]_{\mathrm{3D}}$'
 			elif dim==2:
-				unit_str		=	r'( A / m) [2D]'
+				unit_str		=	r'$[ \mathrm{A} / \mathrm{m}]_{\mathrm{2D}}$'
 			unit_dsc		=	"SI units"	
 		#elif units == "wx":		 	
 		#	scale			=	scale *au_to_S_cm	/ 100.
@@ -166,78 +166,33 @@ class plotter:
 		#
 		return scale, unit_str, unit_dsc 
 
-
-	def get_laser_phase(self,a,b,light_p_vec):
-		if (a in [0,1,2]) and (b in [0,1,2]): 
-			#
-			#	DEF FRANK
-			#return light_p_vec[a] * np.conj(	light_p_vec[b]	)
-			#
-			#	DEF NAGAOSA
-			return np.conj(light_p_vec[a])	* light_p_vec[b]
-		else:
-			print('[get_laser_phase]: invalid index range a,b:',a,b,'	(will return zero)')
-			return 0
-
-	def get_laser_pol(self,prop_dir,lmbda):
-		laser_pol	=	np.zeros(3)
-		x=0
-		y=1
-		z=2
-		#
-		#	NORMALIZE lmbda
-		if np.abs(lmbda)>1e-2:
-			lmbda		=	np.sign(lmbda)
-		else:
-			lmbda		=	0
-		#
-		#	
-		if(prop_dir==x):
-			laser_pol	=	np.array([		0		,		1.		,	lmbda*1j	])
-		elif(prop_dir==y):
-			laser_pol	=	np.array([	lmbda*1j	,		0		,		1.		])
-		elif(prop_dir==z):
-			laser_pol	=	np.array([		1.		,	lmbda * 1j	,		0		])
-		else:
-			print("[get_laser_pol]: ERROR index out of bounds: prop_dir=",proop_dir,"!")
-			return laser_pol
-		#
-		#	normalize if circular polarized
-		if np.abs(np.sign(lmbda))>1e-2:
-			laser_pol = laser_pol / np.sqrt(2.)
-		#
-		return laser_pol
-
-
-
-
-
 			
 
-	def plot_hall_like(		self, title="", units='au', unit_scale=1.0, phi_laser=1.0,
+	def plot_photoC(		self, title="", units='au', unit_scale=1.0, phi_laser=1.0,
 							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
 							line_width=1, label_size=14, xtick_size=12, ytick_size=12,
 							marker_size=12,
 							upper_bound=1, lower_bound=0,
 							plot_legend=False,laser=None, laser_dir=2, dim=3,
+							interactive=False,
 					):
 		print("^")
 		print("^")
 		print("-------------------------------------------------------------------------------")	
 		print("		PLOT HALL LIKE")
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-		print("[plot_hall_like]:	try to create folder where plots should go")
+		print("[plot_photoC]:	try to create folder where plots should go")
 		#
 		#
 		if not os.path.isdir(self.plot_dir):
 			try:
 				os.mkdir(self.plot_dir)
 			except OSError:
-				print('[plot_hall_like]:	Could not make directory ',self.plot_dir, '	(proably exists already)')
+				print('[plot_photoC]:	Could not make directory ',self.plot_dir, '	(proably exists already)')
 			finally:
 				print("~")
 		else:
-			print('[plot_hall_like]: '+self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
+			print('[plot_photoC]: '+self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
 		#		
 		#
 		unit_scale, unit_str, unit_dsc	=	self.set_hall_units(units,unit_scale,dim=dim)
@@ -252,8 +207,13 @@ class plotter:
 		#
 		#LOOP SPACIAL COMPONENTS OF TENSOR (make individual plot for each)
 		fig, ax  = plt.subplots(1,1, sharex=True)
-		hw_idx			=	1
-		#
+		plt.plot(self.smr_lst,np.zeros(len(self.smr_lst)),'-',color='grey')
+
+		hw_idx			=	0
+		if hw_idx >= len(self.hw_lst):
+			hw_idx	=	len(self.hw_lst)-1
+			print("[plot_photoC]: 	WARNING hw_idx out of bounds was set to #",hw_idx," with hw=",self.hw_lst[hw_idx]," eV")
+		
 		#	get polarization vector of laser
 		print("^")
 		print("^")
@@ -262,30 +222,28 @@ class plotter:
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		print("\tlaser propagation dirct: ",dim_str[laser_dir])
 		
-		ef_idx = 33
-		
-		laser_E0	=	laser.get_field_strength()
 
+		laser_E0	=	laser.get_field_strength()
+		ef_idx = 33
 		#
 		print("NOW START PLOTTING RESPONSES...")
 		for x in range(0,2):
 			#for ef_idx, ef_val in enumerate(self.ef_lst):
-			ef_idx = 33
+			if ef_idx>=len(self.ef_lst):
+				ef_idx	=	len(self.ef_lst)-1
+				print("[plot_photoC]:	WARNING ef_idx out of bounds, reset to #",ef_idx,"	with E_f=",self.ef_lst[ef_idx]," eV")
 			for laser_lmbda in range(-1,2):
 				#if True:
-				if x==0:# and not laser_lmbda==0:
-					print("\tlaser polarization para: ",laser_lmbda)
-					laser_pol =	self.get_laser_pol(laser_dir,laser_lmbda)
-					print("laser_pol norm:",np.linalg.norm(laser_pol))
-					print("[plot_hall_like]: LASER polarization vector: \n\t",laser_pol,"\n")
-					print("~~~~")
+				if x==0 or x==1:# and not laser_lmbda==0:
+					laser.set_pol(laser_dir,laser_lmbda)
 					#
 					print("...response J_",dim_str[x]," (lambda=",laser_lmbda,")")
-					print("laser_I=",laser.get_intensity(),' '+laser.get_I_unit_str())
 					#
 					scaler = 1
-					if x==0:
+					if x==0 and laser_lmbda==0:
 						scaler=10
+					#if x==1 and not laser_lmbda==0:
+					#	scaler=10
 					#
 					scnd_photo_plot	=	[]
 					for smr_idx, smr_val in enumerate(self.smr_lst):
@@ -293,38 +251,40 @@ class plotter:
 						for i in range(0,2):
 							for j in range(0,2):
 								#
-								phi_laser	=	self.get_laser_phase(i,j,laser_pol)
+								phi_laser	=	laser.get_phase(i,j)
 								#print("phi_laser_",i,j,"=",phi_laser)
 								#
 								
 								scnd_photo_plot[-1] =	scnd_photo_plot[-1] + laser_E0**2 *np.real(unit_scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
 					#
+					print("\t #",len(scnd_photo_plot),"	datapoints")
 					print('\t -> max VAL=',max(scnd_photo_plot))
 					print('\t -> min VAL=',min(scnd_photo_plot))
 					#if (ef_idx == len(self.ef_lst)-1) or ef_idx==0:
-					plt.plot(self.smr_lst,	scnd_photo_plot, 'o-', label=str(scaler)+r' $\sigma^{'+dim_str[x]+'};\; \lambda=$'+'{:+2d}'.format(laser_lmbda)+r'$\;\varepsilon_F=$'+'{:2.1f}'.format(self.ef_lst[ef_idx])+' eV')
+					plt.plot(self.smr_lst,	scnd_photo_plot, 'o-',markersize=marker_size, label=str(scaler)+r' $J^{'+dim_str[x]+'};\; \lambda=$'+'{:+2d}'.format(laser_lmbda))#+r'$\;\varepsilon_F=$'+'{:2.1f}'.format(self.ef_lst[ef_idx])+' eV')
 					#else:
 					#	plt.plot(self.smr_lst,	scnd_photo_plot, 'o-')
-
+#
 			#
 		#
-		#smr_max	=	max(self.smr_lst)
-		#smr_min	=	min(self.smr_lst)
+		smr_max	=	max(self.smr_lst)
+		smr_min	=	min(self.smr_lst)
 		#ax.set_xticks(np.arange(smr_min-1.0, smr_max+1.0, (smr_max-smr_min)/len(self.smr_lst)), minor=True)
 		#try:	
-		#	ax.set_xlim([smr_min, smr_max])
-		#	#ax.set_ylim([lower_bound, upper_bound  ])
+		ax.set_xlim([smr_min, smr_max])
+		#ax.set_ylim([lower_bound, upper_bound  ])
 		#	#
-		ax.set(ylabel='J ' +	unit_str)
 		#	ax.yaxis.label.set_size(label_size)	
 		#except:
-		#	print("[plot_hall_like]: labeling of plot failed")
+		#	print("[plot_photoC]: labeling of plot failed")
 		#
-		plt.xlabel(r'$ \Gamma $ (eV)',	fontsize=label_size)
+		plt.ylabel(r'$J_i\;$'	+	unit_str,	fontsize=label_size)
+		plt.xlabel(r'$ \Gamma $ (eV)',		fontsize=label_size)
+
 
 		if(len(title)>0):
 			#plt.title(title+r'$\;\varepsilon_F=$'+str(self.ef_lst[ef_idx])+' eV')
-			plt.title(r'circular $J_x$ response '+r'@$\;\hbar\omega = $'+str(self.hw_lst[hw_idx])+' eV')
+			plt.title(r'@$\;\hbar\omega = $'+str(self.hw_lst[hw_idx])+' eV')
 
 		#ax.set_ylim([mep_min,mep_max])
 		#ax[0].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
@@ -333,16 +293,16 @@ class plotter:
 		#ax[1].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 		#
 		if True:#plot_legend:
-			plt.legend(loc='lower right')
+			plt.legend(loc='upper right')
 		#
 		#plt.tight_layout()
 		#
 		outFile_path	= self.plot_dir+'/Jphoto_vs_broad.pdf'
 		plt.savefig(outFile_path)
-		print('[plot_hall_like]:	plot saved to '+outFile_path)
+		print('[plot_photoC]:	plot saved to '+outFile_path)
 
-
-		plt.show()
+		if interactive:
+			plt.show()
 		plt.close()
 		#
 		print("-------------------------------------------------------------------------------")
@@ -427,18 +387,16 @@ def plot_scnd_photo():
 	root_dir	=	'.'
 	#
 	frank_I		=	10. 						# G W / cm**2		=	1e9	W/cm**2	= 1e9 1e-4 W/m**2	=	1e5 W/m
-	frank_I_SI	=	frank_I * 1e5				#	W / m**2
+	frank_I_SI	=	frank_I * 1e4				# G	W / m**2
+	frank_I_SI	=	frank_I_SI * 1e9			#	W / m**2
 	frank_LASER	=	laser(x=frank_I_SI,x_is_intensity=True)
-
-
-
 	#
 	if os.path.isdir(root_dir):	
 		print("try to read rashba_cfg file:")
 		aR, Vex, nMag, sys_info	=	read_rashba_cfg()
 		#
 		#
-		#	read data
+		#	read data 
 		myTest	= plotter(root_dir,dir_id)
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		#
@@ -446,20 +404,21 @@ def plot_scnd_photo():
 		#
 		#	~~~~~~~~~~~~~~~~~~~~~~~~
 		#
-		myTest.plot_hall_like(		title			=		sys_info	,
+		myTest.plot_photoC(		title			=		sys_info	,
 									units			=		'SI'		, 
 									unit_scale			=		1.0			, 
 									phi_laser		=		1.0			,	# = 1j
 									plot_ahc		=		False		, 
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		False		, 
-									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
-									upper_bound		=	500		,
-									lower_bound		=	0		,
+									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=0.4,
+									upper_bound		=	5		,
+									lower_bound		=	-5		,
 									plot_legend=True			,
 									laser=frank_LASER			,
 									laser_dir=2					,
-									dim=2
+									dim=2						,
+									interactive=True			,
 							)
 		print("...")
 		print('[plot_scnd_photo]:	plotted Hall like tensors')
