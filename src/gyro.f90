@@ -22,11 +22,6 @@ module gyro
 	private
 
 
-
-	save
-
-
-	logical						::		d_warning	=	.False.
 	
 contains
 
@@ -98,10 +93,6 @@ contains
 			!	USE KUBO TO ESTIMATE CURV
 			call get_kubo_curv(	en_k, V_ka, kubo_curv	)
 			!
-			!if(	.not. d_warning	)	then
-			!	write(*,*)	"[get_gyro_D]: WARNING Curvature not allocated, will use velocities & energies to interpolate curvature!"
-			!	d_warning = .True.
-			!end if
 		else
 			!	USE GIVEN CURVATURE
 			allocate(kubo_curv(3,3,n_wf))
