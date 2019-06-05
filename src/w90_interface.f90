@@ -41,7 +41,7 @@ contains
 		!	FULL BASIS
 		inquire(file=w90_dir//seed_name//'_tb.dat',	exist=tb_exist)
 		if(tb_exist) then
-			write(*,*)	'[read_tb_basis]: "found data file '//w90_dir//seed_name//'_hr.dat'
+			write(*,format)	'[#',mpi_id,';read_tb_basis]: "found data file '//w90_dir//seed_name//'_hr.dat'
 			call read_tb_file(w90_dir//seed_name, R_vect, H_mat, r_mat)
 			r_exist	= .true.
 		else
@@ -50,7 +50,7 @@ contains
 			!	HAMILTONIAN
 			inquire(file=w90_dir//seed_name//'_hr.dat', exist=hr_exist)
 			if( .not. hr_exist)		then
-				write(*,*)	'[read_tb_basis]: "'//w90_dir//seed_name//'_hr.dat'//'" does not exist'
+				write(*,format)	'[#',mpi_id,';read_tb_basis]: "'//w90_dir//seed_name//'_hr.dat'//'" does not exist'
 				stop '[read_tb_basis]:	ERROR could not read the real space Hamiltonian'
 			end if
 			call read_hr_file(w90_dir//seed_name, R_vect, H_mat)
@@ -59,7 +59,7 @@ contains
 			!	POSITION
 			inquire(file=w90_dir//seed_name//'_r.dat', exist=r_exist)
 			if(  r_exist )	then
-				write(*,*)	'[read_tb_basis]: "found data file '//w90_dir//seed_name//'_r.dat'
+				write(*,format)	'[#',mpi_id,'read_tb_basis]: "found data file '//w90_dir//seed_name//'_r.dat'
 				call read_r_file(w90_dir//seed_name//'_r.dat', R_vect, r_mat)
 			end if
 			!
@@ -135,7 +135,6 @@ contains
 				!	...	INTEGER
 				read(mpi_unit,*)	int3(1:3)
 				real3(:)	=		int3(:)
-				
 			end if
 			R_vect(1:3,cell)	= matmul(unit_cell,	real3(1:3)	)
 			!
@@ -165,7 +164,7 @@ contains
 			!
 			!	CHECK IF SAME AS ORIGINAL R-CELL FROM HOPPING (see above)
 			if(		 norm2( rTest(:) - R_vect(:,cell) )	> 1e-8_dp		) then
-				write(*,*)	"[read_tb_basis]: WARNING rHopp has different sc order then tHopp"
+				write(*,format)	"[#",mpi_id,";read_tb_basis]: WARNING rHopp has different sc order then tHopp"
 			end if
 			!
 			!
