@@ -209,7 +209,7 @@ class plotter:
 		fig, ax  = plt.subplots(1,1, sharex=True)
 		plt.plot(self.smr_lst,np.zeros(len(self.smr_lst)),'-',color='grey')
 
-		hw_idx			=	0
+		hw_idx			=	1
 		if hw_idx >= len(self.hw_lst):
 			hw_idx	=	len(self.hw_lst)-1
 			print("[plot_photoC]: 	WARNING hw_idx out of bounds was set to #",hw_idx," with hw=",self.hw_lst[hw_idx]," eV")
@@ -226,46 +226,74 @@ class plotter:
 		laser_E0	=	laser.get_field_strength()
 		ef_idx = 33
 		#
+		field_matrix		=	1j*np.zeros((2,2))
+		
+		plot_title			=	''
+		##	circular
+		lmbda				=	+1
+		plot_title			=	'circ. lmbda='+str(lmbda)
+		field_matrix[0][0]	=	.5
+		field_matrix[0][1]	=	lmbda*1j / np.sqrt(2.)
+		field_matrix[1][0]	=	np.conj(field_matrix[0][1])
+		field_matrix[1][1]	=	.5
+		
+		##	linear x
+		#plot_title			=	'lin. x-pol '
+		#field_matrix[0][0]	=	1
+		#field_matrix[0][1]	=	0
+		#field_matrix[1][0]	=	0
+		#field_matrix[1][1]	=	0
+		##	linear y
+		#plot_title			=	'lin. y-pol'
+		#field_matrix[0][0]	=	0
+		#field_matrix[0][1]	=	0
+		#field_matrix[1][0]	=	0
+		#field_matrix[1][1]	=	1
+
+
+		#
 		print("NOW START PLOTTING RESPONSES...")
 		for x in range(0,2):
 			#for ef_idx, ef_val in enumerate(self.ef_lst):
 			if ef_idx>=len(self.ef_lst):
 				ef_idx	=	len(self.ef_lst)-1
 				print("[plot_photoC]:	WARNING ef_idx out of bounds, reset to #",ef_idx,"	with E_f=",self.ef_lst[ef_idx]," eV")
-			for laser_lmbda in range(-1,2):
-				#if True:
-				if x==0 or x==1:# and not laser_lmbda==0:
-					laser.set_pol(laser_dir,laser_lmbda)
-					#
-					print("...response J_",dim_str[x]," (lambda=",laser_lmbda,")")
-					#
-					scaler = 1
-					if x==0 and laser_lmbda==0:
-						scaler=10
+			#for laser_lmbda in range(-1,2):
+			#	#if True:
+			#	if x==0 or x==1:# and not laser_lmbda==0:
+			#		laser.set_pol(laser_dir,laser_lmbda)
+			#		#
+			#		print("...response J_",dim_str[x]," (lambda=",laser_lmbda,")")
+			#		#
+			#		scaler = 1
+			#		#if x==0 and laser_lmbda==0:
+					#	scaler=1e20
 					#if x==1 and not laser_lmbda==0:
 					#	scaler=10
 					#
-					scnd_photo_plot	=	[]
-					for smr_idx, smr_val in enumerate(self.smr_lst):
-						scnd_photo_plot.append(0)
-						for i in range(0,2):
-							for j in range(0,2):
-								#
-								phi_laser	=	laser.get_phase(i,j)
-								#print("phi_laser_",i,j,"=",phi_laser)
-								#
-								
-								scnd_photo_plot[-1] =	scnd_photo_plot[-1] + laser_E0**2 *np.real(unit_scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
-					#
-					print("\t #",len(scnd_photo_plot),"	datapoints")
-					print('\t -> max VAL=',max(scnd_photo_plot))
-					print('\t -> min VAL=',min(scnd_photo_plot))
-					#if (ef_idx == len(self.ef_lst)-1) or ef_idx==0:
-					plt.plot(self.smr_lst,	scnd_photo_plot, 'o-',markersize=marker_size, label=str(scaler)+r' $J^{'+dim_str[x]+'};\; \lambda=$'+'{:+2d}'.format(laser_lmbda))#+r'$\;\varepsilon_F=$'+'{:2.1f}'.format(self.ef_lst[ef_idx])+' eV')
-					#else:
-					#	plt.plot(self.smr_lst,	scnd_photo_plot, 'o-')
+			
+			
+			scnd_photo_plot	=	[]
+			scaler = 1
+			for smr_idx, smr_val in enumerate(self.smr_lst):
+				#
+				sum_ij	=	0
+				for i in range(0,2):
+					for j in range(0,2):
+						print(x,i,j,' ->',field_matrix[i][j])
+						sum_ij =	sum_ij + laser_E0**2 *np.imag(unit_scale*scaler*field_matrix[i][j] * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+				scnd_photo_plot.append(sum_ij)
+			#
+			print("\t #",len(scnd_photo_plot),"	datapoints")
+			print('\t -> max VAL=',max(scnd_photo_plot))
+			print('\t -> min VAL=',min(scnd_photo_plot))
+			#if (ef_idx == len(self.ef_lst)-1) or ef_idx==0:		
+			plt.plot(self.smr_lst,	scnd_photo_plot, 'o-',markersize=marker_size, label=str(scaler)+r' $J^{'+dim_str[x]+r'}$')
+			#else:
+			#	plt.plot(self.smr_lst,	scnd_photo_plot, 'o-')
 #
 			#
+		print("field matrix: ",field_matrix)
 		#
 		smr_max	=	max(self.smr_lst)
 		smr_min	=	min(self.smr_lst)
@@ -284,7 +312,7 @@ class plotter:
 
 		if(len(title)>0):
 			#plt.title(title+r'$\;\varepsilon_F=$'+str(self.ef_lst[ef_idx])+' eV')
-			plt.title(r'@$\;\hbar\omega = $'+str(self.hw_lst[hw_idx])+' eV')
+			plt.title(plot_title+r'  @$\;\hbar\omega = $'+str(self.hw_lst[hw_idx])+' eV')
 
 		#ax.set_ylim([mep_min,mep_max])
 		#ax[0].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
