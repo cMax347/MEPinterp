@@ -186,6 +186,8 @@ module input_paras
 				hw_max			=	hw_max 		/ 	aUtoEv
 				!
 				N_hw			=	max(1,N_hw)
+				N_ef			=	max(1,N_ef)
+				N_eta_smr		=	max(1,N_eta_smr)
 				!
 				eF_min			= 	eF_min		/	aUtoEv
 				eF_max			=	eF_max		/	aUtoEv
