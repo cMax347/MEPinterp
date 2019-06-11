@@ -25,8 +25,8 @@ contains
 		real(dp),		allocatable			::	df_ln(:)
 		complex(dp),	allocatable			::	phot_cond(:,:,:,:,:,:), tmp(:,:,:,:,:)
 		real(dp)							::	dE_nm, dE_nl
-		complex(dp)							::	dE_nm_smr, dE_nl_smr,  dE_nl_hw, vvv_nl_lm_mn(3,3,3), i_eta_smr
-		integer								::	m, n, l, c, b, hw,smr, omega, ef_idx, n_ef, n_hw, n_wf, n_smr
+		complex(dp)							::	dE_nm_smr, dE_nl_smr, vvv_nl_lm_mn(3,3,3)
+		integer								::	m, n, l, a, b, hw,smr, omega, ef_idx, n_ef, n_hw, n_wf, n_smr
 		!
 		n_ef	=	size(	fd_distrib	,	1)
 		n_hw 	=	size(	hw_lst		,	1)
@@ -40,7 +40,7 @@ contains
 		!
 		!	
 		!$OMP  PARALLEL DO DEFAULT(NONE) COLLAPSE(2) 																&
-		!$OMP PRIVATE(l, dE_nm,dE_nm_smr, df_ln, dE_nl,dE_nl_smr, c, b, vvv_nl_lm_mn, tmp, hw, omega, dE_nl_hw, ef_idx, smr, i_eta_smr)	&
+		!$OMP PRIVATE(l, dE_nm,dE_nm_smr, df_ln, dE_nl,dE_nl_smr, a, b, vvv_nl_lm_mn, tmp, hw, omega, ef_idx, smr)	&
 		!$OMP SHARED(n_wf, n_hw,n_smr, n_ef, en_k, fd_distrib, V_ka, hw_lst, eta_smr_lst) 							&
 		!$OMP REDUCTION(+: phot_cond)
 		do 	n = 1, n_wf
@@ -53,24 +53,22 @@ contains
 					df_ln(:)=	fd_distrib(:,l)	-	fd_distrib(:,n)
 					!
 					!	LOOP DIRECTIONS
-					do c = 1, 3
+					do a = 1, 3
 						do b = 1, 3
-							vvv_nl_lm_mn(:,b,c)	=	V_ka(:,n,l) * (V_ka(b,l,m) * V_ka(c,m,n))
+							vvv_nl_lm_mn(:,a,b)	=	V_ka(a,n,l) * V_ka(b,l,m) * V_ka(:,m,n)
 						end do
 					end do
 					!
 					!	LOOP SMEARING
 					do smr = 1, n_smr
-						dE_nm_smr	=	cmplx(	dE_nm,	-eta_smr_lst(smr), dp) 	
-						dE_nl_smr	=	cmplx(	dE_nl,	-eta_smr_lst(smr), dp)		
+						dE_nm_smr	=	cmplx(	dE_nm,	-abs(eta_smr_lst(smr)), dp) 	
+						dE_nl_smr	=	cmplx(	dE_nl,	-abs(eta_smr_lst(smr)), dp)		
 						!
 						!	LOOP FREQUENCIES
 						do hw = 1, n_hw
 							do omega = -1, 1, 2
-								dE_nl_hw	=	dE_nl_smr +	real(omega,dp)*hw_lst(hw)	
-								!
 								tmp(:,:,:,hw,smr)	=	tmp(:,:,:,hw,smr)	+	vvv_nl_lm_mn(:,:,:)				&		
-														/	( dE_nm_smr * dE_nl_hw * hw_lst(hw)**2	) 		
+														/	( dE_nm_smr * (dE_nl_smr +	real(omega,dp)*hw_lst(hw)) * hw_lst(hw)**2	) 		
 							end do
 						end do
 						!
