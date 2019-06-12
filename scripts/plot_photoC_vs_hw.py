@@ -76,7 +76,7 @@ class plotter:
 			stop
 		else:
 			print("\tlen(hw_lst)=",len(self.hw_lst))
-		if len(self.ef_lst)!=raw_shape[4]:
+		if len(self.ef_lst)!=raw_shape[5]:
 			print("[init]: 	ERROR ef_lst has wrong length") 
 			print("[init]: ef_lst:",self.ef_lst)
 			stop

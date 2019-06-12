@@ -150,6 +150,7 @@ module model_hams
 		complex(dp)										::	H_diago
 		real(dp)										::	V_exxx
 		integer											::	spin, xi, up=1, dw=2
+		logical,		save							::	printed
 		!
 		!
 		allocate(	H_k(	n_rashba	 ,	n_rashba	))
