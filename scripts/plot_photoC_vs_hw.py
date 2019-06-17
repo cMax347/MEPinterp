@@ -5,8 +5,11 @@ import os
 import matplotlib.pyplot as plt
 from random import randint
 import matplotlib.cm as cm
+import scipy.constants as scpc 
+from read_f90 import read_f90
 
-
+au_to_ev	=	scpc.physical_constants["Hartree energy in eV"][0]
+print("scpc au_to_ev=",au_to_ev)
 
 def discrete_cmap(N, base_cmap=None):
     """Create an N-bin discrete colormap from the specified input map"""
@@ -27,7 +30,7 @@ def discrete_cmap(N, base_cmap=None):
 
 class plotter:
 
-	def __init__(self, root_dir,dir_id):
+	def __init__(self, root_dir,dir_id,SI=True):
 		#derived attributes
 		self.root_dir	= root_dir
 		self.data_dir	= root_dir+'/out'
@@ -37,58 +40,35 @@ class plotter:
 		#
 		#
 		#	containers
-		self.hw_lst				=	[]
-		self.ef_lst				=	[]
-		self.scndPhoto_data		=	[]
-
-		#	read data
-		self.hw_lst	=	np.load(self.data_dir+'/hw_lst.npy')
-		self.occ_lst=	np.load(self.data_dir+'/occ_lst.npy')
-		self.ef_lst	=	self.occ_lst[0][:]
-		#for elem in self.occ_lst:
-		#	self.ef_lst.append(		elem[0]		)
+		#self.hw_lst				=	[]
+		#self.ef_lst				=	[]
+		#self.scndPhoto_data		=	[]
+		#self.smr_lst			=	[]
+#
+#		##	read data
+#		#self.hw_lst	=	np.load(self.data_dir+'/hw_lst.npy')		
+#		#self.occ_lst=	np.load(self.data_dir+'/occ_lst.npy')
+#		#self.smr_lst=	np.load(self.data_dir+'/smr_lst.npy')
+#		#self.ef_lst	=	self.occ_lst[0][:]
+#		#
+#		##
+#		#for idx, hw in enumerate(self.hw_lst):
+#		#	self.hw_lst[idx]	=	hw	*	au_to_ev
+#		#for idx, smr in enumerate(self.smr_lst):
+#		#	self.smr_lst[idx]	=	smr	*	au_to_ev
+#		##
+		#self.scndPhoto_data	=	np.load(self.data_dir+'/photoC_2nd.npy')	
+		
+		self.data			=	read_f90(self.root_dir)
+		raw					=	self.data.read_2nd_photoC(SI=SI)
+		self.scndPhoto_data	=	raw[0]
+		self.unit_str		=	'['+raw[1]+']'
+		
 		#
-		self.scndPhoto_data	=	np.load(self.data_dir+'/photoC_2nd.npy')	
 		np_arr				=	np.array(	self.scndPhoto_data)
 		raw_shape			=	np_arr.shape
 		#
-		#	
-		print("^")
-		print("^")
-		print("^")
-		print("^")
-		print("^^^^^^^^^^^^^^^	PLOTTING SCRIPT - 2nd order PHOTCURRENT AT DIFF SPIN CONFIGS  ^^^^^^^^^^^^^^^")
-		print("-------------------------------------------------------------------------------")
-		print("~")
-		print("[init]: will search for data in folder: "	+	self.root_dir	)
-		print("[init]: will output to folder: "				+ 	self.plot_dir	)
-		print("..\n..")
-		#
-		print("[init]: input read from  "				+ 	self.data_dir	)
-		print("[init]: input interpretation:"	)
-		if (raw_shape[0]!=3) or (raw_shape[1]!=3) or (raw_shape[2]!=3):
-			print("[init]: ERROR tensor is not defined in 3D")
-			stop
-		else:
-			print("raw input shape:",   np_arr.shape,"	== (	x1,x2,x3,	#hw , #ef	)		")
-		if len(self.hw_lst)!=raw_shape[3]:
-			print("[init]: 	ERROR hw_lst has wrong length") 
-			stop
-		else:
-			print("\tlen(hw_lst)=",len(self.hw_lst))
-		if len(self.ef_lst)!=raw_shape[5]:
-			print("[init]: 	ERROR ef_lst has wrong length") 
-			print("[init]: ef_lst:",self.ef_lst)
-			stop
-		else:
-			print("\tlen(ef_lst)=",len(self.ef_lst))
-		print("[init]: initialization successfully completed!")
-		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-		#
-		#
-
 		
-	
 
 	def __del__(self):
 		print("~")
@@ -97,60 +77,9 @@ class plotter:
 		print("-------------------------------------------------------------------------------")
 		print("-------------------------------------------------------------------------------")
 
-
-
-	def rand_tens(self):
-		rand = []
-		for x in range(1,3):
-			rand.append([])
-			for i in range(1,3):
-				rand[-1].append([randint(0,9),randint(0,9),randint(0,9)])
-
-
-
-
-
-
-
-	def set_hall_units(self,units,scale):
-		unit_dsc	=	"atomic units"
-		unit_str	=	r'$e^2$/ ($\hbar a_0$)'
-		#
-		au_to_S 		=	2.4341348e-4	#3.874046 * 1e-5			#	(e**2/h)	-> (S) Siemens
-		au_to_cm		=	5.2917721e-9	# * 1e-9
-
-		cond_quantum		=	2.434135 * 1e-4		#	1	[	e**2/hbar	]_atomic	=	2.434135×10^-4 	[	S	]_SI
-		elem_e_over_hartree	=	0.03674932			#	1	[	e/E_h		]_atomic	=	0.03674932 		[	1/V	]_SI
-		#
-		omega_au_to_si		=	cond_quantum	*	elem_e_over_hartree * 1e6 		#[	e**2/hbar e/E_h	]_atomic	-> [1e-6 A/V**2] = [mu A/V**2] 
-
-
-		scale			=	1.0
-		au_to_S_cm		=	au_to_S	/ au_to_cm
-		#
-		if units == "scale":
-			unit_dsc	=	"use the scale given as function argument (sort of a wildcard)"
-			unit_str	=	"-"
-		elif units == "SI":
-			scale			=	scale * omega_au_to_si
-			unit_str		=	r'($\mu A / V^2$)'
-			unit_dsc		=	"SI units"	
-		elif units == "wx":		 	
-			scale			=	scale *au_to_S_cm	/ 100.
-			unit_str		=	r'[$10^2$ S/cm]'
-			unit_dsc		=	"Units used by wanxiang in his paper. this should be the SI value divided by 100"	
-		#
-		print('[set_hall_units]:  chooen units "'+units+'" with dim '+unit_str+'" and  descriptor: "'+unit_dsc+'" '	)
-		#
-		return scale, unit_str, unit_dsc 
-
-
-
-
-
 			
 
-	def plot_hall_like(		self, units='au', scale=1.0, phi_laser=1.0,
+	def plot_hall_like(		self, scale=1.0, phi_laser=1.0,
 							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
 							line_width=1, label_size=14, xtick_size=12, ytick_size=12,
 							marker_size=12,
@@ -176,15 +105,15 @@ class plotter:
 			print('[plot_hall_like]: '+self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
 		#		
 		#
-		scale, unit_str, unit_dsc	=	self.set_hall_units(units,scale)
-		#
 		dim_str	= []
 		dim_str.append('x')
 		dim_str.append('y')
 		dim_str.append('z')
 		#
+		#
+		smr_idx	=	1
 		#	color code for the AHC plot
-		colors 	= discrete_cmap(len(self.ef_lst),	'cool')
+		colors 	= discrete_cmap(len(self.data.ef_lst[0]),	'cool')
 		#
 		#LOOP SPACIAL COMPONENTS OF TENSOR (make individual plot for each)
 		for x in range(0,3):
@@ -200,34 +129,40 @@ class plotter:
 
 
 					#	plot curv for each fermi level
-					for ef_idx, ef_val in enumerate(self.ef_lst):
-						scnd_photo_plot	=	[]
-						#
-						# collect data for current plot
-						for hw_idx, hw_val in enumerate(self.hw_lst):
-							scnd_photo_plot.append(		np.real(	scale * phi_laser	*	self.scndPhoto_data[x][i][j][hw_idx][ef_idx]		))
-						#
-						#	plot
-						ax.plot(self.hw_lst, scnd_photo_plot,'-', color=colors[ef_idx],label='{:+4.2f}'.format(ef_val))
+					#for ef_idx, ef_val in enumerate(self.ef_lst):
+					re_plot	=	[]
+					im_plot	=	[]
+					ef_idx =0
+					ef_val	=	self.data.ef_lst[0][ef_idx]
+					#
+					# collect data for current plot
+					for hw_idx, hw_val in enumerate(self.data.hw_lst[0]):
+						re_plot.append(		np.real(	scale	*	self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx]		))
+						im_plot.append(		np.imag(	scale	*	self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx]		))
+					#
+					#	plot
+					ax.plot(self.data.hw_lst[0], re_plot,'-', color='deepskyblue'	,label='Re {:+4.2f}'.format(ef_val))
+					ax.plot(self.data.hw_lst[0], im_plot,'-', color='darkorange'	,label='Im {:+4.2f}'.format(ef_val))
+
 					#
 					#
 					#
 					#	save plot when fermi levels are added
 					#
-					hw_max	=	max(self.hw_lst)
-					hw_min	=	0.2#min(self.hw_lst)
+					hw_max	=	max(self.data.hw_lst[0])
+					hw_min	=	min(self.data.hw_lst[0])
 					ax.set_xticks(np.arange(hw_min, hw_max+1.0, 0.1), minor=True)
 					try:	
 						ax.set_xlim([hw_min, hw_max])
-						ax.set_ylim([lower_bound, upper_bound  ])
+						#ax.set_ylim([lower_bound, upper_bound  ])
 						#
-						ax.set(ylabel=r'$\sigma^{'+dim_str[x]+'}_{'+dim_str[i]+dim_str[j]+'}\;$' +	unit_str)
+						ax.set(ylabel=r'$\sigma^{'+dim_str[x]+'}_{'+dim_str[i]+dim_str[j]+'}\;$' +	self.unit_str)
 						ax.yaxis.label.set_size(label_size)
 						
 					except:
 						print("[plot_hall_like]: labeling of plot failed")
 					#
-					plt.xlabel(r'$ \hbar \omega $ (eV)',	fontsize=label_size)
+					plt.xlabel(r'$ \hbar \omega $ (eV)', 	fontsize=label_size)
 					#
 					#
 					#ax.set_ylim([mep_min,mep_max])
@@ -237,33 +172,18 @@ class plotter:
 					#ax[1].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
 					#
 					if plot_legend:
-						plt.legend(loc='lower right',title=r'$\mathrm{E}_f$ (eV)')
+						plt.legend(loc='lower right',title=r'$\mathrm{E}_f$ (eV); ($\Gamma$='+'{:6.3f}'.format(self.data.smr_lst[0][smr_idx])+self.data.smr_lst[1]+')')
 					plt.tight_layout()
-					fig.subplots_adjust(hspace=0.01)
 					#
 					outFile_path	= self.plot_dir+'/Jphoto^'+dim_str[x]+'_'+dim_str[i]+dim_str[j]+'.pdf'
 					plt.savefig(outFile_path)
 					plt.close()
 					#
-					print('[plot_hall_like]:	finished processing '+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+outFile_path	)
+					print('[plot_hall_like]:	finished processing '+dim_str[x]+'_'+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+outFile_path	)
 		print("-------------------------------------------------------------------------------")
 		print("")
 		print("")	
 
-
-
-
-
-
-	def plot_opt(self):
-		print("^")
-		print("^")
-		print("-------------------------------------------------------------------------------")	
-		print("		PLOT HALL LIKE")
-		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-		print("[plot_opt]: 	WARNING this function is not implemented yet (ToDo!)	")
-		#		MAYBE JUST ADD THIS TO HALL LIKE, THEN ITS EASIER TO COMPARE ALL DATA!!!!!!
-		#
 
 	
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -290,15 +210,14 @@ def plot_scnd_photo():
 
 	if os.path.isdir(root_dir):
 		#	read data
-		myTest	= plotter(root_dir,dir_id)
+		myTest	= plotter(root_dir,dir_id,SI=False)
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		#
 		#	PLOT RESPONSES 
 		#
 		#	~~~~~~~~~~~~~~~~~~~~~~~~
 		#
-		myTest.plot_hall_like(		units			=		'SI'		, 
-									scale			=		1.0			, 
+		myTest.plot_hall_like(		scale			=		1.0			, 
 									phi_laser		=		1.0			,	# = 1j
 									plot_ahc		=		False		, 
 									plot_ahc_kubo	= 		True		, 
@@ -306,7 +225,7 @@ def plot_scnd_photo():
 									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
 									upper_bound		=	500,
 									lower_bound		=	0,
-									plot_legend=False
+									plot_legend=True
 							)
 		print("...")
 		print('[plot_scnd_photo]:	plotted Hall like tensors')
