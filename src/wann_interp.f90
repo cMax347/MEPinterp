@@ -439,7 +439,7 @@ module wann_interp
 			!$OMP PRIVATE(n,cmplx_eDiff) &
 			!$OMP SHARED(n_wf, en_k, H_Ka, A_ka, V_Ka) 
 			do m = 1, n_wf
-				do n = 1, n_wf
+				do n = m+1, n_wf
 					if(	n >	m )	then
 						cmplx_eDiff	=	cmplx(	0.0_dp	,	en_k(m) - en_k(n),	dp)
 						!
