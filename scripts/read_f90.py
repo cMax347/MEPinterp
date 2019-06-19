@@ -68,9 +68,14 @@ class read_f90:
 		self.smr_lst			=	(map_unit(	au_to_ev,	self.smr_lst	),	"eV")
 		self.ef_lst				=	(map_unit(	au_to_ev,	self.ef_lst		),	"eV")
 		#
+		print("[read_f90]:  hw_lst==( ",self.hw_lst[0].shape,	', "',self.hw_lst[1],	'")')
+		print("[read_f90]: smr_lst==( ",self.smr_lst[0].shape,	', "',self.smr_lst[1],	'")')
+		print("[read_f90]:  ef_lst==( ",self.ef_lst[0].shape,	', "',self.ef_lst[1],	'")')
 
 
 	def generic_read_response(self,fname):
+		# this is a fallback function which tries to read a unsupported file 
+		# allows for quick access of new tensors
 		fpath	=	self.data_dir +'/'+fname
 		#
 		if os.path.isfile(fpath):
@@ -81,6 +86,18 @@ class read_f90:
 				print("[read_f90/generic_read_response]: could not read ",fpath)
 		return None
 
+
+
+	#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+	#	ToDo:
+	def read_ac_hall(self,SI=True):
+		return None
+	#
+	def read_mep(self,SI=True):
+		return None
+	#
+
+	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 	def read_2nd_photoC(self, SI=True):
@@ -109,12 +126,12 @@ class read_f90:
 			#
 			#
 			self.scndPhoto_data	=	(self.scndPhoto_data,"A/V**2") 
-			return self.scndPhoto_data
 			#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		else:
+			#	ATOMIC UNITS
+			self.scndPhoto_data	=	(self.scndPhoto_data, "e**2/hbar e/E_h")
 		#
-		#
-		#	ATOMIC UNITS
-		self.scndPhoto_data	=	(self.scndPhoto_data, "e**2/hbar e/E_h")
+		print("[read_f90]:  scndPhoto_data==( ",self.scndPhoto_data[0].shape,	', "',self.scndPhoto_data[1],	'")')
 		return self.scndPhoto_data
 		#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -143,7 +160,8 @@ def test_same_shape():
 	#
 	s3 =	np.ones((2,3,5)).shape
 	print('[test_same_shape]: test #1 passed? ',not same_shape(s2,s3)	)
-#test_same_shape()
+	print(scpc_dic["atomic unit of actionps"])
+test_same_shape()
 
 
 

@@ -4,16 +4,6 @@ import sys
 import os
 import matplotlib.pyplot as plt
 
-
-from fortran_io			import 	read_real_tens_file
-from fortran_io			import 	read_cmplx_tens_file
-
-#class response_tensors:
-#		def __init__(self):
-
-
-
-
 class HW_probe:
 
 	def __init__(self, root_dir):
