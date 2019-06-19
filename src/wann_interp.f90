@@ -633,7 +633,16 @@ module wann_interp
 		complex(dp),		intent(inout)	::	A_ka(:,:,:)
 		!
 		!
-		A_ka	=	A_ka	+ i_dp	*	D_ka
+		!$OMP PARALLEL DO DEFAULT(none)	&
+		!$OMP COLLAPSE(2)				&
+		!$OMP PRIVATE(n,m)				&
+		!$OMP SHARED(A_ka, D_ka)
+		do m = 1, size(A_ka,3)
+			do n = 1, size(A_ka,2)
+				A_ka(:,n,m)	=	A_ka(:,n,m)	+ i_dp	*	D_ka(:,n,m)
+			end do
+		end do
+		!$OMP END PARALLEL DO
 		!
 		return
 	end subroutine
@@ -643,11 +652,12 @@ module wann_interp
 		!	PRB 74, 195118 (2006)	EQ.(27)
 		complex(dp),		intent(in)		::	D_ka(:,:,:), A_ka(:,:,:)
 		complex(dp),		intent(inout)	::	Om_kab(:,:,:,:)
-		complex(dp),	allocatable			::	mat_comm(:,:)
 		integer								::	a, b
 		!
-		allocate(	mat_comm(	size(Om_kab,3),size(Om_kab,4)	)		)
-		!
+		!$OMP PARALLEL DO DEFAULT(none) 	&
+		!$OMP COLLAPSE(2)					&
+		!$OMP PRIVATE(a,b)					&
+		!$OMP SHARED(Om_kab, D_ka, A_ka)
 		do b = 1, 3
 			do a = 1, 3
 				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			matrix_comm(	D_ka(a,:,:), 	A_ka(b,:,:)		)
@@ -658,7 +668,7 @@ module wann_interp
 				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:))
 			end do
 		end do
-		!
+		!$OMP END PARALLEL DO
 		!
 		return 
 	end subroutine
