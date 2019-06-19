@@ -26,19 +26,22 @@ module input_paras
 												plot_bands,															&
 												use_mpi,															&
 												debug_mode,															&
+												use_kspace_ham, kspace_ham_id,										&
 												use_cart_velo,														&
 												do_gauge_trafo,														&
 												do_write_velo,														&
 												use_R_float,														&
 												do_write_mep_bands,													&
-												do_mep, do_ahc, do_kubo, do_opt, do_gyro,							&
+												do_mep, do_ahc, do_kubo, do_opt, do_photoC, do_gyro,				&
 												!atoms
 												wf_centers,															&
 												!vars
 												seed_name,	valence_bands,											&
 												a_latt, kubo_tol, unit_vol,											&
+												k_cutoff,															&
 												N_hw, hw_min, hw_max,												&
-												N_eF, eF_min, eF_max, T_kelvin, i_eta_smr
+												N_eF, eF_min, eF_max, T_kelvin,										&
+												N_eta_smr ,eta_smr_min, eta_smr_max
 
 
 
@@ -53,18 +56,21 @@ module input_paras
 	character(len=4)			::	out_dir	="out/"
 	character(len=10)			:: 	velo_out_dir
 	logical						::	plot_bands, 					&
+									use_kspace_ham,					&
 									use_cart_velo,					&
 									do_gauge_trafo, 				&
 									use_R_float,					&
 									do_write_velo,					&
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
-									do_mep, do_ahc, do_kubo, do_opt, do_gyro
-	integer						::	N_wf, N_eF, N_hw
+									do_mep, do_ahc, do_kubo, do_opt, do_photoC, do_gyro
+	integer						::	N_wf, N_eta_smr, N_eF, N_hw, kspace_ham_id
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
-									eF_min, eF_max, T_kelvin			
-	complex(dp)					::	i_eta_smr
+									k_cutoff=1.0_dp,				&
+									eF_min, eF_max, 				&
+									eta_smr_min, eta_smr_max,		&
+									T_kelvin			
 	real(dp),	allocatable		::	wf_centers(:,:)
 
 
@@ -78,7 +84,7 @@ module input_paras
 !public
 	logical function init_parameters()
 		type(CFG_t) 			:: 	my_cfg
-		real(dp)				::	a1(3), a2(3), a3(3), eta
+		real(dp)				::	a1(3), a2(3), a3(3)
 		integer					::	mp_grid(3)
 		logical					::	input_exist
 		character(len=132)		:: 	long_seed_name
@@ -94,6 +100,7 @@ module input_paras
 		end if
 		!
 		velo_out_dir	=	out_dir//"/velo/"
+		kspace_ham_id	=	-1
 		!ROOT READ
 		if(mpi_id == mpi_root_id) then
 			inquire(file="./input.cfg",exist=input_exist)
@@ -103,14 +110,15 @@ module input_paras
 				call CFG_read_file(my_cfg,"./input.cfg")
 				!
 				![methods]
-				call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"	)
-				call CFG_add_get(my_cfg,	"jobs%debug_mode"				,	debug_mode			,	"switch aditional debug tests in code")
+				call CFG_add_get(my_cfg,	"jobs%plot_bands"				,	plot_bands			,	"if true do a bandstructure run"		)
+				call CFG_add_get(my_cfg,	"jobs%debug_mode"				,	debug_mode			,	"switch aditional debug tests in code"	)
 				call CFG_add_get(my_cfg,	"jobs%R_vect_float"				,	use_R_float			,	"the R_cell vector is now real (else: integer)")
 				call CFG_add_get(my_cfg,	"jobs%do_write_velo"			,	do_write_velo		,	"write formatted velocity files at each kpt")
 				call CFG_add_get(my_cfg,	"jobs%do_mep"					,	do_mep				,	"switch (on/off) this response tens calc")
 				call CFG_add_get(my_cfg,	"jobs%do_kubo"					,	do_kubo				,	"switch (on/off) this response tens calc")
 				call CFG_add_get(my_cfg,	"jobs%do_ahc"					,	do_ahc				,	"switch (on/off) this response tens calc")
 				call CFG_add_get(my_cfg,	"jobs%do_opt"					,	do_opt				,	"switch (on/off) this response tens calc")
+				call CFG_add_get(my_cfg,	"jobs%do_photoC"				,	do_photoC			,	"switch (on/off) this response tens calc")				
 				call CFG_add_get(my_cfg,	"jobs%do_gyro"					,	do_gyro				,	"switch (on/off) this response tens calc")
 				!~~~~~~~~~~~~
 				!
@@ -118,45 +126,51 @@ module input_paras
 				call CFG_add_get(my_cfg,	"unitCell%a1"      				,	a1(1:3)  	  		,	"a_x lattice vector	(Bohr)"				)
 				call CFG_add_get(my_cfg,	"unitCell%a2"      				,	a2(1:3)  	  		,	"a_y lattice vector	(Bohr)"				)
 				call CFG_add_get(my_cfg,	"unitCell%a3"      				,	a3(1:3)  	  		,	"a_z lattice vector	(Bohr)"				)
-				call CFG_add_get(my_cfg,	"unitCell%a0"					,	a0					,	"lattice scaling factor "			)
+				call CFG_add_get(my_cfg,	"unitCell%a0"					,	a0					,	"lattice scaling factor "				)
 				!~~~~~~~~~~~~
 				!
 				![wannBase]
-				call CFG_add_get(my_cfg,	"wannBase%seed_name"			,	long_seed_name		,	"seed name of the TB files"			)
-				call CFG_add_get(my_cfg,	"wannBase%N_wf"					,	N_wf				,	"number of WFs specified in input")
+				call CFG_add_get(my_cfg,	"wannBase%seed_name"			,	long_seed_name		,	"seed name of the TB files"				)
+				call CFG_add_get(my_cfg,	"wannBase%N_wf"					,	N_wf				,	"number of WFs specified in input"		)
 				if(	N_wf > 0) then 
 					allocate(	wf_centers(		3,	N_wf)	)
 					call CFG_add_get(my_cfg,	"wannBase%wf_centers_x"		,	wf_centers(1,:)			,	"array of x coord of relative pos"	)
 					call CFG_add_get(my_cfg,	"wannBase%wf_centers_y"		,	wf_centers(2,:)			,	"array of y coord of relative pos"	)
 					call CFG_add_get(my_cfg,	"wannBase%wf_centers_z"		,	wf_centers(3,:)			,	"array of z coord of relative pos"	)
-				end if 
+				end if
+				call CFG_add_get(my_cfg,	"wannBase%use_kspace_ham"		,	use_kspace_ham		,	"swith for using model ham setup in k-space")
+ 				if(use_kspace_ham)	&
+ 					call CFG_add_get(my_cfg,	"wannBase%kspace_ham_id"	,	kspace_ham_id		,	"IDs the model to use (0:rashba)	"	)
+				call CFG_add_get(my_cfg,	"wannBase%k_cutoff"				,	k_cutoff			,	"cutoff for internal k values"			)
 				!~~~~~~~~~~~~
 				!
 				![wannInterp]
 				call CFG_add_get(my_cfg,	"wannInterp%use_cart_velo"		,	use_cart_velo		,	"use cartesian instead of internal units")
-				call CFG_add_get(my_cfg,	"wannInterp%doGaugeTrafo"		,	do_gauge_trafo		,	"switch (W)->(H) gauge trafo"		)
-				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"				)
+				call CFG_add_get(my_cfg,	"wannInterp%doGaugeTrafo"		,	do_gauge_trafo		,	"switch (W)->(H) gauge trafo"			)
+				call CFG_add_get(my_cfg,	"wannInterp%mp_grid"			,	mp_grid(1:3)		,	"interpolation k-mesh"					)
 				!~~~~~~~~~~~~
 				!
 				![Fermi]
-				call CFG_add_get(my_cfg,	"Fermi%N_eF"					,	N_eF				,	"number of fermi energys to test"	)
-				call CFG_add_get(my_cfg,	"Fermi%eF_min"					,	eF_min				,	"minimum fermi energy( in eV)"		)
-				call CFG_add_get(my_cfg,	"Fermi%eF_max"					,	eF_max				,	"maximum fermi energy( in eV)"		)
-				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"						)				
-				call CFG_add_get(my_cfg,	"Fermi%eta_smearing"			,	eta					,	"smearing for optical conductivty"	)
+				call CFG_add_get(my_cfg,	"Fermi%N_eF"					,	N_eF				,	"number of fermi energys to test"		)
+				call CFG_add_get(my_cfg,	"Fermi%eF_min"					,	eF_min				,	"minimum fermi energy( in eV)"			)
+				call CFG_add_get(my_cfg,	"Fermi%eF_max"					,	eF_max				,	"maximum fermi energy( in eV)"			)
+				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"							)				
+				call CFG_add_get(my_cfg,	"Fermi%N_eta_smr"				,	N_eta_smr			,	"number of electr smr to be probed"		)
+				call CFG_add_get(my_cfg,	"Fermi%eta_smr_min"				,	eta_smr_min			,	"min smearing (eV) applied"					)
+				call CFG_add_get(my_cfg,	"Fermi%eta_smr_max"				,	eta_smr_max			,	"max smearing (eV) applied"					)
 				call CFG_add_get(my_cfg,	"Fermi%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO formulas"	)
 				!~~~~~~~~~~~~
 				!
 				![mep]
-				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"			)
-				call CFG_add_get(my_cfg,	"MEP%do_write_mep_bands"		,	do_write_mep_bands	,	"write mep tensor band resolved"	)
+				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"				)
+				call CFG_add_get(my_cfg,	"MEP%do_write_mep_bands"		,	do_write_mep_bands	,	"write mep tensor band resolved"		)
 				!~~~~~~~~~~~~
 				
 				!
 				![Laser]
-				call CFG_add_get(my_cfg,	"Laser%N_hw"					,	N_hw					,	"points to probe in interval"	)
-				call CFG_add_get(my_cfg,	"Laser%hw_min"					,	hw_min					,	"min energy of incoming light"	)
-				call CFG_add_get(my_cfg,	"Laser%hw_max"					,	hw_max					,	"max energy of incoming light"	)
+				call CFG_add_get(my_cfg,	"Laser%N_hw"					,	N_hw					,	"points to probe in interval"		)
+				call CFG_add_get(my_cfg,	"Laser%hw_min"					,	hw_min					,	"min energy of incoming light"		)
+				call CFG_add_get(my_cfg,	"Laser%hw_max"					,	hw_max					,	"max energy of incoming light"		)
 				!~~~~~~~~~~~~
 				!~~~~~~~~~~~~
 				!~~~~~~~~~~~~
@@ -172,14 +186,14 @@ module input_paras
 				hw_max			=	hw_max 		/ 	aUtoEv
 				!
 				N_hw			=	max(1,N_hw)
+				N_ef			=	max(1,N_ef)
+				N_eta_smr		=	max(1,N_eta_smr)
 				!
-				eF_min		= 	eF_min	/	aUtoEv
-				eF_max		=	eF_max	/	aUtoEv
-				eta			=	eta		/	aUtoEv
+				eF_min			= 	eF_min		/	aUtoEv
+				eF_max			=	eF_max		/	aUtoEv
 				!
-				!	derived constants
-				i_eta_smr	=	cmplx(0.0_dp,	eta	,dp)
-				!
+				eta_smr_min		=	eta_smr_min	/	aUtoEv
+				eta_smr_max		=	eta_smr_max	/	aUtoEv
 				!
 				!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 				write(*,*)					"*"
@@ -236,6 +250,7 @@ module input_paras
 				![FLAGS]
 				call MPI_BCAST(		plot_bands		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		debug_mode		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		use_kspace_ham	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		use_cart_velo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gauge_trafo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_write_velo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
@@ -245,12 +260,15 @@ module input_paras
 				call MPI_BCAST(		do_kubo 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_ahc 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_opt 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		do_photoC		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_gyro 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				![SYSTEM]
+				call MPI_BCAST(		kspace_ham_id	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		a_latt			,			9			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		valence_bands	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		long_seed_name	,	len(long_seed_name)	,		MPI_CHARACTER		,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		mp_grid			,			3			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		k_cutoff		,			1			,		MPI_DOUBLE_PRECISION,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				![ATOMS]
 				call MPI_BCAST(		N_wf			,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				if(	N_wf > 0) then
@@ -267,7 +285,9 @@ module input_paras
 				call MPI_BCAST(		eF_min			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		eF_max			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-				call MPI_BCAST(		i_eta_smr		,			1			,	MPI_DOUBLE_COMPLEX		,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		N_eta_smr		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		eta_smr_min		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		eta_smr_max		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			end if
 			!
 			!TRIM SEEDNAME

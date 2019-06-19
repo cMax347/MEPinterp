@@ -184,6 +184,7 @@ program test_FeMn_AHE
 		call CFG_add(my_cfg,	"jobs%do_kubo"				,		.False.			,	"switch (on/off) this response tens calc"		)
 		call CFG_add(my_cfg,	"jobs%do_ahc"				,		.False.			,	"switch (on/off) this response tens calc"		)
 		call CFG_add(my_cfg,	"jobs%do_opt"				,		.True.			,	"switch (on/off) this response tens calc"		)
+		call CFG_add(my_cfg,	"jobs%do_photo_curr"		,		.False.			,	"switch (on/off) this response tens calc"		)
 		call CFG_add(my_cfg,	"jobs%do_gyro"				,		.False.			,	"switch (on/off) this response tens calc"		)
 		!~~~~~~~~~~~~
 		!

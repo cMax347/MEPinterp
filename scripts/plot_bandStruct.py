@@ -211,11 +211,11 @@ def unit_test():
 	pdf_target	=	'./bands.pdf'
 
 	#	id data
-	target_dir_lst	=[	'delta0.900',
-						'delta0.950',
-						'delta1.000',
-						'delta1.050',
-						'delta1.100'
+	target_dir_lst	=[	'.'#'delta0.900',
+						#'delta0.950',
+						#'delta1.000',
+						#'delta1.050',
+						#'delta1.100'
 					]
 	id_str			=	'delta'
 	id_label		=	r'$\delta$'
