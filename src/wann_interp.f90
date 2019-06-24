@@ -412,12 +412,7 @@ module wann_interp
 	pure function intern_to_cart(  a_latt, vec	) result(vec_cart)
 		real(dp),	intent(in)		::		a_latt(3,3), vec(3)
 		real(dp)					::		vec_cart(3)
-		!integer						::		dim
 		!
-		!vec_cart	=	0.0_dp
-		!do dim = 1, 3
-		!	vec_cart(:)	=	vec_cart(:)	+	vec(dim)	*	a_latt(dim,:)	
-		!end do
 		vec_cart(:)		=	matmul(		a_latt, vec(:)	)		
 		!
 		return
