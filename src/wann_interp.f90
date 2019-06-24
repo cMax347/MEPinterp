@@ -112,7 +112,12 @@ module wann_interp
 		!rotate back to (H)-gauge
 		if (allocated( V_ka)) then
 			if( do_gauge_trafo	)	call W_to_H_gaugeTRAFO(kpt_idx, e_k, U_k, H_ka, A_ka, Om_kab)
-			call get_velo(e_k, H_ka, A_ka, 	V_ka)
+			!
+			if( allocated(A_ka)	) then
+				call get_velo(e_k, H_ka, A_ka, V_ka)
+			else
+				V_ka = H_ka
+			end if
 			!	DEBUG
 			if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt, A_ka, Om_kab, V_ka)
 		end if
@@ -212,11 +217,17 @@ module wann_interp
 			!	THIS IS THE 	"TIGHT BINDING" 	CONVENTION															!|
 			!	---------																								!|
 			allocate(	delta_at(size(atom_frac,1),size(atom_frac,2),size(atom_frac,2)))
+			
+			!$OMP PARALLEL DO DEFAULT(none)		&
+			!$OMP PRIVATE(n,m)					&
+			!$OMP SHARED(atom_frac, delta_at, n_wf)	
 			do n = 1, n_wf
 				do m = 1, n_wf
 					delta_at(:,n,m)	=	atom_frac(:,m) - atom_frac(:,n)	
 				end do
 			end do
+			!$OMP END PARALLEL DO
+			!
 			!$OMP PARALLEL DEFAULT(none)								&
 			!$OMP PRIVATE( 	dR, dR_cart,  ft_angle, ft_phase, m,n)		&
 			!$OMP SHARED(  	use_cart_velo,kpt_cart, n_sc, n_wf,kpt_idx, R_frac, delta_at, a_latt, H_real, kpt, H_k, H_ka, do_en_grad, two_pi)
@@ -423,36 +434,27 @@ module wann_interp
 		!	PRB 74, 195118 (2006) EQ.(31)
 		real(dp),						intent(in)		::		en_k(:)
 		complex(dp),					intent(in)		::		H_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout) 	::		A_ka(:,:,:)
+		complex(dp),					intent(inout) 	::		A_ka(:,:,:)
 		complex(dp),					intent(out)		::		V_ka(:,:,:)
 		complex(dp)										::		cmplx_eDiff
 		integer											::		m, n, n_wf
 		!
 		n_wf		=	size(en_k,1)
 		!
-		!
-		if( allocated(A_ka)	) then
-			!	if CONNECTION given 
-			!	-> apply correction to H_Ka
-			!
-			!$OMP PARALLEL DO DEFAULT(none) &
-			!$OMP PRIVATE(n,cmplx_eDiff) &
-			!$OMP SHARED(n_wf, en_k, H_Ka, A_ka, V_Ka) 
-			do m = 1, n_wf
-				do n = m+1, n_wf
-					if(	n >	m )	then
-						cmplx_eDiff	=	cmplx(	0.0_dp	,	en_k(m) - en_k(n),	dp)
-						!
-						V_ka(:,n,m)	= H_ka(:,n,m)	- cmplx_eDiff	* 	A_ka(:,n,m)
-						V_ka(:,m,n)	= H_ka(:,m,n)	+ cmplx_eDiff	*	A_ka(:,m,n)
-					end if
-				end do
+		!$OMP PARALLEL DO DEFAULT(none) &
+		!$OMP PRIVATE(n,cmplx_eDiff) 	&
+		!$OMP SHARED(n_wf, en_k, H_Ka, A_ka, V_Ka) 
+		do m = 1, n_wf
+			do n = m+1, n_wf
+				if(	n >	m )	then
+					cmplx_eDiff	=	cmplx(	0.0_dp	,	en_k(m) - en_k(n),	dp)
+					!
+					V_ka(:,n,m)	= H_ka(:,n,m)	- cmplx_eDiff	* 	A_ka(:,n,m)
+					V_ka(:,m,n)	= H_ka(:,m,n)	+ cmplx_eDiff	*	A_ka(:,m,n)
+				end if
 			end do
-			!$OMP END PARALLEL DO
-		else
-			V_ka		=	H_ka
-		end if
-		!
+		end do
+		!$OMP END PARALLEL DO		
 		!
 		return
 	end subroutine
@@ -494,7 +496,9 @@ module wann_interp
 		!
 		!
 		!do 	(W) -> (Hbar)
-		call rotate_gauge(U_k, H_ka, 	A_ka, Om_kab )
+		!call rotate_gauge(U_k, H_ka, 	A_ka, Om_kab )
+		call omp2_rotate_gauge(U_k, H_ka, A_ka, Om_kab)
+
 		if(debug_mode)	call check_Hbar_gauge_herm(H_ka, A_ka, Om_kab)
 		!
 		!
@@ -553,6 +557,154 @@ module wann_interp
 		return
 	end subroutine	
 
+
+!	subroutine omp_rotate_gauge(U_k, H_ka, A_ka, Om_kab)
+!		!	PRB 74, 195118 (2006)	EQ.(21)
+!		complex(dp),					intent(in)		::	U_k(:,:)
+!		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
+!		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
+!		complex(dp),	allocatable						::	U_dag(:,:), M_in(:,:), work(:,:)
+!		integer											::	a, b, thread, x, y
+!		!
+!		allocate(	U_dag(		size(U_k,1), size(U_k,2)	))
+!		allocate(	M_in(		size(U_k,1), size(U_k,2)	))
+!		allocate(	work(		size(U_k,1), size(U_k,2)	))
+!		!
+!		U_dag	=	conjg(	transpose(	U_k		))
+!		!
+!		if(.not. allocated(A_ka)) then
+!			!$OMP PARALLEL DO DEFAULT(none) &
+!			!$OMP PRIVATE(x, work)			&
+!			!$OMP SHARED(H_ka, U_k, U_dag)
+!			do thread = 1, 3
+!				x 				=	thread - 0
+!				H_ka(x,:,:)		=	unit_rot(	H_ka(x,:,:), U_k, U_dag, work)
+!			end do 
+!			!$OMP END PARALLEL DO
+!		else
+!			if(.not. allocated(Om_kab))	&
+!				write(*,*)	"[omp_rotate_gauge]: WARNING unexpected behaviour detected!!1!( A_ka allocated, but Om_kab not)"	
+!			!
+!			!
+!			!$OMP PARALLEL DO DEFAULT(none)	&
+!			!$OMP PRIVATE(thread,x,y,work)	&
+!			!$OMP SHARED(A_ka, Om_kab, H_ka, U_k, U_dag)
+!			do thread = 1, 15
+!				!
+!				!	VELOCITIES
+!				if (thread<=3)		then
+!					x 			=	thread - 0
+!					H_ka(x,:,:)		=	unit_rot(	H_ka(x,:,:), U_k, U_dag, work)
+!				!~~~~~~~~~~~~~~~~~~
+!				!	CONNECTION
+!				else if(thread<=6)	then
+!					x			=	mod(thread,3) +1
+!					if(allocated(A_ka))&	
+!						A_ka(x,:,:)		=	unit_rot(	A_ka(x,:,:), U_k, U_dag, work)
+!				!~~~~~~~~~~~~~~~~~~
+!				!	CURVATURE-X
+!				else if(thread<=9)	then
+!					x				=	mod(thread,3) +1
+!					y				=	1
+!					Om_kab(x,y,:,:)	=	unit_rot(	Om_kab(x,y,:,:),U_k, U_dag, work)
+!				!~~~~~~~~~~~~~~~~~~
+!				!	CURVATURE-Y
+!				else if(thread<=12)	then
+!					x			=	mod(thread,3) +1
+!					y			=	2
+!					Om_kab(x,y,:,:)	=	unit_rot(	Om_kab(x,y,:,:),U_k, U_dag, work)
+!				!~~~~~~~~~~~~~~~~~~
+!				!	CURVATURE-Z
+!				else if(thread<=15)	then
+!					x			=	mod(thread,3) +1
+!					y			=	3
+!					Om_kab(x,y,:,:)	=	unit_rot(	Om_kab(x,y,:,:),U_k, U_dag, work)
+!				else
+!					write(*,'(a,i3,a,i2,a)')"[#",mpi_id,"omp_rotate_gauge]: ERROR  thread id out of bounds: id=",thread, "(expected <=15)"
+!				end if
+!				!
+!				! debug
+!				if(x<1 .or. x>3)	write(*,'(a,i3,a,i1,a)')"[#",mpi_id,"omp_rotate_gauge]: ERROR  x index out of bounds: ",x," (expected 1<=x<=3)"
+!				if(y<1 .or. y>3)	write(*,'(a,i3,a,i1,a)')"[#",mpi_id,"omp_rotate_gauge]: ERROR  y index out of bounds: ",y," (expected 1<=x<=3)"
+!			end do
+!			!$OMP END PARALLEL DO
+!		end if
+!		!
+!		!
+!		return
+!	end subroutine
+
+
+	subroutine omp2_rotate_gauge(U_k, H_ka, A_ka, Om_kab)
+		!	PRB 74, 195118 (2006)	EQ.(21)
+		complex(dp),					intent(in)		::	U_k(:,:)
+		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
+		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
+		complex(dp),	allocatable						::	U_dag(:,:), work_vec(:,:,:), work_mat(:,:,:,:)
+		integer											::	m, n, k, l
+		!
+		allocate(	U_dag(				size(U_k,1), size(U_k,2)	))
+		allocate(	work_vec(	3,		size(U_k,1), size(U_k,2)	))
+		allocate(	work_mat(	3,3,	size(U_k,1), size(U_k,2)	))
+		!
+		U_dag	=	conjg(	transpose(	U_k		))
+		!
+		!
+		work_vec	=	0.0_dp
+		!	todo: start omp
+
+		!$OMP PARALLEL DO DEFAULT(none) &
+		!$OMP COLLAPSE(1)				&
+		!$OMP PRIVATE(m,n,k,l)			&
+		!$OMP SHARED(work_vec, U_k, U_dag, H_ka)
+		do m = 1, size(U_k,2)
+			do n = 1, size(U_k,2)
+				!
+				!
+				do k =1, size(U_k,2)
+					do l =1, size(U_k,2)
+						work_vec(:,n,m)	= work_vec(:,n,m)		+	U_dag(n,k) * H_ka(:,k,l)	* U_k(l,m)
+					end do
+				end do
+			end do
+		end do
+		!$OMP END PARALLEL DO
+		!
+		!	overwrite tensor
+		H_ka	=	work_vec
+	
+
+		if(allocated(A_ka)) then
+			work_vec 	=	0.0_dp
+			work_mat	=	0.0_dp
+			!$OMP PARALLEL DO DEFAULT(none) &
+			!$OMP COLLAPSE(1)				&
+			!$OMP PRIVATE(m,n,k,l)			&
+			!$OMP SHARED(work_vec, work_mat, U_k, U_dag, A_ka, Om_kab)
+			do m = 1, size(U_k,2)
+				do n = 1, size(U_k,2)
+					!
+					!
+					do k =1, size(U_k,2)
+						do l =1, size(U_k,2)
+							work_vec(:,n,m)		= 	work_vec(:,n,m)		+	U_dag(n,k) * A_ka(:,k,l)	* U_k(l,m)
+							
+							work_mat(:,:,n,m)	= work_mat(:,:,n,m)		+	U_dag(n,k) * Om_kab(:,:,k,l)* U_k(l,m) 
+						end do
+					end do
+					!
+					!
+				end do
+			end do
+			!$OMP END PARALLEL DO
+			A_ka	=	work_vec
+			Om_kab	=	work_mat 
+		end if
+		!
+		return
+	end subroutine
+
+
 	function unit_rot(	M,	U, U_dag, tmp	)	result(M_rot)
 		complex(dp),	intent(in)		::	M(:,:), U(:,:), U_dag(:,:) 
 		complex(dp),	intent(inout)	::	tmp(:,:)
@@ -578,8 +730,8 @@ module wann_interp
 		!
 		D_ka(:,:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
-		!$OMP PARALLEL DO DEFAULT(none) &
-		!$OMP PRIVATE(n,eDiff_mn) &
+		!$OMP PARALLEL DO DEFAULT(none) 		&
+		!$OMP PRIVATE(n,eDiff_mn) 				&
 		!$OMP SHARED(kubo_tol, e_k, H_Ka, D_ka) 
 		do m = 1, size(D_ka,3)
 			do n = m+1, size(D_ka,2)
@@ -613,7 +765,7 @@ module wann_interp
 	end subroutine
 
 
-	pure subroutine conn_gaugeTrafo(D_ka, A_ka)
+	subroutine conn_gaugeTrafo(D_ka, A_ka)
 		!	PRB 74, 195118 (2006)	EQ.(25)
 		!
 		!	Lapack
@@ -621,16 +773,14 @@ module wann_interp
 		!		C :- 
 		complex(dp),		intent(in)		::	D_ka(:,:,:)
 		complex(dp),		intent(inout)	::	A_ka(:,:,:)
+		integer								::	m
 		!
 		!
 		!$OMP PARALLEL DO DEFAULT(none)	&
-		!$OMP COLLAPSE(2)				&
-		!$OMP PRIVATE(n,m)				&
+		!$OMP PRIVATE(m)				&
 		!$OMP SHARED(A_ka, D_ka)
 		do m = 1, size(A_ka,3)
-			do n = 1, size(A_ka,2)
-				A_ka(:,n,m)	=	A_ka(:,n,m)	+ i_dp	*	D_ka(:,n,m)
-			end do
+			A_ka(:,:,m)	=	A_ka(:,:,m)	+ i_dp	*	D_ka(:,:,m)
 		end do
 		!$OMP END PARALLEL DO
 		!
