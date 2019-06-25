@@ -1,4 +1,5 @@
 module model_hams
+	use omp_lib
 	use constants,		only:		dp, i_dp,	&
 									aUtoEv, aUtoAngstrm
 	use mpi_community,	only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
@@ -14,6 +15,8 @@ module model_hams
 	integer,	parameter	::		n_free_e_gas=2,	&	
 									n_rashba=2,		&
 									id_rashba=0,	&
+									n_rand=500,		&
+									id_rand=1,		&
 									x=1, y=2, z=3		
 	!		RASHBA PARAMETER
 	real(dp)					::	rashba_a, alpha_R, rashba_Vex
@@ -38,6 +41,8 @@ module model_hams
 			! ***PUT ADDITIONAL MODELS HERE***
 			!case(id_new_case)
 			!	allocate(	e_k(n_new_case)		)
+			case(id_rand)
+				allocate(	e_k(n_rand))
 			!~
 			case default
 				allocate(		e_k(n_free_e_gas)	)
@@ -62,6 +67,8 @@ module model_hams
 			! ***PUT ADDITIONAL MODELS HERE***
 			!case(id_new_case)
 			!	call	new_model(	kpt_idx, kpt,		H_k, H_ka)
+			case(id_rand)
+				call	random_mat(			kpt_idx, kpt,		H_k, H_ka)
 			!~
 			case default
 				call	free_e_gas(			kpt_idx, kpt,		H_k, H_ka)
@@ -191,10 +198,45 @@ module model_hams
 		!
 		return 
 	end subroutine
-
-
-
-
+	!~
+	!~
+	!~
+	subroutine random_mat(	kpt_idx, kpt, H_k, H_ka)
+		integer,		intent(in)			::	kpt_idx
+		real(dp),		intent(in)			::	kpt(3)
+		complex(dp),	allocatable, intent(inout)		::	H_k(:,:), H_ka(:,:,:)
+		integer								::	i, j, a
+		real(dp)							::	re_rand, im_rand
+		!
+		!
+		allocate(	H_k(		n_rand, n_rand)		)
+		allocate(	H_ka(	3,	n_rand, n_rand)		)
+		!
+		!$OMP PARALLEL DO DEFAULT(none)	&
+		!$OMP SHARED(H_k, H_ka)			&
+		!$OMP PRIVATE(i,j,re_rand, im_rand, a)
+		do j = 1, n_rand
+			do i = j, n_rand
+				!
+				call random_number(re_rand)
+				call random_number(im_rand)	
+				!
+				H_k(	i,	j)		=	cmplx(re_rand, im_rand, dp)
+				H_k(	j,	i)		=	cmplx(re_rand,-im_rand, dp)
+				!
+				do a = 1, 3
+					call random_number(re_rand)
+					call random_number(im_rand)	
+					H_ka(a, i,j)	=	cmplx(re_rand, im_rand, dp)
+					H_ka(a, j,i)	=	cmplx(re_rand,-im_rand, dp)
+				end do
+				!
+			end do
+		end do
+		!$OMP END PARALLEL DO
+		!
+		return
+	end subroutine
 
 
 
