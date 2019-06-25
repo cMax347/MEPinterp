@@ -14,12 +14,14 @@ program MEPinterp
 	use band_calc,				only:		band_worker
 	implicit none
 	!
+	real :: T_start, T_finish
+    call cpu_time(T_start)
 	!
 	!MPI INIT
 	mpi_root_id = 	0
 	mpi_id		=	0
 	mpi_nProcs	=	1
-
+	!
 #ifdef USE_MPI
 	call MPI_INIT( ierr )
     call MPI_COMM_RANK (MPI_COMM_WORLD, 	mpi_id			, ierr)
@@ -41,11 +43,19 @@ program MEPinterp
 	!
 	!
 	!FINALIZE
+	write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	all done, by by'	
+	!
+	call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 #ifdef USE_MPI	
 	call MPI_FINALIZE(ierr)
 #endif
-	write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	all done, by by'	
 	!
+	!REPORT WALL TIME
+	if(mpi_id==mpi_root_id) then
+		write(*,*)	'~~~~~'
+		call cpu_time(T_finish)
+		write(*,'(a,i7.7,a,a,a,f9.3,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	approximated Wall time: ', T_finish-T_start," seconds."
+	end if
 	!
 	stop
 end program 
