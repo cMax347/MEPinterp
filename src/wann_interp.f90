@@ -16,7 +16,6 @@ module wann_interp
 	use constants,		only:		dp, fp_acc, i_dp, pi_dp	
 	use matrix_math,	only:		zheevd_wrapper, 		&
 									zheevx_wrapper,			&
-									matrix_comm,			& 
 									blas_matmul,			&
 									is_equal_mat,			&
 									is_herm_mat,			&
@@ -82,17 +81,13 @@ module wann_interp
 		real(dp),						intent(out)				::	e_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		
 		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
 		!
 		!
-								allocate(	U_k(			size(e_k,1),		size(e_k,1)		)		)		
-!		if(	allocated(V_ka)	)	allocate(	H_ka(	3	,	size(e_k,1),		size(e_k,1)	 	)		)
+		allocate(	U_k(			size(e_k,1),		size(e_k,1)		)		)		
 		allocate(	H_ka(	3	,	size(e_k,1),		size(e_k,1)	 	)		)
-
 		!
-		!
-		!
+		!	GET BASIS
 		if(	.not. use_kspace_ham )	then
 			!
 			!	INTERPOLATE REAL SPACE BASIS
@@ -102,7 +97,6 @@ module wann_interp
 			!	USE MODEL HAM 
 			call get_kspace_ham(kspace_ham_id,	kpt_idx, kpt, U_k, H_ka)
 		end if
-
 		!
 		!
 		!get energies (H)-gauge
@@ -484,10 +478,8 @@ module wann_interp
 		!
 		!
 		!debug (W)-gauge
-		if(debug_mode)	then
-			call check_velo(U_k, H_ka)
+		if(debug_mode) &
 			call write_eig_binary(kpt_idx,	U_k)
-		end if
 		!
 		!
 		!do 	(W) -> (Hbar)
@@ -511,55 +503,59 @@ module wann_interp
 		!
 		!
 	end subroutine
-
-	subroutine rotate_gauge(U_k, H_ka, A_ka, Om_kab)
+	!~
+	!~
+	!~
+	!~
+	subroutine omp2_rotate_gauge(U_k, H_ka, A_ka, Om_kab)
 		!	PRB 74, 195118 (2006)	EQ.(21)
 		complex(dp),					intent(in)		::	U_k(:,:)
 		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
 		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		complex(dp),	allocatable						::	U_dag(:,:), M_in(:,:), work(:,:)
-		integer											::	a, b
-		!
-		allocate(	U_dag(		size(U_k,1), size(U_k,2)	))
-		allocate(	M_in(		size(U_k,1), size(U_k,2)	))
-		allocate(	work(		size(U_k,1), size(U_k,2)	))
-		!
-		U_dag	=	conjg(	transpose(	U_k		))
-		!
-		!
+		complex(dp),	allocatable						::	U_dag(:,:), H_ka_IN(:,:,:), A_ka_IN(:,:,:), OM_kab_IN(:,:,:,:), &
+															tmp(:,:)
+		integer											::	n_wf, a, b
+		!^^^^
+		!	ALLOCATE
+		n_wf	=	size(U_k,1)
+		allocate(	tmp(				n_wf, 	n_wf	))
+		allocate(	U_dag(				n_wf, 	n_wf	))
+		allocate(	H_ka_IN(	3,		n_wf,	n_wf	))
+		if(allocated(A_ka)) then
+			allocate(A_ka_IN(	3,		n_wf,	n_wf	))
+			allocate(OM_kab_IN(	3,3,	n_wf,	n_wf	))
+		end if		
+		!^^^^
+		!	PRECOMPUTE SOME QUANTITIES
+		U_dag			=	conjg(	transpose(	U_k		))
+		H_ka_IN			= 	H_ka
+		if(allocated(A_ka)) then
+			A_ka_IN		=	A_ka
+			OM_kab_IN	=	Om_kab
+		end if
+		!^^^^
+		!	LOOP SPATIAL INDEX 
 		do a = 1, 3
+			H_ka(a,:,:)		=			blas_matmul(		U_dag, 		blas_matmul(	H_ka_IN(a,:,:),			U_k		))
 			!
-			!	VELOCITIES
-										M_in				=	H_ka(a,:,:)
-										H_ka(a,:,:)			=	unit_rot(	M_in,		U_k, U_dag, 	work)
-
-			!	CONNECTION
-			if( allocated(A_ka))then	
-										M_in				=	A_ka(a,:,:)
-										A_ka(a,:,:)			=	unit_rot(	M_in,		U_k, U_dag, 	work)
-			end if
-			!	CURVATURE
-			if( allocated(Om_kab)	)then
-				do b = 1,3 
-										M_in				=	Om_kab(a,b,:,:)
-										Om_kab(a,b,:,:)		=	unit_rot(	M_in,		U_k, U_dag, 	work)
+			if(allocated(A_ka)) then
+				A_ka(a,:,:) =			blas_matmul(		U_dag,		blas_matmul(	A_ka_IN(a,:,:),			U_k		))
+				do b= 1, 3
+					Om_kab(b,a,:,:)	= 	blas_matmul(		U_dag,		blas_matmul(	Om_kab_IN(b,a,:,:), 	U_k		))	
 				end do
 			end if
-			!
-		end do
-		!
-		!
+		end do 
+		!~~~
 		return
-	end subroutine	
-
-
-!	subroutine omp_rotate_gauge(U_k, H_ka, A_ka, Om_kab)
+	end subroutine
+!~~~~~~~~~~~
+!	subroutine rotate_gauge(U_k, H_ka, A_ka, Om_kab)
 !		!	PRB 74, 195118 (2006)	EQ.(21)
 !		complex(dp),					intent(in)		::	U_k(:,:)
 !		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
 !		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
 !		complex(dp),	allocatable						::	U_dag(:,:), M_in(:,:), work(:,:)
-!		integer											::	a, b, thread, x, y
+!		integer											::	a, b
 !		!
 !		allocate(	U_dag(		size(U_k,1), size(U_k,2)	))
 !		allocate(	M_in(		size(U_k,1), size(U_k,2)	))
@@ -567,151 +563,99 @@ module wann_interp
 !		!
 !		U_dag	=	conjg(	transpose(	U_k		))
 !		!
-!		if(.not. allocated(A_ka)) then
-!			!$OMP PARALLEL DO DEFAULT(none) &
-!			!$OMP PRIVATE(x, work)			&
-!			!$OMP SHARED(H_ka, U_k, U_dag)
-!			do thread = 1, 3
-!				x 				=	thread - 0
-!				H_ka(x,:,:)		=	unit_rot(	H_ka(x,:,:), U_k, U_dag, work)
-!			end do 
-!			!$OMP END PARALLEL DO
-!		else
-!			if(.not. allocated(Om_kab))	&
-!				write(*,*)	"[omp_rotate_gauge]: WARNING unexpected behaviour detected!!1!( A_ka allocated, but Om_kab not)"	
+!		!
+!		do a = 1, 3
 !			!
+!			!	VELOCITIES
+!										M_in				=	H_ka(a,:,:)
+!										H_ka(a,:,:)			=	unit_rot(	M_in,		U_k, U_dag, 	work)
+!
+!			!	CONNECTION
+!			if( allocated(A_ka))then	
+!										M_in				=	A_ka(a,:,:)
+!										A_ka(a,:,:)			=	unit_rot(	M_in,		U_k, U_dag, 	work)
+!			end if
+!			!	CURVATURE
+!			if( allocated(Om_kab)	)then
+!				do b = 1,3 
+!										M_in				=	Om_kab(a,b,:,:)
+!										Om_kab(a,b,:,:)		=	unit_rot(	M_in,		U_k, U_dag, 	work)
+!				end do
+!			end if
 !			!
-!			!$OMP PARALLEL DO DEFAULT(none)	&
-!			!$OMP PRIVATE(thread,x,y,work)	&
-!			!$OMP SHARED(A_ka, Om_kab, H_ka, U_k, U_dag)
-!			do thread = 1, 15
-!				!
-!				!	VELOCITIES
-!				if (thread<=3)		then
-!					x 			=	thread - 0
-!					H_ka(x,:,:)		=	unit_rot(	H_ka(x,:,:), U_k, U_dag, work)
-!				!~~~~~~~~~~~~~~~~~~
-!				!	CONNECTION
-!				else if(thread<=6)	then
-!					x			=	mod(thread,3) +1
-!					if(allocated(A_ka))&	
-!						A_ka(x,:,:)		=	unit_rot(	A_ka(x,:,:), U_k, U_dag, work)
-!				!~~~~~~~~~~~~~~~~~~
-!				!	CURVATURE-X
-!				else if(thread<=9)	then
-!					x				=	mod(thread,3) +1
-!					y				=	1
-!					Om_kab(x,y,:,:)	=	unit_rot(	Om_kab(x,y,:,:),U_k, U_dag, work)
-!				!~~~~~~~~~~~~~~~~~~
-!				!	CURVATURE-Y
-!				else if(thread<=12)	then
-!					x			=	mod(thread,3) +1
-!					y			=	2
-!					Om_kab(x,y,:,:)	=	unit_rot(	Om_kab(x,y,:,:),U_k, U_dag, work)
-!				!~~~~~~~~~~~~~~~~~~
-!				!	CURVATURE-Z
-!				else if(thread<=15)	then
-!					x			=	mod(thread,3) +1
-!					y			=	3
-!					Om_kab(x,y,:,:)	=	unit_rot(	Om_kab(x,y,:,:),U_k, U_dag, work)
-!				else
-!					write(*,'(a,i3,a,i2,a)')"[#",mpi_id,"omp_rotate_gauge]: ERROR  thread id out of bounds: id=",thread, "(expected <=15)"
-!				end if
-!				!
-!				! debug
-!				if(x<1 .or. x>3)	write(*,'(a,i3,a,i1,a)')"[#",mpi_id,"omp_rotate_gauge]: ERROR  x index out of bounds: ",x," (expected 1<=x<=3)"
-!				if(y<1 .or. y>3)	write(*,'(a,i3,a,i1,a)')"[#",mpi_id,"omp_rotate_gauge]: ERROR  y index out of bounds: ",y," (expected 1<=x<=3)"
-!			end do
-!			!$OMP END PARALLEL DO
-!		end if
+!		end do
 !		!
 !		!
 !		return
-!	end subroutine
+!	end subroutine	
+!	!~
+!	function unit_rot(	M,	U, U_dag, tmp	)	result(M_rot)
+!		complex(dp),	intent(in)		::	M(:,:), U(:,:), U_dag(:,:) 
+!		complex(dp),	intent(inout)	::	tmp(:,:)
+!		complex(dp),	allocatable		::	M_rot(:,:)
+!		!
+!		allocate(	M_rot(	size(M,1),	size(M,2)	))
+!		!
+!		tmp		=	blas_matmul(	  M		,	U	)
+!		M_rot	=	blas_matmul(	U_dag	,  tmp	)
+!		!
+!		return
+!	end function
 
-
-	subroutine omp2_rotate_gauge(U_k, H_ka, A_ka, Om_kab)
-		!	PRB 74, 195118 (2006)	EQ.(21)
-		complex(dp),					intent(in)		::	U_k(:,:)
-		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
-		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		complex(dp),	allocatable						::	U_dag(:,:), work_vec(:,:,:), work_mat(:,:,:,:)
-		integer											::	m, n, k, l
-		!
-		allocate(	U_dag(				size(U_k,1), size(U_k,2)	))
-		allocate(	work_vec(	3,		size(U_k,1), size(U_k,2)	))
-		allocate(	work_mat(	3,3,	size(U_k,1), size(U_k,2)	))
-		!
-		U_dag	=	conjg(	transpose(	U_k		))
-		!
-		!
-		work_vec	=	0.0_dp
-		!	todo: start omp
-
-		!$OMP PARALLEL DO DEFAULT(none) &
-		!$OMP COLLAPSE(1)				&
-		!$OMP PRIVATE(m,n,k,l)			&
-		!$OMP SHARED(work_vec, U_k, U_dag, H_ka)
-		do m = 1, size(U_k,2)
-			do n = 1, size(U_k,2)
-				!
-				!
-				do k =1, size(U_k,2)
-					do l =1, size(U_k,2)
-						work_vec(:,n,m)	= work_vec(:,n,m)		+	U_dag(n,k) * H_ka(:,k,l)	* U_k(l,m)
-					end do
-				end do
-			end do
-		end do
-		!$OMP END PARALLEL DO
-		!
-		!	overwrite tensor
-		H_ka	=	work_vec
 	
 
-		if(allocated(A_ka)) then
-			work_vec 	=	0.0_dp
-			work_mat	=	0.0_dp
-			!$OMP PARALLEL DO DEFAULT(none) &
-			!$OMP COLLAPSE(1)				&
-			!$OMP PRIVATE(m,n,k,l)			&
-			!$OMP SHARED(work_vec, work_mat, U_k, U_dag, A_ka, Om_kab)
-			do m = 1, size(U_k,2)
-				do n = 1, size(U_k,2)
-					!
-					!
-					do k =1, size(U_k,2)
-						do l =1, size(U_k,2)
-							work_vec(:,n,m)		= 	work_vec(:,n,m)		+	U_dag(n,k) * A_ka(:,k,l)	* U_k(l,m)
-							
-							work_mat(:,:,n,m)	= work_mat(:,:,n,m)		+	U_dag(n,k) * Om_kab(:,:,k,l)* U_k(l,m) 
-						end do
-					end do
-					!
-					!
-				end do
-			end do
-			!$OMP END PARALLEL DO
-			A_ka	=	work_vec
-			Om_kab	=	work_mat 
-		end if
-		!
-		return
-	end subroutine
+	!
+	!subroutine omp3_rotate_gauge((U_k, H_ka, A_ka, Om_kab)
+	!	!	PRB 74, 195118 (2006)	EQ.(21)
+	!	complex(dp),					intent(in)		::	U_k(:,:)
+	!	complex(dp), 					intent(inout)	::	H_ka(:,:,:)
+	!	complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
+	!	complex(dp),	allocatable						::	U_dag(:,:), H_ka_IN(:,:,:), A_ka_IN(:,:,:), OM_kab_IN(:,:,:,:), &
+	!														tmp(:,:)
+	!	integer											::	n_wf, m, n, k, l, a
+	!	!!!$OMP PARALLEL DO DEFAULT(none) &
+	!	!!!$OMP COLLAPSE(1)				&
+	!	!!!$OMP PRIVATE(m,n,k,l)			&
+	!	!!!$OMP SHARED(U_dag, H_ka, H_ka_IN, n_wf, U_k)
+	!	!!do m = 1, n_wf
+	!	!!	do n = 1, n_wf
+	!	!!		!
+	!	!!		do k =1, n_wf
+	!	!!			do l=1, n_wf
+	!	!!				H_ka(:,n,m)	=	H_ka(:,n,m)		+	U_dag(n,k) * H_ka_IN(:,k,l) * U_k(l,m)
+	!	!!			end do
+	!	!!		end do
+	!	!!		!
+	!	!!	end do
+	!	!!end do
+	!	!!!$OMP END PARALLEL DO
+	!	!
+	!	!if(allocated(A_ka)) then
+	!	!	!
+	!	!	!$OMP PARALLEL DO DEFAULT(none) &
+	!	!	!$OMP COLLAPSE(1)				&
+	!	!	!$OMP PRIVATE(m,n,k,l)			&
+	!	!	!$OMP SHARED(n_wf, U_k, U_dag, A_ka, Om_kab, )
+	!	!	do m = 1, n_wf
+	!	!		do n = 1, n_wf
+	!	!			!
+	!	!			do k =1, n_wf
+	!	!				do l=1, n_wf
+	!	!					A_ka(    :,n,m)	=	A_ka(:,n,m)		+	U_dag(n,k)	* A_ka_IN(    :,k,l) * U_k(l,m)	
+	!	!					Om_kab(:,:,n,m)	=	Om_kab(:,:,n,m)	+	U_dag(n,k)	* OM_kab_IN(:,:,k,l) * U_k(l,m)
+	!	!				end do
+	!	!			end do
+	!	!			!
+	!	!		end do
+	!	!	end do
+	!	!	!$OMP END PARALLEL DO
+	!	!end if
+	!	!
+	!	return
+	!end subroutine
 
 
-	function unit_rot(	M,	U, U_dag, tmp	)	result(M_rot)
-		complex(dp),	intent(in)		::	M(:,:), U(:,:), U_dag(:,:) 
-		complex(dp),	intent(inout)	::	tmp(:,:)
-		complex(dp),	allocatable		::	M_rot(:,:)
-		!
-		allocate(	M_rot(	size(M,1),	size(M,2)	))
-		!
-		tmp		=	blas_matmul(	  M		,	U	)
-		M_rot	=	blas_matmul(	U_dag	,  tmp	)
-		!
-		return
-	end function
+
 
 
 
@@ -789,21 +733,22 @@ module wann_interp
 		complex(dp),		intent(inout)	::	Om_kab(:,:,:,:)
 		integer								::	a, b
 		!
-		!$OMP PARALLEL DO DEFAULT(none) 	&
-		!$OMP COLLAPSE(2)					&
-		!$OMP PRIVATE(a,b)					&
-		!$OMP SHARED(Om_kab, D_ka, A_ka)
 		do b = 1, 3
 			do a = 1, 3
-				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			matrix_comm(	D_ka(a,:,:), 	A_ka(b,:,:)		)
+				!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			matrix_comm(	D_ka(a,:,:), 	A_ka(b,:,:)		)
+				Om_kab(a,b,:,:)		=	Om_kab(a,b,:,:)		&
+					-			(	blas_matmul(D_ka(a,:,:), A_ka(b,:,:)) 		- 		blas_matmul(A_ka(b,:,:), D_ka(a,:,:))	)	
 				!
 				!
-				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			matrix_comm(	D_ka(b,:,:), 	A_ka(a,:,:)		)
+				!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			matrix_comm(	D_ka(b,:,:), 	A_ka(a,:,:)		)
+				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)			&
+					+			( blas_matmul(D_ka(b,:,:), 	A_ka(a,:,:))		-		blas_matmul(A_ka(a,:,:), D_ka(b,:,:))	)
 				!
-				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:))
+				!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:))
+				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)			&
+					- i_dp * 	( blas_matmul(D_ka(a,:,:), 	D_ka(b,:,:))		-		blas_matmul(D_ka(b,:,:), D_ka(a,:,:))	)
 			end do
 		end do
-		!$OMP END PARALLEL DO
 		!
 		return 
 	end subroutine
@@ -949,34 +894,6 @@ module wann_interp
 		return
 	end function
 
-
-	subroutine check_velo(U_k, VW_ka)
-		!	check if rotating forward and backwards wants is identity operation
-		!
-		complex(dp),		intent(in)		::	U_k(:,:), VW_ka(:,:,:)
-		complex(dp),	allocatable			::	VW_new_ka(:,:,:), A_ka(:,:,:), Om_kab(:,:,:,:)
-		!
-		allocate(		VW_new_ka(size(VW_ka,1), size(VW_ka,2),size(VW_ka,3))	)
-		!
-		VW_new_ka	=	VW_ka
-		!
-		call rotate_gauge(U_k, VW_new_ka, A_ka, Om_kab)
-		!
-		!	now rotate back to wannier gauge
-		call rotate_gauge(	conjg(transpose(U_k)),	VW_new_ka,	A_ka, Om_kab)
-		!
-		!
-		if(			is_equal_mat(	1e-9_dp	, VW_ka(1,:,:), VW_new_ka(1,:,:))	&
-			.and.	is_equal_mat(	1e-9_dp	, VW_ka(2,:,:), VW_new_ka(2,:,:))	&
-			.and.	is_equal_mat(	1e-9_dp	, VW_ka(3,:,:), VW_new_ka(3,:,:))	&
-			)	then
-			write(*,*)	"[wann_interp/check_velo]:	SUCCESS gauge consistency seems fine "
-		else
-			write(*,*)	"[wann_interp/check_velo]:	WARNING gauge consistency not given "
-		end if
-
-		return
-	end subroutine
 
 
 
