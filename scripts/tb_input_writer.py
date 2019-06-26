@@ -2,7 +2,6 @@ import 	os
 import 	datetime
 import 	numpy 				as 		np
 from 	shutil 				import 	rmtree
-from 	postw90_in_writer 	import 	postw90_job
 from 	souza_tb_model		import 	get_souza_tb
 from 	FeMn_3q_model		import 	get_FeMn3q_tb
 #
@@ -28,9 +27,7 @@ seed_name		= 	'wf1'
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #		WANNIER90 INTERFACE
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def write_postw90_input(w90_dir, seed_name, val_bands, mp_grid, hw=0.0, eFermi=0.0, Tkelvin=0.0, eta_smearing=0.0):
-	pw90_job 	=	postw90_job(w90_dir, seed_name, val_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing)
-	pw90_job.write_win_file()
+
 #
 #
 #
@@ -264,8 +261,6 @@ def write_tb_input(	tb_model,use_pos_op, root_dir, phi_para, valence_bands, mp_g
 		write_r_file(	target_path+'/'+seed_name, 	nWfs,		 rHopp )
 		print("[write_tb_input]:	wrote "+target_path+'/'+seed_name+'_r.dat')
 
-	# now write the input files for postw90 & mepInterp
-	#write_postw90_input(target_path, seed_name, valence_bands, mp_grid,  hw, eFermi, Tkelvin, eta_smearing	)
 	#print("[write_tb_input]: wrote pw90 input file")
 
 	#
