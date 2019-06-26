@@ -194,6 +194,15 @@ module input_paras
 				!
 				eta_smr_min		=	eta_smr_min	/	aUtoEv
 				eta_smr_max		=	eta_smr_max	/	aUtoEv
+
+
+				if(.not.use_kspace_ham)then	
+					if(abs(k_cutoff-1.0_dp)>1e-3_dp) then
+						write(*,*)	"[#",mpi_id,";init_parameters]: WARNING k_cutoff set to 1.0 (only allowed if use_kspace_ham is true)"
+					end if
+					k_cutoff = 1.0_dp
+				end if
+				!
 				!
 				!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 				write(*,*)					"*"
