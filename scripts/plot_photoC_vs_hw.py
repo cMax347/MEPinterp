@@ -62,7 +62,7 @@ class plotter:
 		self.data			=	read_f90(self.root_dir)
 		raw					=	self.data.read_2nd_photoC(SI=SI)
 		self.scndPhoto_data	=	raw[0]
-		self.unit_str		=	'['+raw[1]+']'
+		self.raw_unit		=	raw[1]
 		
 		#
 		np_arr				=	np.array(	self.scndPhoto_data)
@@ -79,7 +79,7 @@ class plotter:
 
 			
 
-	def plot_hall_like(		self, scale=1.0, phi_laser=1.0,
+	def plot_hall_like(		self, scale=1.0,scale_str='', phi_laser=1.0,
 							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
 							line_width=1, label_size=14, xtick_size=12, ytick_size=12,
 							marker_size=12,
@@ -110,8 +110,10 @@ class plotter:
 		dim_str.append('y')
 		dim_str.append('z')
 		#
+		self.unit_str	=		r'($'+scale_str+' '+self.raw_unit+r'$)'
 		#
-		smr_idx	=	1
+		smr_idx	=	0
+		ef_idx 	=	1
 		#	color code for the AHC plot
 		colors 	= discrete_cmap(len(self.data.ef_lst[0]),	'cool')
 		#
@@ -126,13 +128,11 @@ class plotter:
 					#
 					title = ''
 					plt.title(title)
-
-
 					#	plot curv for each fermi level
 					#for ef_idx, ef_val in enumerate(self.ef_lst):
 					re_plot	=	[]
 					im_plot	=	[]
-					ef_idx =0
+					#
 					ef_val	=	self.data.ef_lst[0][ef_idx]
 					#
 					# collect data for current plot
@@ -154,7 +154,7 @@ class plotter:
 					ax.set_xticks(np.arange(hw_min, hw_max+1.0, 0.1), minor=True)
 					try:	
 						ax.set_xlim([hw_min, hw_max])
-						#ax.set_ylim([lower_bound, upper_bound  ])
+						ax.set_ylim([lower_bound, upper_bound  ])
 						#
 						ax.set(ylabel=r'$\sigma^{'+dim_str[x]+'}_{'+dim_str[i]+dim_str[j]+'}\;$' +	self.unit_str)
 						ax.yaxis.label.set_size(label_size)
@@ -210,21 +210,22 @@ def plot_scnd_photo():
 
 	if os.path.isdir(root_dir):
 		#	read data
-		myTest	= plotter(root_dir,dir_id,SI=False)
+		myTest	= plotter(root_dir,dir_id,SI=True)
 		#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		#
 		#	PLOT RESPONSES 
 		#
 		#	~~~~~~~~~~~~~~~~~~~~~~~~
 		#
-		myTest.plot_hall_like(		scale			=		1.0			, 
+		myTest.plot_hall_like(		scale			=		1e6			, 
+									scale_str		=	r'\mu',
 									phi_laser		=		1.0			,	# = 1j
 									plot_ahc		=		False		, 
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		False		, 
 									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
-									upper_bound		=	500,
-									lower_bound		=	0,
+									upper_bound		=	50,
+									lower_bound		=	-50,
 									plot_legend=True
 							)
 		print("...")
