@@ -480,10 +480,10 @@ contains
 															mep_sum_ic_loc(:,:), mep_sum_lc_loc(:,:), mep_sum_cs_loc(:,:),				&
 															mep_sum_ic_glob(:,:), mep_sum_lc_glob(:,:), mep_sum_cs_glob(:,:),			&
 															kubo_mep_ic_glob(:,:), kubo_mep_lc_glob(:,:), kubo_mep_cs_glob(:,:),		&
-															kubo_ahc_glob(:,:)												
+															kubo_ahc_glob(:,:,:)												
 															!
-		complex(dp),			allocatable				::	velo_ahc_glob(:,:,:),														&
-															kubo_ohc_glob(:,:,:),														&
+		complex(dp),			allocatable				::	velo_ahc_glob(:,:,:,:),														&
+															kubo_ohc_glob(:,:,:,:),														&
 															kubo_opt_s_glob(:,:,:), kubo_opt_a_glob(:,:,:),								&
 															photo2_cond_glob(:,:,:,:,:,:),												&
 															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:,:)		
@@ -533,9 +533,9 @@ contains
 		!
 		!
 		if( do_ahc )											then
-			call mpi_reduce_sum(	kubo_ahc_loc(:,:  ,eF_idx)	,	kubo_ahc_glob		)
-			call mpi_reduce_sum(	velo_ahc_loc(:,:,:,eF_idx)	,	velo_ahc_glob		)
-			call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,eF_idx)	,	kubo_ohc_glob		)
+			call mpi_reduce_sum(	kubo_ahc_loc(:,:  ,:)	,	kubo_ahc_glob		)
+			call mpi_reduce_sum(	velo_ahc_loc(:,:,:,:)	,	velo_ahc_glob		)
+			call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,:)	,	kubo_ohc_glob		)
 			!
 			call normalize_k_int(kubo_ahc_glob)
 			call normalize_k_int(velo_ahc_glob)
