@@ -125,11 +125,11 @@ class read_f90:
 			self.scndPhoto_data	=	map_unit(au_to_si, self.scndPhoto_data)
 			#
 			#
-			self.scndPhoto_data	=	(self.scndPhoto_data,"A/V**2") 
+			self.scndPhoto_data	=	(self.scndPhoto_data,'A/V^2') 
 			#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		else:
 			#	ATOMIC UNITS
-			self.scndPhoto_data	=	(self.scndPhoto_data, "e**2/hbar e/E_h")
+			self.scndPhoto_data	=	(self.scndPhoto_data, 'e^3 / \hbar  E_h')
 		#
 		print("[read_f90]:  scndPhoto_data==( ",self.scndPhoto_data[0].shape,	', "',self.scndPhoto_data[1],	'")')
 		return self.scndPhoto_data
