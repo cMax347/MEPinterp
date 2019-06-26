@@ -160,8 +160,8 @@ def test_same_shape():
 	#
 	s3 =	np.ones((2,3,5)).shape
 	print('[test_same_shape]: test #1 passed? ',not same_shape(s2,s3)	)
-	print(scpc_dic["atomic unit of actionps"])
-test_same_shape()
+	print(scpc_dic["atomic unit of action"])
+#test_same_shape()
 
 
 
