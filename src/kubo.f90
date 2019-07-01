@@ -15,9 +15,9 @@ module kubo
 
 
 	private
-	public			::			kubo_ahc_tens,		&
-								velo_ahc_tens,		&
-								kubo_opt_tens,		&
+	public			::			kubo_DC_ahc,			&
+								kubo_AC_ahc,			&
+								kubo_opt_tens,			&
 								kubo_ohc_tens	
 
 
@@ -34,7 +34,7 @@ contains
 
 !public
 
-	function kubo_ahc_tens(en_k, V_ka, fd_distrib) result( o_ahc)
+	function kubo_DC_ahc(en_k, V_ka, fd_distrib) result( o_ahc)
 		!	see wann guide chapter 12
 		!		eq. (12.16)
 		real(dp),						intent(in)		::	en_k(:), fd_distrib(:,:)
@@ -81,7 +81,7 @@ contains
 !				OPTICAL CONDUTCTIVITY (hw \non_eq 0)
 !	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	function velo_ahc_tens(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr) result( o_ahc)
+	function kubo_AC_ahc(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr) result( o_ahc)
 		!
 		!	use Wanxiangs expression to calculate the ohc
 		!
@@ -139,7 +139,9 @@ contains
 
 
 
-
+!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+!				OPTICAL CONDUTCTIVITY (postw90 version, DEPRECATED)
+!	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	function kubo_ohc_tens(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr)	result(z_ohc)
 		!
 		!		calculates wann guide (12.5) explicitly
@@ -152,6 +154,8 @@ contains
 		complex(dp)						::	v_nm_mn(3,3)
 		real(dp)						::	dE_mn
 		integer							::	n, m, j, n_ef, n_hw, n_wf, ef_idx, hw_idx
+		!
+		write(*,*)	"[kubo_ohc_tens]: WARNING THIS FUNCTION IS DEPRECATED (consider using kubo_AC_ahc function instead)"
 		!
 		n_ef	=	size(	fd_distrib	,	1	)
 		n_hw	=	size(	hw_lst		,	1	)
