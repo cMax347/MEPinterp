@@ -7,10 +7,9 @@ from random import randint
 import matplotlib.cm as cm
 import scipy.constants as scpc 
 from read_f90 import read_f90
-
+#
 au_to_ev	=	scpc.physical_constants["Hartree energy in eV"][0]
-print("scpc au_to_ev=",au_to_ev)
-
+#
 def discrete_cmap(N, base_cmap=None):
     """Create an N-bin discrete colormap from the specified input map"""
 
@@ -23,7 +22,7 @@ def discrete_cmap(N, base_cmap=None):
     #cmap_name = base.name + str(N)
     #return base.from_list(cmap_name, color_list, N)
     return color_list
-
+#~~~~~~~~~~~~~~~~~~~
 
 
 
@@ -112,7 +111,7 @@ class plotter:
 		#
 		self.unit_str	=		r'($'+scale_str+' '+self.raw_unit+r'$)'
 		#
-		smr_idx	=	0
+		smr_idx	=	1
 		ef_idx 	=	1
 		#	color code for the AHC plot
 		colors 	= discrete_cmap(len(self.data.ef_lst[0]),	'cool')
@@ -182,6 +181,7 @@ class plotter:
 					print('[plot_hall_like]:	finished processing '+dim_str[x]+'_'+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+outFile_path	)
 		print("-------------------------------------------------------------------------------")
 		print("")
+		print("[plot_hall_like]: selected smearing: ",self.data.smr_lst[0][smr_idx]," eV; fermi_level:",self.data.ef_lst[0][ef_idx]," eV")
 		print("")	
 
 
@@ -197,9 +197,9 @@ class plotter:
 
 
 
-
-
-
+#
+#
+#^^^^
 def plot_scnd_photo():
 	#	use the above class in here to plot data in folder root_dir
 	print('[plot_scnd_photo]:	hello there')
@@ -235,16 +235,10 @@ def plot_scnd_photo():
 		#----------------------------------------------------------------------------------------------------------------------
 	else:
 		print('[plot_scnd_photo]:	ERROR '+str(root_dir)+'	seems to be non existing. please specify valid folder')
-
-
-
-
-
-
-
-
+#
+#
 plot_scnd_photo()
-
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
