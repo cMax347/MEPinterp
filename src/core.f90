@@ -53,26 +53,18 @@ module core
 	!
 	use mep_niu,		only:	mep_niu_CS,	mep_niu_IC, mep_niu_LC
 	use kubo_mep,		only:	kubo_mep_CS, kubo_mep_LC, kubo_mep_IC
-	use kubo,			only:	kubo_ahc_tens,  kubo_ohc_tens, velo_ahc_tens, kubo_opt_tens
+	use kubo,			only:	kubo_DC_ahc, kubo_AC_ahc,  &
+								kubo_opt_tens, kubo_ohc_tens 
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
 	use photo,			only:	photo_2nd_cond
 	!
 	use w90_interface, 	only:	read_tb_basis
-	use file_io,		only:	write_velo!,										&
-								!write_mep_bands,								&
-								!write_mep_tensors,								&
-								!write_kubo_mep_tensors,							&
-								!write_ahc_tensor,								&
-								!write_opt_tensors,								&
-								!write_photoC_tensors,							&
-								!write_gyro_tensors
-	
-
-
+	use file_io,		only:	write_velo
+	!
+	!
 	implicit none
-
-
-
+	!
+	!
 	private
 	public ::			core_worker
 	!
@@ -240,13 +232,13 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_ahc )	then
 							kubo_ahc_loc(:,:,:)		=	kubo_ahc_loc(:,:,:)		&
-														+ 	kubo_ahc_tens(en_k,	V_ka,   fd_distrib)
+														+ 	kubo_DC_ahc(en_k,	V_ka,   fd_distrib)
 							!			---------------------------------
 							velo_ahc_loc(:,:,:,:)	= 	velo_ahc_loc(:,:,:,:)	&	
-								 							+	velo_ahc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_dp*eta_smr_lst(1))
+								 							+	kubo_AC_ahc(en_k, V_ka, hw_lst(:), fd_distrib, i_dp*eta_smr_lst(1))
 							!			---------------------------------
-							kubo_ohc_loc(:,:,:,:)	= 	kubo_ohc_loc(:,:,:,:)	&
-								 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_dp*eta_smr_lst(1))
+							!kubo_ohc_loc(:,:,:,:)	= 	kubo_ohc_loc(:,:,:,:)	&
+							!	 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_dp*eta_smr_lst(1))
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -332,9 +324,8 @@ contains
 
 
 !private:
-	!
-	!
-
+!
+!
 !
 !----------------------------------------------------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------------------------------------------------
@@ -535,11 +526,11 @@ contains
 		if( do_ahc )											then
 			call mpi_reduce_sum(	kubo_ahc_loc(:,:  ,:)	,	kubo_ahc_glob		)
 			call mpi_reduce_sum(	velo_ahc_loc(:,:,:,:)	,	velo_ahc_glob		)
-			call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,:)	,	kubo_ohc_glob		)
+			!call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,:)	,	kubo_ohc_glob		)
 			!
 			call normalize_k_int(kubo_ahc_glob)
 			call normalize_k_int(velo_ahc_glob)
-			call normalize_k_int(kubo_ohc_glob)
+			!call normalize_k_int(kubo_ohc_glob)
 			!
 			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
 		end if
@@ -599,7 +590,7 @@ contains
 			!	AHC TENSORS			
 			if(allocated(kubo_ahc_glob)) 	call save_npy(	out_dir//'ahc_tens.npy'		,		kubo_ahc_glob		)
 			if(allocated(velo_ahc_glob))	call save_npy(	out_dir//'ahcVELO.npy'		,		velo_ahc_glob		)
-			if(allocated(kubo_ohc_glob))	call save_npy(	out_dir//'ohcVELO.npy'		,		kubo_ohc_glob		)
+			!if(allocated(kubo_ohc_glob))	call save_npy(	out_dir//'ohcVELO.npy'		,		kubo_ohc_glob		)
 			!
 			!	OPTICAL TENSORS			
 			if(allocated(kubo_opt_s_glob)) 	call save_npy(	out_dir//"opt_Ssymm.npy"	, 		kubo_opt_s_glob		)
@@ -634,11 +625,11 @@ contains
 			!
 			!	AHC
 			if(allocated(kubo_ahc_glob)) 	&
-				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote AHC tensor to ",			out_dir//'ahc_tens.npy'
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote AHC tensor to ",			out_dir//'ahc_DC_tens.npy'
 			if(allocated(velo_ahc_glob))	&
-				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote AHC(hw) tensor to ",		out_dir//'ahcVELO.npy'
-			if(allocated(kubo_ohc_glob))	&
-				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote OHC(hw) tensor to ",		out_dir//'ohcVELO.npy'
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote AHC(hw) tensor to ",		out_dir//'ahc_AC_tens.npy'
+			!if(allocated(kubo_ohc_glob))	&
+			!	write(*,'(a,i7.7,a,a)')		"[#",mpi_id,"; core_worker]: wrote OHC(hw) tensor to ",		out_dir//'ohcVELO.npy'
 			!
 			!	OPT
 			if(allocated(kubo_opt_s_glob))	&
@@ -760,11 +751,11 @@ contains
 		if(	do_ahc	)	then		
 			allocate(	kubo_ahc_loc(				3,3,				n_eF			)	)	
 			allocate(	velo_ahc_loc(				3,3,	n_hw	,	n_eF			)	)
-			allocate(	kubo_ohc_loc(				3,3,	n_hw	,	n_eF			)	)
+			!allocate(	kubo_ohc_loc(				3,3,	n_hw	,	n_eF			)	)
 			!
 			kubo_ahc_loc		=	0.0_dp
 			velo_ahc_loc		=	0.0_dp	
-			kubo_ohc_loc		=	0.0_dp
+			!kubo_ohc_loc		=	0.0_dp
 		end if
 		
 		!
