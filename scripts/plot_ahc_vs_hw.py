@@ -212,12 +212,12 @@ def plot_ac_hall_tens(SI=True):
 	#
 	#	~~~~~~~~~~~~~~~~~~~~~~~~
 	#
-	myTest.plot_ac_hall(		scale			=		1e-4		, 
-								scale_str		=		r'$10^{-4}$',
+	myTest.plot_ac_hall(		scale			=		1		, 
+								scale_str		=		r'',
 								plot_ahc		=		False		, 
 								plot_ahc_kubo	= 		True		, 
 								plot_ohc		=		False		, 
-								line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
+								line_width=1.5,label_size=12, xtick_size=12, ytick_size=12, marker_size=1.1,
 								re_bound		=	10,
 								im_bound		=	10
 						)
@@ -230,7 +230,7 @@ def plot_ac_hall_tens(SI=True):
 	print('[plot_ac_hall_tens]:	plotted AC hall tensor')
 	#----------------------------------------------------------------------------------------------------------------------
 #
-plot_ac_hall_tens(SI=True)
+plot_ac_hall_tens(SI=False)
 #~~~~~~~~~~~~~
 
 
