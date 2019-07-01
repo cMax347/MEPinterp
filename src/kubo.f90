@@ -81,30 +81,31 @@ contains
 !				OPTICAL CONDUTCTIVITY (hw \non_eq 0)
 !	------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	function kubo_AC_ahc(en_k, V_ka, hw_lst, fd_distrib, i_eta_smr) result( o_ahc)
+	function kubo_AC_ahc(en_k, V_ka, hw_lst, eta_smr_lst, fd_distrib) result( o_ahc)
 		!
 		!	use Wanxiangs expression to calculate the ohc
 		!
 		!		VIA VELOCITIES
-		real(dp),		intent(in)		::	en_k(:), hw_lst(:), fd_distrib(:,:)
-		complex(dp), 	intent(in)		::	V_ka(:,:,:), i_eta_smr
-		complex(dp)	,	allocatable		::	o_ahc(:,:,:,:), vv_dE_hw(:,:,:)
+		real(dp),		intent(in)		::	en_k(:), hw_lst(:), fd_distrib(:,:), eta_smr_lst(:)
+		complex(dp), 	intent(in)		::	V_ka(:,:,:)
+		complex(dp)	,	allocatable		::	o_ahc(:,:,:,:,:), vv_dE_hw(:,:,:,:)
 		real(dp),		allocatable		::	d_ef_lst(:)
 		real(dp)						::	dE_sqr, v_nm_mn(3,3)
-		integer							::	n, np, j, hw_idx, n_ef, n_hw, n_wf, ef_idx
+		integer							::	n, np, j, hw_idx, n_ef, n_hw, n_wf,n_smr, ef_idx, smr_idx
 		!
 		n_hw	=	size(	hw_lst		,	1)
 		n_ef	=	size(	fd_distrib	,	1)
 		n_wf	=	size(	en_k		,	1)
+		n_smr	=	size(	eta_smr_lst ,	1)
 		!
-		allocate(		d_ef_lst(						n_ef	)	)
-		allocate(		vv_dE_hw(	3,3		,	n_hw			)	)
-		allocate(	o_ahc(			3,3		,	n_hw,	n_ef	)	)
+		allocate(		d_ef_lst(								n_ef	)	)
+		allocate(		vv_dE_hw(	3,3		,	n_hw, n_smr				)	)
+		allocate(	o_ahc(			3,3		,	n_hw, n_smr,	n_ef	)	)
 		o_ahc	=	0.0_dp
 		!
-		!$OMP  PARALLEL DO DEFAULT(NONE)  											&
-		!$OMP PRIVATE(np, d_ef_lst, dE_sqr, j, v_nm_mn, hw_idx, vv_dE_hw, ef_idx)	&
-		!$OMP SHARED(fd_distrib, en_k, V_ka, hw_lst, n_wf, n_hw, n_ef, i_eta_smr) 	&
+		!$OMP  PARALLEL DO DEFAULT(NONE)  													&
+		!$OMP PRIVATE(np, d_ef_lst, dE_sqr, j, v_nm_mn, vv_dE_hw, hw_idx, smr_idx, ef_idx)	&
+		!$OMP SHARED(fd_distrib, en_k, V_ka, hw_lst, n_wf, n_hw, n_ef,n_smr, eta_smr_lst) 	&
 		!$OMP REDUCTION(+: o_ahc)
 		do n = 1, n_wf
 			do np = 1, n_wf
@@ -120,13 +121,16 @@ contains
 				end do
 				!
 				!	LOOP HW
-				do hw_idx =1, n_hw
-					vv_dE_hw(:,:,hw_idx)	=	 v_nm_mn(:,:)	/	(	dE_sqr	- (	hw_lst(hw_idx) + i_eta_smr	)**2	)	
+				do smr_idx =1, n_smr
+					do hw_idx =1, n_hw
+						vv_dE_hw(:,:,hw_idx,smr_idx)	=	 v_nm_mn(:,:)			&
+							/	(	dE_sqr	- (	hw_lst(hw_idx) + cmplx(0.0_dp,eta_smr_lst(smr_idx),dp)	)**2	)	
+					end do
 				end do
 				!
 				!	LOOP FERMI LEVEL
 				do ef_idx = 1, n_ef
-					o_ahc(:,:,:,ef_idx)		=	o_ahc(:,:,:,ef_idx)	+	d_ef_lst(ef_idx)	*	vv_dE_hw(:,:,:)
+					o_ahc(:,:,:,:,ef_idx)		=	o_ahc(:,:,:,:,ef_idx)	+	d_ef_lst(ef_idx)	*	vv_dE_hw(:,:,:,:)
 				end do
 				!
 			end do

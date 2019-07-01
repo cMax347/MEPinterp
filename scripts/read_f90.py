@@ -17,6 +17,7 @@ def map_unit(unit, arr):
 
 def same_shape(s1,s2):
 	#
+	asdfadsfasf
 	d1	= len(s1)
 	d2	= len(s2)
 	#
@@ -91,7 +92,34 @@ class read_f90:
 	#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	#	ToDo:
 	def read_ac_hall(self,SI=True):
-		return None
+		assumed_shape			=	(3,3,len(self.hw_lst[0]),len(self.smr_lst[0]),len(self.ef_lst[0]))
+		#
+		self.ahc_dc_tens		=	np.load(self.data_dir+'/ahc_DC_tens.npy')
+		self.ahc_ac_tens		=	np.load(self.data_dir+'/ahc_AC_tens.npy')
+		#self.ohc_ac_tens		=	np.load(self.data_dir+'ohcVELO.npy')
+		#
+		unit_str				=	r'$e^2$/ ($\hbar a_0$)'
+
+		if SI: 
+			unit_str			=	'S/m'
+			# >>> [	e**2/hbar	]_atomic	=	2.434135×10^-4 	[	S	]_SI
+			cond_quantum			=	(scpc_dic["atomic unit of charge"][0])**2
+			cond_quantum			=	cond_quantum	/	(scpc_dic["atomic unit of action"][0])
+			# >>> [ 1/ a_0 ]_atomic 		= 1.(5*10^-11)[ m ]
+			length					=	1./(scpc_dic["Bohr radius"][0])
+
+			au_to_si				=	cond_quantum*length
+			print('[read_ac_hall]: au_to_si='+str(au_to_si))
+			self.ahc_dc_tens		=	map_unit(au_to_si, self.ahc_dc_tens)
+			self.ahc_ac_tens		=	map_unit(au_to_si, self.ahc_ac_tens)
+		#
+		self.ahc_dc_tens		=	(self.ahc_dc_tens, unit_str)
+		self.ahc_ac_tens		=	(self.ahc_ac_tens, unit_str)
+		#
+		print("[read_f90]:  ahc_DC_tens==( ",self.ahc_dc_tens[0].shape,	', "',self.ahc_dc_tens[1],	'")')
+		print("[read_f90]:  ahc_AC_tens==( ",self.ahc_ac_tens[0].shape,	', "',self.ahc_ac_tens[1],	'")')
+		#
+		return self.ahc_dc_tens, self.ahc_ac_tens
 	#
 	def read_mep(self,SI=True):
 		return None
