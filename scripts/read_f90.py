@@ -17,7 +17,6 @@ def map_unit(unit, arr):
 
 def same_shape(s1,s2):
 	#
-	asdfadsfasf
 	d1	= len(s1)
 	d2	= len(s2)
 	#
@@ -98,7 +97,7 @@ class read_f90:
 		self.ahc_ac_tens		=	np.load(self.data_dir+'/ahc_AC_tens.npy')
 		#self.ohc_ac_tens		=	np.load(self.data_dir+'ohcVELO.npy')
 		#
-		unit_str				=	r'$e^2$/ ($\hbar a_0$)'
+		unit_str				=	r'$e^2$/ ($\hbar a_0$'
 
 		if SI: 
 			unit_str			=	'S/m'

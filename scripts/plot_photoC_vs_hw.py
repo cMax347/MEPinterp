@@ -78,7 +78,7 @@ class plotter:
 
 			
 
-	def plot_hall_like(		self, scale=1.0,scale_str='', phi_laser=1.0,
+	def plot_photoC(		self, scale=1.0,scale_str='', phi_laser=1.0,
 							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
 							line_width=1, label_size=14, xtick_size=12, ytick_size=12,
 							marker_size=12,
@@ -88,20 +88,20 @@ class plotter:
 		print("^")
 		print("^")
 		print("-------------------------------------------------------------------------------")	
-		print("		PLOT HALL LIKE")
+		print("		PLOT 2nd order PHOTOCONDUCTIVITY")
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-		print("[plot_hall_like]:	try to create folder where plots should go")
+		print("[plot_photoC]:	try to create folder where plots should go")
 		#
 		#
 		if not os.path.isdir(self.plot_dir):
 			try:
 				os.mkdir(self.plot_dir)
 			except OSError:
-				print('[plot_hall_like]:	Could not make directory ',self.plot_dir, '	(proably exists already)')
+				print('[plot_photoC]:	Could not make directory ',self.plot_dir, '	(proably exists already)')
 			finally:
 				print("~")
 		else:
-			print('[plot_hall_like]: '+self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
+			print('[plot_photoC]: '+self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
 		#		
 		#
 		dim_str	= []
@@ -111,8 +111,17 @@ class plotter:
 		#
 		self.unit_str	=		r'($'+scale_str+' '+self.raw_unit+r'$)'
 		#
-		smr_idx	=	1
-		ef_idx 	=	1
+		#
+		smr_idx	=	0
+		ef_idx 	=	5
+		#	make sure smr_ and ef_idx are valid
+		if ef_idx > len(self.data.ef_lst[0])-1:
+			ef_idx = len(self.data.ef_lst[0])-1
+			print("[plot_photoC]: WARNING ef_idx out of bounds was set, ef_idx set to ",ef_idx)
+		if smr_idx > len(self.data.smr_lst[0])-1:
+			smr_idx = len(self.data.smr_lst[0])-1
+			print("[plot_photoC]: WARNING smr_idx out of bounds was set, smr_idx set to ",smr_idx)
+		#
 		#	color code for the AHC plot
 		colors 	= discrete_cmap(len(self.data.ef_lst[0]),	'cool')
 		#
@@ -159,7 +168,7 @@ class plotter:
 						ax.yaxis.label.set_size(label_size)
 						
 					except:
-						print("[plot_hall_like]: labeling of plot failed")
+						print("[plot_photoC]: labeling of plot failed")
 					#
 					plt.xlabel(r'$ \hbar \omega $ (eV)', 	fontsize=label_size)
 					#
@@ -178,10 +187,10 @@ class plotter:
 					plt.savefig(outFile_path)
 					plt.close()
 					#
-					print('[plot_hall_like]:	finished processing '+dim_str[x]+'_'+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+outFile_path	)
+					print('[plot_photoC]:	finished processing '+dim_str[x]+'_'+dim_str[i]+dim_str[j]+' tensor, plot saved to: '+outFile_path	)
 		print("-------------------------------------------------------------------------------")
 		print("")
-		print("[plot_hall_like]: selected smearing: ",self.data.smr_lst[0][smr_idx]," eV; fermi_level:",self.data.ef_lst[0][ef_idx]," eV")
+		print("[plot_photoC]: selected smearing: ",self.data.smr_lst[0][smr_idx]," eV; fermi_level:",self.data.ef_lst[0][ef_idx]," eV")
 		print("")	
 
 
@@ -217,15 +226,15 @@ def plot_scnd_photo():
 		#
 		#	~~~~~~~~~~~~~~~~~~~~~~~~
 		#
-		myTest.plot_hall_like(		scale			=		1e6			, 
+		myTest.plot_photoC(		scale			=		1e6			, 
 									scale_str		=	r'\mu',
 									phi_laser		=		1.0			,	# = 1j
 									plot_ahc		=		False		, 
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		False		, 
 									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
-									upper_bound		=	50,
-									lower_bound		=	-50,
+									upper_bound		=	1000,
+									lower_bound		=	-1000,
 									plot_legend=True
 							)
 		print("...")

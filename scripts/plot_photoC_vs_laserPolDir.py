@@ -179,7 +179,7 @@ class plotter:
 		print("^")
 		print("^")
 		print("-------------------------------------------------------------------------------")	
-		print("		PLOT HALL LIKE")
+		print("		PLOT 2nd order PHOTO CURRENT")
 		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 		print("[plot_photoC]:	try to create folder where plots should go")
 		#
