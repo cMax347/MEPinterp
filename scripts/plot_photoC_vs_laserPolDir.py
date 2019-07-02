@@ -213,6 +213,10 @@ class plotter:
 		if hw_idx >= len(self.hw_lst):
 			hw_idx	=	len(self.hw_lst)-1
 			print("[plot_photoC]: 	WARNING hw_idx out of bounds was set to #",hw_idx," with hw=",self.hw_lst[hw_idx]," eV")
+		smr_idx			=	0
+		if smr_idx >= len(self.smr_lst):
+			smr_idx	=	len(self.smr_lst)-1
+			print("[plot_photoC]: 	WARNING hw_idx out of bounds was set to #",smr_idx," with hw=",self.smr_lst[smr_idx]," eV")
 		
 		#	get polarization vector of laser
 		print("^")
@@ -230,7 +234,7 @@ class plotter:
 		
 		laser_pol_dir	=	np.array(["y","x"])
 
-		for x in range(0,2):
+		for x in range(0,dim):
 			#for ef_idx, ef_val in enumerate(self.ef_lst):
 
 			if ef_idx>=len(self.ef_lst):
@@ -248,23 +252,34 @@ class plotter:
 						scaler=1e10
 					#
 					scnd_photo_plot	=	[]
-					for smr_idx, smr_val in enumerate(self.smr_lst):
+					#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+					#	PLOT VS SMEARING
+					#for smr_idx, smr_val in enumerate(self.smr_lst):
+					#	scnd_photo_plot.append(0)
+					#	for i in range(0,dim):
+					#		for j in range(0,dim):
+					#			phi_laser	=	laser.get_phase(i,j)
+					#			scnd_photo_plot[-1] =	scnd_photo_plot[-1] + laser_E0**2 *np.real(unit_scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+					#~~~~~~~~~~~~~~~~~~~
+					#
+					#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+					#	PLOT VS FREQUENCY
+					for hw_idx, hw_val in enumerate(self.hw_lst):
 						scnd_photo_plot.append(0)
-						for i in range(0,2):
-							for j in range(0,2):
-								#
+						for i in range(0,dim):
+							for j in range(0,dim):
 								phi_laser	=	laser.get_phase(i,j)
-								#print("phi_laser_",i,j,"=",phi_laser)
-								#
-								
 								scnd_photo_plot[-1] =	scnd_photo_plot[-1] + laser_E0**2 *np.real(unit_scale*scaler*phi_laser * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+					#~~~~~~~~~~~~~~~~~~~							
 					#
 					print("\t #",len(scnd_photo_plot),"	datapoints")
 					print('\t -> max VAL=',max(scnd_photo_plot))
 					print('\t -> min VAL=',min(scnd_photo_plot))
 					#if (ef_idx == len(self.ef_lst)-1) or ef_idx==0:
-					plt.plot(self.smr_lst,	scnd_photo_plot, 'o-',markersize=marker_size, 
-label='{:6.2e}'.format(scaler)+r' $J^{'+dim_str[x]+r'};\; \mathbf{\varepsilon}_{\lambda}||\hat{\mathbf{e}}_{'+laser_pol_dir[dir_idx]+r'}$')#+r'$\;\varepsilon_F=$'+'{:2.1f}'.format(self.ef_lst[ef_idx])+' eV')
+					#plt.plot(self.smr_lst,	scnd_photo_plot, 'o-',markersize=marker_size, 
+					#			label='{:6.2e}'.format(scaler)+r' $J^{'+dim_str[x]+r'};\; \mathbf{\varepsilon}_{\lambda}||\hat{\mathbf{e}}_{'+laser_pol_dir[dir_idx]+r'}$')#+r'$\;\varepsilon_F=$'+'{:2.1f}'.format(self.ef_lst[ef_idx])+' eV')
+					plt.plot(self.hw_lst,	scnd_photo_plot, 'o-',markersize=marker_size, 
+								label='{:6.2e}'.format(scaler)+r' $J^{'+dim_str[x]+r'};\; \mathbf{\varepsilon}_{\lambda}||\hat{\mathbf{e}}_{'+laser_pol_dir[dir_idx]+r'}$')#+r'$\;\varepsilon_F=$'+'{:2.1f}'.format(self.ef_lst[ef_idx])+' eV')					
 					#else:
 					#	plt.plot(self.smr_lst,	scnd_photo_plot, 'o-')
 #
@@ -274,7 +289,7 @@ label='{:6.2e}'.format(scaler)+r' $J^{'+dim_str[x]+r'};\; \mathbf{\varepsilon}_{
 		smr_min	=	min(self.smr_lst)
 		#ax.set_xticks(np.arange(smr_min-1.0, smr_max+1.0, (smr_max-smr_min)/len(self.smr_lst)), minor=True)
 		#try:	
-		ax.set_xlim([smr_min, smr_max])
+		#ax.set_xlim([smr_min, smr_max])
 		#ax.set_ylim([lower_bound, upper_bound  ])
 		#	#
 		#	ax.yaxis.label.set_size(label_size)	
@@ -282,7 +297,8 @@ label='{:6.2e}'.format(scaler)+r' $J^{'+dim_str[x]+r'};\; \mathbf{\varepsilon}_{
 		#	print("[plot_photoC]: labeling of plot failed")
 		#
 		plt.ylabel(r'$J_i\;$'	+	unit_str,	fontsize=label_size)
-		plt.xlabel(r'$ \Gamma $ (eV)',		fontsize=label_size)
+		#plt.xlabel(r'$ \Gamma $ (eV)',		fontsize=label_size)
+		plt.xlabel(r'$ \hbar \omega $ (eV)',		fontsize=label_size)
 
 
 		if(len(title)>0):
@@ -423,7 +439,7 @@ def plot_scnd_photo():
 									plot_legend=True			,
 									laser=frank_LASER			,
 									laser_dir=2					,
-									dim=2						,
+									dim=3						,
 									interactive=True			,
 							)
 		print("...")

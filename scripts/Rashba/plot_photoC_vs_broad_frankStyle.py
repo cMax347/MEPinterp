@@ -209,7 +209,7 @@ class plotter:
 		fig, ax  = plt.subplots(1,1, sharex=True)
 		plt.plot(self.smr_lst,np.zeros(len(self.smr_lst)),'-',color='grey')
 
-		hw_idx			=	20
+		hw_idx			=	1
 		if hw_idx >= len(self.hw_lst):
 			hw_idx	=	len(self.hw_lst)-1
 			print("[plot_photoC]: 	WARNING hw_idx out of bounds was set to #",hw_idx," with hw=",self.hw_lst[hw_idx]," eV")
@@ -224,76 +224,110 @@ class plotter:
 		
 
 		laser_E0	=	laser.get_field_strength()
+		laser_I 	=	laser.get_intensity()
 		ef_idx = 33
 		#
-		field_matrix		=	1j*np.zeros((2,2))
-		
+		field_cp		=	1j*np.zeros((2,2))
+		field_cm		=	1j*np.zeros((2,2))
+		field_lx		=	1j*np.zeros((2,2))
+		field_ly		=	1j*np.zeros((2,2))
+		#		
 		plot_title			=	''
 		##	circular
-		lmbda				=	-1
+		lmbda				=	+1
 		plot_title			=	'circ. lmbda='+str(lmbda)
-		field_matrix[0][0]	=	.5
-		field_matrix[0][1]	=	lmbda*1j / np.sqrt(2.)
-		field_matrix[1][0]	=	np.conj(field_matrix[0][1])
-		field_matrix[1][1]	=	.5
+		field_cp[0][0]	=	.5
+		field_cp[0][1]	=	lmbda*1j / np.sqrt(2.)
+		field_cp[1][0]	=	np.conj(field_cp[0][1])
+		field_cp[1][1]	=	.5
+		#
+		field_cm		=	np.conj(field_cp)
 		
 		##	linear x
 		#plot_title			=	'lin. x-pol '
-		#field_matrix[0][0]	=	1
-		#field_matrix[0][1]	=	0
-		#field_matrix[1][0]	=	0
-		#field_matrix[1][1]	=	0
+		field_lx[0][0]	=	1
+		field_lx[0][1]	=	0
+		field_lx[1][0]	=	0
+		field_lx[1][1]	=	0
 		##	linear y
 		#plot_title			=	'lin. y-pol'
-		#field_matrix[0][0]	=	0
-		#field_matrix[0][1]	=	0
-		#field_matrix[1][0]	=	0
-		#field_matrix[1][1]	=	1
+		field_ly[0][0]	=	0
+		field_ly[0][1]	=	0
+		field_ly[1][0]	=	0
+		field_ly[1][1]	=	1
 
-
+		print('\t intensity I=',laser_I,r' $(',laser.I_units,')^2$')
+		print('\t field squared E0**2=',laser_E0**2,r' $(',laser.E0_units,')^2$')
 		#
+		print("^")
+		print("^")
+		print("--------------------")
 		print("NOW START PLOTTING RESPONSES...")
-		for x in range(0,3):
-			#for ef_idx, ef_val in enumerate(self.ef_lst):
+		print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+		for x in range(0,2):
+			print(" -> ",dim_str[x],"-response")
 			if ef_idx>=len(self.ef_lst):
 				ef_idx	=	len(self.ef_lst)-1
 				print("[plot_photoC]:	WARNING ef_idx out of bounds, reset to #",ef_idx,"	with E_f=",self.ef_lst[ef_idx]," eV")
-			#for laser_lmbda in range(-1,2):
-			#	#if True:
-			#	if x==0 or x==1:# and not laser_lmbda==0:
-			#		laser.set_pol(laser_dir,laser_lmbda)
-			#		#
-			#		print("...response J_",dim_str[x]," (lambda=",laser_lmbda,")")
-			#		#
-			#		scaler = 1
-			#		#if x==0 and laser_lmbda==0:
-					#	scaler=1e20
-					#if x==1 and not laser_lmbda==0:
-					#	scaler=10
-					#
-			
-			
-			scnd_photo_plot	=	[]
+			#
+			cp_plot	=	[]
+			cm_plot	=	[]
+			lx_plot	= 	[]
+			ly_plot = 	[]
 			scaler = 1
 			for smr_idx, smr_val in enumerate(self.smr_lst):
 				#
-				sum_ij	=	0
+				cp_sum_ij	=	0
+				cm_sum_ij	=	0
+				lx_sum_ij	=	0
+				ly_sum_ij	=	0
 				for i in range(0,2):
 					for j in range(0,2):
-						print(x,i,j,' ->',field_matrix[i][j])
-						sum_ij =	sum_ij + laser_E0**2 *np.imag(unit_scale*scaler*field_matrix[i][j] * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
-				scnd_photo_plot.append(sum_ij)
+						scaler =1
+						if x==1:
+							scaler=1
+						cp_sum_ij =	cp_sum_ij + laser_E0**2 *np.real(unit_scale*scaler*field_cp[i][j] * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+						cm_sum_ij = cm_sum_ij + laser_E0**2 *np.real(unit_scale*scaler*field_cm[i][j] * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+						scaler=1
+						lx_scaler=1
+						if x==0:
+							scaler=1
+							lx_scaler=10
+						lx_sum_ij = lx_sum_ij + laser_E0**2 *np.real(unit_scale*lx_scaler*field_lx[i][j] * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+						ly_sum_ij = ly_sum_ij + laser_E0**2 *np.real(unit_scale*scaler*field_ly[i][j] * self.scndPhoto_data[x][i][j][hw_idx][smr_idx][ef_idx] )
+
+				cp_plot.append(cp_sum_ij)
+				cm_plot.append(cm_sum_ij)
+				lx_plot.append(lx_sum_ij)
+				ly_plot.append(ly_sum_ij)
+
 			#
-			print("\t #",len(scnd_photo_plot),"	datapoints")
-			print('\t -> max VAL=',max(scnd_photo_plot))
-			print('\t -> min VAL=',min(scnd_photo_plot))
-			#if (ef_idx == len(self.ef_lst)-1) or ef_idx==0:		
-			plt.plot(self.smr_lst,	scnd_photo_plot, 'o-',markersize=marker_size, label=str(scaler)+r' $J^{'+dim_str[x]+r'}$')
+			scaler =1
+			cp_color = 'black'
+			cm_color = 'red'
+			cp_style = '-'
+			cm_style = '--'
+			if x==1:
+				cp_style = 's-'
+				cm_style = '^-'
+				cp_color = 'darkorange'
+				cm_color = 'palevioletred'
+				scaler=1
+			plt.plot(self.smr_lst,	cp_plot, cp_style,markersize=marker_size,color=cp_color, label=str(scaler)+r' $J^{'+dim_str[x]+r'},\; \sigma^{+}$ ')
+			plt.plot(self.smr_lst,	cm_plot, cm_style,markersize=marker_size,color=cm_color, label=str(scaler)+r' $J^{'+dim_str[x]+r'},\; \sigma^{-}$ ')
+			print("\t... plotted circular(+/-) pol J^",dim_str[x]," curve (#datapoints=",len(cp_plot),")")
+			if x==0:	
+				scaler=1
+				lx_scaler=10
+				plt.plot(self.smr_lst,	lx_plot, 'o-',markersize=marker_size,color='green', label=str(lx_scaler)+r' $J^{'+dim_str[x]+r'},\; \varepsilon \parallel \hat{\mathbf{e}}_x$ ')
+				plt.plot(self.smr_lst,	ly_plot, 'o-',markersize=marker_size,color='blue', label=str(scaler)+r' $J^{'+dim_str[x]+r'},\; \varepsilon \parallel \hat{\mathbf{e}}_y$ ')
+				print("\t... plotted linear_x pol J^",dim_str[x]," curve (#datapoints=",len(lx_plot),")")
+				print("\t... plotted linear_y pol J^",dim_str[x]," curve (#datapoints=",len(ly_plot),")")
 			#else:
 			#	plt.plot(self.smr_lst,	scnd_photo_plot, 'o-')
 #
 			#
-		print("field matrix: ",field_matrix)
+		#print("field matrix: ",field_matrix)
 		#
 		smr_max	=	max(self.smr_lst)
 		smr_min	=	min(self.smr_lst)
@@ -306,13 +340,13 @@ class plotter:
 		#except:
 		#	print("[plot_photoC]: labeling of plot failed")
 		#
-		plt.ylabel(r'$J_i\;$'	+	unit_str,	fontsize=label_size)
+		plt.ylabel(r'$\mathrm{J_i}\;$'	+	unit_str,	fontsize=label_size)
 		plt.xlabel(r'$ \Gamma $ (eV)',		fontsize=label_size)
 
 
 		if(len(title)>0):
 			#plt.title(title+r'$\;\varepsilon_F=$'+str(self.ef_lst[ef_idx])+' eV')
-			plt.title(plot_title+r'  @$\;\hbar\omega = $'+str(self.hw_lst[hw_idx])+' eV')
+			plt.title(r'  @$\;\hbar\omega = $'+str(self.hw_lst[hw_idx])+' eV')
 
 		#ax.set_ylim([mep_min,mep_max])
 		#ax[0].tick_params(axis='y',which='major', direction='in',labelsize=ytick_size)
@@ -369,26 +403,22 @@ def read_rashba_cfg(cfg_file='./rashba.cfg'):
 	aR			=	0
 	Vex			=	0
 	#
-	try:
-		with open(cfg_file,'r') as cfg:
-			for row,string in enumerate(cfg):
-				if "=" in string:
-					string	=	string.split("=")[1]
-					string	=	string.split("#")[0]
-					string	=	string.strip()
-					print('striped string: "',string,'"')
-				#
-				if row==1:
-					aR 		= 	float(	string	)
-				elif row==2:
-					Vex = 		float(	string	)#float(	string.split("=")[1]	)
-				elif row==3:
-					string_arr 	= 	string.split(" ")
-					for idx, string in enumerate(string_arr):
-						if idx<3:
-							nMag[idx]	=	float(string)
-	except FileNotFoundError:
-		print('[read_rashba_cfg]: WARNING ./rashba.cfg was not found (will return dummy values)')
+	with open(cfg_file,'r') as cfg:
+		for row,string in enumerate(cfg):
+			if "=" in string:
+				string	=	string.split("=")[1]
+				string	=	string.split("#")[0]
+				string	=	string.strip()
+			#
+			if row==1:
+				aR 		= 	float(	string	)
+			elif row==2:
+				Vex = 		float(	string	)#float(	string.split("=")[1]	)
+			elif row==3:
+				string_arr 	= 	string.split(" ")
+				for idx, string in enumerate(string_arr):
+					if idx<3:
+						nMag[idx]	=	float(string)
 	#
 	#	setup descriptive string
 	descriptor	=	r' $\alpha_R=$'+'{:3.1f}'.format(aR)+r' $\mathrm{eV} \AA, \; V_{\mathrm{ex}}= $'+'{:3.1f}'.format(Vex)+r' $\mathrm{eV}$,'
@@ -442,13 +472,13 @@ def plot_scnd_photo():
 									plot_ahc		=		False		, 
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		False		, 
-									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=0.4,
+									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=2.4,
 									upper_bound		=	5		,
 									lower_bound		=	-5		,
 									plot_legend=True			,
 									laser=frank_LASER			,
 									laser_dir=2					,
-									dim=3						,
+									dim=2						,
 									interactive=True			,
 							)
 		print("...")

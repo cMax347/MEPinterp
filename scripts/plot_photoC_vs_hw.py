@@ -112,7 +112,7 @@ class plotter:
 		self.unit_str	=		r'($'+scale_str+' '+self.raw_unit+r'$)'
 		#
 		#
-		smr_idx	=	0
+		smr_idx	=	1
 		ef_idx 	=	5
 		#	make sure smr_ and ef_idx are valid
 		if ef_idx > len(self.data.ef_lst[0])-1:
@@ -233,8 +233,8 @@ def plot_scnd_photo():
 									plot_ahc_kubo	= 		True		, 
 									plot_ohc		=		False		, 
 									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
-									upper_bound		=	1000,
-									lower_bound		=	-1000,
+									upper_bound		=	100,
+									lower_bound		=	-100,
 									plot_legend=True
 							)
 		print("...")
