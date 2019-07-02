@@ -68,11 +68,12 @@ class read_f90:
 		self.smr_lst			=	(map_unit(	au_to_ev,	self.smr_lst	),	"eV")
 		self.ef_lst				=	(map_unit(	au_to_ev,	self.ef_lst		),	"eV")
 		#
+		print("[read_f90]: PARASPACE INFO:")
 		print("[read_f90]:  hw_lst==( ",self.hw_lst[0].shape,	', "',self.hw_lst[1],	'")')
 		print("[read_f90]: smr_lst==( ",self.smr_lst[0].shape,	', "',self.smr_lst[1],	'")')
 		print("[read_f90]:  ef_lst==( ",self.ef_lst[0].shape,	', "',self.ef_lst[1],	'")')
 
-
+	
 	def generic_read_response(self,fname):
 		# this is a fallback function which tries to read a unsupported file 
 		# allows for quick access of new tensors
@@ -117,6 +118,7 @@ class read_f90:
 		#
 		print("[read_f90]:  ahc_DC_tens==( ",self.ahc_dc_tens[0].shape,	', "',self.ahc_dc_tens[1],	'")')
 		print("[read_f90]:  ahc_AC_tens==( ",self.ahc_ac_tens[0].shape,	', "',self.ahc_ac_tens[1],	'")')
+		print("~~~~")
 		#
 		return self.ahc_dc_tens, self.ahc_ac_tens
 	#
@@ -159,6 +161,7 @@ class read_f90:
 			self.scndPhoto_data	=	(self.scndPhoto_data, 'e^3 / \hbar  E_h')
 		#
 		print("[read_f90]:  scndPhoto_data==( ",self.scndPhoto_data[0].shape,	', "',self.scndPhoto_data[1],	'")')
+		print("~~~~")
 		return self.scndPhoto_data
 		#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
