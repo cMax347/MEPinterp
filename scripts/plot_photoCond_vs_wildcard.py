@@ -233,8 +233,8 @@ def plot_scnd_photo(root_dir='.'):
 									x_axis_para_id	=	123,
 									smr_idx=1, ef_idx=1, hw_idx=15,
 									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
-									upper_bound		=	500,
-									lower_bound		=	-500,
+									upper_bound		=	100,
+									lower_bound		=	-100,
 									plot_legend=True
 							)
 		print("...")
