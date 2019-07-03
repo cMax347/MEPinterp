@@ -68,7 +68,8 @@ class merry_plotter:
 							line_width=1, label_size=14, xtick_size=12, ytick_size=12,
 							marker_size=12,
 							upper_bound=1, lower_bound=0,
-							plot_legend=False
+							plot_legend=False,
+							title=''
 					):
 		#
 		#	read photo c tens
@@ -205,7 +206,7 @@ class merry_plotter:
 		ax.set_xlim([x_min, x_max])
 		#
 		# handle y-axis
-		#ax.set_ylim([lower_bound, upper_bound  ])
+		ax.set_ylim([lower_bound, upper_bound  ])
 		ax.set(ylabel=r'$J^a{'+'}\;$' +	self.unit_str)
 		print("WARNING units are fucked at the moment TODO")
 		ax.yaxis.label.set_size(label_size)
@@ -216,7 +217,7 @@ class merry_plotter:
 
 		#
 		#handle title
-		title =r'LASER $\lambda$='+'{:+1d}'.format(laser_lmbda)
+		title = title +r'; $\lambda$='+'{:+1d}'.format(laser_lmbda)
 	
 		if x_axis_para_id==0 or x_axis_para_id==1:
 			title	=	title + r' @ $\hbar \omega=$'+r'{:4.2f}'.format(hw_val)
@@ -272,16 +273,17 @@ def plot_scnd_photo(root_dir='.',SI=True):
 		#
 		newPlot.plot_photoC(		scale			=	1		, 
 									scale_str		=	r'',
-									dim				=	2,
-									x_axis_para_id	=	0,
-									smr_idx=1, ef_idx=1, hw_idx=15,
+									dim				=	3,
+									x_axis_para_id	=	123,
+									smr_idx=2, ef_idx=1, hw_idx=15,
 									laser=frank_LASER			, 
-									laser_dir=0					,
-									laser_lmbda=0,
+									laser_dir=2					,
+									laser_lmbda=-1,
 									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
-									upper_bound		=	500,
-									lower_bound		=	-500,
-									plot_legend=True
+									upper_bound		=	1e12,
+									lower_bound		=	-1e12,
+									plot_legend=True,
+									title='LASER pol x'
 							)
 		print("...")
 		print('[plot_scnd_photo]:	all done by')
