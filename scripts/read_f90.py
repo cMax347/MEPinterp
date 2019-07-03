@@ -129,7 +129,7 @@ class read_f90:
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-	def read_2nd_photoC(self, SI=True):
+	def read_2nd_photoC(self,dim=3, SI=True):
 		assumed_shape			=	(3,3,3,len(self.hw_lst[0]),len(self.smr_lst[0]),len(self.ef_lst[0]))
 		#
 		self.scndPhoto_data		=	np.load(self.data_dir+'/photoC_2nd.npy')	
@@ -141,7 +141,8 @@ class read_f90:
 		#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		if SI:
 			#	^^^^^^^^^^^^^^^^^^^^^^
-			#		CONVERT TO SI		[	e**2/hbar e/E_h	]_atomic	-> [A/V**2]
+			#		CONVERT TO SI		[ 	  e**2/hbar e/E_h	]_atomic,3D	-> [A/V**2]_3D
+			#		CONVERT TO SI		[ a_0 e**2/hbar e/E_h	]_atomic,2D	-> [A m/V**2]_2D
 			#	
 			# >>> [	e**2/hbar	]_atomic	=	2.434135×10^-4 	[	S	]_SI
 			cond_quantum			=	(scpc_dic["atomic unit of charge"][0])**2
@@ -150,15 +151,21 @@ class read_f90:
 			# >>> [	e/E_h		]_atomic	=	0.03674932 		[	1/V	]_SI
 			inv_field 				=	scpc_dic["atomic unit of charge"][0]/scpc_dic["Hartree energy"][0]
 			#
-			au_to_si			=	cond_quantum	*	inv_field		
-			self.scndPhoto_data	=	map_unit(au_to_si, self.scndPhoto_data)
-			#
-			#
-			self.scndPhoto_data	=	(self.scndPhoto_data,'A/V^2') 
+			au_to_si			=	cond_quantum	*	inv_field
+			if dim==2:
+				au_to_si		=	au_to_si * scpc_dic["atomic unit of length"][0]
+				self.scndPhoto_data	=	map_unit(au_to_si, self.scndPhoto_data)
+				self.scndPhoto_data	=	(self.scndPhoto_data,'A/V^ 2') 
+			elif dim==3:
+				self.scndPhoto_data	=	map_unit(au_to_si, self.scndPhoto_data)
+				self.scndPhoto_data	=	(self.scndPhoto_data,'A/V^2') 
 			#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		else:
 			#	ATOMIC UNITS
-			self.scndPhoto_data	=	(self.scndPhoto_data, 'e^3 / \hbar  E_h')
+			if dim==2:
+				self.scndPhoto_data	=	(self.scndPhoto_data,'e^3 / (\hbar E_h) ')
+			elif dim==3:
+				self.scndPhoto_data	=	(self.scndPhoto_data, 'a_0 e^3 / (\hbar  E_h)')
 		#
 		print("[read_f90]:  scndPhoto_data==( ",self.scndPhoto_data[0].shape,	', "',self.scndPhoto_data[1],	'")')
 		print("~~~~")
