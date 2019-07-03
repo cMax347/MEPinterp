@@ -27,7 +27,11 @@ target_link_libraries(testFeMn m_config)
 add_executable(testGaAs	 test_GaAs_shiftC.f90)
 target_link_libraries(testGaAs Helpers)
 target_link_libraries(testGaAs m_config)
-
+#
+#	#6
+add_executable(testRashba test_rashba_photoC.f90)
+target_link_libraries(testRashba Helpers)
+target_link_libraries(testRashba m_config)
 #
 #
 #make the executables tests
