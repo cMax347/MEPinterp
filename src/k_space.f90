@@ -53,7 +53,7 @@ contains
 			if(	abs(dV)	> 1e-1_dp) then
 				write(*,*)	"[set_recip_latt]: 	WARNING	KSPACE CORRUPTED!! bz_vol /= (8 pi**3/ unit_vol)"
 			else
-				write(*,'(a,i7.7,a,i4,a,i4,a,i4,a,a,f8.4,a,f8.4,a)')	&
+				write(*,'(a,i7.7,a,i5,a,i5,a,i5,a,a,f8.4,a,f8.4,a)')	&
 									"[#",mpi_id,";k_space]: k-space setup done (mp_grid=",&
 									mp_grid(1),"x",mp_grid(2),"x",mp_grid(3),"). ",&
 									"unit_vol=,",unit_vol,",(a0**3) -> bz_vol=",bz_vol," (1/a0**3)"
