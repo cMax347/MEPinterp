@@ -73,7 +73,7 @@ def dir_setup(base_dir, sub_dir,verbose=False):
     return root_dir, w90_dir
 
 
-def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_deg,
+def write_3q_HR(    base_dir,sub_dir, seed_name,make_2d, t,strain, J_ex,Jz,tso, theta_deg,
                     mp_grid, kubo_tol, valence_bands,
                     n_hw, hw_min, hw_max,  laser_phase ,
                     N_eF, eF_min, eF_max, Tkelvin,eta_smearing,
@@ -159,7 +159,12 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_de
     # spin configuration                              #
     #-------------------------------------------------#
     theta, phi  =   get_spiral(theta_deg)
-
+    #fm_phi = np.pi/4.
+    #fm_th = np.arcsin(np.sqrt(2./3.))
+    #print('WARNING fm_phi=',fm_phi)
+    #print('WARNING fm_th=',fm_th)
+    #theta = np.array([fm_th,fm_th,fm_th,fm_th])
+    #phi= np.array([fm_phi,fm_phi,fm_phi,fm_phi])
 
     #if spin_order == '3Q':
     #    theta   = theta_3q
@@ -370,11 +375,13 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_de
                                         else:
                                             print_v( "rashba only flips them spins ("+str(i)+","+str(j)+")", verbose)
                                         HH  =   HH +   rashba
-
                                     else:
                                         #  INTERLAYER HOPPING
-                                        HH = t_inter
-                                        print_v( "no interlayer rashba ("+str(i)+","+str(j)+")",verbose)
+                                        if not make_2d:
+                                            HH = t_inter
+                                            print_v( "no interlayer rashba ("+str(i)+","+str(j)+")",verbose)
+                                        else:
+                                            print_v(" WARNING 2D case selected",verbose)
                             #
                             # EXCHANGE TERM
                             if x==0 and y==0 and z==0 :
@@ -435,7 +442,7 @@ def write_3q_HR(    base_dir,sub_dir, seed_name, t,strain, J_ex,Jz,tso, theta_de
 
 
 
-def loop_rashba(soc_min,soc_max,n_soc, verbose=False):
+def loop_rashba(soc_min,soc_max,n_soc,make_2d=False, verbose=False):
     base_dir    =   'newRun_'+datetime.date.today().strftime("%d%B%Y")
     #
     print_v('setup FeMn model at different strain values',verbose)
@@ -453,6 +460,7 @@ def loop_rashba(soc_min,soc_max,n_soc, verbose=False):
         write_3q_HR(        base_dir    =   base_dir           ,
                             sub_dir     =   sub_dir             ,
                             seed_name   =    'wf1_hr'           ,
+                            make_2d     =   make_2d             ,
                             t           =   -    1.0            ,
                             strain      =       1.0           ,
                             J_ex        =   -    1.0             ,
@@ -497,7 +505,7 @@ def loop_rashba(soc_min,soc_max,n_soc, verbose=False):
 
 
 
-def loop_spiral(theta_min,theta_max,n_theta, verbose=False):
+def loop_spiral(theta_min,theta_max,n_theta,make_2d=False, verbose=False):
     base_dir    =   'new_spiral_run_'+datetime.date.today().strftime("%d%B%Y")
     #
     print_v('setup FeMn model at different spin configurations',verbose)
@@ -514,11 +522,12 @@ def loop_spiral(theta_min,theta_max,n_theta, verbose=False):
         write_3q_HR(        base_dir    =   base_dir           ,
                             sub_dir     =   sub_dir             ,
                             seed_name   =    'wf1'             ,
-                            t           =   -    1.2            ,
-                            strain      =       1.2           ,
-                            J_ex        =   -    3.0             ,
+                            make_2d     =   make_2d             ,
+                            t           =   -    2.0            ,
+                            strain      =       1.0           ,
+                            J_ex        =   -   1.0             ,
                             Jz          =         0             ,
-                            tso         =      -   0.3             ,
+                            tso         =       - 0.0             ,
                             theta_deg   =       theta_deg            ,
                             #
                             mp_grid     =  [32,32,32]         ,
@@ -562,9 +571,9 @@ def loop_spiral(theta_min,theta_max,n_theta, verbose=False):
 
 def main():
     #loop_strain(0.0,1.0,5)
-    loop_spiral(0,90,2)
-    loop_spiral(54.7,54.7,1)
-
+    #loop_spiral(0,90,10)
+    loop_spiral(54.7,54.7,1,make_2d=True,verbose=True)
+    #loop_spiral(1,1,1)
 
 
 
