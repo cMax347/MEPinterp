@@ -368,9 +368,12 @@ end subroutine
 
 	integer pure function get_kpt_idx(qix, qiy, qiz)
 		integer,	intent(in)	::	qix, qiy, qiz
-		!
-		!	use start at 0 convention and ad 1 to switch to array starts at 1 convention
-		get_kpt_idx	=	1	+	(qix-1) + mp_grid(2)	* ( (qiy-1) + mp_grid(3) * (qiz-1)	)
+		!	BZ[qix:mp_grid(1),qiy:mp_grid(2), qiz:mp_grid(3)]	->	flat_BZ[	qix + mp_grid(1) * ( qiy + mp_grid(2) * qiz	)	]
+		!	
+		!	flatten 3D idx (qix,qiy,qiz) to 1D idx 
+		get_kpt_idx    = 									qix 		&
+							+	mp_grid(1) * 				(qiy-1)		&
+							+	mp_grid(1) * mp_grid(2) * 	(qiz-1) 
 		!
 		return
 	end function
