@@ -61,26 +61,10 @@ contains
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 !public
-	logical pure function mpi_ki_selector(ki_request, num_kpts)
+	logical pure function mpi_ki_selector(ki_id, num_kpts)
 		!		map the kpts onto the mpi-threads running
-		integer,		intent(in)		::		ki_request, num_kpts 
+		integer,		intent(in)		::		ki_id, num_kpts
 		integer							::		ki_todo
 		!
 		mpi_ki_selector = .false.
@@ -88,8 +72,9 @@ contains
 		if(		mpi_nProcs == 1		) then
 			mpi_ki_selector	=	.true.
 		else
+			!
 			loop_todos: do ki_todo = mpi_id +1, num_kpts, mpi_nProcs
-				if(	ki_request == ki_todo) then
+				if(	ki_id == ki_todo) then
 					mpi_ki_selector = .true.
 					exit loop_todos
 				end if

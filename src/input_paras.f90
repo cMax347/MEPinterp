@@ -6,7 +6,10 @@ module input_paras
 	use matrix_math,				only:		crossP
 	use constants,					only:		dp, fp_acc, pi_dp, aUtoEv, kBoltz_Eh_K
 	use mpi_community,				only:		mpi_id, mpi_root_id, mpi_nProcs, ierr
-	use k_space,					only:		set_recip_latt, set_mp_grid, print_kSpace_info
+	use k_space,					only:		set_recip_latt, 	&
+												set_mp_grid,		& 
+												set_kspace_cutoff, 	&
+												print_kSpace_info
 
 
 
@@ -312,6 +315,7 @@ module input_paras
 			!SETUP K-SPACE
 			call set_recip_latt(a_latt)
 			call set_mp_grid(mp_grid)
+			call set_kspace_cutoff(k_cutoff)
 			call print_kSpace_info()
 		end if
 		!

@@ -7,8 +7,8 @@ module k_space
 
 	public						::		set_mp_grid,		get_mp_grid,		&
 										set_recip_latt, 	get_recip_latt,		&
+										set_kspace_cutoff,						&
 										get_kpt_idx,							&
-										check_kpt_idx,							&
 										get_rel_kpt,							&		
 										get_cart_kpt,							&
 										get_bz_vol,								&
@@ -36,7 +36,7 @@ module k_space
 
 
 	integer			::		mp_grid(3)
-	real(dp)		::		recip_latt(3,3), bz_vol, unit_vol
+	real(dp)		::		recip_latt(3,3), bz_vol, unit_vol, kmax_int
 	logical			::		recip_latt_set = .false.
 
 contains
@@ -284,7 +284,17 @@ end subroutine
 	end function
 
 	
-
+	subroutine set_kspace_cutoff(kmax_val)
+		real(dp),		intent(in)		::	kmax_val
+		!
+		kmax_int	=	kmax_val
+		!
+		if (abs(kmax_int-1.0_dp)>1e-3_dp)	&
+			write(*,'(a,i5.5,a,e10.3,a)')	"[#",mpi_id,";set_kspace_cutoff]:	WARNING	k_cutoff=",kmax_int,&
+							"	(if you dont know what this means you should fuck off)"
+		!
+		return
+	end subroutine
 
 
 
@@ -379,39 +389,13 @@ end subroutine
 	end function
 
 
-	function get_rel_kpt(qi_idx, qix,qiy,qiz, kmax) result(kpt)
+	pure function get_rel_kpt(qi_idx, qix,qiy,qiz) result(kpt)
 		integer,				intent(in)	::	qi_idx, qix, qiy, qiz
-		real(dp),	optional,	intent(in)	::	kmax
-		real(dp),		allocatable			::	kpt(:)
-		real(dp)							::	kmax_int = 1.0_dp
-		logical,		save				::	k_cut_msg=.False.
+		real(dp)							::	kpt(3)
 		!
-		if(check_kpt_idx(qi_idx, qix,qiy,qiz))	then
-			allocate(kpt(3))
-			!
-			if(present(kmax))	&
-				kmax_int	=	kmax
-			!
-			if (.not. k_cut_msg .and. abs(kmax_int-1.0_dp)>1e-3_dp)	&
-				write(*,'(a,i5.5,a,e10.3,a)')	"[#",mpi_id,";get_rel_kpt]:	WARNING	k_cutoff=",kmax_int,&
-								"	(if you dont know what this means you should fuck off)"
-			k_cut_msg	=	.true.
-			!
-			if( mp_grid(1) > 0 .and. mp_grid(2) > 0 .and. mp_grid(3) > 0 ) then
-				!	mp mesh
-				kpt(1)	=	kmax_int *	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
-				kpt(2)	=	kmax_int *	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
-				kpt(3)	=	kmax_int *	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
-				!
-				!	Wx mesh:
-				!kpt(1)	=	real(qix-1,dp) / real(mp_grid(1))
-				!kpt(2)	=	real(qiy-1,dp) / real(mp_grid(2))
-				!kpt(3)	=	real(qiz-1,dp) / real(mp_grid(3))
-			end if
-		else 
-			stop "[get_rel_kpt]: ERROR got illegal kpt idx"
-		end if
-		!
+		kpt(1)	=	kmax_int *	(	 2.0_dp*real(qix,dp)	- real(mp_grid(1),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(1),dp) )
+		kpt(2)	=	kmax_int *	(	 2.0_dp*real(qiy,dp)	- real(mp_grid(2),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(2),dp) )
+		kpt(3)	=	kmax_int *	(	 2.0_dp*real(qiz,dp)	- real(mp_grid(3),dp) - 1.0_dp		) 	/ 	( 2.0_dp*real(mp_grid(3),dp) )
 		!
 		return
 	end function
@@ -436,25 +420,5 @@ end subroutine
 		!
 		return
 	end function
-
-
-
-
-	logical function check_kpt_idx(	qi_idx	,qix,qiy,qiz)
-		integer,	intent(in)	::	qi_idx, qix, qiy, qiz
-		!
-		!	debug check	
-		if	(					qi_idx 		< 				0 						&
-					.or.		qi_idx		> 	mp_grid(1)*mp_grid(2)*mp_grid(3)	) 	then
-			!
-			stop "[check_kpt_idx]: ERROR - idx out of bounds"
-		end if
-		!
-		check_kpt_idx	=	(	qi_idx	-	get_kpt_idx(qix,qiy,qiz) )	==	0
-		!
-		return
-	end function
-
-
 
 end module k_space
