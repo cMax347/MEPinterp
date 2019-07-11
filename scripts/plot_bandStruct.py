@@ -179,9 +179,9 @@ def plot_bandstruct(target_dir_lst, id_str,id_formula,line_style, plot_color, pd
 
 
 	#y-axis
-	ax.set_ylim([-14,6.3])
+	#ax.set_ylim([-14,6.3])
 	ax.set_yticks([0.],minor=True)
-	ax.set_yticks([-12,-9,-6,-3,0,3,6],minor=False)
+	#ax.set_yticks([-12,-9,-6,-3,0,3,6],minor=False)
 	plt.tick_params(axis='y', which='major',left=True,right=True, direction='in',labelsize=y_tick_size)
 	plt.tick_params(axis='y', which='minor',left=True,right=True, direction='in',labelsize=y_tick_size-2)
 	ax.grid(which='minor',axis='y')
