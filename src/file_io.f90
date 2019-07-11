@@ -132,40 +132,44 @@ module file_io
 	!~
 	!~
 	subroutine write_velo(kpt_idx, V_ka)
-		integer,			intent(in)		::	kpt_idx
-		complex(dp),		intent(in)		::	V_ka(:,:,:)
-		integer								::	mpi_unit, x, n, m 
-		character(len=8)					::	fname
-		character(len=120)					::	info_string
-		character(len=40)					::	fpath
+		integer,				 	intent(in)		::	kpt_idx
+		complex(dp), allocatable,	intent(in)		::	V_ka(:,:,:)
+		integer										::	mpi_unit, x, n, m 
+		character(len=8)							::	fname
+		character(len=120)							::	info_string
+		character(len=40)							::	fpath
 		!
-		!	SPECIFY FILE
-		fname	=	'velo_Vka'
-		write(info_string,*)	"#interpolated velocities"
-		write(fpath,format) 	velo_out_dir //fname//".", kpt_idx 
-		write(*,*) fpath
-		!
-		!	OPEN FILE
-		mpi_unit	=	300 + mpi_id + 8 * mpi_nProcs
-		open(unit=mpi_unit, file=trim(fpath), form='formatted', action='write', access='stream', status='replace')
-		write(mpi_unit,*)	trim(info_string)
-		write(mpi_unit,*)	'# x |	 n		|	m 	|	real(V^x_nm)  |		imag(Vx_nm)'
-		write(mpi_unit,*)	'#-----------------------------------------------------------------------'
-		!
-		!	WRITE FILE
-		do x = 1, 3
-			do m = 1, size(V_ka,3)
-				do n = 1, size(V_ka,2)
-					write(mpi_unit,'(a,i1,a,i3,a,i3,a,f16.8,a,f16.8)')	"	",x,"		",n,"		",m,"		",	&
-																				real(V_ka(x,n,m),dp),"	",aimag(V_ka(x,n,m))
-				end do 
+		if(allocated(V_ka)) then
+			!	SPECIFY FILE
+			fname	=	'velo_Vka'
+			write(info_string,*)	"#interpolated velocities"
+			write(fpath,format) 	velo_out_dir //fname//".", kpt_idx 
+			write(*,*) fpath
+			!
+			!	OPEN FILE
+			mpi_unit	=	300 + mpi_id + 8 * mpi_nProcs
+			open(unit=mpi_unit, file=trim(fpath), form='formatted', action='write', access='stream', status='replace')
+			write(mpi_unit,*)	trim(info_string)
+			write(mpi_unit,*)	'# x |	 n		|	m 	|	real(V^x_nm)  |		imag(Vx_nm)'
+			write(mpi_unit,*)	'#-----------------------------------------------------------------------'
+			!
+			!	WRITE FILE
+			do x = 1, 3
+				do m = 1, size(V_ka,3)
+					do n = 1, size(V_ka,2)
+						write(mpi_unit,'(a,i1,a,i3,a,i3,a,f16.8,a,f16.8)')	"	",x,"		",n,"		",m,"		",	&
+																					real(V_ka(x,n,m),dp),"	",aimag(V_ka(x,n,m))
+					end do 
+				end do
+				write(mpi_unit,*)	"#----------------------------------------------------------------------"
 			end do
-			write(mpi_unit,*)	"#----------------------------------------------------------------------"
-		end do
-		!
-		!	CLOSE FILE
-		close(mpi_unit)
-		write(*,'(a,i7.7,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
+			!
+			!	CLOSE FILE
+			close(mpi_unit)
+			write(*,'(a,i7.7,a,a,a,i8)')	"[#",mpi_id,";write_velo]: wrote ",fname," at kpt #",kpt_idx
+		else
+			write(*,'(a,i7.7,a)')	"[#",mpi_id,";write_velo]: ERROR velocity array not allocated"
+		end if
 		!
 		return
 	end subroutine

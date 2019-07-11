@@ -194,14 +194,15 @@ contains
 						!
 						!$OMP PARALLEL DO DEFAULT(shared) 
 						do wf_idx = 1, size(en_k)
-							fd_distrib(:,wf_idx)	=	fd_stat(	en_k(wf_idx),	ef_lst(:),	T_kelvin	)
+							fd_distrib(:,wf_idx)		=	fd_stat(	en_k(wf_idx),	ef_lst(:),	T_kelvin	)
 						end do
 						!$OMP END PARALLEL DO
+						if(	do_gyro	)	fd_deriv(:,:)	=	fd_stat_deriv(fd_distrib(:,:), T_kelvin)
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
 						!----------------------------------------------------------------------------------------------------------------------------------
-						if(	do_mep	)	then	
+						if(	do_mep )	then	
 							mep_bands_ic_loc	=	mep_bands_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
 							mep_bands_lc_loc	=	mep_bands_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
 							mep_bands_cs_loc 	=	mep_bands_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
@@ -238,7 +239,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPTICAL CONDUCTIVITY (w90 version via Connection)
 						!----------------------------------------------------------------------------------------------------------------------------------
-						if(	do_opt	)	then
+						if(	do_opt )	then
 									call kubo_opt_tens(en_k, A_ka, hw_lst, fd_distrib, i_dp*eta_smr_lst(1),  	tempS, tempA)
 									kubo_opt_s_loc(:,:,:,:)		=	kubo_opt_s_loc(:,:,:,:)	+	tempS							
 									kubo_opt_a_loc(:,:,:,:)		=	kubo_opt_a_loc(:,:,:,:)	+	tempA
@@ -253,9 +254,7 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	GYROTROPIC TENSORS (CURRENTS)
 						!----------------------------------------------------------------------------------------------------------------------------------
-						if(		do_gyro	)								then	
-							fd_deriv(:,:)	=	fd_stat_deriv(fd_distrib(:,:), T_kelvin)
-							!
+						if( do_gyro	)	then	
 							gyro_C_loc(:,:,:)		=	gyro_C_loc(:,:,:)		+	get_gyro_C(			V_ka, 				fd_deriv)
 							gyro_D_loc(:,:,:)		=	gyro_D_loc(:,:,:)		+ 	get_gyro_D(	en_k, V_ka, Om_kab, 		fd_deriv)
 							gyro_Dw_loc(:,:,:,:)	=	gyro_Dw_loc(:,:,:,:)	+ 	get_gyro_Dw(en_k, V_ka, A_ka, hw_lst, 	fd_deriv)	
@@ -264,12 +263,12 @@ contains
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	WRITE VELOCITIES
 						!----------------------------------------------------------------------------------------------------------------------------------
-						if(		allocated(V_ka)	.and. do_write_velo		) 		call write_velo(ki, V_ka)
+						if(	do_write_velo )		call write_velo(ki, V_ka)
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!
-						call print_progress(n_ki_loc-1, mp_grid)
+						call print_progress(n_ki_loc, mp_grid)
 					end if
 					!
 					!
@@ -292,7 +291,7 @@ contains
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,		&	
 										!
 										kubo_mep_ic_loc, kubo_mep_lc_loc,	kubo_mep_cs_loc,		&									
-										kubo_dc_ahc_loc, kubo_ac_ahc_loc,	kubo_ohc_loc,					&
+										kubo_dc_ahc_loc, kubo_ac_ahc_loc,	kubo_ohc_loc,			&
 										kubo_opt_s_loc, kubo_opt_a_loc,								&
 										gyro_C_loc, gyro_D_loc,	gyro_Dw_loc,						&
 										photo2_cond_loc												&
@@ -839,40 +838,28 @@ contains
 		integer,		intent(in)		::	n_ki_cnt, mp_grid(3)
 		integer							::	i
 		real(dp)						::	n_ki_tot, delta
-		character(len=17)				::	final_msg
+		character(len=16)				::	final_msg=	'  **finished**'
 		!
 		n_ki_tot	=	real(mp_grid(1)*mp_grid(2)*mp_grid(3),dp)	/	real(mpi_nProcs,dp)
 		!
 		!	PRINT AFTER K LOOP
-		if(	n_ki_cnt == 499 ) then
+		if(	n_ki_cnt == 500 ) then
 			write(*,'(a,i7.7,a,a,a,i8,a,f6.1,a)')		"[#",mpi_id,";core_worker/",&
-					cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",100.0_dp*real(n_ki_cnt+1,dp)/n_ki_tot,"%)."
-		end if
-		!
-		!
-		!	PRINT EVERY 10%
-		final_msg	=	'.  **finished**'
-		!
-		do i = 1, 10
-			delta		=	(real(n_ki_tot,dp)	*0.1_dp* real(i,dp)	 )	- real(n_ki_cnt+1,dp)
-			!
-			if (abs(delta)	< 0.49_dp	)	then
+					cTIME(time()),"]: done with #",n_ki_cnt," kpts (progress:~",100.0_dp*real(n_ki_cnt,dp)/n_ki_tot,"%)."
+		else
+			do i = 1, 10
+				delta		=	(real(n_ki_tot,dp)	*0.1_dp* real(i,dp)	 )	- real(n_ki_cnt,dp)
 				!
-				write(*,'(a,i7.7,a,a,a,i8,a,f6.1,a)',advance="no")		"[#",mpi_id,";core_worker/",&
-										cTIME(time()),"]: done with #",n_ki_cnt+1," kpts (progress:~",10.0_dp*real(i,dp),"%)"
-				!
-				!
-				if( i==10 )		then
-					write(*,'(a)')	final_msg
-				else
-					write(*,'(a)')	"."	
+				if (abs(delta)	< 0.49_dp	)	then
+					write(*,'(a,i7.7,a,a,a,i8,a,f6.1,a)',advance="no")		"[#",mpi_id,";core_worker/",&
+											cTIME(time()),"]: done with #",n_ki_cnt," kpts (progress:~",10.0_dp*real(i,dp),"%)."
+					!
+					if( i==10 )		write(*,'(a)',advance="no")	final_msg
+					write(*,*)	""
+					exit
 				end if
-			end if
-		end do
-		!
-		!	PRINT DEBUG
-		if(	n_ki_cnt > n_ki_tot)	write(*,'(a,i7.7,a,i8,a,i8)')	"[#",mpi_id,";core]: warning n_ki_cnt=",&
-																	n_ki_cnt," which exceeds n_ki_tot=",n_ki_tot
+			end do
+		end if
 		!
 		!
 		return
