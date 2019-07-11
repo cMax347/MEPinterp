@@ -91,15 +91,22 @@ class read_f90:
 
 	#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	#	ToDo:
-	def read_ac_hall(self,SI=True):
+	def read_ac_hall(self,dim=3,SI=True):
 		assumed_shape			=	(3,3,len(self.hw_lst[0]),len(self.smr_lst[0]),len(self.ef_lst[0]))
 		#
 		self.ahc_dc_tens		=	np.load(self.data_dir+'/ahc_DC_tens.npy')
 		self.ahc_ac_tens		=	np.load(self.data_dir+'/ahc_AC_tens.npy')
 		#self.ohc_ac_tens		=	np.load(self.data_dir+'ohcVELO.npy')
 		#
-		unit_str				=	r'$e^2$/ ($\hbar a_0$'
-
+		if dim==2:
+			unit_str				=	r'$e^2$/ $\hbar$'
+		elif dim==3:
+			unit_str				=	r'$e^2$/ $\hbar a_0$'
+		else:
+			print("[read_ac_hall]:	WARNING unsupported dim=",dim," requested!")
+		#
+		
+		#
 		if SI: 
 			unit_str			=	'S/m'
 			# >>> [	e**2/hbar	]_atomic	=	2.434135×10^-4 	[	S	]_SI
