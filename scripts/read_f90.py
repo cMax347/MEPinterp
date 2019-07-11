@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import scipy.constants as scpc 
 #import scipy.constants.physical_constants as scpc_dic
@@ -30,6 +31,16 @@ def same_shape(s1,s2):
 	return False
 
 
+def save_load_np(file):
+	data = None
+	try:
+		data = np.load(file)
+	except FileNotFoundError:
+		print("[read_f90/load_np]: ERROR ",os.path.abspath(file)," does not exist")
+		sys.exit(1)
+	return data
+
+
 
 class read_f90:
 	def __init__(self,src):
@@ -42,10 +53,10 @@ class read_f90:
 				self.data_dir	=	os.path.abspath(	self.src_dir+'/out'		)
 			else:
 				print("[read_f90]: ERROR no 'out' folder provided in ",self.src_dir)
-				stop
+				sys.exit(1)
 		else:
 			print('[read_f90]: src folder"',self.src_dir,'" does not exist ')
-			stop
+			sys.exit(1)
 		#
 		#
 		print("^^^^")
@@ -58,10 +69,10 @@ class read_f90:
 		self.smr_lst			=	[]
 		self.ef_lst				=	[]
 		#
-		self.hw_lst				=	np.load(self.data_dir+'/hw_lst.npy')
-		self.ef_lst				=	np.load(self.data_dir+'/ef_lst.npy')		
-		self.occ_lst			=	np.load(self.data_dir+'/occ_lst.npy')
-		self.smr_lst			=	np.load(self.data_dir+'/smr_lst.npy')
+		self.hw_lst				=	save_load_np(self.data_dir+'/hw_lst.npy')
+		self.ef_lst				=	save_load_np(self.data_dir+'/ef_lst.npy')		
+		self.occ_lst			=	save_load_np(self.data_dir+'/occ_lst.npy')
+		self.smr_lst			=	save_load_np(self.data_dir+'/smr_lst.npy')
 		#
 		#	convert to eV
 		self.hw_lst				=	(map_unit(	au_to_ev,	self.hw_lst		),	"eV")
@@ -81,7 +92,7 @@ class read_f90:
 		#
 		if os.path.isfile(fpath):
 			try:
-				tmp	=	np.load(fpath)
+				tmp	=	save_load_np(fpath)
 				return tmp
 			except:
 				print("[read_f90/generic_read_response]: could not read ",fpath)
@@ -94,9 +105,8 @@ class read_f90:
 	def read_ac_hall(self,dim=3,SI=True):
 		assumed_shape			=	(3,3,len(self.hw_lst[0]),len(self.smr_lst[0]),len(self.ef_lst[0]))
 		#
-		self.ahc_dc_tens		=	np.load(self.data_dir+'/ahc_DC_tens.npy')
-		self.ahc_ac_tens		=	np.load(self.data_dir+'/ahc_AC_tens.npy')
-		#self.ohc_ac_tens		=	np.load(self.data_dir+'ohcVELO.npy')
+		self.ahc_dc_tens		=	save_load_np(self.data_dir+'/ahc_DC_tens.npy')
+		self.ahc_ac_tens		=	save_load_np(self.data_dir+'/ahc_AC_tens.npy')
 		#
 		if dim==2:
 			unit_str				=	r'$e^2$/ $\hbar$'
@@ -139,7 +149,7 @@ class read_f90:
 	def read_2nd_photoC(self,dim=3, SI=True):
 		assumed_shape			=	(3,3,3,len(self.hw_lst[0]),len(self.smr_lst[0]),len(self.ef_lst[0]))
 		#
-		self.scndPhoto_data		=	np.load(self.data_dir+'/photoC_2nd.npy')	
+		self.scndPhoto_data		=	save_load_np(self.data_dir+'/photoC_2nd.npy')	
 		read_shape				=	self.scndPhoto_data.shape
 		#
 		#	TEST IF SHAPE IS CORRECT
