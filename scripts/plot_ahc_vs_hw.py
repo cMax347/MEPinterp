@@ -13,7 +13,7 @@ dim_str.append('y')
 dim_str.append('z')
 #~
 class harry_plotter:
-	def __init__(self,SI=True):
+	def __init__(self):
 		#derived attributes
 		self.root_dir	= os.getcwd()
 		self.plot_dir	= os.path.abspath(	self.root_dir+'/plots'		)
@@ -27,7 +27,7 @@ class harry_plotter:
 		print("-------------------------------------------------------------------------------")
 		print("try to read data")
 		self.data								=	read_f90(self.root_dir)
-		self.ahc_dc_tens, self.ahc_ac_tens		=	self.data.read_ac_hall(SI=SI)
+		
 		
 		print("~")
 		print("[init]: will output to folder: "				+ 	os.path.dirname(os.path.abspath(self.plot_dir)))
@@ -47,11 +47,12 @@ class harry_plotter:
 	#~~~~~~~~
 	#
 	#
-	def plot_ac_hall(		self, scale=1.0, scale_str='',
+	def plot_ac_hall(		self, dim=3,SI=False ,scale=1.0, scale_str='',
 							plot_ahc=True, plot_ahc_kubo= True, plot_ohc=True, 
 							line_width=1, label_size=14, xtick_size=12, ytick_size=12,
 							marker_size=12,
-							re_bound=1, im_bound=1
+							re_bound=1, im_bound=1,
+							ef_idx=0, smr_idx=0,
 					):
 		print("^")
 		print("^")
@@ -70,7 +71,9 @@ class harry_plotter:
 				print("~")
 		else:
 			print('[plot_ac_hall]: '+self.plot_dir+"	exists already! (WARNING older plots might be overwriten)")
-		#		
+		#
+		self.ahc_dc_tens, self.ahc_ac_tens		=	self.data.read_ac_hall(dim=dim,SI=SI)
+
 		#
 		hw_plot 		= []
 		ahc_data	 	= []
@@ -81,8 +84,8 @@ class harry_plotter:
 		print("unit str:",unit_str)
 		#
 		#
-		ef_idx	=	2
-		smr_idx	=	0
+		print("[plot_ac_hall]: plotting at selected fermi_level  : ",self.data.ef_lst[0][ef_idx],self.data.ef_lst[1])
+		print("[plot_ac_hall]: plotting at selected smearing para: ",self.data.smr_lst[0][smr_idx],self.data.smr_lst[1])
 		#
 		re_color = 'deepskyblue'
 		im_color = 'gold'
@@ -121,6 +124,7 @@ class harry_plotter:
 				#
 				#	set the midrange curves to be dotted
 				style='-'
+				ax[0].plot(self.data.hw_lst[0],np.zeros(len(self.data.hw_lst[0])), color='grey',linewidth=.5)
 				#	DC REAL PART
 				ax[0].plot(	self.data.hw_lst[0], ahc_plot,marker='v',linestyle=style,linewidth=line_width, color='black' ,	 markersize=marker_size)
 				#	AC REAL PART
@@ -134,6 +138,7 @@ class harry_plotter:
 							)
 				#
 				#	AC IMAG PART
+				ax[1].plot(self.data.hw_lst[0],np.zeros(len(self.data.hw_lst[0])), color='grey',linewidth=.5)
 				ax[1].plot(	self.data.hw_lst[0], IM_ahc_kubo_plot,		
 										marker='v',
 										linestyle=style,
@@ -194,13 +199,13 @@ class harry_plotter:
 
 
 
-def plot_ac_hall_tens(SI=True):
+def plot_ac_hall_tens(SI=False):
 	#	use the above class in here to plot data in folder root_dir
 	print('[plot_ac_hall_tens]:	hello there')
 
 	dir_id	=	"delta"
 	#
-	myTest	= harry_plotter(SI=SI)
+	myTest	= harry_plotter()
 	#
 	print('[plot_ac_hall_tens]:	read folder, start plotting....')
 	print("..")
@@ -212,14 +217,18 @@ def plot_ac_hall_tens(SI=True):
 	#
 	#	~~~~~~~~~~~~~~~~~~~~~~~~
 	#
-	myTest.plot_ac_hall(		scale			=		1		, 
+	myTest.plot_ac_hall(		dim				=		2,
+								SI				=		SI,
+								scale			=		1	, 
 								scale_str		=		r'',
 								plot_ahc		=		False		, 
 								plot_ahc_kubo	= 		True		, 
 								plot_ohc		=		False		, 
 								line_width=1.5,label_size=12, xtick_size=12, ytick_size=12, marker_size=1.1,
 								re_bound		=	10,
-								im_bound		=	10
+								im_bound		=	10,
+								ef_idx			=	4,
+								smr_idx			=	0
 						)
 	print("...")
 	print('[plot_ac_hall_tens]:	plotted Hall like tensors')
