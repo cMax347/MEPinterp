@@ -200,7 +200,8 @@ class merry_plotter:
 		ax.set_xlim([x_min, x_max])
 		#
 		# handle y-axis
-		ax.set_ylim([lower_bound, upper_bound  ])
+		if not(lower_bound==None or upper_bound==None):
+			ax.set_ylim([lower_bound, upper_bound  ])
 		ax.set(ylabel=r'$J^a{'+'}\;$' +	self.unit_str)
 		print("WARNING units are fucked at the moment TODO")
 		ax.yaxis.label.set_size(label_size)

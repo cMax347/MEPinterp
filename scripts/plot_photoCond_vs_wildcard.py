@@ -177,7 +177,8 @@ class merry_plotter:
 					ax.set_xlim([x_min, x_max])
 
 					# handle y-axis
-					ax.set_ylim([lower_bound, upper_bound  ])
+					if not(lower_bound==None or upper_bound==None):
+						ax.set_ylim([lower_bound, upper_bound  ])
 					ax.set(ylabel=r'$\sigma^{'+dim_str[x]+'}_{'+dim_str[i]+dim_str[j]+'}\;$' +	self.unit_str)
 					ax.yaxis.label.set_size(label_size)
 					#
@@ -233,8 +234,8 @@ def plot_scnd_photo(root_dir='.'):
 									x_axis_para_id	=	123,
 									smr_idx=1, ef_idx=1, hw_idx=15,
 									line_width=1.5,label_size=14, xtick_size=12, ytick_size=12, marker_size=1.1,
-									upper_bound		=	100,
-									lower_bound		=	-100,
+									upper_bound		=	None,
+									lower_bound		=	None,
 									plot_legend=True
 							)
 		print("...")
