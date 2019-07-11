@@ -40,6 +40,7 @@ contains
 		real(dp),						intent(in)		::	en_k(:), fd_distrib(:,:)
 		complex(dp), 					intent(in)		::	V_ka(:,:,:)
 		real(dp)										::	curv_nn(3,3)
+		real(dp)										::	dE_npn
 		real(dp),		allocatable						::	o_ahc(:,:,:)
 		integer											::	n, np, j, ef_idx, n_ef, n_wf
 		!
@@ -49,10 +50,10 @@ contains
 		o_ahc	=	0.0_dp
 		!
 		!
-		!$OMP PARALLEL  DO 								&
-		!$OMP DEFAULT(none)								&	
-		!$OMP PRIVATE(np, j, curv_nn, ef_idx)			&
-		!$OMP SHARED(n_wf, n_ef,en_k, V_ka, fd_distrib)	&
+		!$OMP PARALLEL  DO 											&
+		!$OMP DEFAULT(none)											&	
+		!$OMP PRIVATE(np, j, curv_nn, ef_idx, dE_npn)				&
+		!$OMP SHARED(n_wf, n_ef,en_k, V_ka, fd_distrib, kubo_tol)	&
 		!----
 		!$OMP 	REDUCTION( + : o_ahc	)
 		do n = 1, n_wf
@@ -60,9 +61,13 @@ contains
 			curv_nn	=	0.0_dp
 			do np = 1, n_wf
 				if(np==n)	cycle
-				do j = 1, 3
-					curv_nn(:,j)	=	curv_nn(:,j)	- 2.0_dp *	aimag(	V_ka(:,n,np) * V_ka(j,np,n)	)	/ (en_k(np) - en_k(n))**2
-				end do
+				!
+				dE_npn	=	(en_k(np) - en_k(n))**2
+				if(abs(dE_npn)> kubo_tol) then
+					do j = 1, 3
+						curv_nn(:,j)	=	curv_nn(:,j)	- 2.0_dp *	aimag(	V_ka(:,n,np) * V_ka(j,np,n)	)	/ dE_npn
+					end do
+				end if
 			end do
 			!
 			do ef_idx =1 ,n_ef
