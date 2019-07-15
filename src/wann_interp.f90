@@ -445,7 +445,6 @@ module wann_interp
 	end subroutine
 
 
-
 !
 !
 !
@@ -731,6 +730,7 @@ module wann_interp
 		real(dp),			intent(out)		::	max_err
 		integer								::	a, b
 		!
+		curv_is_herm	= .false.
 		!
 		if(allocated(Om_kab))then 
 			if( size(Om_kab,3) == size(Om_kab,4) )	then
@@ -744,7 +744,6 @@ module wann_interp
 					end do
 				end do
 			else
-				curv_is_herm	= .false.
 				stop " [curv_is_herm/DEBUG-MODE]: k-space matrices life on different basis sets"
 			end if
 		end if
