@@ -864,9 +864,6 @@ contains
 		!
 		return
 	end subroutine
-
-
-
 	!
 	!
 	subroutine print_core_info(n_ki_loc, n_ki_glob, eF_lst, eF_final_idx)
