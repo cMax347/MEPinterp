@@ -402,33 +402,37 @@ def read_rashba_cfg(cfg_file='./rashba.cfg'):
 	nMag 		= 	np.zeros(3)
 	aR			=	0
 	Vex			=	0
+	descriptor	=	''
 	#
-	with open(cfg_file,'r') as cfg:
-		for row,string in enumerate(cfg):
-			if "=" in string:
-				string	=	string.split("=")[1]
-				string	=	string.split("#")[0]
-				string	=	string.strip()
-			#
-			if row==1:
-				aR 		= 	float(	string	)
-			elif row==2:
-				Vex = 		float(	string	)#float(	string.split("=")[1]	)
-			elif row==3:
-				string_arr 	= 	string.split(" ")
-				for idx, string in enumerate(string_arr):
-					if idx<3:
-						nMag[idx]	=	float(string)
-	#
-	#	setup descriptive string
-	descriptor	=	r' $\alpha_R=$'+'{:3.1f}'.format(aR)+r' $\mathrm{eV} \AA, \; V_{\mathrm{ex}}= $'+'{:3.1f}'.format(Vex)+r' $\mathrm{eV}$,'
-	if(np.abs(Vex)>1e-3):
-		if(	vec_is_parallel(nMag,ex)):
-			descriptor	=	descriptor	+	r'$\;(\hat{\mathbf{n}}_{\mathrm{Mag}} \parallel 	\hat{\mathbf{e}}_x)$'
-		if(	vec_is_parallel(nMag,ey)):
-			descriptor	=	descriptor	+	r'$\;(\hat{\mathbf{n}}_{\mathrm{Mag}} \parallel 	\hat{\mathbf{e}}_y)$'
-		if(	vec_is_parallel(nMag,ez)):
-			descriptor	=	descriptor	+	r'$\;(\hat{\mathbf{n}}_{\mathrm{Mag}} \parallel 	\hat{\mathbf{e}}_z)$'
+	try:
+		with open(cfg_file,'r') as cfg:
+			for row,string in enumerate(cfg):
+				if "=" in string:
+					string	=	string.split("=")[1]
+					string	=	string.split("#")[0]
+					string	=	string.strip()
+				#
+				if row==1:
+					aR 		= 	float(	string	)
+				elif row==2:
+					Vex = 		float(	string	)#float(	string.split("=")[1]	)
+				elif row==3:
+					string_arr 	= 	string.split(" ")
+					for idx, string in enumerate(string_arr):
+						if idx<3:
+							nMag[idx]	=	float(string)
+		#
+		#	setup descriptive string
+		descriptor	=	r' $\alpha_R=$'+'{:3.1f}'.format(aR)+r' $\mathrm{eV} \AA, \; V_{\mathrm{ex}}= $'+'{:3.1f}'.format(Vex)+r' $\mathrm{eV}$,'
+		if(np.abs(Vex)>1e-3):
+			if(	vec_is_parallel(nMag,ex)):
+				descriptor	=	descriptor	+	r'$\;(\hat{\mathbf{n}}_{\mathrm{Mag}} \parallel 	\hat{\mathbf{e}}_x)$'
+			if(	vec_is_parallel(nMag,ey)):
+				descriptor	=	descriptor	+	r'$\;(\hat{\mathbf{n}}_{\mathrm{Mag}} \parallel 	\hat{\mathbf{e}}_y)$'
+			if(	vec_is_parallel(nMag,ez)):
+				descriptor	=	descriptor	+	r'$\;(\hat{\mathbf{n}}_{\mathrm{Mag}} \parallel 	\hat{\mathbf{e}}_z)$'
+	except:
+		print("[read_rashba_cfg]: ERROR failed to read rashba cfg file")
 	#
 	return aR, Vex, nMag, descriptor
 
