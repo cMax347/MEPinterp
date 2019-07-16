@@ -105,22 +105,8 @@ program test_2Drashba_photoC
 
 	subroutine write_input_files()
 		! write config file
-		integer			::	status_hr, status_npy
 		call write_input_cfg_file()
-		! write w90 files
-			! ->	store w90files in new subfolder of config folder 
-			! ->		config/FeMn_tb/			
-			!				->	w90files/
-			!				->	w90files/
-			!				-> ahcVELO.npy
-			! ->
-			! ->
 		call my_mkdir('./w90files/')
-		!status_hr	=	system("cp ../../config/FeMn_TB/FeMn_hr.dat	./w90files/")
-		!write(*,*)	"[write_input_files]:	copied hr to w90files with status:	",status_hr
-		!!
-		!status_npy	=	system("cp ../../config/FeMn_TB/ahcVELO.npy	./w90files/ahcVELOsol.npy")
-		!write(*,*)	"[write_input_files]:	copied npy file to w90files with status:	",status_npy
 		!
 		return
 	end subroutine
@@ -133,7 +119,8 @@ program test_2Drashba_photoC
 									a1(3),a2(3),a3(3),a0
 		integer					::	mp_grid(3)
 		character(len=13)		::	fname_cfg	= "./input.cfg"
-		type(CFG_t)          	:: 	my_cfg
+		character(len=14)		::	fname_r_cfg = "./rashba.cfg"
+		type(CFG_t)          	:: 	my_cfg, rashba_cfg
 		!
 		!
 		write(*,*)	"[write_input_cfg_file]:	WARNING ERROR !@!111!! TODO"
@@ -154,7 +141,7 @@ program test_2Drashba_photoC
 		wf_centers(3,1+4:4+4)	=	wf_centers(3,1:4)						!	v			
 		!
 		!	NUMERICS
-		mp_grid(1:2)	=	10200
+		mp_grid(1:2)	=	256
 		mp_grid(3)		=	1
 		!
 		!	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -223,6 +210,11 @@ program test_2Drashba_photoC
 		call CFG_write(my_cfg,fname_cfg)
 		write(*,*)	"[write_input_cfg_file]: wrote input to file "//fname_cfg
 		!
+		!
+		call CFG_add(rashba_cfg, "rashba_model%aR"				,0.1_dp				,	"rashba coupling strength in eV Ang")
+		call CFG_add(rashba_cfg, "rashba_model%Vex"				,1.0_dp				,	"exhange splitting in eV")
+		call CFG_add(rashba_cfg, "rashba_model%"				,(/0.0_dp,1.0_dp,0.0_dp/),	"FM magnetization direction")
+		call CFG_write(rashba_cfg,fname_r_cfg)
 		!
 		return
 	end subroutine
