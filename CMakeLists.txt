@@ -43,8 +43,8 @@ if ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     message("found MPI lib, set USE_OMP preprocessor macro")
   endif(OpenMP_FOUND)
 
-  set(CMAKE_Fortran_FLAGS "-Og -fopenmp -omp -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
-  set(COVERAGE_LINK_FLAGS "-Og -fopenmp -omp -O0 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  set(CMAKE_Fortran_FLAGS "-Og -fopenmp -omp -O3 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
+  set(COVERAGE_LINK_FLAGS "-Og -fopenmp -omp -O3 -llapack -cpp -lblas -Wall -Wno-tabs -Wextra -Werror=line-truncation -pedantic -fimplicit-none -fcheck=all -fbacktrace ")
 #
 #-------------------------------------------------------------------------------------
 #       INTEL COMPILER (mpiifort)
