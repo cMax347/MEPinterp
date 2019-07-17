@@ -35,7 +35,7 @@ module input_paras
 												do_write_velo,														&
 												use_R_float,														&
 												do_write_mep_bands,													&
-												do_mep, do_ahc, do_kubo, do_opt, do_photoC, do_gyro,				&
+												do_mep, do_ahc, do_kubo, do_opt, do_photoC, do_bcd_photo, do_gyro,	&
 												!atoms
 												wf_centers,															&
 												!vars
@@ -66,7 +66,9 @@ module input_paras
 									do_write_velo,					&
 									do_write_mep_bands,				&
 									debug_mode,	use_mpi,			&
-									do_mep, do_ahc, do_kubo, do_opt, do_photoC, do_gyro
+									do_mep, do_ahc, do_kubo, 		&
+									do_opt, do_photoC, do_bcd_photo,& 
+									do_gyro
 	integer						::	N_wf, N_eta_smr, N_eF, N_hw, kspace_ham_id
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
@@ -97,6 +99,7 @@ module input_paras
 		use_mpi = .true.
 #endif
 		init_parameters	=	.false.
+		input_exist		=	.false.
 		!
 		if( 	.not. use_mpi 		.and.		 mpi_id	/= 0			)	then
 			 write(*,'(a,i7.7,a)')		'[#',mpi_id,';init_parameters]:	hello, I am an unexpected MPI thread !!!1!1!!!1!!1 '
@@ -122,6 +125,7 @@ module input_paras
 				call CFG_add_get(my_cfg,	"jobs%do_ahc"					,	do_ahc				,	"switch (on/off) this response tens calc")
 				call CFG_add_get(my_cfg,	"jobs%do_opt"					,	do_opt				,	"switch (on/off) this response tens calc")
 				call CFG_add_get(my_cfg,	"jobs%do_photoC"				,	do_photoC			,	"switch (on/off) this response tens calc")				
+				call CFG_add_get(my_cfg,	"jobs%do_bcd_photo"				,	do_bcd_photo		,	"switch (on/off) this response tens calc")
 				call CFG_add_get(my_cfg,	"jobs%do_gyro"					,	do_gyro				,	"switch (on/off) this response tens calc")
 				!~~~~~~~~~~~~
 				!
@@ -273,6 +277,7 @@ module input_paras
 				call MPI_BCAST(		do_ahc 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_opt 			,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_photoC		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		do_bcd_photo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gyro 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				![SYSTEM]
 				call MPI_BCAST(		kspace_ham_id	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
