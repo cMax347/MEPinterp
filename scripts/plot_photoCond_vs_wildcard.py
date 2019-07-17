@@ -188,7 +188,7 @@ class merry_plotter:
 					plt.tight_layout()
 					#
 					# WRITE TO FILE
-					outFile_path	= self.plot_dir+'/Jphoto^'+dim_str[x]+'_'+dim_str[i]+dim_str[j]+'_vs_'+para_str+'.pdf'
+					outFile_path	= self.plot_dir+'/Jphoto_'+dim_str[x]+dim_str[i]+dim_str[j]+'_vs_'+para_str+'.pdf'
 					plt.savefig(outFile_path)
 					plt.close()
 					#
