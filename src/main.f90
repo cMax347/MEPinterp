@@ -9,6 +9,7 @@ program MEPinterp
 #endif
 	use mpi_community,			only:		mpi_root_id, mpi_id, mpi_nProcs, ierr
 	use input_paras,			only:		init_parameters,	&
+											my_mkdir,			&
 											plot_bands
 	use core,					only:		core_worker
 	use band_calc,				only:		band_worker
@@ -16,6 +17,8 @@ program MEPinterp
 	!
 	real :: T_start, T_finish
     call cpu_time(T_start)
+	!
+	call my_mkdir("log")
 	!
 	!MPI INIT
 	mpi_root_id = 	0
