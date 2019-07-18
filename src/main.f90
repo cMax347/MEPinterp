@@ -18,8 +18,6 @@ program MEPinterp
 	real :: T_start, T_finish
     call cpu_time(T_start)
 	!
-	call my_mkdir("log")
-	!
 	!MPI INIT
 	mpi_root_id = 	0
 	mpi_id		=	0
