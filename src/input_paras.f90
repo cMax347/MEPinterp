@@ -44,7 +44,7 @@ module input_paras
 												k_cutoff,															&
 												N_hw, hw_min, hw_max,												&
 												N_eF, eF_min, eF_max, T_kelvin,										&
-												N_eta_smr ,eta_smr_min, eta_smr_max
+												N_smr ,eta_smr_min, eta_smr_max
 
 
 
@@ -69,7 +69,7 @@ module input_paras
 									do_mep, do_ahc, do_kubo, 		&
 									do_opt, do_photoC, do_bcd_photo,& 
 									do_gyro
-	integer						::	N_wf, N_eta_smr, N_eF, N_hw, kspace_ham_id
+	integer						::	N_wf, N_smr, N_eF, N_hw, kspace_ham_id
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
 									k_cutoff=1.0_dp,				&
@@ -162,7 +162,7 @@ module input_paras
 				call CFG_add_get(my_cfg,	"Fermi%eF_min"					,	eF_min				,	"minimum fermi energy( in eV)"			)
 				call CFG_add_get(my_cfg,	"Fermi%eF_max"					,	eF_max				,	"maximum fermi energy( in eV)"			)
 				call CFG_add_get(my_cfg,	"Fermi%Tkelvin"					,	T_kelvin			,	"Temperature"							)				
-				call CFG_add_get(my_cfg,	"Fermi%N_eta_smr"				,	N_eta_smr			,	"number of electr smr to be probed"		)
+				call CFG_add_get(my_cfg,	"Fermi%N_smr"				,	N_smr			,	"number of electr smr to be probed"		)
 				call CFG_add_get(my_cfg,	"Fermi%eta_smr_min"				,	eta_smr_min			,	"min smearing (eV) applied"					)
 				call CFG_add_get(my_cfg,	"Fermi%eta_smr_max"				,	eta_smr_max			,	"max smearing (eV) applied"					)
 				call CFG_add_get(my_cfg,	"Fermi%kuboTol"					,	kubo_tol			,	"numerical tolearnce for KUBO formulas"	)
@@ -194,7 +194,7 @@ module input_paras
 				!
 				N_hw			=	max(1,N_hw)
 				N_ef			=	max(1,N_ef)
-				N_eta_smr		=	max(1,N_eta_smr)
+				N_smr		=	max(1,N_smr)
 				!
 				eF_min			= 	eF_min		/	aUtoEv
 				eF_max			=	eF_max		/	aUtoEv
@@ -302,7 +302,7 @@ module input_paras
 				call MPI_BCAST(		eF_min			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		eF_max			,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		T_kelvin		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-				call MPI_BCAST(		N_eta_smr		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		N_smr		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		eta_smr_min		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		eta_smr_max		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 			end if

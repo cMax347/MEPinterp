@@ -30,6 +30,7 @@ module core
 								do_ahc,											&
 								do_opt,											&
 								do_photoC,										&
+								do_bcd_photo,									&
 								do_gyro,										&
 								debug_mode,										&
 								wf_centers,										&
@@ -38,7 +39,7 @@ module core
 								seed_name,										&
 								hw_min, hw_max, n_hw, 							&
 								N_eF, eF_min, eF_max, T_kelvin, 				&
-								N_eta_smr ,eta_smr_min, eta_smr_max,  			&
+								N_smr ,eta_smr_min, eta_smr_max,  				&
 								out_dir
 	!
 	use k_space,		only:	get_mp_grid, 									&
@@ -55,6 +56,14 @@ module core
 								kubo_opt_tens, kubo_ohc_tens 
 	use gyro,			only:	get_gyro_C, get_gyro_D, get_gyro_Dw
 	use photo,			only:	photo_2nd_cond
+	use bcd_photo,		only:	get_fd_k_deriv, 								&
+								photoC_bcd_term,								&
+								photoC_bcd_rect_term,							&
+								photoC_jrk_term,								&
+								photoC_inj_term,								&
+								photoC_ib_term
+
+
 	!
 	use w90_interface, 	only:	read_tb_basis
 	use file_io,		only:	write_velo
@@ -85,8 +94,9 @@ contains
 												!local sum targets:
 		real(dp),		allocatable			::	en_k(:), R_vect(:,:),					& 
 												Ne_loc_sum(:), 							&
-												ef_lst(:),eta_smr_lst(:), hw_lst(:),	&
+												ef_lst(:),smr_lst(:), hw_lst(:),		&
 												fd_distrib(:,:), fd_deriv(:,:),			&
+												fd_k_deriv(:,:,:),						&
 												!
 												mep_bands_ic_loc(	:,:,:),	 			&
 												mep_bands_lc_loc(	:,:,:),				&
@@ -108,6 +118,11 @@ contains
 												kubo_opt_s_loc(	  :,:,:,:),				&
 												kubo_opt_a_loc(	  :,:,:,:),				&
 												photo2_cond_loc(:,:,:,:,:,:),			&
+												photoC_bcd_loc(:,:,:,:,:,:),			&
+												photoC_BCD_rect_loc(:,:,:,:,:,:),		&
+												photoC_jrk_loc(:,:,:,:,:,:),			&
+												photoC_inj_loc(:,:,:,:,:,:),			&
+												photoC_IB_loc(:,:,:,:,:,:),				&
 												gyro_C_loc(			:,:,:),				&							
 												gyro_D_loc(			:,:,:),				&
 												gyro_Dw_loc(	  :,:,:,:)																								
@@ -121,14 +136,16 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------
 		call get_linspace( ef_min, 		ef_max, 		n_eF,				ef_lst	)
 		call get_linspace( hw_min, 		hw_max, 		n_hw, 				hw_lst	)	
-		call get_linspace( eta_smr_min, eta_smr_max, 	n_eta_smr,		eta_smr_lst	)
+		call get_linspace( eta_smr_min, eta_smr_max, 	N_smr,		smr_lst	)
 		!
-		call allo_core_loc_arrays(		Ne_loc_sum,																		&
-										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,							&	
-										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
-										kubo_dc_ahc_loc, photo2_cond_loc,	 kubo_ac_ahc_loc,	kubo_ohc_loc,			&
-										tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
-										gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
+		call allo_core_loc_arrays(		Ne_loc_sum,												&
+										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,	&	
+										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,		&									
+										kubo_dc_ahc_loc,  kubo_ac_ahc_loc,	kubo_ohc_loc,		&
+										photo2_cond_loc, photoC_bcd_loc, photoC_bcd_rect_loc,	&
+										photoC_jrk_loc, photoC_inj_loc, photoC_IB_loc,			&	
+										tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,			&
+										gyro_C_loc, gyro_D_loc, gyro_Dw_loc						&
 									)													
 		
 
@@ -155,8 +172,10 @@ contains
 			call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
 		end if
 		!
-					allocate(		fd_distrib(		n_eF,	size(en_k,1) 		))
-		if(do_gyro) allocate(		fd_deriv(		n_ef,	size(en_k,1)		))
+					allocate(		fd_distrib(		n_eF,	size(en_k) 		))
+		if(do_gyro) allocate(		fd_deriv(		n_ef,	size(en_k)		))
+		if(do_bcd_photo)&
+					allocate(		fd_k_deriv(	3,	n_eF,	size(en_k)		))
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get 	k-space
@@ -194,63 +213,72 @@ contains
 						!
 						!$OMP PARALLEL DO DEFAULT(shared) 
 						do wf_idx = 1, size(en_k)
-							fd_distrib(:,wf_idx)		=	fd_stat(	en_k(wf_idx),	ef_lst(:),	T_kelvin	)
+							fd_distrib(:,wf_idx)	=	fd_stat(	en_k(wf_idx),	ef_lst(:),	T_kelvin	)
 						end do
 						!$OMP END PARALLEL DO
-						if(	do_gyro	)	fd_deriv(:,:)	=	fd_stat_deriv(fd_distrib(:,:), T_kelvin)
+						if(	do_gyro	) fd_deriv(:,:)	=	fd_stat_deriv(fd_distrib(:,:), T_kelvin)
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	MEP
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_mep )	then	
-							mep_bands_ic_loc	=	mep_bands_ic_loc + 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
-							mep_bands_lc_loc	=	mep_bands_lc_loc + 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
-							mep_bands_cs_loc 	=	mep_bands_cs_loc + 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
+							mep_bands_ic_loc		=	mep_bands_ic_loc 	+ 	mep_niu_IC(V_ka, en_k)		!	itinerant		(Kubo)
+							mep_bands_lc_loc		=	mep_bands_lc_loc 	+ 	mep_niu_LC(V_ka, en_k)		!	local			(Kubo)
+							mep_bands_cs_loc 		=	mep_bands_cs_loc 	+ 	mep_niu_CS(A_ka, Om_kab)	!	chern simons	(geometrical)
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	KUBO MEP (MEP with fermi_dirac)
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_kubo	)	then
-							kubo_mep_ic_loc(:,:,:)	=	kubo_mep_ic_loc(:,:,:) 	&
-														+	kubo_mep_IC(en_k, V_ka,fd_distrib)
-							!			---------------------------------	
-							kubo_mep_lc_loc(:,:,:)	=	kubo_mep_lc_loc(:,:,:)	&
-														+	kubo_mep_LC(en_k, V_ka,fd_distrib)
-							!			---------------------------------							
-							kubo_mep_cs_loc(:,:,:)	=	kubo_mep_cs_loc(:,:,:)	&
-														+	kubo_mep_CS(A_ka, Om_kab,fd_distrib)
+							kubo_mep_ic_loc			=	kubo_mep_ic_loc 	+	kubo_mep_IC(en_k, V_ka,fd_distrib)
+							kubo_mep_lc_loc			=	kubo_mep_lc_loc		+	kubo_mep_LC(en_k, V_ka,fd_distrib)
+							kubo_mep_cs_loc			=	kubo_mep_cs_loc		+	kubo_mep_CS(A_ka, Om_kab,fd_distrib)
 						end if
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	AHC
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_ahc )	then
-							kubo_dc_ahc_loc(:,:,:)		=	kubo_dc_ahc_loc(:,:,:)		&
-														+ 	kubo_DC_ahc(en_k,	V_ka,   fd_distrib)
-							!			---------------------------------
-							kubo_ac_ahc_loc(:,:,:,:,:)		= 	kubo_ac_ahc_loc(:,:,:,:,:)	&	
-								 							+	kubo_AC_ahc(en_k, V_ka, hw_lst, eta_smr_lst, fd_distrib)
+							kubo_dc_ahc_loc			=	kubo_dc_ahc_loc		+ 	kubo_DC_ahc(en_k,	V_ka,   fd_distrib)
+							kubo_ac_ahc_loc			= 	kubo_ac_ahc_loc		+	kubo_AC_ahc(en_k, V_ka, hw_lst, smr_lst, fd_distrib)
 							!			---------------------------------
 							!kubo_ohc_loc(:,:,:,:)	= 	kubo_ohc_loc(:,:,:,:)	&
-							!	 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_dp*eta_smr_lst(1))
+							!	 							+	kubo_ohc_tens(en_k, V_ka, hw_lst(:), fd_distrib, i_dp*smr_lst(1))
 						end if
-						!
+						!~
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	OPTICAL CONDUCTIVITY (w90 version via Connection)
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_opt )	then
-									call kubo_opt_tens(en_k, A_ka, hw_lst, fd_distrib, i_dp*eta_smr_lst(1),  	tempS, tempA)
-									kubo_opt_s_loc(:,:,:,:)		=	kubo_opt_s_loc(:,:,:,:)	+	tempS							
-									kubo_opt_a_loc(:,:,:,:)		=	kubo_opt_a_loc(:,:,:,:)	+	tempA
-									!			---------------------------------
+							call kubo_opt_tens(en_k, A_ka, hw_lst, fd_distrib, i_dp*smr_lst(1),  	tempS, tempA)
+							!~
+							kubo_opt_s_loc			=	kubo_opt_s_loc		+	tempS							
+							kubo_opt_a_loc			=	kubo_opt_a_loc		+	tempA
+							!			---------------------------------
 						end if
-						!
+						!~
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	NAGAOSA PHOTO_C 
+						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_photoC )	then
-							photo2_cond_loc(:,:,:,:,:,:)	=	photo2_cond_loc(:,:,:,:,:,:)	&	
-											+	photo_2nd_cond(en_k, V_ka, hw_lst, eta_smr_lst,fd_distrib )
+							photo2_cond_loc			=	photo2_cond_loc		+	photo_2nd_cond(en_k, V_ka, hw_lst, smr_lst,fd_distrib )
 						end if
-						!
+						!~
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	BCD PHOTOCOND 
+						!----------------------------------------------------------------------------------------------------------------------------------
+						if(	do_bcd_photo ) then
+							fd_k_deriv				=	get_fd_k_deriv(en_k, V_ka, ef_lst)
+							!
+							photoC_BCD_loc			=	photoC_bcd_term(	hw_lst, smr_lst, ef_lst, fd_k_deriv,	en_k, V_ka)
+							photoC_BCD_rect_loc		=	photoC_bcd_rect_term(hw_lst,smr_lst, ef_lst, fd_k_deriv,	en_k, V_ka)
+							!
+							photoC_jrk_loc			=	photoC_jrk_term(	hw_lst, smr_lst, ef_lst, fd_k_deriv, 	en_k, V_ka)	
+							photoC_INJ_loc			=	photoC_INJ_term(	hw_lst, smr_lst, 	fd_distrib, 		en_k, V_ka)
+							photoC_IB_loc			=	photoC_IB_term(		hw_lst, smr_lst, ef_lst, fd_k_deriv, 	en_k, V_ka, Om_kab)	
+						end if
+						!~
 						!----------------------------------------------------------------------------------------------------------------------------------
 						!	GYROTROPIC TENSORS (CURRENTS)
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -287,19 +315,21 @@ contains
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	REDUCE MPI & WRITE FILES
 		!----------------------------------------------------------------------------------------------------------------------------------
-		call integrate_over_k_space(	n_ki_glob, 	eF_idx,											&
-										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,		&	
+		call integrate_over_k_space(	n_ki_glob, 	eF_idx,												&
+										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,			&	
 										!
-										kubo_mep_ic_loc, kubo_mep_lc_loc,	kubo_mep_cs_loc,		&									
-										kubo_dc_ahc_loc, kubo_ac_ahc_loc,	kubo_ohc_loc,			&
-										kubo_opt_s_loc, kubo_opt_a_loc,								&
-										gyro_C_loc, gyro_D_loc,	gyro_Dw_loc,						&
-										photo2_cond_loc												&
-							)
+										kubo_mep_ic_loc, kubo_mep_lc_loc,	kubo_mep_cs_loc,			&									
+										kubo_dc_ahc_loc, kubo_ac_ahc_loc,	kubo_ohc_loc,				&
+										kubo_opt_s_loc, kubo_opt_a_loc,									&
+										gyro_C_loc, gyro_D_loc,	gyro_Dw_loc,							&
+										photo2_cond_loc,												&
+										photoC_BCD_loc, photoC_BCD_rect_loc, 							&
+										photoC_jrk_loc,	photoC_IB_loc, photoC_INJ_loc					&
+									)
 		!
 		if(mpi_id == mpi_root_id) then 
 			call save_npy(	out_dir//'hw_lst.npy',			hw_lst		)
-			call save_npy(	out_dir//'smr_lst.npy',		eta_smr_lst		)
+			call save_npy(	out_dir//'smr_lst.npy',		smr_lst		)
 			call save_npy(	out_dir//'ef_lst.npy',			eF_lst		)
 		end if
 		!----------------------------------------------------------------------------------------------------------------------------------
@@ -371,8 +401,8 @@ contains
 			write(*,'(a,i7.7,a,i5,a)')	"[#",mpi_id,";fermi_selector]: the system is expected to have	N_el,sys :=	",Ne_sys," electron(s)"
 			write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";fermi_selector]: now try to find ",&
 											"a optimal Fermi energy value s.t. N_el( e_fermi) == N_el,sys .. "
-			write(*,*)				"..."
-			write(*,*)				"..."
+			write(*,*)					"..."
+			write(*,*)					"..."
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]:	#eF 	| eF (eV)	 |  N_el(#eF)	|	error abs( N_el(#eF) - N_el )	"
 			write(*,'(a,i7.7,a)')		"[#",mpi_id,";fermi_selector]: -------------------------------------------------------------------------"
 			write(*,'(a,i7.7,a,i5,a,a,a,i5,a,a)')	"[#",mpi_id,";fermi_selector]:	",	&
@@ -436,11 +466,13 @@ contains
 	subroutine 	integrate_over_k_space(		n_ki_loc, 	eF_idx,														&
 										mep_bands_ic_loc, mep_bands_lc_loc, mep_bands_cs_loc,						&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,							&									
-										kubo_dc_ahc_loc, kubo_ac_ahc_loc,	kubo_ohc_loc,									&
+										kubo_dc_ahc_loc, kubo_ac_ahc_loc,	kubo_ohc_loc,							&
 										kubo_opt_s_loc, kubo_opt_a_loc,												&
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc,										&
-										photo2_cond_loc																&
-							)
+										photo2_cond_loc,															&
+										photoC_bcd_loc,photoC_BCD_rect_loc, 										&	
+										photoC_jrk_loc, photoC_IB_loc, photoC_inj_loc								&
+									)
 		!-----------------------------------------------------------------------------------------------------------
 		!		K SPACE INTEGRATION 
 		!		->sums over mpi_threads and normalizes accordingly
@@ -458,6 +490,10 @@ contains
 		complex(dp),					intent(in)		::	kubo_ac_ahc_loc(:,:,:,:,:),	kubo_ohc_loc(:,:,:,:),							&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
 															photo2_cond_loc(:,:,:,:,:,:),												&
+															photoC_BCD_loc(:,:,:,:,:,:),photoC_bcd_rect_loc(:,:,:,:,:,:),				& 
+															photoC_jrk_loc(:,:,:,:,:,:),												&
+															photoC_IB_loc(:,:,:,:,:,:), 												&
+															photoC_INJ_loc(:,:,:,:,:,:),												&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!-----------------------------------------------------------------------------------------------------------
 		integer											::	n_ki_glob
@@ -469,10 +505,15 @@ contains
 															kubo_mep_ic_glob(:,:), kubo_mep_lc_glob(:,:), kubo_mep_cs_glob(:,:),		&
 															kubo_dc_ahc_glob(:,:,:)												
 															!
-		complex(dp),			allocatable				::	kubo_ac_ahc_glob(:,:,:,:,:),														&
+		complex(dp),			allocatable				::	kubo_ac_ahc_glob(:,:,:,:,:),												&
 															kubo_ohc_glob(:,:,:,:),														&
 															kubo_opt_s_glob(:,:,:), kubo_opt_a_glob(:,:,:),								&
 															photo2_cond_glob(:,:,:,:,:,:),												&
+															photoC_BCD_glob(:,:,:,:,:,:),												& 
+															photoC_BCD_rect_glob(:,:,:,:,:,:),											& 
+															photoC_JRK_glob(:,:,:,:,:,:),												& 
+															photoC_IB_glob(:,:,:,:,:,:), 												&
+															photoC_INJ_glob(:,:,:,:,:,:),												&
 															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:,:)		
 		!
 		
@@ -511,9 +552,9 @@ contains
 			call mpi_reduce_sum(	kubo_mep_lc_loc(:,:,eF_idx)	,	kubo_mep_lc_glob	)
 			call mpi_reduce_sum(	kubo_mep_cs_loc(:,:,eF_idx)	,	kubo_mep_cs_glob	)
 			!
-			call normalize_k_int(kubo_mep_ic_glob)
-			call normalize_k_int(kubo_mep_lc_glob)
-			call normalize_k_int(kubo_mep_cs_glob)
+			call normalize_k_int(	kubo_mep_ic_glob	)
+			call normalize_k_int(	kubo_mep_lc_glob	)
+			call normalize_k_int(	kubo_mep_cs_glob	)
 			!
 			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected KUBO MEP tensors"
 		end if
@@ -524,8 +565,8 @@ contains
 			call mpi_reduce_sum(	kubo_ac_ahc_loc(:,:,:,:,:)	,	kubo_ac_ahc_glob		)
 			!call mpi_reduce_sum(	kubo_ohc_loc(:,:,:,:)	,	kubo_ohc_glob		)
 			!
-			call normalize_k_int(kubo_dc_ahc_glob)
-			call normalize_k_int(kubo_ac_ahc_glob)
+			call normalize_k_int(	kubo_dc_ahc_glob	)
+			call normalize_k_int(	kubo_ac_ahc_glob	)
 			!call normalize_k_int(kubo_ohc_glob)
 			!
 			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected AHC tensors"
@@ -536,8 +577,8 @@ contains
 			call mpi_reduce_sum(	kubo_opt_s_loc(:,:,:,eF_idx)	,	kubo_opt_s_glob		)
 			call mpi_reduce_sum(	kubo_opt_a_loc(:,:,:,eF_idx)	,	kubo_opt_a_glob		)
 			!
-			call normalize_k_int(kubo_opt_s_glob)
-			call normalize_k_int(kubo_opt_a_glob)
+			call normalize_k_int(	kubo_opt_s_glob		)
+			call normalize_k_int(	kubo_opt_a_glob		)
 			!
 			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected OPT tensors"
 		end if 
@@ -548,14 +589,32 @@ contains
 			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected photoC tensors"
 		end if
 		!
+		if(	do_bcd_photo)										then
+			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]: WARNING BCD terms not implemented yet"
+			!
+			call mpi_reduce_sum(	photoC_BCD_loc,			photoC_BCD_glob )		
+			call mpi_reduce_sum(	photoC_BCD_rect_loc,	photoC_BCD_rect_glob)
+			call mpi_reduce_sum(	photoC_jrk_loc,			photoC_jrk_glob )
+			call mpi_reduce_sum(	photoC_INJ_loc,			photoC_INJ_glob )
+			call mpi_reduce_sum(	photoC_IB_loc,			photoC_IB_glob 	)
+			!
+			call normalize_k_int(	photoC_BCD_glob			)
+			call normalize_k_int(	photoC_BCD_rect_glob	)
+			call normalize_k_int(	photoC_jrk_glob			)
+			call normalize_k_int(	photoC_INJ_glob			)
+			call normalize_k_int(	photoC_IB_glob			)
+		end if
+
+
+		!
 		if( do_gyro )											then
 			call mpi_reduce_sum(	gyro_C_loc(:,:,:)			,	gyro_C_glob			)
 			call mpi_reduce_sum(	gyro_D_loc(:,:,:)			,	gyro_D_glob			)
 			call mpi_reduce_sum(	gyro_Dw_loc(:,:,:,:)		,	gyro_Dw_glob		)
 			!
-			call normalize_k_int(gyro_C_glob)
-			call normalize_k_int(gyro_D_glob)
-			call normalize_k_int(gyro_Dw_glob)
+			call normalize_k_int(	gyro_C_glob		)
+			call normalize_k_int(	gyro_D_glob		)
+			call normalize_k_int(	gyro_Dw_glob	)
 			if(mpi_id == mpi_root_id) write(*,'(a,i7.7,a)') "[#",mpi_id,"; core_worker]:  collected GYRO tensors"
 		end if
 		!
@@ -592,6 +651,16 @@ contains
 			if(allocated(kubo_opt_s_glob)) 	call save_npy(	out_dir//"opt_Ssymm.npy"	, 		kubo_opt_s_glob		)
 			if(allocated(kubo_opt_a_glob))	call save_npy(	out_dir//"opt_Asymm.npy"	, 		kubo_opt_a_glob		)
 			if(allocated(photo2_cond_glob))	call save_npy(	out_dir//'photoC_2nd.npy'	, 		photo2_cond_glob	)
+			if(allocated(photoC_BCD_glob))	call save_npy(	out_dir//'photoC2_bcd.npy'	,		photoC_BCD_glob		)
+			if(allocated(photoC_BCD_rect_glob))&
+											call save_npy(	out_dir//'photoC2_bcd_rect.npy',	photoC_BCD_rect_glob)
+			if(allocated(photoC_JRK_glob))	call save_npy(	out_dir//'photoC2_jrk.npy'	,		photoC_JRK_glob		)						
+			if(allocated(photoC_INJ_glob))	call save_npy(	out_dir//'photoC2_inj.npy'	,		photoC_INJ_glob		)
+			if(allocated(photoC_IB_glob))	call save_npy(	out_dir//'photoC2_ib.npy'	,		photoC_IB_glob		)
+			if(			allocated(photoC_BCD_glob)	.and.	allocated(photoC_JRK_glob)	&
+				.and.	allocated(photoC_IB_glob)	.and.	allocated(photoC_INJ_glob)) &
+				call save_npy(	out_dir//'photoC2_sum.npy'	,				photoC_BCD_glob	+ 	photoC_JRK_glob		&
+															 			 +	photoC_IB_glob	+	photoC_INJ_glob		)
 			!
 			!	GYRO TENSORS			
 			if(allocated(gyro_C_glob)) 		call save_npy(	out_dir//"gyro_C.npy"		, 		gyro_C_glob			)
@@ -634,6 +703,25 @@ contains
 				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]:	wrote symm opt tens to ",		out_dir//"opt_Asymm.npy"
 			if(allocated(photo2_cond_glob))	&
 				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd opt tens to ",		out_dir//'photoC_2nd.npy'
+			if(allocated(photoC_BCD_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (met, BCD  term) to ",	&
+																										out_dir//"photo_C2_bcd.npy"
+			if(allocated(photoC_BCD_rect_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (met, BCD  term rect limit) to ",	&
+																										out_dir//"photo_C2_bcd_rect.npy"																							
+			if(allocated(photoC_JRK_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (met, jerk term) to ",	&
+																										out_dir//"photo_C2_jrk.npy"						
+			if(allocated(photoC_INJ_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (ins, INJ  term) to ",	&
+																										out_dir//"photo_C2_inj.npy"
+			if(allocated(photoC_IB_glob))	&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (ins, IB   term) to ",	&
+																										out_dir//"photo_C2_ib.npy"
+			if(			allocated(photoC_BCD_glob)	.and.	allocated(photoC_JRK_glob)	&
+				.and.	allocated(photoC_IB_glob)	.and.	allocated(photoC_INJ_glob)) &
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (sum=BCD+JRK+INJ+IB   term) to ",	&
+																										out_dir//"photo_C2_sum.npy"
 			!
 			!	GYRO
 			if(allocated(gyro_C_glob))		&
@@ -650,10 +738,6 @@ contains
 		!
 		return
 	end subroutine
-
-
-
-
 
 
 
@@ -701,7 +785,9 @@ contains
 	subroutine allo_core_loc_arrays(	Ne_loc_sum,																		&
 										mep_tens_ic_loc, mep_tens_lc_loc, mep_tens_cs_loc,								&	
 										kubo_mep_ic_loc, kubo_mep_lc_loc, kubo_mep_cs_loc,								&									
-										kubo_dc_ahc_loc, photo2_cond_loc,	 kubo_ac_ahc_loc,	kubo_ohc_loc,					&
+										kubo_dc_ahc_loc, kubo_ac_ahc_loc, kubo_ohc_loc,									&
+										photo2_cond_loc, photoC_BCD_loc,	photoC_BCD_rect_loc,						& 
+										photoC_jrk_loc, photoC_IB_loc, photoC_INJ_loc,									&
 										tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
 									)
@@ -714,6 +800,10 @@ contains
 															tempS(:,:,:,:), tempA(:,:,:,:), 											&
 															kubo_opt_s_loc(:,:,:,:), kubo_opt_a_loc(:,:,:,:),							&
 															photo2_cond_loc(:,:,:,:,:,:),												&
+															photoC_BCD_loc(:,:,:,:,:,:),	photoC_BCD_rect_loc(:,:,:,:,:,:),			& 
+															photoC_jrk_loc(:,:,:,:,:,:),												& 
+															photoC_IB_loc(:,:,:,:,:,:), 												&
+															photoC_INJ_loc(:,:,:,:,:,:),												&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	ALLOCATE & INIT
@@ -727,7 +817,7 @@ contains
 			allocate(	mep_tens_ic_loc(			3,3,	valence_bands	)	)
 			allocate(	mep_tens_lc_loc(			3,3,	valence_bands	)	)
 			allocate(	mep_tens_cs_loc(			3,3,	valence_bands	)	)
-			!
+			!~
 			mep_tens_ic_loc		=	0.0_dp
 			mep_tens_lc_loc		=	0.0_dp
 			mep_tens_cs_loc		=	0.0_dp
@@ -735,20 +825,20 @@ contains
 		!
 		!
 		if(	do_kubo	)	then	
-			allocate(	kubo_mep_ic_loc(			3,3,							n_eF			)	)	
-			allocate(	kubo_mep_lc_loc(			3,3,							n_eF			)	)	
-			allocate(	kubo_mep_cs_loc(			3,3,							n_eF			)	)
-			!
+			allocate(	kubo_mep_ic_loc(			3,3,							n_eF		)	)	
+			allocate(	kubo_mep_lc_loc(			3,3,							n_eF		)	)	
+			allocate(	kubo_mep_cs_loc(			3,3,							n_eF		)	)
+			!~
 			kubo_mep_ic_loc		=	0.0_dp
 			kubo_mep_lc_loc		=	0.0_dp
 			kubo_mep_cs_loc		=	0.0_dp
 		end if
 		!
 		if(	do_ahc	)	then		
-			allocate(	kubo_dc_ahc_loc(			3,3,							n_eF			)	)	
-			allocate(	kubo_ac_ahc_loc(			3,3,	n_hw	, n_eta_smr,	n_eF			)	)
-			!allocate(	kubo_ohc_loc(				3,3,	n_hw	,	n_eF			)	)
-			!
+			allocate(	kubo_dc_ahc_loc(			3,3,							n_eF		)	)	
+			allocate(	kubo_ac_ahc_loc(			3,3,	n_hw	, N_smr,	n_eF		)	)
+			!allocate(	kubo_ohc_loc(				3,3,	n_hw	,				n_eF		)	)
+			!~
 			kubo_dc_ahc_loc		=	0.0_dp
 			kubo_ac_ahc_loc		=	0.0_dp	
 			!kubo_ohc_loc		=	0.0_dp
@@ -756,25 +846,38 @@ contains
 		
 		!
 		if(	do_opt	)	then
-			allocate(	tempS(						3,3,	n_hw	,	n_eF			)	)
-			allocate(	tempA(						3,3,	n_hw	,	n_eF			)	)				
-			allocate(	kubo_opt_s_loc(				3,3,	n_hw	,	n_eF			)	)
-			allocate(	kubo_opt_a_loc(				3,3,	n_hw	,	n_eF			)	)
-			!
+			allocate(	tempS(						3,3,	n_hw	,	n_eF					)	)
+			allocate(	tempA(						3,3,	n_hw	,	n_eF					)	)				
+			allocate(	kubo_opt_s_loc(				3,3,	n_hw	,	n_eF					)	)
+			allocate(	kubo_opt_a_loc(				3,3,	n_hw	,	n_eF					)	)
+			!~
 			kubo_opt_a_loc		=	0.0_dp
 			kubo_opt_s_loc		=	0.0_dp
 		end if
 		!
 		if(	 do_photoC ) then
-			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	n_eta_smr,	n_eF )	)
+			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	N_smr,	n_eF 		)	)
 			photo2_cond_loc		=	0.0_dp
+		end if
+		!
+		if( do_bcd_photo ) then
+			allocate(	photoC_BCD_loc(				3,3,3,	n_hw,	N_smr,	n_eF 			)	)
+			allocate(	photoC_BCD_rect_loc(		3,3,3,	n_hw,	N_smr,	n_eF			)	)
+			allocate(	photoC_jrk_loc(				3,3,3,	n_hw, 	N_smr,	n_eF			)	)
+			allocate(	photoC_INJ_loc(				3,3,3,	n_hw,	N_smr,	n_eF 			)	)
+			allocate(	photoC_IB_loc(				3,3,3,	n_hw,	N_smr,	n_eF 			)	)
+			!~
+			photoC_BCD_loc		=	cmplx(0.0_dp,0.0_dp,dp)
+			photoC_BCD_rect_loc	=	cmplx(0.0_dp,0.0_dp,dp)
+			photoC_INJ_loc		=	cmplx(0.0_dp,0.0_dp,dp)
+			photoC_IB_loc		=	cmplx(0.0_dp,0.0_dp,dp)			
 		end if
 
 		!
 		if(	do_gyro	)	then
-			allocate(	gyro_C_loc(					3,3,				n_eF			)	)
-			allocate(	gyro_D_loc(					3,3,				n_eF			)	)
-			allocate(	gyro_Dw_loc(				3,3,	n_hw	,	n_eF			)	)																								
+			allocate(	gyro_C_loc(					3,3,				n_eF					)	)
+			allocate(	gyro_D_loc(					3,3,				n_eF					)	)
+			allocate(	gyro_Dw_loc(				3,3,	n_hw	,	n_eF					)	)																								
 			!
 			gyro_C_loc			=	cmplx(	0.0_dp	,	0.0_dp,		dp	)			
 			gyro_D_loc			=	cmplx(	0.0_dp	,	0.0_dp,		dp	)		

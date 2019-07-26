@@ -138,6 +138,10 @@ module wann_interp
 		allocate(kubo_curv(3,3,n_wf))
 		kubo_curv	=	cmplx(0.0_dp,0.0_dp,dp)
 		!
+		!$OMP PARALLEL DO DEFAULT(NONE) 			&
+		!$OMP PRIVATE(np, dEE_nnp,j,curv_nn)	&
+		!$OMP SHARED(n_wf,en_k,V_ka,kubo_tol)	&
+		!$OMP REDUCTION(+:kubo_curv)
 		do n = 1, n_wf
 			!
 			curv_nn	=	0.0_dp
@@ -152,6 +156,7 @@ module wann_interp
 				end do
 			end do
 		end do
+		!$OMP END PARALLEL DO
 		!
 		kubo_curv	=	-2.0_dp * kubo_curv
 		!
