@@ -15,7 +15,8 @@ program MEPinterp
 	use band_calc,				only:		band_worker
 	implicit none
 	!
-	real :: T_start, T_finish
+	real 	::	T_start, T_finish
+	integer	::	t_hour, t_min, t_sec
     call cpu_time(T_start)
 	!
 	!MPI INIT
@@ -54,8 +55,15 @@ program MEPinterp
 	!REPORT WALL TIME
 	if(mpi_id==mpi_root_id) then
 		write(*,*)	'~~~~~'
+		
 		call cpu_time(T_finish)
-		write(*,'(a,i7.7,a,a,a,f15.3,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	approximated Wall time: ', T_finish-T_start," seconds."
+		t_hour	=	int(	(	(T_finish-T_start) 			-		mod(T_finish-T_start,60.0**2)		)	)	/ 60**2		
+		t_min	=	int(	(mod(T_finish-T_start,60.0**2) 	- 	mod(mod(T_finish-T_start,60.0**2),60.0)) 	)	/ 	60		
+		t_sec	=	int(	mod(mod(T_finish-T_start,60.0**2),60.0)												)
+		write(*,'(a,i7.7,a,a,a,f15.3,a,i2.2,a,i2.2,a,i2.2,a)')	'[#',mpi_id,';main/',cTIME(time()),&
+																']:	approximated Wall time: ', T_finish-T_start, &
+																	" seconds. (hh:mm:ss::~~~",t_hour,":",t_min,":",t_sec,")"
+
 	end if
 	!
 	stop
