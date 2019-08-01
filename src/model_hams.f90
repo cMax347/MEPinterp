@@ -141,8 +141,8 @@ module model_hams
 		type(CFG_t) 				:: 	rash_cfg
 		!
 		!	INIT
-		aR		=	0.0_dp
-		Vex 	=	0.0_dp
+		aR		=	0.1_dp
+		Vex 	=	1.0_dp
 		nMag	=	(/ 0.0_dp, 1.0_dp, 0.0_dp /)
 		!
 		!	READ CONFIG
