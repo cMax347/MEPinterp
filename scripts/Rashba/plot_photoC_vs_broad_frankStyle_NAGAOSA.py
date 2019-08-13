@@ -8,6 +8,12 @@ import matplotlib.cm as cm
 from laser import laser
 
 
+
+#	
+#		IN NAGAOSA FORMULA THE REAL PART OF THE TENSOR IS SELECTED
+#	
+#	
+
 ex 	=	np.array([1,0,0])
 ey 	=	np.array([0,1,0])
 ez 	=	np.array([0,0,1])
