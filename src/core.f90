@@ -31,6 +31,7 @@ module core
 								do_opt,											&
 								do_photoC,										&
 								do_bcd_photo,									&
+								do_keldysh,										&
 								do_gyro,										&
 								debug_mode,										&
 								wf_centers,										&
@@ -62,7 +63,7 @@ module core
 								photoC_jrk_term,								&
 								photoC_inj_term,								&
 								photoC_ib_term
-
+	use keldysh,		only:	keldysh_scnd_photoC
 
 	!
 	use w90_interface, 	only:	read_tb_basis
@@ -123,6 +124,7 @@ contains
 												photoC_jrk_loc(:,:,:,:,:,:),			&
 												photoC_inj_loc(:,:,:,:,:,:),			&
 												photoC_IB_loc(:,:,:,:,:,:),				&
+												keldysh_photoC_loc(:,:,:,:,:,:),		&
 												gyro_C_loc(			:,:,:),				&							
 												gyro_D_loc(			:,:,:),				&
 												gyro_Dw_loc(	  :,:,:,:)																								
@@ -144,6 +146,7 @@ contains
 										kubo_dc_ahc_loc,  kubo_ac_ahc_loc,	kubo_ohc_loc,		&
 										photo2_cond_loc, photoC_bcd_loc, photoC_bcd_rect_loc,	&
 										photoC_jrk_loc, photoC_inj_loc, photoC_IB_loc,			&	
+										keldysh_photoC_loc,										&
 										tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,			&
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc						&
 									)													
@@ -271,12 +274,19 @@ contains
 						if(	do_bcd_photo ) then
 							fd_k_deriv				=	get_fd_k_deriv(en_k, V_ka, ef_lst)
 							!
-							photoC_BCD_loc			=	photoC_bcd_term(	hw_lst, smr_lst, ef_lst, fd_k_deriv,	en_k, V_ka)
-							photoC_BCD_rect_loc		=	photoC_bcd_rect_term(hw_lst,smr_lst, ef_lst, fd_k_deriv,	en_k, V_ka)
+							photoC_BCD_loc			=	photoC_BCD_loc	+	photoC_bcd_term(	hw_lst, smr_lst, ef_lst, fd_k_deriv,	en_k, V_ka)
+							photoC_BCD_rect_loc		=	photoC_BCD_rect_loc+ photoC_bcd_rect_term(hw_lst,smr_lst, ef_lst, fd_k_deriv,	en_k, V_ka)
 							!
-							photoC_jrk_loc			=	photoC_jrk_term(	hw_lst, smr_lst, ef_lst, fd_k_deriv, 	en_k, V_ka)	
-							photoC_INJ_loc			=	photoC_INJ_term(	hw_lst, smr_lst, 	fd_distrib, 		en_k, V_ka)
-							photoC_IB_loc			=	photoC_IB_term(		hw_lst, smr_lst, ef_lst, fd_k_deriv, 	en_k, V_ka, Om_kab)	
+							photoC_jrk_loc			=	photoC_jrk_loc	+	photoC_jrk_term(	hw_lst, smr_lst, ef_lst, fd_k_deriv, 	en_k, V_ka)	
+							photoC_INJ_loc			=	photoC_INJ_loc	+	photoC_INJ_term(	hw_lst, smr_lst, 	fd_distrib, 		en_k, V_ka)
+							photoC_IB_loc			=	photoC_IB_loc	+	photoC_IB_term(		hw_lst, smr_lst, ef_lst, fd_k_deriv, 	en_k, V_ka, Om_kab)	
+						end if
+						!~
+						!----------------------------------------------------------------------------------------------------------------------------------
+						!	KELDYSH 
+						!----------------------------------------------------------------------------------------------------------------------------------
+						if(	do_keldysh ) then
+							keldysh_photoC_loc		=	keldysh_photoC_loc	+ keldysh_scnd_photoC(en_k, V_ka, hw_lst, smr_lst, ef_lst)
 						end if
 						!~
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -324,7 +334,8 @@ contains
 										gyro_C_loc, gyro_D_loc,	gyro_Dw_loc,							&
 										photo2_cond_loc,												&
 										photoC_BCD_loc, photoC_BCD_rect_loc, 							&
-										photoC_jrk_loc,	photoC_IB_loc, photoC_INJ_loc					&
+										photoC_jrk_loc,	photoC_IB_loc, photoC_INJ_loc,					&
+										keldysh_photoC_loc												&
 									)
 		!
 		if(mpi_id == mpi_root_id) then 
@@ -471,7 +482,8 @@ contains
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc,										&
 										photo2_cond_loc,															&
 										photoC_bcd_loc,photoC_BCD_rect_loc, 										&	
-										photoC_jrk_loc, photoC_IB_loc, photoC_inj_loc								&
+										photoC_jrk_loc, photoC_IB_loc, photoC_inj_loc,								&
+										keldysh_photoC_loc															&													
 									)
 		!-----------------------------------------------------------------------------------------------------------
 		!		K SPACE INTEGRATION 
@@ -494,6 +506,7 @@ contains
 															photoC_jrk_loc(:,:,:,:,:,:),												&
 															photoC_IB_loc(:,:,:,:,:,:), 												&
 															photoC_INJ_loc(:,:,:,:,:,:),												&
+															keldysh_photoC_loc(:,:,:,:,:,:),											&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!-----------------------------------------------------------------------------------------------------------
 		integer											::	n_ki_glob
@@ -514,6 +527,7 @@ contains
 															photoC_JRK_glob(:,:,:,:,:,:),												& 
 															photoC_IB_glob(:,:,:,:,:,:), 												&
 															photoC_INJ_glob(:,:,:,:,:,:),												&
+															keldysh_photoC_glob(:,:,:,:,:,:),											&
 															gyro_C_glob(:,:,:), gyro_D_glob(:,:,:), gyro_Dw_glob(:,:,:,:)		
 		!
 		
@@ -604,8 +618,11 @@ contains
 			call normalize_k_int(	photoC_INJ_glob			)
 			call normalize_k_int(	photoC_IB_glob			)
 		end if
-
-
+		!
+		if(	do_keldysh)											then
+			call mpi_reduce_sum(	keldysh_photoC_loc,		keldysh_photoC_glob)
+			call normalize_k_int(	keldysh_photoC_glob		)
+		end if
 		!
 		if( do_gyro )											then
 			call mpi_reduce_sum(	gyro_C_loc(:,:,:)			,	gyro_C_glob			)
@@ -661,6 +678,9 @@ contains
 				.and.	allocated(photoC_IB_glob)	.and.	allocated(photoC_INJ_glob)) &
 				call save_npy(	out_dir//'photoC2_sum.npy'	,				photoC_BCD_glob	+ 	photoC_JRK_glob		&
 															 			 +	photoC_IB_glob	+	photoC_INJ_glob		)
+			!
+			!	KELDYSH TENSORS
+			if(allocated(keldysh_photoC_glob))	call save_npy(out_dir//'keldysh_photoC2.npy',	keldysh_photoC_glob	)
 			!
 			!	GYRO TENSORS			
 			if(allocated(gyro_C_glob)) 		call save_npy(	out_dir//"gyro_C.npy"		, 		gyro_C_glob			)
@@ -788,6 +808,7 @@ contains
 										kubo_dc_ahc_loc, kubo_ac_ahc_loc, kubo_ohc_loc,									&
 										photo2_cond_loc, photoC_BCD_loc,	photoC_BCD_rect_loc,						& 
 										photoC_jrk_loc, photoC_IB_loc, photoC_INJ_loc,									&
+										keldysh_photoC_loc,																&
 										tempS, tempA, kubo_opt_s_loc, kubo_opt_a_loc,									&
 										gyro_C_loc, gyro_D_loc, gyro_Dw_loc												&
 									)
@@ -804,6 +825,7 @@ contains
 															photoC_jrk_loc(:,:,:,:,:,:),												& 
 															photoC_IB_loc(:,:,:,:,:,:), 												&
 															photoC_INJ_loc(:,:,:,:,:,:),												&
+															keldysh_photoC_loc(:,:,:,:,:,:),											&
 															gyro_C_loc(:,:,:), gyro_D_loc(:,:,:), gyro_Dw_loc(:,:,:,:)		
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	ALLOCATE & INIT
@@ -856,23 +878,28 @@ contains
 		end if
 		!
 		if(	 do_photoC ) then
-			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	N_smr,	n_eF 		)	)
+			allocate(	photo2_cond_loc(			3,3,3,	n_hw	,	N_smr,	n_eF 			)	)
 			photo2_cond_loc		=	0.0_dp
 		end if
 		!
 		if( do_bcd_photo ) then
-			allocate(	photoC_BCD_loc(				3,3,3,	n_hw,	N_smr,	n_eF 			)	)
-			allocate(	photoC_BCD_rect_loc(		3,3,3,	n_hw,	N_smr,	n_eF			)	)
-			allocate(	photoC_jrk_loc(				3,3,3,	n_hw, 	N_smr,	n_eF			)	)
-			allocate(	photoC_INJ_loc(				3,3,3,	n_hw,	N_smr,	n_eF 			)	)
-			allocate(	photoC_IB_loc(				3,3,3,	n_hw,	N_smr,	n_eF 			)	)
+			allocate(	photoC_BCD_loc(				3,3,3,	n_hw,	N_smr,	n_eF 				)	)
+			allocate(	photoC_BCD_rect_loc(		3,3,3,	n_hw,	N_smr,	n_eF				)	)
+			allocate(	photoC_jrk_loc(				3,3,3,	n_hw, 	N_smr,	n_eF				)	)
+			allocate(	photoC_INJ_loc(				3,3,3,	n_hw,	N_smr,	n_eF 				)	)
+			allocate(	photoC_IB_loc(				3,3,3,	n_hw,	N_smr,	n_eF 				)	)
 			!~
 			photoC_BCD_loc		=	cmplx(0.0_dp,0.0_dp,dp)
 			photoC_BCD_rect_loc	=	cmplx(0.0_dp,0.0_dp,dp)
 			photoC_INJ_loc		=	cmplx(0.0_dp,0.0_dp,dp)
 			photoC_IB_loc		=	cmplx(0.0_dp,0.0_dp,dp)			
 		end if
-
+		!
+		if( do_keldysh ) then
+			allocate(	keldysh_photoC_loc(			3,3,3,	n_hw,	n_smr,	n_eF				)	)
+			!~
+			keldysh_photoC_loc	=	cmplx(0.0_dp,0.0_dp,dp)
+		end if
 		!
 		if(	do_gyro	)	then
 			allocate(	gyro_C_loc(					3,3,				n_eF					)	)
