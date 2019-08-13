@@ -62,7 +62,7 @@ program MEPinterp
 		t_sec	=	int(	mod(mod(T_finish-T_start,60.0**2),60.0)												)
 		write(*,'(a,i7.7,a,a,a,f15.3,a,i2.2,a,i2.2,a,i2.2,a)')	'[#',mpi_id,';main/',cTIME(time()),&
 																']:	approximated Wall time: ', T_finish-T_start, &
-																	" seconds. (hh:mm:ss::~~~",t_hour,":",t_min,":",t_sec,")"
+																	" seconds (hh:mm:ss::~~~",t_hour,":",t_min,":",t_sec,")."
 
 	end if
 	!
