@@ -741,7 +741,12 @@ contains
 			if(			allocated(photoC_BCD_glob)	.and.	allocated(photoC_JRK_glob)	&
 				.and.	allocated(photoC_IB_glob)	.and.	allocated(photoC_INJ_glob)) &
 				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (sum=BCD+JRK+INJ+IB   term) to ",	&
-																										out_dir//"photo_C2_sum.npy"
+																								out_dir//"photo_C2_sum.npy"
+			!
+			!	KELDYSH
+			if(allocated(keldysh_photoC_glob))&
+				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (KELDYSH) to ",	&
+																									out_dir//"keldysh_photoC2.npy"
 			!
 			!	GYRO
 			if(allocated(gyro_C_glob))		&
