@@ -147,21 +147,21 @@ complex(dp) function en_int_RRR(E1, E2, E3, E4,  smr)
 	!
 	!^^^^^^^^^^^^^^^^^^^^^^^^^
 	if(					(	abs(E1-E2)	<	kubo_tol ) 			&	!	E1==E2
-				.and.	(	abs(E2-E3)	>	kubo_tol )			&	!	E2/=E3
+				.and.	(	abs(E1-E3)	>	kubo_tol )			&	!	E1/=E3
 	)then
 		!	Eq.(B9):
 			en_int_RRR	=	en_int_DGN_RRR(	E1, E3, E4, smr)
 		!________________________
 	!^^^^^^^^^^^^^^^^^^^^^^^^^
 	else if(			(	abs(E1-E3)	<	kubo_tol ) 			&	!	E1==E3
-				.and.	(	abs(E2-E3)	>	kubo_tol )			&	!	E2/=E3)then
+				.and.	(	abs(E2-E1)	>	kubo_tol )			&	!	E1/=E2)then
 	)then
 		!	Eq.(B9):
 			en_int_RRR	=	en_int_DGN_RRR( E2, E1, E4, smr)
 		!________________________
 	!^^^^^^^^^^^^^^^^^^^^^^^^^
 	else if(			(	abs(E2-E3)	<	kubo_tol ) 			&	!	E2==E3
-				.and.	(	abs(E1-E3)	>	kubo_tol )			&	!	E1/=E3)then)then
+				.and.	(	abs(E1-E2)	>	kubo_tol )			&	!	E1/=E2)then)then
 	)then
 		!	Eq.(B9):
 			en_int_RRR	=	en_int_DGN_RRR(E2, E1, E4, smr)
@@ -203,19 +203,35 @@ complex(dp) function en_int_RRR(E1, E2, E3, E4,  smr)
 end function 
 !~
 !~
-complex(dp) pure function en_int_DGN_RRR(E1, E3, E4, smr)
+complex(dp) pure  function en_int_DGN_RRR(E1, E3, E4, smr)
 	real(dp),		intent(in)		::	E1,E3,E4,smr
-	real(dp)						::	dE_13
+	real(dp)						::	dE_13, denom_14, re_RRR, im_RRR
 	!		see	 Freimuth et al., PRB 94, 144432 (2016)  
 	!		 EQ.(B9)
 	!	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	!
-	dE_13	=	E3-E1
+	dE_13		=	E3-E1
+	denom_14	=	(E4-E1)**2 + smr**2
 	!
-	en_int_DGN_RRR	=	0.0_dp!(		0.5_dp * 	log( 	( smr**2 + (E3 - E4)**2	)	/	( smr**2 + (E1 - E4)**2 ))		&	
-						!	-	i_dp   *(			atan((E4-E3)/smr)			-		atan((E4-E1)/smr) 	)	 	&
-						!) / dE_13**2																				&
-						!	+	 1.0_dp			/	( dE_13 * (E4-E1+i_dp*smr))	
+	re_RRR		=	0.5_dp * 	log( 	( smr**2 + (E3 - E4)**2	)	/	( smr**2 + (E1 - E4)**2 ))			&	
+					- 	dE_13 *(E4-E1)	/ denom_14							
+	!
+	im_RRR		=	-atan((E4-E3)/smr)	&
+					+atan((E4-E1)/smr)	& 
+					-smr * dE_13 / denom_14	
+	!
+	re_RRR		=	re_RRR	/	dE_13**2
+	im_RRR		=	im_RRR	/	dE_13**2
+	!
+	en_int_DGN_RRR	=	cmplx(	re_RRR,	im_RRR,		dp)
+	!
+	!^^^^^^^^^^^^^^^^^^^^^^^^
+	!en_int_DGN_RRR	=	(		0.5_dp * 	log( 	( smr**2 + (E3 - E4)**2	)	/	( smr**2 + (E1 - E4)**2 ))			&	
+	!						- 	dE_13 *(E4-E1)	/ denom_14																&
+	!					)/ dE_13**2																						&
+	!					-	i_dp   *(	atan((E4-E3)/smr)	-	atan((E4-E1)/smr) + smr* dE_13 / denom_14 )	/ dE_13**2		
+	!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	!
 	return
 end function
 !~~~~~~~~~~~~~~~
