@@ -209,13 +209,13 @@ complex(dp) pure function en_int_DGN_RRR(E1, E3, E4, smr)
 	!		see	 Freimuth et al., PRB 94, 144432 (2016)  
 	!		 EQ.(B9)
 	!	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	!					TODO:	complete split this in real and imaginary part !!!!!q
+	!
 	dE_13	=	E3-E1
 	!
-	en_int_DGN_RRR	=	( 		0.5_dp * 	log( 	( smr**2 + (E3 - E4)**2	)	/	( smr**2 + (E1 - E4)**2 ))		&	
-							-	i_dp   *(			atan((E4-E3)/smr)			-		atan((E4-E1)/smr) 	)	 	&
-							+	dE_13 *	(E4-E1-i_dp*smr)		/	( (E4-E1)**2-smr**2)							&
-						) / dE_13**2
+	en_int_DGN_RRR	=	0.0_dp!(		0.5_dp * 	log( 	( smr**2 + (E3 - E4)**2	)	/	( smr**2 + (E1 - E4)**2 ))		&	
+						!	-	i_dp   *(			atan((E4-E3)/smr)			-		atan((E4-E1)/smr) 	)	 	&
+						!) / dE_13**2																				&
+						!	+	 1.0_dp			/	( dE_13 * (E4-E1+i_dp*smr))	
 	return
 end function
 !~~~~~~~~~~~~~~~
