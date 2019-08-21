@@ -13,7 +13,8 @@ module matrix_math
                                         is_skew_herm_mat,                       &
                                         convert_tens_to_vect,                   &
                                         blas_matmul,                            &
-                                        matrix_comm,                            &
+                                        mat_comm,                               &
+                                        mat_tr,                                 &
                                         get_linspace                                        
 
 
@@ -50,10 +51,16 @@ module matrix_math
         module procedure    z_is_skew_herm_mat
     end interface is_skew_herm_mat 
 
-    interface matrix_comm
+    interface mat_comm
         module procedure    d_matrix_comm
         module procedure    z_matrix_comm
-    end interface matrix_comm
+    end interface mat_comm
+    
+    interface mat_tr
+        module procedure d_matrix_tr
+        module procedure z_matrix_tr
+    end interface mat_tr
+
 
 
 
@@ -572,6 +579,39 @@ module matrix_math
         !
         return
     end function
+!----------------------------------------------------------------------------------------------------------------------
+!
+!
+    function d_matrix_tr(M) result(tr_M)
+        real(dp),   intent(in)      ::      M(:,:)
+        integer                     ::      n
+        real(dp)                    ::      tr_M
+        !
+        if(size(M,1)/=size(M,2))    stop "[d_matrix_tr]: ERROR expected square matrix "
+        tr_M        =   0.0_dp
+        !
+        do n =1 ,size(M,1)
+            tr_M    =   tr_M       +    M(n,n)
+        end do
+        !
+        return
+    end function
+
+    function z_matrix_tr(M) result(tr_M)
+        complex(dp),   intent(in)   ::      M(:,:)
+        integer                     ::      n
+        complex(dp)                 ::      tr_M
+        !
+        if(size(M,1)/=size(M,2))    stop "[d_matrix_tr]: ERROR expected square matrix "
+        tr_M        =   0.0_dp
+        !
+        do n =1 ,size(M,1)
+            tr_M    =   tr_M       +    M(n,n)
+        end do
+        !
+        return
+    end function
+
 !----------------------------------------------------------------------------------------------------------------------
 
 
