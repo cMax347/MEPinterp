@@ -3,7 +3,7 @@ module keldysh
 
 	!
 	use omp_lib
-	use input_paras,	only:	kubo_tol
+	use input_paras,	only:	kubo_tol, E_int_MIN, N_energy_int
 	use constants,		only:	dp, i_dp, pi_dp
 	use statistics,		only:	fd_stat
 	use matrix_math,	only:	mat_tr
@@ -15,8 +15,7 @@ module keldysh
 	public			::		keldysh_scnd_photoC, keldysh_scnd_photoC_NUMERICAL
 
 	real(dp),	parameter		::	pi_half	= pi_dp / 2.0_dp
-	real(dp),	parameter		::	E_int_MIN=-3.0_dp
-	integer,	parameter		::	N_energy_int	=	500
+	
 contains
 
 
@@ -111,7 +110,7 @@ function keldysh_scnd_photoC_NUMERICAL(	en_k, U_k, V_ka, hw_lst, smr_lst, ef_lst
 	complex(dp),	intent(in)		::	U_k(:,:), V_ka(:,:,:)
 	complex(dp),	allocatable		::	phi(:,:,:,:,:,:), G_base(:,:,:), tmp(:,:), G_R(:,:), G_R_shift(:,:),G_A(:,:)
 	integer							::	n, ef, int_point, smr, hw, k, j, i 
-	real(dp)						::	epsilon, ek_min, e_int_lower, hw_max, ef_min
+	real(dp)						::	epsilon
 	!
 	allocate(	phi(	3,3,3,	size(hw_lst), size(smr_lst), size(ef_lst)		))
 	phi	= cmplx(0.0_dp,0.0_dp,dp)	
@@ -126,15 +125,12 @@ function keldysh_scnd_photoC_NUMERICAL(	en_k, U_k, V_ka, hw_lst, smr_lst, ef_lst
 		G_base(:,:,n)	=	matmul(U_k(:,n:n),U_k(n:n,:))
 	end do
 	!
-	ek_min	=	minval(en_k)
-	hw_max	=	maxval(hw_lst)
-	ef_min	=	minval(ef_lst)
 	!
-	e_int_lower	=	ek_min - hw_max - ef_min
 	!
+	write(*,*)	"N_int=",N_energy_int," min window=",E_int_MIN
 
 	!$OMP PARALLEL DO  REDUCTION(+:phi) COLLAPSE(2)	&
-	!$OMP DEFAULT(NONE)	SHARED(ef_lst,smr_lst, hw_lst,  en_k, V_ka, G_base)	&
+	!$OMP DEFAULT(NONE)	SHARED(ef_lst,smr_lst, hw_lst,  en_k, V_ka, G_base, N_energy_int, E_int_MIN)	&
 	!$OMP PRIVATE(ef, int_point, epsilon, smr, G_R, G_A, hw, G_R_shift, k,j,i, tmp )
 	do ef = 1, size(ef_lst)	
 		do int_point = 1, N_energy_int

@@ -46,7 +46,8 @@ module input_paras
 												k_cutoff,															&
 												N_hw, hw_min, hw_max,												&
 												N_eF, eF_min, eF_max, T_kelvin,										&
-												N_smr ,eta_smr_min, eta_smr_max
+												N_smr ,eta_smr_min, eta_smr_max,									&
+												E_int_MIN, N_energy_int
 
 
 
@@ -71,13 +72,13 @@ module input_paras
 									do_mep, do_ahc, do_kubo, 		&
 									do_opt, do_photoC, do_bcd_photo,& 
 									do_keldysh, do_keldysh_NUM, do_gyro
-	integer						::	N_wf, N_smr, N_eF, N_hw, kspace_ham_id
+	integer						::	N_wf, N_smr, N_eF, N_hw, kspace_ham_id, N_energy_int
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
 									k_cutoff=1.0_dp,				&
 									eF_min, eF_max, 				&
 									eta_smr_min, eta_smr_max,		&
-									T_kelvin			
+									T_kelvin, E_int_MIN			
 	real(dp),	allocatable		::	wf_centers(:,:)
 
 
@@ -129,7 +130,6 @@ module input_paras
 				call CFG_add_get(my_cfg,	"jobs%do_photoC"				,	do_photoC			,	"switch (on/off) this response tens calc")				
 				call CFG_add_get(my_cfg,	"jobs%do_bcd_photo"				,	do_bcd_photo		,	"switch (on/off) this response tens calc")
 				call CFG_add_get(my_cfg,	"jobs%do_keldysh"				,	do_keldysh			,	"switch (on/off) this response tens calc")
-				call CFG_add_get(my_cfg,	"jobs%do_keldysh_NUM"			,	do_keldysh_NUM		,	"perform keldysh with numeric energy int")
 				call CFG_add_get(my_cfg,	"jobs%do_gyro"					,	do_gyro				,	"switch (on/off) this response tens calc")
 				!~~~~~~~~~~~~
 				!
@@ -176,7 +176,12 @@ module input_paras
 				call CFG_add_get(my_cfg,	"MEP%valence_bands"				,	valence_bands		,	"number of valence_bands"				)
 				call CFG_add_get(my_cfg,	"MEP%do_write_mep_bands"		,	do_write_mep_bands	,	"write mep tensor band resolved"		)
 				!~~~~~~~~~~~~
-				
+				!
+				![Keldysh]
+				call CFG_add_get(my_cfg,	"Keldysh%do_keldysh_NUM"			,	do_keldysh_NUM		,	"perform keldysh with numeric energy int")
+				call CFG_add_get(my_cfg,	"Keldysh%N_energy_int"			,	N_energy_int		,	"#integration points for num. energy int."	)
+				call CFG_add_get(my_cfg,	"Keldysh%E_int_MIN"				,	E_int_MIN			,		"lower bound of num. energy int.")
+				!~~~~~~~~~~~~
 				!
 				![Laser]
 				call CFG_add_get(my_cfg,	"Laser%N_hw"					,	N_hw					,	"points to probe in interval"		)
@@ -283,7 +288,6 @@ module input_paras
 				call MPI_BCAST(		do_photoC		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_bcd_photo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_keldysh		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
-				call MPI_BCAST(		do_keldysh_NUM	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gyro 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				![SYSTEM]
 				call MPI_BCAST(		kspace_ham_id	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
@@ -311,6 +315,10 @@ module input_paras
 				call MPI_BCAST(		N_smr		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		eta_smr_min		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		eta_smr_max		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				![Keldysh]
+				call MPI_BCAST(		do_keldysh_NUM	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		N_energy_int	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
+				call MPI_BCAST(		E_int_MIN		,			1			,	MPI_DOUBLE_PRECISION	,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 			end if
 			!
 			!TRIM SEEDNAME
