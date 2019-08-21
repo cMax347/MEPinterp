@@ -6,7 +6,7 @@ program test_matrix_math
 											is_equal_mat,		&
 											zheevd_wrapper,		&
 											blas_matmul,		&
-											matrix_comm
+											mat_comm
 
     use test_helpers,	only:				my_exit,									&
     										push_to_outFile, write_test_results, 		&
@@ -448,7 +448,7 @@ contains
 		end do
 		!
 		!GET COMMUTATOR
-		cplx_comm	=	 matrix_comm(I_mat, M_mat)
+		cplx_comm	=	 mat_comm(I_mat, M_mat)
 		!
 		!TEST IF COMMUTATOR IS ZERO
 		succ_cnt = 0
@@ -467,7 +467,7 @@ contains
 		B(1,1)	=	1.0_dp
 		B(2,2)	=	1.0_dp
 		!
-		real_comm		=	matrix_comm(A,B)
+		real_comm		=	mat_comm(A,B)
 		wikipedia_comm	=							(	abs(real_comm(1,1))	< fp_acc	)
 		wikipedia_comm	=	wikipedia_comm	.and.	(	abs(real_comm(1,2))	< fp_acc	)
 		wikipedia_comm	=	wikipedia_comm	.and.	(	abs(real_comm(2,1))	< fp_acc	)
@@ -483,7 +483,7 @@ contains
 		B(:,:)	=	1.0_dp
 		B(2,1)	=	0.0_dp
 		!
-		real_comm			=	matrix_comm(A,B)
+		real_comm			=	mat_comm(A,B)
 		wikipedia_non_comm	=								(	abs(real_comm(1,1))	< fp_acc	)
 		wikipedia_non_comm	=	wikipedia_non_comm	.and.	(	abs(real_comm(1,2))	< fp_acc	)
 		wikipedia_non_comm	=	wikipedia_non_comm	.and.	(	abs(real_comm(2,1))	< fp_acc	)

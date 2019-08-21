@@ -35,7 +35,9 @@ module input_paras
 												do_write_velo,														&
 												use_R_float,														&
 												do_write_mep_bands,													&
-												do_mep, do_ahc, do_kubo, do_opt, do_photoC, do_bcd_photo,do_keldysh, do_gyro,	&
+												do_mep, do_ahc, do_kubo, do_opt, do_photoC, do_bcd_photo,			&
+												do_keldysh, do_keldysh_NUM, 										&
+												do_gyro,															&
 												!atoms
 												wf_centers,															&
 												!vars
@@ -68,7 +70,7 @@ module input_paras
 									debug_mode,	use_mpi,			&
 									do_mep, do_ahc, do_kubo, 		&
 									do_opt, do_photoC, do_bcd_photo,& 
-									do_keldysh, do_gyro
+									do_keldysh, do_keldysh_NUM, do_gyro
 	integer						::	N_wf, N_smr, N_eF, N_hw, kspace_ham_id
 	real(dp)					::	a_latt(3,3), a0, unit_vol,		&
 									kubo_tol, hw_min, hw_max,		&
@@ -127,6 +129,7 @@ module input_paras
 				call CFG_add_get(my_cfg,	"jobs%do_photoC"				,	do_photoC			,	"switch (on/off) this response tens calc")				
 				call CFG_add_get(my_cfg,	"jobs%do_bcd_photo"				,	do_bcd_photo		,	"switch (on/off) this response tens calc")
 				call CFG_add_get(my_cfg,	"jobs%do_keldysh"				,	do_keldysh			,	"switch (on/off) this response tens calc")
+				call CFG_add_get(my_cfg,	"jobs%do_keldysh_NUM"			,	do_keldysh_NUM		,	"perform keldysh with numeric energy int")
 				call CFG_add_get(my_cfg,	"jobs%do_gyro"					,	do_gyro				,	"switch (on/off) this response tens calc")
 				!~~~~~~~~~~~~
 				!
@@ -280,6 +283,7 @@ module input_paras
 				call MPI_BCAST(		do_photoC		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				call MPI_BCAST(		do_bcd_photo	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_keldysh		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
+				call MPI_BCAST(		do_keldysh_NUM	,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD,	ierr)
 				call MPI_BCAST(		do_gyro 		,			1			,		MPI_LOGICAL			,		mpi_root_id,	MPI_COMM_WORLD, ierr)
 				![SYSTEM]
 				call MPI_BCAST(		kspace_ham_id	,			1			,		MPI_INTEGER			,		mpi_root_id,	MPI_COMM_WORLD, ierr)

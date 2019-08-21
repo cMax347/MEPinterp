@@ -59,8 +59,9 @@ module wann_interp
 	subroutine get_wann_interp(		do_gauge_trafo, 									&
 									H_real, r_real, 									&
 									R_frac,	wf_centers,									&
-									kpt_idx, kpt, 									&
-									e_k, V_ka, A_ka, Om_kab								&
+									kpt_idx, kpt, 										&
+									e_k, U_k,											&
+									V_ka, A_ka, Om_kab				 					&
 							)
 		!
 		!	interpolates the k-space:
@@ -80,32 +81,32 @@ module wann_interp
 		real(dp),		allocatable,	intent(in)				::	wf_centers(:,:)
 		real(dp),						intent(out)				::	e_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
-		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		complex(dp),	allocatable								::	U_k(:,:), H_ka(:,:,:)
+		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:), U_k(:,:)
+		complex(dp),	allocatable								::	Uk_work(:,:), H_ka(:,:,:)
 		!
 		!
-		allocate(	U_k(			size(e_k,1),		size(e_k,1)		)		)		
-		allocate(	H_ka(	3	,	size(e_k,1),		size(e_k,1)	 	)		)
+		allocate(	Uk_work(			size(e_k,1),		size(e_k,1)		)		)		
+		allocate(	H_ka(		3	,	size(e_k,1),		size(e_k,1)	 	)		)
 		!
 		!	GET BASIS
 		if(	.not. use_kspace_ham )	then
 			!
 			!	INTERPOLATE REAL SPACE BASIS
-			call FT_R_to_k(H_real, r_real,  R_frac, wf_centers, kpt_idx, kpt, U_k,  H_ka, A_ka, Om_kab)
+			call FT_R_to_k(H_real, r_real,  R_frac, wf_centers, kpt_idx, kpt, Uk_work,  H_ka, A_ka, Om_kab)
 		else
 			!
 			!	USE MODEL HAM 
-			call get_kspace_ham(kspace_ham_id,	kpt_idx, kpt, U_k, H_ka)
+			call get_kspace_ham(kspace_ham_id,	kpt_idx, kpt, Uk_work, H_ka)
 		end if
 		!
 		!
 		!get energies (H)-gauge
-		call zheevd_wrapper(U_k, e_k)
+		call zheevd_wrapper(Uk_work, e_k)
 		!
 		!
 		!rotate back to (H)-gauge
 		if (allocated( V_ka)) then
-			if( do_gauge_trafo	)	call W_to_H_gaugeTRAFO(kpt_idx, e_k, U_k, H_ka, A_ka, Om_kab)
+			if( do_gauge_trafo	)	call W_to_H_gaugeTRAFO(kpt_idx, e_k, Uk_work, H_ka, A_ka, Om_kab)
 			!
 			if( allocated(A_ka)	) then
 				call add_anom_velo(e_k, H_ka, A_ka, V_ka)
@@ -115,7 +116,8 @@ module wann_interp
 			!	DEBUG
 			if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt, A_ka, Om_kab, V_ka)
 		end if
-
+		!
+		if(allocated(U_k))		U_k	=	Uk_work
 		!
 		return
 	end subroutine

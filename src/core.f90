@@ -32,6 +32,7 @@ module core
 								do_photoC,										&
 								do_bcd_photo,									&
 								do_keldysh,										&
+								do_keldysh_num,									&
 								do_gyro,										&
 								debug_mode,										&
 								wf_centers,										&
@@ -63,7 +64,7 @@ module core
 								photoC_jrk_term,								&
 								photoC_inj_term,								&
 								photoC_ib_term
-	use keldysh,		only:	keldysh_scnd_photoC
+	use keldysh,		only:	keldysh_scnd_photoC, keldysh_scnd_photoC_NUMERICAL
 
 	!
 	use w90_interface, 	only:	read_tb_basis
@@ -79,6 +80,7 @@ module core
 	save
 	integer									::		num_kpts
 	logical,		parameter				::		do_calc_velo=.True.
+
 contains
 
 
@@ -109,6 +111,7 @@ contains
 												kubo_mep_cs_loc(	:,:,:)
 												!
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 			&
+												U_k(:,:),								&
 												A_ka(:,:,:), Om_kab(:,:,:,:),			&
 												V_ka(:,:,:),							&
 												!
@@ -175,10 +178,11 @@ contains
 			call kspace_allocator(		H_tb, r_tb, 			en_k, V_ka, A_ka, Om_kab	)
 		end if
 		!
-					allocate(		fd_distrib(		n_eF,	size(en_k) 		))
-		if(do_gyro) allocate(		fd_deriv(		n_ef,	size(en_k)		))
-		if(do_bcd_photo)&
-					allocate(		fd_k_deriv(	3,	n_eF,	size(en_k)		))
+								allocate(		fd_distrib(		n_eF,	size(en_k) 		))
+		if(do_gyro) 			allocate(		fd_deriv(		n_ef,	size(en_k)		))
+		if(do_bcd_photo)		allocate(		fd_k_deriv(	3,	n_eF,	size(en_k)		))
+		if(do_keldysh_num)		allocate(	U_k(size(en_k,1),	size(en_k,1)))
+
 		!
 		!----------------------------------------------------------------------------------------------------------------------------------
 		!	get 	k-space
@@ -206,7 +210,9 @@ contains
 						kpt	=	get_rel_kpt(ki,	kix,kiy,kiz)
 						call get_wann_interp(		do_gauge_trafo,									& 
 													H_tb, r_tb, R_vect, wf_centers,					&
-													ki, kpt(:), 	en_k, V_ka, A_ka, Om_kab 		&
+													ki, kpt(:), 									&
+													en_k, U_k,										&
+													V_ka, A_ka, Om_kab 								&
 											)
 						!
 						!----------------------------------------------------------------------------------------------------------------------------------
@@ -286,7 +292,11 @@ contains
 						!	KELDYSH 
 						!----------------------------------------------------------------------------------------------------------------------------------
 						if(	do_keldysh ) then
-							keldysh_photoC_loc		=	keldysh_photoC_loc	+ keldysh_scnd_photoC(en_k, V_ka, hw_lst, smr_lst, ef_lst)
+							if(do_keldysh_num) then
+								keldysh_photoC_loc		=	keldysh_photoC_loc	+ keldysh_scnd_photoC_NUMERICAL(en_k,U_k, V_ka, hw_lst, smr_lst, ef_lst)	
+							else
+								keldysh_photoC_loc		=	keldysh_photoC_loc	+ keldysh_scnd_photoC(en_k, V_ka, hw_lst, smr_lst, ef_lst)
+							end if
 						end if
 						!~
 						!----------------------------------------------------------------------------------------------------------------------------------

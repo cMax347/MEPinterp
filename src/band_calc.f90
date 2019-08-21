@@ -36,6 +36,7 @@ contains
 		real(dp),		allocatable			::	rel_kpts(:,:), en_k(:), R_vect(:,:)
 		integer								::	num_kpts, num_bands, ki, k_per_mpi
 		complex(dp),	allocatable			::	H_tb(:,:,:), r_tb(:,:,:,:), 				&
+												U_k(:,:),									&
 												A_ka(:,:,:), Om_kab(:,:,:,:),				&
 												V_ka(:,:,:)					
 		!
@@ -81,7 +82,7 @@ contains
 			do ki = mpi_id + 1, num_kpts,	mpi_nProcs
 				call get_wann_interp(	do_gauge_trafo, H_tb, r_tb, 				&
 										R_vect, wf_centers, ki, rel_kpts(:,ki),		& 
-										en_k, V_ka, A_ka, Om_kab					&
+										en_k, U_k, V_ka, A_ka, Om_kab 				&
 									)
 				call write_en_binary(ki,en_k)
 				if(do_write_velo)	call write_velo(ki,V_ka)

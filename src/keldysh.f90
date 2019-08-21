@@ -15,7 +15,8 @@ module keldysh
 	public			::		keldysh_scnd_photoC, keldysh_scnd_photoC_NUMERICAL
 
 	real(dp),	parameter		::	pi_half	= pi_dp / 2.0_dp
-	integer,	parameter		::	N_energy_int	=	10
+	real(dp),	parameter		::	E_int_MIN=-3.0_dp
+	integer,	parameter		::	N_energy_int	=	500
 contains
 
 
@@ -41,6 +42,11 @@ function keldysh_scnd_photoC(	en_k, V_ka, hw_lst, smr_lst, ef_lst)			result(phi)
 	phi	= cmplx(0.0_dp,0.0_dp,dp)
 	!
 	!	TODO:	OMP REDUCTION OVER "phi"
+
+
+	!$OMP PARALLEL DO REDUCTION(+:phi) 									&
+	!$OMP DEFAULT(NONE)	SHARED(V_ka, en_k, ef_lst, smr_lst, hw_lst)		&
+	!$OMP PRIVATE(c,b,a, k,j, v_ijk, v_ikj, ef, smr, hw)
 	do c = 1, size(en_k,1)
 		do b = 1, size(en_k,1)
 			do a = 1, size(en_k,1)
@@ -90,6 +96,7 @@ function keldysh_scnd_photoC(	en_k, V_ka, hw_lst, smr_lst, ef_lst)			result(phi)
 			end do
 		end do
 	end do
+	!$OMP END PARALLEL DO
 	!
 	return
 end function
@@ -104,7 +111,7 @@ function keldysh_scnd_photoC_NUMERICAL(	en_k, U_k, V_ka, hw_lst, smr_lst, ef_lst
 	complex(dp),	intent(in)		::	U_k(:,:), V_ka(:,:,:)
 	complex(dp),	allocatable		::	phi(:,:,:,:,:,:), G_base(:,:,:), tmp(:,:), G_R(:,:), G_R_shift(:,:),G_A(:,:)
 	integer							::	n, ef, int_point, smr, hw, k, j, i 
-	real(dp)						::	epsilon
+	real(dp)						::	epsilon, ek_min, e_int_lower, hw_max, ef_min
 	!
 	allocate(	phi(	3,3,3,	size(hw_lst), size(smr_lst), size(ef_lst)		))
 	phi	= cmplx(0.0_dp,0.0_dp,dp)	
@@ -119,10 +126,19 @@ function keldysh_scnd_photoC_NUMERICAL(	en_k, U_k, V_ka, hw_lst, smr_lst, ef_lst
 		G_base(:,:,n)	=	matmul(U_k(:,n:n),U_k(n:n,:))
 	end do
 	!
+	ek_min	=	minval(en_k)
+	hw_max	=	maxval(hw_lst)
+	ef_min	=	minval(ef_lst)
 	!
+	e_int_lower	=	ek_min - hw_max - ef_min
+	!
+
+	!$OMP PARALLEL DO  REDUCTION(+:phi) COLLAPSE(2)	&
+	!$OMP DEFAULT(NONE)	SHARED(ef_lst,smr_lst, hw_lst,  en_k, V_ka, G_base)	&
+	!$OMP PRIVATE(ef, int_point, epsilon, smr, G_R, G_A, hw, G_R_shift, k,j,i, tmp )
 	do ef = 1, size(ef_lst)	
 		do int_point = 1, N_energy_int
-			epsilon	=	real(int_point,dp)		!	TODO!!!!!!!!!!!!!!!!!!!!!111!!!!1!!!!!!!1!!!!!1!!!!!!
+			epsilon	=	E_int_MIN		 + (ef_lst(ef)-E_int_MIN) 	*	 real(int_point-1,dp)/real(N_energy_int-1,dp)	
 			!
 			!
 			!	TREADS I-IV (	all terms with f(epislon) prefactor )
@@ -203,6 +219,7 @@ function keldysh_scnd_photoC_NUMERICAL(	en_k, U_k, V_ka, hw_lst, smr_lst, ef_lst
 	 		!
 	 	end do
 	end do
+	!$OMP END PARALLEL DO 
 	!
 	!	NORMALIZE ENERGY INTEGRATION (TODO: DO WE NEED MORE HERE)
 	phi	=	phi	/	N_energy_int
@@ -426,7 +443,6 @@ complex(dp) pure function en_int_RRA(E1, E2, E3, E4,  smr)
 						 + i_dp * (		pi_half		+	atan((E4-E1)/smr)	)	/		(			(E1-E3-i_2smr)**2	)	&						!
 						 +  1.0_dp												/		((E3-E1+i_2smr)*(E4-E1+i_dp*smr))							!
 		!___________________________________________________________________________________________________________________________________________!
-		!en_int_RRA	=	cmplx(0.0_dp,0.0_dp,dp)		
 	else
 		!
 		!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
@@ -441,10 +457,8 @@ complex(dp) pure function en_int_RRA(E1, E2, E3, E4,  smr)
 					+	i_dp * (	pi_half		+	atan((E4-E2)/smr)	)		/	(		( E3-E2 + i_2smr)		*		(E2-E1)				)&	!
 					+	i_dp * (	pi_half		+	atan((E4-E3)/smr)	)		/	(		( E3-E1 + i_2smr)		*	( E3-E2 + i_2smr)		)	!					
 		!___________________________________________________________________________________________________________________________________________!
-		!en_int_RRA	=	cmplx(0.0_dp,0.0_dp,dp)		
 	end if
 	!
-	!en_int_RRA	=	cmplx(0.0_dp,0.0_dp,dp)				
 	!
 	return
 end function 
