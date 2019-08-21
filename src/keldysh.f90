@@ -127,8 +127,6 @@ function keldysh_scnd_photoC_NUMERICAL(	en_k, U_k, V_ka, hw_lst, smr_lst, ef_lst
 	!
 	!
 	!
-	write(*,*)	"N_int=",N_energy_int," min window=",E_int_MIN
-
 	!$OMP PARALLEL DO  REDUCTION(+:phi) COLLAPSE(2)	&
 	!$OMP DEFAULT(NONE)	SHARED(ef_lst,smr_lst, hw_lst,  en_k, V_ka, G_base, N_energy_int, E_int_MIN)	&
 	!$OMP PRIVATE(ef, int_point, epsilon, smr, G_R, G_A, hw, G_R_shift, k,j,i, tmp )
