@@ -754,9 +754,15 @@ contains
 																								out_dir//"photo_C2_sum.npy"
 			!
 			!	KELDYSH
-			if(allocated(keldysh_photoC_glob))&
-				write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (KELDYSH) to ",	&
-																									out_dir//"keldysh_photoC2.npy"
+			if(allocated(keldysh_photoC_glob))then
+				if(do_keldysh_num) then
+					write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (KELDYSH-NUMERICAL) to ",	&
+																								out_dir//"keldysh_photoC2.npy"
+				else
+					write(*,'(a,i7.7,a,a)')		"[#",mpi_id,";core_worker]: wrote 2nd photoC tens (KELDYSH-ANALYTICAL) to ",	&
+																								out_dir//"keldysh_photoC2.npy"
+				end if
+			end if
 			!
 			!	GYRO
 			if(allocated(gyro_C_glob))		&
