@@ -60,6 +60,7 @@ elseif ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
 
   message("intel compiler version: ${CMAKE_Fortran_COMPILER_VERSION}")
   if(CMAKE_Fortran_COMPILER_VERSION VERSION_LESS "16.0.0.20161018")
+    add_definitions(-DOLD_INTEL)
     set(CMAKE_Fortran_FLAGS "-mkl -fpp -O3 ")
     set(COVERAGE_LINK_FLAGS "-mkl -fpp -O3 ")
 
