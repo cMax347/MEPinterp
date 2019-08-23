@@ -4,7 +4,7 @@ module keldysh
 	!
 	use omp_lib
 	use input_paras,	only:	kubo_tol, E_int_MIN, N_energy_int
-	use constants,		only:	dp, i_dp, pi_dp
+	use constants,		only:	dp, i_dp, pi_dp, aUtoEv	
 	use statistics,		only:	fd_stat
 	use matrix_math,	only:	mat_tr
 
@@ -117,6 +117,7 @@ function keldysh_scnd_photoC_NUMERICAL(	en_k, U_k, V_ka, hw_lst, smr_lst, ef_lst
 	!
 	allocate(	G_base(			size(U_k,1),size(U_k,2),	size(en_k,1)	))
 	allocate(	G_R(			size(U_k,1),size(U_k,2)						))
+	allocate(	G_A(			size(U_k,1),size(U_k,2)						))
 	allocate(	G_R_shift(		size(U_k,1),size(U_k,2)						))	
 	allocate(	tmp(			size(U_k,1),size(U_k,2)						))
 	!
@@ -305,7 +306,8 @@ complex(dp) function en_int_RRR(E1, E2, E3, E4,  smr)
 	real(dp)						::	smrsmr
 	real(dp)						::	denom_1213, denom_2321, denom_3132, dE_14, dE_24, dE_34
 	!
-		!
+	!
+	dE_14		=	E4 -E1
 	!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	!			BAND DEGENERACY
 	!				use EQ.(B9)/(B11)
@@ -339,16 +341,14 @@ complex(dp) function en_int_RRR(E1, E2, E3, E4,  smr)
 				.and.	(	abs(E1-E3)	<	kubo_tol )			&	!	E1==E2==E3																										
 	)then
 		!	Eq.(B11):																												!
-			en_int_RRR	=	-1.0_dp	/	(2.0_dp*( E4-E1	+ i_dp*smr	)**2)	
+			en_int_RRR	=	-1.0_dp	/	(2.0_dp*( dE_14	+ i_dp*smr	)**2)	
 		!________________________
 	!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	else
 		smrsmr	= smr**2
 		!	EQ.(B7):	 I1(E1,E2,E3,E4)
-		
-		dE_14		=	E4 -E1 
-		dE_24		=	E4 -E2 
 		dE_34		=	E4 -E3 
+		dE_24		=	E4 -E2 
 		!
 		denom_1213	=	(E1-E2) * (E1-E3)
 		denom_2321	=	(E2-E3) * (E2-E1)
@@ -366,22 +366,28 @@ complex(dp) function en_int_RRR(E1, E2, E3, E4,  smr)
 		!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	end if
 	!
+	en_int_RRR		=	en_int_RRR	/	aUtoEv	
 	!
 	return
 end function 
 !~
 !~
-complex(dp) pure  function en_int_DGN_RRR(E1, E3, E4, smr)
+complex(dp)  function en_int_DGN_RRR(E1, E3, E4,  smr)
 	real(dp),		intent(in)		::	E1,E3,E4,smr
-	real(dp)						::	dE_13, denom_14, re_RRR, im_RRR
+	real(dp)						::	dE_13, dE_14, dE_34
 	!		see	 Freimuth et al., PRB 94, 144432 (2016)  
 	!		 EQ.(B9)
 	!	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	!
 	dE_13		=	E3-E1
-	denom_14	=	(E4-E1)**2 + smr**2
+	dE_14		=	E4-E1
+	dE_34		=	E4-E3
 	!
 	!
+	if(abs(dE_13)<kubo_tol)	stop "[en_int_DGN_RRR]: ERROR unexpected E1,E3 degeneracy detected"
+	if(abs(dE_14)<kubo_tol)	stop "[en_int_DGN_RRR]: ERROR unexpected E1,E3 degeneracy detected"
+	if(abs(dE_34)<kubo_tol)	stop "[en_int_DGN_RRR]: ERROR unexpected E1,E3 degeneracy detected"
+
 	!!
 	!re_RRR		=	0.5_dp * 	log( 	( smr**2 + (E3 - E4)**2	)	/	( smr**2 + (E1 - E4)**2 ))			&	
 	!				- 	dE_13 *(E4-E1)	/ denom_14							
@@ -396,11 +402,15 @@ complex(dp) pure  function en_int_DGN_RRR(E1, E3, E4, smr)
 	!en_int_DGN_RRR	=	cmplx(	re_RRR,	im_RRR,		dp)
 	!
 	!^^^^^^^^^^^^^^^^^^^^^^^^
-	en_int_DGN_RRR	=	(		0.5_dp * 	log( 	( smr**2 + (E3 - E4)**2	)	/	( smr**2 + (E1 - E4)**2 ))			&	
-							- 	dE_13 *(E4-E1)	/ denom_14																&
-						)/ dE_13**2																						&
-						-	i_dp   *(	atan((E4-E3)/smr)	-	atan((E4-E1)/smr) + smr* dE_13 / denom_14 )	/ dE_13**2		
+	!en_int_DGN_RRR	=	(		0.5_dp * 	log( 	( smr**2 + (E3 - E4)**2	)	/	( smr**2 + (E1 - E4)**2 ))			&	
+	!						- 	dE_13 *(E4-E1)	/ denom_14																&
+	!					)/ dE_13**2																						&
+	!					-	i_dp   *(	atan((E4-E3)/smr)	-	atan((E4-E1)/smr) + smr* dE_13 / denom_14 )	/ dE_13**2		
 	!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	en_int_DGN_RRR	=		log( 	( smr**2 + dE_34**2	)	/( smr**2 + dE_14**2 )	)			/	(2.0_dp * (dE_13)**2	)&
+						- 	i_dp* 	(	atan(dE_34/smr)		-	atan(dE_14/smr)		)			/	(		dE_13**2		)&
+						+	1.0_dp																/	(dE_13 * (dE_14+i_dP*smr))
+	!
 	!
 	return
 end function
