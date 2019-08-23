@@ -122,17 +122,17 @@ contains
 !		complex(dp)							::	vvv_nl_lm_mn(3,3,3)
 !		real(dp)							::	re_dE,		im_dE, 		&
 !												re_dE_smr,	im_dE_smr
-!		integer								::	m, n, l, a, b, hw,smr, omega, ef_idx, n_ef, n_hw, n_wf, n_smr
+		integer								::	m, n, l, a, b, hw,smr, omega, ef_idx, n_ef, n_hw, n_wf, n_smr
 !		!
-!		n_ef	=	size(	fd_distrib	,	1)
-!		n_hw 	=	size(	hw_lst		,	1)
+		n_ef	=	size(	fd_distrib	,	1)
+		n_hw 	=	size(	hw_lst		,	1)
 !		n_wf	=	size(	en_k		,	1)
-!		n_smr	=	size(	eta_smr_lst ,	1)
+		n_smr	=	size(	eta_smr_lst ,	1)
 !		!
 !		allocate(	df_ln(									n_ef	))
 !		allocate(	tmp(			3,3,3,	n_hw,	n_smr			))
-!		allocate(	phot_cond(		3,3,3,	n_hw,	n_smr, 	n_ef	))
-!		phot_cond	=	0.0_dp
+		allocate(	phot_cond_2harm(		3,3,3,	n_hw,	n_smr, 	n_ef	))
+		phot_cond_2harm	=	0.0_dp
 !		!
 !		write(*,*)	"[photo_2nd_cond_2harm]: WARNING NOT IMPLEMENTED PROPERLY YET"
 !		!	
