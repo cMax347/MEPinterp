@@ -587,7 +587,10 @@ module matrix_math
         integer                     ::      n
         real(dp)                    ::      tr_M
         !
-        if(size(M,1)/=size(M,2))    stop "[d_matrix_tr]: ERROR expected square matrix "
+        if(size(M,1)/=size(M,2))    then
+            write(*,*)  "[d_matrix_tr]: ERROR expected square matrix (got",shape(M),")"
+            stop "[d_matrix_tr]: ERROR expected square matrix "
+        end if
         tr_M        =   0.0_dp
         !
         do n =1 ,size(M,1)
@@ -602,7 +605,10 @@ module matrix_math
         integer                     ::      n
         complex(dp)                 ::      tr_M
         !
-        if(size(M,1)/=size(M,2))    stop "[d_matrix_tr]: ERROR expected square matrix "
+        if(size(M,1)/=size(M,2))    then
+            write(*,*)  "[z_matrix_tr]: ERROR expected square matrix (got",shape(M),")"
+            stop "[z_matrix_tr]: ERROR expected square matrix "
+        end if
         tr_M        =   0.0_dp
         !
         do n =1 ,size(M,1)
