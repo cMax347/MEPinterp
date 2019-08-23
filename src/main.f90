@@ -31,6 +31,9 @@ program MEPinterp
 #endif
 	write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	welcome to mepInterp'
 	!
+#ifdef OLD_INTEL
+	if(mpi_id==mpi_root_id)	write(*,*) write(*,'(a,i7.7,a,a,a)')	'[#',mpi_id,';main/',cTIME(time()),']:	WARNING compiled with older intel compiler'
+#endif
 	!
     !BODY
     if( init_parameters()	) then
