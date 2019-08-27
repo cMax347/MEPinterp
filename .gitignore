@@ -45,6 +45,7 @@ bin/**
 *CMakeCache.txt
 *sublimeMake.sh
 **thirdparty/Makefile
+**thirdparty/Keldyshintegrals
 **/wannier90
 **/__pycache__
 thirdparty/cmake_install.cmake

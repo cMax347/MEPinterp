@@ -95,9 +95,6 @@ endif()
 
 
 
-
-
-
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 
 #	ToDo's:
@@ -106,11 +103,36 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COVERAGE_LINK_FLAGS}")
 #	2) parallel and serial build#
 
 
+
+#
+#
+#-------------------------------------------------------------------------------------
+#       LINKING
+#----------------------------------------------------------------------------------
+#
 #GET THE thirdparty libraries
-#include_directories(${PROJECT_SOURCE_DIR}/thirdparty)
-#include_directories(${PROJECT_SOURCE_DIR}/src)
-add_subdirectory(thirdparty)
 add_subdirectory(src)
+add_subdirectory(thirdparty)
+#
+add_executable(mepInterp src/main.f90)
+target_link_libraries(mepInterp srcLib)
+target_include_directories(mepInterp PUBLIC thirdparty)
+#
+#link thirdparty libraries to exe 
+target_link_libraries(mepInterp m_config)
+target_link_libraries(mepInterp m_npyff)
+target_link_libraries(mepInterp m_integrals_rrr)
+target_link_libraries(mepInterp m_integrals_rra)
+
+
+
+#
+#
+#-------------------------------------------------------------------------------------
+#       TESTING
+#----------------------------------------------------------------------------------
+#
+
 
 #build tests
 enable_testing()
