@@ -60,7 +60,7 @@ module wann_interp
 									H_real, r_real, 									&
 									R_frac,	wf_centers,									&
 									kpt_idx, kpt, 										&
-									e_k, U_k,											&
+									en_k, U_k,											&
 									V_ka, A_ka, Om_kab				 					&
 							)
 		!
@@ -79,14 +79,17 @@ module wann_interp
 		integer,						intent(in)				::	kpt_idx
 		real(dp),						intent(in)				::	R_frac(:,:), kpt(3)	
 		real(dp),		allocatable,	intent(in)				::	wf_centers(:,:)
-		real(dp),						intent(out)				::	e_k(:)
+		real(dp),						intent(out)				::	en_k(:)
 		complex(dp),	allocatable,	intent(inout)			::	V_ka(:,:,:)
 		complex(dp),	allocatable,	intent(inout)			::	A_ka(:,:,:), Om_kab(:,:,:,:), U_k(:,:)
 		complex(dp),	allocatable								::	Uk_work(:,:), H_ka(:,:,:)
+		complex(dp)												::	cmplx_eDiff
+		integer	:: m, n, n_wf
 		!
+		n_wf	=	size(en_k,1)
 		!
-		allocate(	Uk_work(			size(e_k,1),		size(e_k,1)		)		)		
-		allocate(	H_ka(		3	,	size(e_k,1),		size(e_k,1)	 	)		)
+		allocate(	Uk_work(			n_wf,		n_wf		))		
+		allocate(	H_ka(		3	,	n_wf,		n_wf	 	))
 		!
 		!	GET BASIS
 		if(	.not. use_kspace_ham )	then
@@ -101,15 +104,29 @@ module wann_interp
 		!
 		!
 		!get energies (H)-gauge
-		call zheevd_wrapper(Uk_work, e_k)
+		call zheevd_wrapper(Uk_work, en_k)
 		!
 		!
 		!rotate back to (H)-gauge
 		if (allocated( V_ka)) then
-			if( do_gauge_trafo	)	call W_to_H_gaugeTRAFO(kpt_idx, e_k, Uk_work, H_ka, A_ka, Om_kab)
+			if( do_gauge_trafo	)	call W_to_H_gaugeTRAFO(kpt_idx, en_k, Uk_work, H_ka, A_ka, Om_kab)
 			!
+			!	add anomalous velocity to velo op. 
 			if( allocated(A_ka)	) then
-				call add_anom_velo(e_k, H_ka, A_ka, V_ka)
+				!$OMP PARALLEL DO DEFAULT(none) &
+				!$OMP PRIVATE(n,cmplx_eDiff) 	&
+				!$OMP SHARED(n_wf, en_k, H_Ka, A_ka, V_Ka) 
+				do m = 1, n_wf
+					do n = m+1, n_wf
+						if(	n >	m )	then
+							cmplx_eDiff	=	cmplx(	0.0_dp	,	en_k(m) - en_k(n),	dp)
+							!
+							V_ka(:,n,m)	= H_ka(:,n,m)	- cmplx_eDiff	* 	A_ka(:,n,m)
+							V_ka(:,m,n)	= H_ka(:,m,n)	+ cmplx_eDiff	*	A_ka(:,m,n)
+						end if
+					end do
+				end do
+				!$OMP END PARALLEL DO		
 			else
 				V_ka = H_ka
 			end if
@@ -117,6 +134,7 @@ module wann_interp
 			if(debug_mode)	call check_H_gauge_herm(kpt_idx, kpt, A_ka, Om_kab, V_ka)
 		end if
 		!
+		!return also the eigenvectors	
 		if(allocated(U_k))		U_k	=	Uk_work
 		!
 		return
@@ -166,7 +184,18 @@ module wann_interp
 	end subroutine
 
 
-!private:
+!
+!
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!
+!						~~~~			FOURIER TRAFO			~~~~~~~~~~~~~~
+!
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!	**************************************************************************************************************************************************
+!
 	subroutine FT_R_to_k(H_real, r_real, R_frac, atom_frac, kpt_idx, kpt, H_k,	H_ka, A_ka, Om_kab)			
 		!	interpolates real space Ham and position matrix to k-space,
 		!	according to
@@ -419,38 +448,6 @@ module wann_interp
 	end function
 	!~	
 	!~
-	!~
-	subroutine add_anom_velo(en_k, H_ka, A_ka, V_ka)
-		!	calc the (H)-gauge velocity matrix
-		!
-		!	PRB 74, 195118 (2006) EQ.(31)
-		real(dp),						intent(in)		::		en_k(:)
-		complex(dp),					intent(in)		::		H_ka(:,:,:)
-		complex(dp),					intent(inout) 	::		A_ka(:,:,:)
-		complex(dp),					intent(out)		::		V_ka(:,:,:)
-		complex(dp)										::		cmplx_eDiff
-		integer											::		m, n, n_wf
-		!
-		n_wf		=	size(en_k,1)
-		!
-		!$OMP PARALLEL DO DEFAULT(none) &
-		!$OMP PRIVATE(n,cmplx_eDiff) 	&
-		!$OMP SHARED(n_wf, en_k, H_Ka, A_ka, V_Ka) 
-		do m = 1, n_wf
-			do n = m+1, n_wf
-				if(	n >	m )	then
-					cmplx_eDiff	=	cmplx(	0.0_dp	,	en_k(m) - en_k(n),	dp)
-					!
-					V_ka(:,n,m)	= H_ka(:,n,m)	- cmplx_eDiff	* 	A_ka(:,n,m)
-					V_ka(:,m,n)	= H_ka(:,m,n)	+ cmplx_eDiff	*	A_ka(:,m,n)
-				end if
-			end do
-		end do
-		!$OMP END PARALLEL DO		
-		!
-		return
-	end subroutine
-
 
 !
 !
@@ -469,15 +466,21 @@ module wann_interp
 !	**************************************************************************************************************************************************
 !	**************************************************************************************************************************************************
 !
-	subroutine W_to_H_gaugeTRAFO(kpt_idx, e_k, U_k, H_ka, A_ka, Om_kab)
+	subroutine W_to_H_gaugeTRAFO(kpt_idx, en_k, U_k, H_ka, A_ka, Om_kab)
 		!	see PRB 74, 195118 (2006) EQ. 21 - 31
 		integer,						intent(in)		::	kpt_idx
-		real(dp),						intent(in)		::	e_k(:) 
+		real(dp),						intent(in)		::	en_k(:) 
 		complex(dp),					intent(in)		::	U_k(:,:)
 		complex(dp),	allocatable,	intent(inout)	::	H_ka(:,:,:)
 		complex(dp),	allocatable, 	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		complex(dp),	allocatable						::	D_ka(:,:,:) 
+		complex(dp),	allocatable						::	U_dag(:,:),	tmp_in(:,:), work(:,:),	D_ka(:,:,:)
+		integer											::	m, n, a, b, n_wf
+		real(dp)										::	eDiff_mn
 		!
+		n_wf	=	size(U_k,1)
+		allocate(	U_dag(				n_wf, 	n_wf	))
+		allocate(	tmp_IN(				n_wf,	n_wf	))
+		allocate(	work(				n_wf, 	n_wf	))
 		!
 		!debug (W)-gauge
 		if(debug_mode) &
@@ -485,42 +488,6 @@ module wann_interp
 		!
 		!
 		!do 	(W) -> (Hbar)
-		call rotate_gauge(U_k, H_ka, A_ka, Om_kab)
-
-		if(debug_mode)	call check_Hbar_gauge_herm(H_ka, A_ka, Om_kab)
-		!
-		!
-		!conn/curv	 (Hbar) -> (H)
-		if( allocated(A_ka) )	then
-			!	need gauge covar deriv (remember A_ka is not gauge covariant)
-			allocate(		D_ka(	3,	size(H_ka,2),	size(H_ka,3))				)
-			!
-			!
-			call get_gauge_covar_deriv(e_k, H_ka, D_ka)
-			!
-			call conn_gaugeTrafo(D_ka, A_ka)
-			call curv_gaugeTrafo(D_ka, A_ka, Om_kab)
-		end if
-		!
-		!
-	end subroutine
-	!~
-	!~
-	!~
-	!~
-	subroutine rotate_gauge(U_k, H_ka, A_ka, Om_kab)
-		!	PRB 74, 195118 (2006)	EQ.(21)
-		complex(dp),					intent(in)		::	U_k(:,:)
-		complex(dp), 					intent(inout)	::	H_ka(:,:,:)
-		complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
-		complex(dp),	allocatable						::	U_dag(:,:), tmp_IN(:,:), work(:,:)
-		integer											::	n_wf, a, b
-		!^^^^
-		!	ALLOCATE
-		n_wf	=	size(U_k,1)
-		allocate(	U_dag(				n_wf, 	n_wf	))
-		allocate(	tmp_IN(				n_wf,	n_wf	))
-		allocate(	work(				n_wf, 	n_wf	))
 		!^^^^
 		!	PRECOMPUTE SOME QUANTITIES
 		U_dag					=		conjg(	transpose(	U_k		))
@@ -543,109 +510,207 @@ module wann_interp
 				end do
 			end if
 		end do 
-		!~~~
-		return
-	end subroutine
-	!~	
-	!~
-	!~
-	subroutine get_gauge_covar_deriv(e_k, H_ka,	D_ka )
-		!	PRB 74, 195118 (2006)	EQ.(24)
-		real(dp),			intent(in)		::	e_k(:)
-		complex(dp),		intent(in)		::	H_ka(:,:,:)
-		complex(dp),		intent(out)		::	D_ka(:,:,:)
-		integer								::	m, n, a
-		real(dp)							::	eDiff_mn, max_err
+
+		if(debug_mode)	call check_Hbar_gauge_herm(H_ka, A_ka, Om_kab)
 		!
-		D_ka(:,:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
 		!
-		!$OMP PARALLEL DO DEFAULT(none) 		&
-		!$OMP PRIVATE(n,eDiff_mn) 				&
-		!$OMP SHARED(kubo_tol, e_k, H_Ka, D_ka) 
-		do m = 1, size(D_ka,3)
-			do n = m+1, size(D_ka,2)
-				eDiff_mn			=	e_k(m)	- 	e_k(n)
-				!
-				if(abs(eDiff_mn) > 	kubo_tol	)	then
-					D_ka(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff_mn
-					D_ka(1:3,m,n)	=	H_ka(1:3,m,n) /	( - eDiff_mn	)
-				else
-					write(*,'(a)',advance="no")	'[;get_gauge_covar_deriv]: '
-					write(*,'(a,i6,a,i6)')		'WARNING degenerate bands detetected n=',n,' m=',m
-				end if
-			end do
-		end do
-		!$OMP END PARALLEL DO
-		!
-		if(debug_mode)	then
-			do a = 1, 3
-				if( .not. is_skew_herm_mat(D_ka(a,:,:), max_err)	)	then
-					write(*,'(a,i1,a,f16.7)')	"[get_gauge_covar_deriv/DEBUG-MODE]:	WARNING D_(k,a=",a,&
-																") is not skew hermitian, max_err=", max_err
-					if(.not. is_herm_mat(H_ka(a,:,:),max_err)	) then
-						write(*,'(a,i1,a,f16.7)')	"[get_gauge_covar_deriv/DEBUG-MODE]:	WARNING H_(k,a=",a,&
-																") is not hermitian, max_err=", max_err
+		!conn/curv	 (Hbar) -> (H)
+		if( allocated(A_ka) )	then
+			!	need gauge covar deriv (remember A_ka is not gauge covariant)
+			allocate(		D_ka(	3,	size(H_ka,2),	size(H_ka,3))				)
+			D_ka(:,:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
+			!
+			!
+			!SET UP GAUGE COVARIANT DERIVATIVE  D_ka
+			!
+			!$OMP PARALLEL DO DEFAULT(none) 		&
+			!$OMP PRIVATE(n,eDiff_mn) 				&
+			!$OMP SHARED(kubo_tol, en_k, H_Ka, D_ka) 
+			do m = 1, size(D_ka,3)
+				do n = m+1, size(D_ka,2)
+					eDiff_mn			=	en_k(m)	- 	en_k(n)
+					!
+					if(abs(eDiff_mn) > 	kubo_tol	)	then
+						D_ka(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff_mn
+						D_ka(1:3,m,n)	=	H_ka(1:3,m,n) /	( - eDiff_mn	)
+					else
+						write(*,'(a)',advance="no")	'[;get_gauge_covar_deriv]: '
+						write(*,'(a,i6,a,i6)')		'WARNING degenerate bands detetected n=',n,' m=',m
 					end if
-				end if
+				end do
 			end do
+			!$OMP END PARALLEL DO
+			!
+			if(debug_mode)	call gauge_covar_deriv_debugger(D_ka,H_ka)
+			!~~~~~
+			!
+			!APPLY GAUGE COVAR. DERIV. CORRECTION TO CONNECTION
+			A_ka(:,:,:)	=	A_ka(:,:,:)	+ i_dp	*	D_ka(:,:,:)
+			!
+			!
+			!APPLY GAUGE COVAR. DERIV. CORRECTION TO CURVATURE
+			do b = 1, 3
+				do a = 1, 3
+					!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			matrix_comm(	D_ka(a,:,:), 	A_ka(b,:,:)		)
+					Om_kab(a,b,:,:)		=	Om_kab(a,b,:,:)		&
+						-			(	blas_matmul(D_ka(a,:,:), A_ka(b,:,:)) 		- 		blas_matmul(A_ka(b,:,:), D_ka(a,:,:))	)	
+					!
+					!
+					!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			matrix_comm(	D_ka(b,:,:), 	A_ka(a,:,:)		)
+					Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)			&
+						+			( blas_matmul(D_ka(b,:,:), 	A_ka(a,:,:))		-		blas_matmul(A_ka(a,:,:), D_ka(b,:,:))	)
+					!
+					!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:))
+					Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)			&
+						- i_dp * 	( blas_matmul(D_ka(a,:,:), 	D_ka(b,:,:))		-		blas_matmul(D_ka(b,:,:), D_ka(a,:,:))	)
+				end do
+			end do		
 		end if
 		!
-		return
+		!
 	end subroutine
+	!~
+
+	!~
+	!~
+	!~
+	!~
+	
+
+
+
+
+
+	!subroutine rotate_gauge(U_k, H_ka, A_ka, Om_kab)
+	!	!	PRB 74, 195118 (2006)	EQ.(21)
+	!	complex(dp),					intent(in)		::	U_k(:,:)
+	!	complex(dp), 					intent(inout)	::	H_ka(:,:,:)
+	!	complex(dp), 	allocatable,	intent(inout)	::	A_ka(:,:,:), Om_kab(:,:,:,:)
+	!	complex(dp),	allocatable						::	U_dag(:,:), tmp_IN(:,:), work(:,:)
+	!	integer											::	n_wf, a, b
+	!	!^^^^
+	!	!	ALLOCATE
+	!	n_wf	=	size(U_k,1)
+	!	allocate(	U_dag(				n_wf, 	n_wf	))
+	!	allocate(	tmp_IN(				n_wf,	n_wf	))
+	!	allocate(	work(				n_wf, 	n_wf	))
+	!	!do 	(W) -> (Hbar)
+	!	!^^^^
+	!	!	PRECOMPUTE SOME QUANTITIES
+	!	U_dag					=		conjg(	transpose(	U_k		))
+	!	!^^^^
+	!	!	LOOP SPATIAL INDEX 
+	!	do a = 1, 3
+	!		tmp_in				=		H_ka(a,:,:)
+	!		work				=		blas_matmul(		tmp_in,		U_k			)		
+	!		H_ka(a,:,:)			=		blas_matmul(		U_dag, 		work		)
+	!		!
+	!		if(allocated(A_ka)) then
+	!			tmp_in			=		A_ka(a,:,:)
+	!			work			=		blas_matmul(		tmp_in,		U_k			)
+	!			A_ka(a,:,:)		=		blas_matmul(		U_dag,		work		)
+	!			!
+	!			do b= 1, 3
+	!				tmp_in		=		OM_kab(b,a,:,:)
+	!				work		=		blas_matmul(		tmp_in, 	U_k			)
+	!				Om_kab(b,a,:,:)	= 	blas_matmul(		U_dag,		work		)	
+	!			end do
+	!		end if
+	!	end do 
+	!	!~~~
+	!	return
+	!end subroutine
+	!!~	
+
+
+	!~
+	!~
+	!subroutine get_gauge_covar_deriv(e_k, H_ka,	D_ka )
+	!	!	PRB 74, 195118 (2006)	EQ.(24)
+	!	real(dp),			intent(in)		::	e_k(:)
+	!	complex(dp),		intent(in)		::	H_ka(:,:,:)
+	!	complex(dp),		intent(out)		::	D_ka(:,:,:)
+	!	integer								::	m, n, a
+	!	real(dp)							::	eDiff_mn, max_err
+	!	!
+	!	D_ka(:,:,:)	=	cmplx(0.0_dp, 0.0_dp, dp)
+	!	!
+	!	!$OMP PARALLEL DO DEFAULT(none) 		&
+	!	!$OMP PRIVATE(n,eDiff_mn) 				&
+	!	!$OMP SHARED(kubo_tol, e_k, H_Ka, D_ka) 
+	!	do m = 1, size(D_ka,3)
+	!		do n = m+1, size(D_ka,2)
+	!			eDiff_mn			=	e_k(m)	- 	e_k(n)
+	!			!
+	!			if(abs(eDiff_mn) > 	kubo_tol	)	then
+	!				D_ka(1:3,n,m)	=	H_ka(1:3,n,m) / 	eDiff_mn
+	!				D_ka(1:3,m,n)	=	H_ka(1:3,m,n) /	( - eDiff_mn	)
+	!			else
+	!				write(*,'(a)',advance="no")	'[;get_gauge_covar_deriv]: '
+	!				write(*,'(a,i6,a,i6)')		'WARNING degenerate bands detetected n=',n,' m=',m
+	!			end if
+	!		end do
+	!	end do
+	!	!$OMP END PARALLEL DO
+	!	!
+	!	if(debug_mode)	call gauge_covar_deriv_debugger(D_ka,H_ka)
+	!	!
+	!	return
+	!end subroutine
+	!~	
+
+	!~
+	!~
+	!subroutine conn_gaugeTrafo(D_ka, A_ka)
+	!	!	PRB 74, 195118 (2006)	EQ.(25)
+	!	!
+	!	!	Lapack
+	!	!		https://software.intel.com/en-us/mkl-developer-reference-fortran-gemm#90EAA001-D4C8-4211-9EA0-B62F5ADE9CF0
+	!	!		C :- 
+	!	complex(dp),		intent(in)		::	D_ka(:,:,:)
+	!	complex(dp),		intent(inout)	::	A_ka(:,:,:)
+	!	integer								::	m
+	!	!
+	!	!
+	!	!$OMP PARALLEL DO DEFAULT(none)	&
+	!	!$OMP PRIVATE(m)				&
+	!	!$OMP SHARED(A_ka, D_ka)
+	!	do m = 1, size(A_ka,3)
+	!		A_ka(:,:,m)	=	A_ka(:,:,m)	+ i_dp	*	D_ka(:,:,m)
+	!	end do
+	!	!$OMP END PARALLEL DO
+	!	!
+	!	return
+	!end subroutine
 	!~	
 	!~
 	!~
-	subroutine conn_gaugeTrafo(D_ka, A_ka)
-		!	PRB 74, 195118 (2006)	EQ.(25)
-		!
-		!	Lapack
-		!		https://software.intel.com/en-us/mkl-developer-reference-fortran-gemm#90EAA001-D4C8-4211-9EA0-B62F5ADE9CF0
-		!		C :- 
-		complex(dp),		intent(in)		::	D_ka(:,:,:)
-		complex(dp),		intent(inout)	::	A_ka(:,:,:)
-		integer								::	m
-		!
-		!
-		!$OMP PARALLEL DO DEFAULT(none)	&
-		!$OMP PRIVATE(m)				&
-		!$OMP SHARED(A_ka, D_ka)
-		do m = 1, size(A_ka,3)
-			A_ka(:,:,m)	=	A_ka(:,:,m)	+ i_dp	*	D_ka(:,:,m)
-		end do
-		!$OMP END PARALLEL DO
-		!
-		return
-	end subroutine
-	!~	
-	!~
-	!~
-	subroutine curv_gaugeTrafo(D_ka, A_ka, Om_kab)
-		!	PRB 74, 195118 (2006)	EQ.(27)
-		complex(dp),		intent(in)		::	D_ka(:,:,:), A_ka(:,:,:)
-		complex(dp),		intent(inout)	::	Om_kab(:,:,:,:)
-		integer								::	a, b
-		!
-		do b = 1, 3
-			do a = 1, 3
-				!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			matrix_comm(	D_ka(a,:,:), 	A_ka(b,:,:)		)
-				Om_kab(a,b,:,:)		=	Om_kab(a,b,:,:)		&
-					-			(	blas_matmul(D_ka(a,:,:), A_ka(b,:,:)) 		- 		blas_matmul(A_ka(b,:,:), D_ka(a,:,:))	)	
-				!
-				!
-				!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			matrix_comm(	D_ka(b,:,:), 	A_ka(a,:,:)		)
-				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)			&
-					+			( blas_matmul(D_ka(b,:,:), 	A_ka(a,:,:))		-		blas_matmul(A_ka(a,:,:), D_ka(b,:,:))	)
-				!
-				!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:))
-				Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)			&
-					- i_dp * 	( blas_matmul(D_ka(a,:,:), 	D_ka(b,:,:))		-		blas_matmul(D_ka(b,:,:), D_ka(a,:,:))	)
-			end do
-		end do
-		!
-		return 
-	end subroutine
 
-
+	!subroutine curv_gaugeTrafo(D_ka, A_ka, Om_kab)
+	!	!	PRB 74, 195118 (2006)	EQ.(27)
+	!	complex(dp),		intent(in)		::	D_ka(:,:,:), A_ka(:,:,:)
+	!	complex(dp),		intent(inout)	::	Om_kab(:,:,:,:)
+	!	integer								::	a, b
+	!	!
+	!	do b = 1, 3
+	!		do a = 1, 3
+	!			!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-			matrix_comm(	D_ka(a,:,:), 	A_ka(b,:,:)		)
+	!			Om_kab(a,b,:,:)		=	Om_kab(a,b,:,:)		&
+	!				-			(	blas_matmul(D_ka(a,:,:), A_ka(b,:,:)) 		- 		blas_matmul(A_ka(b,:,:), D_ka(a,:,:))	)	
+	!			!
+	!			!
+	!			!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		+			matrix_comm(	D_ka(b,:,:), 	A_ka(a,:,:)		)
+	!			Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)			&
+	!				+			( blas_matmul(D_ka(b,:,:), 	A_ka(a,:,:))		-		blas_matmul(A_ka(a,:,:), D_ka(b,:,:))	)
+	!			!
+	!			!Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)		-	i_dp *	matrix_comm( D_ka(a,:,:), 	D_ka(b,:,:))
+	!			Om_kab(a,b,:,:)	=	Om_kab(a,b,:,:)			&
+	!				- i_dp * 	( blas_matmul(D_ka(a,:,:), 	D_ka(b,:,:))		-		blas_matmul(D_ka(b,:,:), D_ka(a,:,:))	)
+	!		end do
+	!	end do
+	!	!
+	!	return 
+	!end subroutine
 
 
 !
@@ -918,6 +983,26 @@ module wann_interp
 		if(	is_herm ) 	write(*,'(a,i8)')	"[check_H_gauge_herm/DEBUG-MODE]:	"						//	&
 															"SUCCESS (H)-gauge quantities ("//trim(allo_lst)//") are hermitian "	//  &
 															" at  #kpt= ", kpt_idx		
+		!
+		return
+	end subroutine
+
+
+	subroutine gauge_covar_deriv_debugger(D_ka, H_ka)
+		complex(dp),		intent(in)		::	D_ka(:,:,:), H_ka(:,:,:)
+		real(dp)							::	max_err
+		integer								::	a
+		!
+		do a = 1, 3
+			if( .not. is_skew_herm_mat(D_ka(a,:,:), max_err)	)	then
+				write(*,'(a,i1,a,f16.7)')	"[get_gauge_covar_deriv/DEBUG-MODE]:	WARNING D_(k,a=",a,&
+															") is not skew hermitian, max_err=", max_err
+				if(.not. is_herm_mat(H_ka(a,:,:),max_err)	) then
+					write(*,'(a,i1,a,f16.7)')	"[get_gauge_covar_deriv/DEBUG-MODE]:	WARNING H_(k,a=",a,&
+															") is not hermitian, max_err=", max_err
+				end if
+			end if
+		end do
 		!
 		return
 	end subroutine
