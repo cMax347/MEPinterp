@@ -16,7 +16,6 @@ module keldysh
 	public			::		keldysh_scnd_photoC, keldysh_scnd_photoC_NUMERICAL
 
 	real(dp),	parameter		::	pi_half	= pi_dp / 2.0_dp
-	
 contains
 
 
@@ -29,19 +28,30 @@ contains
 !																																					|
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
-function keldysh_scnd_photoC(	en_k, V_ka, hw_lst, smr_lst, ef_lst)			result(phi)
+function keldysh_scnd_photoC(kpt,	en_k, V_ka, hw_lst, smr_lst, ef_lst)			result(phi)
 	!		see	 Freimuth et al., PRB 94, 144432 (2016)  
 	!		 EQ.(2)
-	real(dp),		intent(in)		::	en_k(:), hw_lst(:), smr_lst(:), ef_lst(:)
+	real(dp),		intent(in)		::	kpt(3), en_k(:), hw_lst(:), smr_lst(:), ef_lst(:)
 	complex(dp),	intent(in)		::	V_ka(:,:,:)
 	complex(dp),	allocatable		::	phi(:,:,:,:,:,:)
 	complex(dp)						::	v_ijk(3,3,3), v_ikj(3,3,3)
 	integer							::	a,b,c, j,k, hw, smr, ef
+	real(dp)						::	magic_kcut
 	!
 	allocate(	phi(	3,3,3,	size(hw_lst), size(smr_lst), size(ef_lst)		))
 	phi	= cmplx(0.0_dp,0.0_dp,dp)
 	!
 	!	TODO:	OMP REDUCTION OVER "phi"
+	!if(maxval(en_k)> (maxval(ef_lst)+maxval(hw_lst)))&	
+	!	write(*,*)	'[keldysh_scnd_photoC]: WARNING bands beyond max relevant energy kpt=',kpt
+
+	!magic_kcut	=	
+
+	if( 	abs(	minval(en_k)-maxval(ef_lst)-maxval(hw_lst))	< 1e-6_dp )then
+		magic_kcut=	norm2(kpt)
+		write(*,*)	'[keldysh_scnd_photoC]:	minval(en_k)=',minval(en_k)*aUtoEv," (eV) at kpt=",kpt," (magic_kcunt=",magic_kcut,")" 
+	end if
+
 
 
 	!$OMP PARALLEL DO REDUCTION(+:phi) 									&

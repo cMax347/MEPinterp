@@ -295,7 +295,7 @@ contains
 							if(do_keldysh_num) then
 								keldysh_photoC_loc		=	keldysh_photoC_loc	+ keldysh_scnd_photoC_NUMERICAL(en_k,U_k, V_ka, hw_lst, smr_lst, ef_lst)	
 							else
-								keldysh_photoC_loc		=	keldysh_photoC_loc	+ keldysh_scnd_photoC(en_k, V_ka, hw_lst, smr_lst, ef_lst)
+								keldysh_photoC_loc		=	keldysh_photoC_loc	+ keldysh_scnd_photoC(kpt,en_k, V_ka, hw_lst, smr_lst, ef_lst)
 							end if
 						end if
 						!~

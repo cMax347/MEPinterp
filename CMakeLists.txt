@@ -115,17 +115,16 @@ file(GLOB srcLst src/*.f90)
 list(REMOVE_ITEM srcLst main.f90)
 add_library(srcLib ${srcLst})
 #
-#GET THE thirdparty libraries
-add_subdirectory(thirdparty)
 #
 #LINK EVERYTHING INTO srcLib
-add_executable(mepInterp src/main.f90)
+add_subdirectory(thirdparty)
 target_link_libraries(srcLib m_config)
 target_link_libraries(srcLib m_npyff)
-#target_link_libraries(mepInterp m_integrals_rrr)
-#target_link_libraries(mepInterp m_integrals_rra)
+#target_link_libraries(srcLib m_integrals_rrr)
+#target_link_libraries(srcLib m_integrals_rra)
 #
 #
+add_executable(mepInterp src/main.f90)
 target_link_libraries(mepInterp srcLib)
 
 
